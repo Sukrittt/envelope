@@ -1,73 +1,122 @@
-# Mission Control App
+# Mission Control App — Master Dashboard Foundation
 
-React + Vite + TypeScript operations dashboard.
+React + Vite + TypeScript app that now acts as a **unified master dashboard shell** across:
 
-## What was added in this update
+- Overview
+- Expense Dashboard
+- Fitness Dashboard
+- Mission Control
 
-### 1) Route-based pages
-Implemented app routing with `react-router-dom`:
-- `/` → Dashboard
-- `/departments/:id` → Department detail page
-- `/risks` → Full risk register page
-- `/learnings` → Learning feed page
+## What shipped in this run
 
-### 2) Filtering controls
-Implemented practical filters on dedicated pages:
-- Risks page:
-  - Severity filter (`critical/high/med/low`)
-  - Department filter
-- Learnings page:
-  - Department filter
-  - Tag filter
+### 1) Top-level dashboard switcher
+Implemented a persistent, keyboard-accessible top navigation using route-based tabs:
 
-### 3) Loading / empty / error states
-Added clearer states:
-- App-level loading state while fetching data
-- Error state with actionable guidance when fetch fails
-- Empty-state fallbacks for filtered results and department sub-panels
+- `/overview`
+- `/expense`
+- `/fitness`
+- `/mission-control`
 
-### 4) Data service robustness
-`dashboardService.ts` now includes typed normalization and safe defaults:
-- Validates/normalizes incoming payload shape
-- Prevents crashes from malformed API data
-- Provides sane fallback values for missing fields
+Navigation uses native anchors (`NavLink`) with visible focus styles for keyboard users.
 
-### 5) Usability and accessibility polish
-- Focus-visible styles for links, selects, and summary controls
-- Better mobile spacing/layout collapse on smaller screens
-- Improved keyboard navigation affordances via visible focus rings
+### 2) Integrated expense + fitness modules
+Added typed `externalModules` data model and in-app module cards with:
 
----
+- health/status pill
+- last sync timestamp
+- primary + secondary summary metrics
+- deep links to external apps/data sources
 
-## Local setup
+This gives one in-app summary while still allowing deep-link drill-down.
+
+### 3) Cross-department sync panel (typed)
+Added typed `crossDepartmentSync` model and rendered status blocks for:
+
+- Engineering
+- UI/UX
+- Fitness
+- Ops
+
+Each block includes owner, status, updated time, current block, and next action.
+
+### 4) Responsive + accessible UI baseline
+- Responsive grids for mobile/tablet/desktop
+- Focus-visible styles on nav, links, and expandable summaries
+- Wrap-friendly top nav for smaller breakpoints
+
+### 5) Validation
+Run and verify:
 
 ```bash
-cd /root/.openclaw/workspace/mission-control-app
 npm install
-```
-
-## Run locally
-
-```bash
-npm run dev
-```
-
-Open the Vite URL shown in terminal (typically `http://localhost:5173`).
-
-## Quality checks
-
-```bash
 npm run lint
 npm run build
 ```
 
-Both should pass before pushing.
+## Architecture (current)
 
-## Environment notes
+```text
+src/
+  App.tsx                    # Route shell + overview/expense/fitness/mission-control pages
+  App.css                    # Shared responsive styles + a11y focus styles
+  data/mockData.json         # Mock payload including externalModules + crossDepartmentSync
+  services/dashboardService.ts # Data source switch (mock vs API)
+  types.ts                   # Typed contracts for dashboard and sync/module bindings
+```
 
-By default, app reads `src/data/mockData.json`.
-If `VITE_API_BASE_URL` is set, app calls:
+## Data binding extension guide
 
-`{VITE_API_BASE_URL}/mission-control/dashboard`
+### A) Connect to real API
+`src/services/dashboardService.ts` already supports backend mode via:
 
-Response is normalized defensively before rendering.
+- `VITE_API_BASE_URL`
+
+When set, app fetches:
+
+- `${VITE_API_BASE_URL}/mission-control/dashboard`
+
+Ensure API response includes all `DashboardData` fields from `src/types.ts`.
+
+### B) Add/modify external module cards
+Update `externalModules` in payload:
+
+```ts
+interface ExternalModuleSummary {
+  module: 'expense' | 'fitness'
+  title: string
+  health: 'green' | 'amber' | 'red'
+  lastSync: string
+  primaryMetric: string
+  secondaryMetric: string
+  deepLinks: { label: string; url: string }[]
+  notes: string
+}
+```
+
+To add another module, extend the `module` union type and map it to a route/page.
+
+### C) Extend cross-department sync blocks
+Update `crossDepartmentSync` in payload:
+
+```ts
+interface DepartmentSyncStatus {
+  department: 'Engineering' | 'UI/UX' | 'Fitness' | 'Ops'
+  owner: string
+  status: 'green' | 'amber' | 'red'
+  updatedAt: string
+  block: string
+  next: string
+}
+```
+
+To onboard another department, extend the `department` union and add entries in the payload.
+
+## Deploy/Release checklist
+
+1. `npm ci`
+2. `npm run lint`
+3. `npm run build`
+4. Validate routes load correctly (`/overview`, `/expense`, `/fitness`, `/mission-control`)
+5. Verify deep links open expected external targets
+6. Verify keyboard-only navigation (Tab + Enter)
+7. Deploy `dist/` to hosting target
