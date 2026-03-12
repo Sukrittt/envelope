@@ -1,6 +1,6 @@
-# Fitness Dashboard Data Contract (v1.0)
+# Fitness Dashboard Data Contract (v1.1)
 
-This defines the source payload consumed by dashboard adapters and frontend panels.
+Canonical source payload for the fitness section in Mission Control.
 
 ## Canonical files
 - Schema: `fitness-dashboard.schema.json`
@@ -11,21 +11,38 @@ This defines the source payload consumed by dashboard adapters and frontend pane
 |---|---|---:|---|
 | `meta` | object | yes | versioning + generation context |
 | `athleteProfile` | object | yes | static + latest bodyweight context |
-| `targets` | object | yes | current weekly process targets |
-| `dailyLogs` | array | yes | daily raw facts (minimum 7 rows) |
-| `kpis` | object | yes | precomputed KPIs for quick rendering |
+| `targets` | object | yes | weekly process targets |
+| `dailyLogs` | array | yes | daily raw facts (minimum 21 rows) |
+| `kpis` | object | yes | top-line KPI strip |
+| `summaries` | object | yes | card-ready summary blocks |
+| `chartSeries` | object | yes | chart-ready date/value series |
+| `edgeCaseHandling` | string[] | yes | renderer/data safety notes |
 
-## Minimal daily row fields
-- `date` (`YYYY-MM-DD`)
-- `morningWeightKg` (number)
-- `caloriesKcal` (integer)
-- `proteinG` (integer)
-- `steps` (integer)
-- `sleepHours` (number)
-- `workout.status` (`done` | `rest`)
-- `workout.type` (`push` | `pull` | `legs` | `cardio` | `rest`)
+## Required summary blocks (card-ready)
+- `summaries.adherence`
+  - `weekPct`, `monthPct`
+  - `weekChecksPassed`, `weekChecksTotal`
+  - `monthChecksPassed`, `monthChecksTotal`
+- `summaries.weightTrend`
+  - `trend7dKgPerWeek`, `trend14dKgPerWeek`, `direction`
+- `summaries.protein`
+  - `targetG`, `avg7dG`, `avg21dG`, `daysMet7d`, `daysMet21d`, `consistencyBand`
+- `summaries.steps`
+  - `targetMin`, `avg7d`, `avg21d`, `targetAttainment7dPct`, `targetAttainment21dPct`
+- `summaries.training`
+  - `plannedSessionsWeek`, `completedSessionsWeek`, `extraSessionsWeek`, `completionPctWeek`
+  - `splitByType.push`, `splitByType.pull`, `splitByType.legs`
 
-## KPI payload fields
+## Chart payload
+All chart series are pre-normalized arrays of `{ date: YYYY-MM-DD, value: number|null }`.
+
+- `chartSeries.weightDaily21d`
+- `chartSeries.weightMovingAvg7d`
+- `chartSeries.proteinDaily21d`
+- `chartSeries.stepsDaily21d`
+- `chartSeries.adherenceDaily21d`
+
+## KPI fields
 - `weightTrendKgPerWeek`
 - `adherencePct`
 - `avgProteinG`
@@ -34,7 +51,8 @@ This defines the source payload consumed by dashboard adapters and frontend pane
 
 Detailed formulas: `FITNESS_KPI_DEFINITIONS.md`
 
-## Nullability and edge behavior
-- Use `null` for unavailable derived values; do not send fake zeroes.
-- Keep numeric units explicit in field names (`Kg`, `Kcal`, `Pct`, `G`).
-- Date format must remain ISO (`YYYY-MM-DD`) for deterministic sorting.
+## Nullability + edge behavior
+- Use `null` when a derived metric is not computable (never fake zero).
+- Keep units explicit in field names (`Kg`, `Kcal`, `Pct`, `G`).
+- Date format must stay ISO (`YYYY-MM-DD`) for deterministic sort.
+- Keep sparse data sparse; do not backfill missing days with zeroes.

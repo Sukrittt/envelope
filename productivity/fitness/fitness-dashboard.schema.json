@@ -3,13 +3,7 @@
   "$id": "https://sumeru.local/schemas/fitness-dashboard.schema.json",
   "title": "Fitness Dashboard Data Contract",
   "type": "object",
-  "required": [
-    "meta",
-    "athleteProfile",
-    "targets",
-    "dailyLogs",
-    "kpis"
-  ],
+  "required": ["meta", "athleteProfile", "targets", "dailyLogs", "kpis", "summaries", "chartSeries", "edgeCaseHandling"],
   "properties": {
     "meta": {
       "type": "object",
@@ -50,18 +44,10 @@
     },
     "dailyLogs": {
       "type": "array",
-      "minItems": 7,
+      "minItems": 21,
       "items": {
         "type": "object",
-        "required": [
-          "date",
-          "morningWeightKg",
-          "caloriesKcal",
-          "proteinG",
-          "steps",
-          "sleepHours",
-          "workout"
-        ],
+        "required": ["date", "morningWeightKg", "caloriesKcal", "proteinG", "steps", "sleepHours", "workout"],
         "properties": {
           "date": { "type": "string", "format": "date" },
           "morningWeightKg": { "type": "number" },
@@ -75,10 +61,7 @@
             "required": ["status", "type"],
             "properties": {
               "status": { "type": "string", "enum": ["done", "rest"] },
-              "type": {
-                "type": "string",
-                "enum": ["push", "pull", "legs", "cardio", "rest"]
-              },
+              "type": { "type": "string", "enum": ["push", "pull", "legs", "cardio", "rest"] },
               "topSet": { "type": "string" },
               "rpe": { "type": "number", "minimum": 1, "maximum": 10 },
               "completed": { "type": "boolean" }
@@ -98,19 +81,111 @@
     },
     "kpis": {
       "type": "object",
-      "required": [
-        "weightTrendKgPerWeek",
-        "adherencePct",
-        "avgProteinG",
-        "avgSteps",
-        "trainingCompletionPct"
-      ],
+      "required": ["weightTrendKgPerWeek", "adherencePct", "avgProteinG", "avgSteps", "trainingCompletionPct"],
       "properties": {
-        "weightTrendKgPerWeek": { "type": "number" },
-        "adherencePct": { "type": "number" },
-        "avgProteinG": { "type": "number" },
-        "avgSteps": { "type": "number" },
-        "trainingCompletionPct": { "type": "number" }
+        "weightTrendKgPerWeek": { "type": ["number", "null"] },
+        "adherencePct": { "type": ["number", "null"] },
+        "avgProteinG": { "type": ["number", "null"] },
+        "avgSteps": { "type": ["number", "null"] },
+        "trainingCompletionPct": { "type": ["number", "null"] }
+      }
+    },
+    "summaries": {
+      "type": "object",
+      "required": ["adherence", "weightTrend", "protein", "steps", "training"],
+      "properties": {
+        "adherence": {
+          "type": "object",
+          "required": ["weekPct", "monthPct", "weekChecksPassed", "weekChecksTotal", "monthChecksPassed", "monthChecksTotal"],
+          "properties": {
+            "weekPct": { "type": ["number", "null"] },
+            "monthPct": { "type": ["number", "null"] },
+            "weekChecksPassed": { "type": "integer" },
+            "weekChecksTotal": { "type": "integer" },
+            "monthChecksPassed": { "type": "integer" },
+            "monthChecksTotal": { "type": "integer" }
+          }
+        },
+        "weightTrend": {
+          "type": "object",
+          "required": ["trend7dKgPerWeek", "trend14dKgPerWeek", "direction"],
+          "properties": {
+            "trend7dKgPerWeek": { "type": ["number", "null"] },
+            "trend14dKgPerWeek": { "type": ["number", "null"] },
+            "direction": { "type": "string", "enum": ["down", "flat", "up"] }
+          }
+        },
+        "protein": {
+          "type": "object",
+          "required": ["targetG", "avg7dG", "avg21dG", "daysMet7d", "daysMet21d", "consistencyBand"],
+          "properties": {
+            "targetG": { "type": "integer" },
+            "avg7dG": { "type": ["number", "null"] },
+            "avg21dG": { "type": ["number", "null"] },
+            "daysMet7d": { "type": "integer" },
+            "daysMet21d": { "type": "integer" },
+            "consistencyBand": { "type": "string", "enum": ["low", "medium", "high"] }
+          }
+        },
+        "steps": {
+          "type": "object",
+          "required": ["targetMin", "avg7d", "avg21d", "targetAttainment7dPct", "targetAttainment21dPct"],
+          "properties": {
+            "targetMin": { "type": "integer" },
+            "avg7d": { "type": ["number", "null"] },
+            "avg21d": { "type": ["number", "null"] },
+            "targetAttainment7dPct": { "type": ["number", "null"] },
+            "targetAttainment21dPct": { "type": ["number", "null"] }
+          }
+        },
+        "training": {
+          "type": "object",
+          "required": ["plannedSessionsWeek", "completedSessionsWeek", "extraSessionsWeek", "completionPctWeek", "splitByType"],
+          "properties": {
+            "plannedSessionsWeek": { "type": "integer" },
+            "completedSessionsWeek": { "type": "integer" },
+            "extraSessionsWeek": { "type": "integer" },
+            "completionPctWeek": { "type": ["number", "null"] },
+            "splitByType": {
+              "type": "object",
+              "required": ["push", "pull", "legs"],
+              "properties": {
+                "push": { "type": "integer" },
+                "pull": { "type": "integer" },
+                "legs": { "type": "integer" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "chartSeries": {
+      "type": "object",
+      "required": ["weightDaily21d", "weightMovingAvg7d", "proteinDaily21d", "stepsDaily21d", "adherenceDaily21d"],
+      "properties": {
+        "weightDaily21d": { "$ref": "#/$defs/dateValueSeries" },
+        "weightMovingAvg7d": { "$ref": "#/$defs/dateValueSeries" },
+        "proteinDaily21d": { "$ref": "#/$defs/dateValueSeries" },
+        "stepsDaily21d": { "$ref": "#/$defs/dateValueSeries" },
+        "adherenceDaily21d": { "$ref": "#/$defs/dateValueSeries" }
+      }
+    },
+    "edgeCaseHandling": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "dateValueSeries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "value"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "value": { "type": ["number", "null"] }
+        }
       }
     }
   }

@@ -1,31 +1,34 @@
 {
   "meta": {
-    "version": "v1.0",
-    "generatedAt": "2026-03-12T15:20:00Z",
+    "version": "v1.1",
+    "generatedAt": "2026-03-12T19:20:00Z",
     "timezone": "Asia/Calcutta",
     "weekStart": "2026-03-09"
   },
   "athleteProfile": {
     "name": "Sukrit",
     "startWeightKg": 68.89,
-    "currentWeightKg": 62.2,
+    "currentWeightKg": 61.9,
     "targetWeightKg": 58
   },
   "targets": {
-    "calorieRange": { "min": 1600, "max": 1800 },
+    "calorieRange": {
+      "min": 1600,
+      "max": 1800
+    },
     "proteinG": 110,
     "stepsMin": 8000,
     "plannedTrainingSessions": 6
   },
   "dailyLogs": [
     {
-      "date": "2026-03-01",
-      "morningWeightKg": 62.8,
-      "caloriesKcal": 1780,
-      "proteinG": 102,
-      "steps": 8400,
-      "sleepHours": 7.1,
-      "hydrationL": 2.8,
+      "date": "2026-02-20",
+      "morningWeightKg": 63.1,
+      "caloriesKcal": 1760,
+      "proteinG": 108,
+      "steps": 8200,
+      "sleepHours": 6.8,
+      "hydrationL": 2.6,
       "workout": {
         "status": "done",
         "type": "push",
@@ -33,17 +36,21 @@
         "rpe": 8,
         "completed": true
       },
-      "adherence": { "calorieInRange": true, "proteinMet": false, "stepsMet": true },
-      "notes": "Good training, late dinner."
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": false,
+        "stepsMet": true
+      },
+      "notes": "Good pump, controlled appetite."
     },
     {
-      "date": "2026-03-02",
-      "morningWeightKg": 62.7,
+      "date": "2026-02-21",
+      "morningWeightKg": 63,
       "caloriesKcal": 1710,
-      "proteinG": 115,
+      "proteinG": 112,
       "steps": 9100,
-      "sleepHours": 6.8,
-      "hydrationL": 2.6,
+      "sleepHours": 7.1,
+      "hydrationL": 2.8,
       "workout": {
         "status": "done",
         "type": "pull",
@@ -51,14 +58,18 @@
         "rpe": 8,
         "completed": true
       },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "Solid day."
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Strong back session."
     },
     {
-      "date": "2026-03-03",
-      "morningWeightKg": 62.6,
-      "caloriesKcal": 1835,
-      "proteinG": 108,
+      "date": "2026-02-22",
+      "morningWeightKg": 62.9,
+      "caloriesKcal": 1820,
+      "proteinG": 97,
       "steps": 7600,
       "sleepHours": 6.3,
       "hydrationL": 2.3,
@@ -69,105 +80,43 @@
         "rpe": 9,
         "completed": true
       },
-      "adherence": { "calorieInRange": false, "proteinMet": false, "stepsMet": false },
-      "notes": "Office day fatigue."
-    },
-    {
-      "date": "2026-03-04",
-      "morningWeightKg": 62.5,
-      "caloriesKcal": 1660,
-      "proteinG": 112,
-      "steps": 8700,
-      "sleepHours": 7.3,
-      "hydrationL": 3,
-      "workout": {
-        "status": "done",
-        "type": "push",
-        "topSet": "Flat DB Press 32.5kg x 6",
-        "rpe": 8,
-        "completed": true
+      "adherence": {
+        "calorieInRange": false,
+        "proteinMet": false,
+        "stepsMet": false
       },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "Best session of week."
+      "notes": "Office day; steps dipped."
     },
     {
-      "date": "2026-03-05",
-      "morningWeightKg": 62.4,
-      "caloriesKcal": 1690,
-      "proteinG": 118,
-      "steps": 9400,
-      "sleepHours": 7,
-      "hydrationL": 2.7,
-      "workout": {
-        "status": "done",
-        "type": "pull",
-        "topSet": "Barbell Row 70kg x 8",
-        "rpe": 8,
-        "completed": true
-      },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "Stable adherence."
-    },
-    {
-      "date": "2026-03-06",
-      "morningWeightKg": 62.3,
-      "caloriesKcal": 1740,
-      "proteinG": 109,
-      "steps": 8200,
-      "sleepHours": 6.9,
-      "hydrationL": 2.5,
-      "workout": {
-        "status": "done",
-        "type": "legs",
-        "topSet": "RDL 100kg x 7",
-        "rpe": 8,
-        "completed": true
-      },
-      "adherence": { "calorieInRange": true, "proteinMet": false, "stepsMet": true },
-      "notes": "Hamstring soreness."
-    },
-    {
-      "date": "2026-03-07",
-      "morningWeightKg": 62.4,
-      "caloriesKcal": 1640,
-      "proteinG": 121,
-      "steps": 8100,
-      "sleepHours": 7.6,
-      "hydrationL": 3.1,
-      "workout": {
-        "status": "rest",
-        "type": "rest",
-        "completed": false
-      },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "Recovery day."
-    },
-    {
-      "date": "2026-03-08",
-      "morningWeightKg": 62.3,
-      "caloriesKcal": 1750,
-      "proteinG": 114,
-      "steps": 7900,
-      "sleepHours": 7.2,
-      "hydrationL": 2.8,
-      "workout": {
-        "status": "done",
-        "type": "push",
-        "topSet": "Incline DB Press 32.5kg x 7",
-        "rpe": 8,
-        "completed": true
-      },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": false },
-      "notes": "Slightly low steps."
-    },
-    {
-      "date": "2026-03-09",
-      "morningWeightKg": 62.2,
+      "date": "2026-02-23",
+      "morningWeightKg": 62.9,
       "caloriesKcal": 1680,
-      "proteinG": 117,
+      "proteinG": 115,
       "steps": 8800,
-      "sleepHours": 6.7,
-      "hydrationL": 2.6,
+      "sleepHours": 7,
+      "hydrationL": 2.9,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Flat DB Press 32.5kg x 7",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Energy stable all day."
+    },
+    {
+      "date": "2026-02-24",
+      "morningWeightKg": 62.8,
+      "caloriesKcal": 1740,
+      "proteinG": 110,
+      "steps": 8400,
+      "sleepHours": 6.9,
+      "hydrationL": 2.7,
       "workout": {
         "status": "done",
         "type": "pull",
@@ -175,35 +124,63 @@
         "rpe": 8,
         "completed": true
       },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "Back pump strong."
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Recovered better with early sleep."
     },
     {
-      "date": "2026-03-10",
-      "morningWeightKg": 62.2,
-      "caloriesKcal": 1790,
-      "proteinG": 111,
-      "steps": 8600,
-      "sleepHours": 7,
-      "hydrationL": 2.9,
+      "date": "2026-02-25",
+      "morningWeightKg": 62.7,
+      "caloriesKcal": 1650,
+      "proteinG": 120,
+      "steps": 9700,
+      "sleepHours": 7.4,
+      "hydrationL": 3.1,
       "workout": {
         "status": "done",
         "type": "legs",
-        "topSet": "Leg Press 220kg x 12",
+        "topSet": "RDL 100kg x 7",
         "rpe": 9,
         "completed": true
       },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "Heavy leg day."
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Leg day + football warm-up steps."
     },
     {
-      "date": "2026-03-11",
-      "morningWeightKg": 62.1,
-      "caloriesKcal": 1715,
-      "proteinG": 119,
-      "steps": 9300,
-      "sleepHours": 7.4,
-      "hydrationL": 3,
+      "date": "2026-02-26",
+      "morningWeightKg": 62.8,
+      "caloriesKcal": 1785,
+      "proteinG": 104,
+      "steps": 7900,
+      "sleepHours": 7.2,
+      "hydrationL": 2.5,
+      "workout": {
+        "status": "rest",
+        "type": "rest",
+        "completed": false
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": false,
+        "stepsMet": false
+      },
+      "notes": "Scheduled rest day."
+    },
+    {
+      "date": "2026-02-27",
+      "morningWeightKg": 62.6,
+      "caloriesKcal": 1705,
+      "proteinG": 116,
+      "steps": 8600,
+      "sleepHours": 6.7,
+      "hydrationL": 2.8,
       "workout": {
         "status": "done",
         "type": "push",
@@ -211,17 +188,87 @@
         "rpe": 8,
         "completed": true
       },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "PR on overhead press."
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Push day felt snappy."
     },
     {
-      "date": "2026-03-12",
-      "morningWeightKg": 62,
+      "date": "2026-02-28",
+      "morningWeightKg": 62.6,
       "caloriesKcal": 1670,
-      "proteinG": 116,
-      "steps": 8400,
-      "sleepHours": 7.1,
+      "proteinG": 118,
+      "steps": 9200,
+      "sleepHours": 7.3,
+      "hydrationL": 3,
+      "workout": {
+        "status": "done",
+        "type": "pull",
+        "topSet": "Barbell Row 72.5kg x 8",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Pull volume up by 1 set."
+    },
+    {
+      "date": "2026-03-01",
+      "morningWeightKg": 62.5,
+      "caloriesKcal": 1805,
+      "proteinG": 101,
+      "steps": 7800,
+      "sleepHours": 6.4,
+      "hydrationL": 2.4,
+      "workout": {
+        "status": "done",
+        "type": "legs",
+        "topSet": "Leg Press 220kg x 12",
+        "rpe": 9,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": false,
+        "proteinMet": false,
+        "stepsMet": false
+      },
+      "notes": "Heavy legs, mild fatigue."
+    },
+    {
+      "date": "2026-03-02",
+      "morningWeightKg": 62.4,
+      "caloriesKcal": 1720,
+      "proteinG": 113,
+      "steps": 8500,
+      "sleepHours": 6.9,
       "hydrationL": 2.7,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Incline DB Press 32.5kg x 7",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Good recovery between sets."
+    },
+    {
+      "date": "2026-03-03",
+      "morningWeightKg": 62.4,
+      "caloriesKcal": 1690,
+      "proteinG": 122,
+      "steps": 9400,
+      "sleepHours": 7.5,
+      "hydrationL": 3,
       "workout": {
         "status": "done",
         "type": "pull",
@@ -229,15 +276,695 @@
         "rpe": 8,
         "completed": true
       },
-      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
-      "notes": "Week closing in control."
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Best pull session this block."
+    },
+    {
+      "date": "2026-03-04",
+      "morningWeightKg": 62.3,
+      "caloriesKcal": 1750,
+      "proteinG": 109,
+      "steps": 8100,
+      "sleepHours": 6.8,
+      "hydrationL": 2.6,
+      "workout": {
+        "status": "done",
+        "type": "legs",
+        "topSet": "Hack Squat 105kg x 8",
+        "rpe": 9,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": false,
+        "stepsMet": true
+      },
+      "notes": "Hamstrings tight but manageable."
+    },
+    {
+      "date": "2026-03-05",
+      "morningWeightKg": 62.2,
+      "caloriesKcal": 1665,
+      "proteinG": 121,
+      "steps": 9000,
+      "sleepHours": 7.2,
+      "hydrationL": 2.9,
+      "workout": {
+        "status": "rest",
+        "type": "rest",
+        "completed": false
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Rest + mobility."
+    },
+    {
+      "date": "2026-03-06",
+      "morningWeightKg": 62.3,
+      "caloriesKcal": 1730,
+      "proteinG": 111,
+      "steps": 7700,
+      "sleepHours": 6.6,
+      "hydrationL": 2.5,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Flat DB Press 35kg x 5",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": false
+      },
+      "notes": "Late lunch, still on target."
+    },
+    {
+      "date": "2026-03-07",
+      "morningWeightKg": 62.2,
+      "caloriesKcal": 1770,
+      "proteinG": 107,
+      "steps": 8800,
+      "sleepHours": 7,
+      "hydrationL": 2.8,
+      "workout": {
+        "status": "done",
+        "type": "pull",
+        "topSet": "Cable Row 75kg x 10",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": false,
+        "stepsMet": true
+      },
+      "notes": "Slight under-recovery, adjusted load."
+    },
+    {
+      "date": "2026-03-08",
+      "morningWeightKg": 62.1,
+      "caloriesKcal": 1685,
+      "proteinG": 119,
+      "steps": 9300,
+      "sleepHours": 7.4,
+      "hydrationL": 3,
+      "workout": {
+        "status": "done",
+        "type": "legs",
+        "topSet": "RDL 105kg x 6",
+        "rpe": 9,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Leg strength holding."
+    },
+    {
+      "date": "2026-03-09",
+      "morningWeightKg": 62.1,
+      "caloriesKcal": 1715,
+      "proteinG": 114,
+      "steps": 8400,
+      "sleepHours": 6.9,
+      "hydrationL": 2.7,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Incline DB Press 30kg x 8",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Push PR on last set."
+    },
+    {
+      "date": "2026-03-10",
+      "morningWeightKg": 62,
+      "caloriesKcal": 1790,
+      "proteinG": 105,
+      "steps": 8000,
+      "sleepHours": 7.1,
+      "hydrationL": 2.6,
+      "workout": {
+        "status": "done",
+        "type": "pull",
+        "topSet": "Lat Pulldown 70kg x 10",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": false,
+        "stepsMet": true
+      },
+      "notes": "Commute day, still hit baseline."
+    },
+    {
+      "date": "2026-03-11",
+      "morningWeightKg": 62,
+      "caloriesKcal": 1675,
+      "proteinG": 123,
+      "steps": 9100,
+      "sleepHours": 7.3,
+      "hydrationL": 2.9,
+      "workout": {
+        "status": "done",
+        "type": "legs",
+        "topSet": "Hack Squat 100kg x 10",
+        "rpe": 9,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Legs + incline walk finisher."
+    },
+    {
+      "date": "2026-03-12",
+      "morningWeightKg": 61.9,
+      "caloriesKcal": 1700,
+      "proteinG": 117,
+      "steps": 8700,
+      "sleepHours": 7,
+      "hydrationL": 2.8,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Flat DB Press 32.5kg x 7",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": {
+        "calorieInRange": true,
+        "proteinMet": true,
+        "stepsMet": true
+      },
+      "notes": "Clean finish to week."
     }
   ],
   "kpis": {
-    "weightTrendKgPerWeek": -0.43,
-    "adherencePct": 87.5,
-    "avgProteinG": 113.5,
-    "avgSteps": 8525,
+    "weightTrendKgPerWeek": -0.47,
+    "adherencePct": 85.7,
+    "avgProteinG": 113.7,
+    "avgSteps": 8571,
     "trainingCompletionPct": 100
-  }
+  },
+  "summaries": {
+    "adherence": {
+      "weekPct": 85.7,
+      "monthPct": 79.4,
+      "weekChecksPassed": 18,
+      "weekChecksTotal": 21,
+      "monthChecksPassed": 50,
+      "monthChecksTotal": 63
+    },
+    "weightTrend": {
+      "trend7dKgPerWeek": -0.47,
+      "trend14dKgPerWeek": -0.38,
+      "direction": "down"
+    },
+    "protein": {
+      "targetG": 110,
+      "avg7dG": 113.7,
+      "avg21dG": 112.5,
+      "daysMet7d": 5,
+      "daysMet21d": 14,
+      "consistencyBand": "medium"
+    },
+    "steps": {
+      "targetMin": 8000,
+      "avg7d": 8571,
+      "avg21d": 8586,
+      "targetAttainment7dPct": 85.7,
+      "targetAttainment21dPct": 81
+    },
+    "training": {
+      "plannedSessionsWeek": 6,
+      "completedSessionsWeek": 6,
+      "extraSessionsWeek": 1,
+      "completionPctWeek": 100,
+      "splitByType": {
+        "push": 3,
+        "pull": 2,
+        "legs": 2
+      }
+    }
+  },
+  "chartSeries": {
+    "weightDaily21d": [
+      {
+        "date": "2026-02-20",
+        "value": 63.1
+      },
+      {
+        "date": "2026-02-21",
+        "value": 63
+      },
+      {
+        "date": "2026-02-22",
+        "value": 62.9
+      },
+      {
+        "date": "2026-02-23",
+        "value": 62.9
+      },
+      {
+        "date": "2026-02-24",
+        "value": 62.8
+      },
+      {
+        "date": "2026-02-25",
+        "value": 62.7
+      },
+      {
+        "date": "2026-02-26",
+        "value": 62.8
+      },
+      {
+        "date": "2026-02-27",
+        "value": 62.6
+      },
+      {
+        "date": "2026-02-28",
+        "value": 62.6
+      },
+      {
+        "date": "2026-03-01",
+        "value": 62.5
+      },
+      {
+        "date": "2026-03-02",
+        "value": 62.4
+      },
+      {
+        "date": "2026-03-03",
+        "value": 62.4
+      },
+      {
+        "date": "2026-03-04",
+        "value": 62.3
+      },
+      {
+        "date": "2026-03-05",
+        "value": 62.2
+      },
+      {
+        "date": "2026-03-06",
+        "value": 62.3
+      },
+      {
+        "date": "2026-03-07",
+        "value": 62.2
+      },
+      {
+        "date": "2026-03-08",
+        "value": 62.1
+      },
+      {
+        "date": "2026-03-09",
+        "value": 62.1
+      },
+      {
+        "date": "2026-03-10",
+        "value": 62
+      },
+      {
+        "date": "2026-03-11",
+        "value": 62
+      },
+      {
+        "date": "2026-03-12",
+        "value": 61.9
+      }
+    ],
+    "weightMovingAvg7d": [
+      {
+        "date": "2026-02-20",
+        "value": 63.1
+      },
+      {
+        "date": "2026-02-21",
+        "value": 63.05
+      },
+      {
+        "date": "2026-02-22",
+        "value": 63
+      },
+      {
+        "date": "2026-02-23",
+        "value": 62.98
+      },
+      {
+        "date": "2026-02-24",
+        "value": 62.94
+      },
+      {
+        "date": "2026-02-25",
+        "value": 62.9
+      },
+      {
+        "date": "2026-02-26",
+        "value": 62.89
+      },
+      {
+        "date": "2026-02-27",
+        "value": 62.81
+      },
+      {
+        "date": "2026-02-28",
+        "value": 62.76
+      },
+      {
+        "date": "2026-03-01",
+        "value": 62.7
+      },
+      {
+        "date": "2026-03-02",
+        "value": 62.63
+      },
+      {
+        "date": "2026-03-03",
+        "value": 62.57
+      },
+      {
+        "date": "2026-03-04",
+        "value": 62.51
+      },
+      {
+        "date": "2026-03-05",
+        "value": 62.43
+      },
+      {
+        "date": "2026-03-06",
+        "value": 62.39
+      },
+      {
+        "date": "2026-03-07",
+        "value": 62.33
+      },
+      {
+        "date": "2026-03-08",
+        "value": 62.27
+      },
+      {
+        "date": "2026-03-09",
+        "value": 62.23
+      },
+      {
+        "date": "2026-03-10",
+        "value": 62.17
+      },
+      {
+        "date": "2026-03-11",
+        "value": 62.13
+      },
+      {
+        "date": "2026-03-12",
+        "value": 62.09
+      }
+    ],
+    "proteinDaily21d": [
+      {
+        "date": "2026-02-20",
+        "value": 108
+      },
+      {
+        "date": "2026-02-21",
+        "value": 112
+      },
+      {
+        "date": "2026-02-22",
+        "value": 97
+      },
+      {
+        "date": "2026-02-23",
+        "value": 115
+      },
+      {
+        "date": "2026-02-24",
+        "value": 110
+      },
+      {
+        "date": "2026-02-25",
+        "value": 120
+      },
+      {
+        "date": "2026-02-26",
+        "value": 104
+      },
+      {
+        "date": "2026-02-27",
+        "value": 116
+      },
+      {
+        "date": "2026-02-28",
+        "value": 118
+      },
+      {
+        "date": "2026-03-01",
+        "value": 101
+      },
+      {
+        "date": "2026-03-02",
+        "value": 113
+      },
+      {
+        "date": "2026-03-03",
+        "value": 122
+      },
+      {
+        "date": "2026-03-04",
+        "value": 109
+      },
+      {
+        "date": "2026-03-05",
+        "value": 121
+      },
+      {
+        "date": "2026-03-06",
+        "value": 111
+      },
+      {
+        "date": "2026-03-07",
+        "value": 107
+      },
+      {
+        "date": "2026-03-08",
+        "value": 119
+      },
+      {
+        "date": "2026-03-09",
+        "value": 114
+      },
+      {
+        "date": "2026-03-10",
+        "value": 105
+      },
+      {
+        "date": "2026-03-11",
+        "value": 123
+      },
+      {
+        "date": "2026-03-12",
+        "value": 117
+      }
+    ],
+    "stepsDaily21d": [
+      {
+        "date": "2026-02-20",
+        "value": 8200
+      },
+      {
+        "date": "2026-02-21",
+        "value": 9100
+      },
+      {
+        "date": "2026-02-22",
+        "value": 7600
+      },
+      {
+        "date": "2026-02-23",
+        "value": 8800
+      },
+      {
+        "date": "2026-02-24",
+        "value": 8400
+      },
+      {
+        "date": "2026-02-25",
+        "value": 9700
+      },
+      {
+        "date": "2026-02-26",
+        "value": 7900
+      },
+      {
+        "date": "2026-02-27",
+        "value": 8600
+      },
+      {
+        "date": "2026-02-28",
+        "value": 9200
+      },
+      {
+        "date": "2026-03-01",
+        "value": 7800
+      },
+      {
+        "date": "2026-03-02",
+        "value": 8500
+      },
+      {
+        "date": "2026-03-03",
+        "value": 9400
+      },
+      {
+        "date": "2026-03-04",
+        "value": 8100
+      },
+      {
+        "date": "2026-03-05",
+        "value": 9000
+      },
+      {
+        "date": "2026-03-06",
+        "value": 7700
+      },
+      {
+        "date": "2026-03-07",
+        "value": 8800
+      },
+      {
+        "date": "2026-03-08",
+        "value": 9300
+      },
+      {
+        "date": "2026-03-09",
+        "value": 8400
+      },
+      {
+        "date": "2026-03-10",
+        "value": 8000
+      },
+      {
+        "date": "2026-03-11",
+        "value": 9100
+      },
+      {
+        "date": "2026-03-12",
+        "value": 8700
+      }
+    ],
+    "adherenceDaily21d": [
+      {
+        "date": "2026-02-20",
+        "value": 66.7
+      },
+      {
+        "date": "2026-02-21",
+        "value": 100
+      },
+      {
+        "date": "2026-02-22",
+        "value": 0
+      },
+      {
+        "date": "2026-02-23",
+        "value": 100
+      },
+      {
+        "date": "2026-02-24",
+        "value": 100
+      },
+      {
+        "date": "2026-02-25",
+        "value": 100
+      },
+      {
+        "date": "2026-02-26",
+        "value": 33.3
+      },
+      {
+        "date": "2026-02-27",
+        "value": 100
+      },
+      {
+        "date": "2026-02-28",
+        "value": 100
+      },
+      {
+        "date": "2026-03-01",
+        "value": 0
+      },
+      {
+        "date": "2026-03-02",
+        "value": 100
+      },
+      {
+        "date": "2026-03-03",
+        "value": 100
+      },
+      {
+        "date": "2026-03-04",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-05",
+        "value": 100
+      },
+      {
+        "date": "2026-03-06",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-07",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-08",
+        "value": 100
+      },
+      {
+        "date": "2026-03-09",
+        "value": 100
+      },
+      {
+        "date": "2026-03-10",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-11",
+        "value": 100
+      },
+      {
+        "date": "2026-03-12",
+        "value": 100
+      }
+    ]
+  },
+  "edgeCaseHandling": [
+    "If fewer than 4 valid weight points exist in trailing window, set weight trend fields to null and render trend card as insufficient_data.",
+    "When a day is missing from dailyLogs, do not inject zero values; chart series should remain sparse and UI should render temporal gaps.",
+    "Rest day (workout.status = rest) is neutral for training completion unless explicitly marked as missed planned session.",
+    "If protein or steps is missing for a day, exclude that day from relevant averages and attainment denominator; keep raw field null in logs.",
+    "Single-day weight deltas over ±1.0kg should trigger outlier annotation in chart tooltip, not auto-clamping."
+  ]
 }

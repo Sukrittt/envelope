@@ -2,37 +2,461 @@
   "departmentId": "fitness",
   "departmentName": "Fitness",
   "lead": "Arnold",
-  "lastUpdated": "2026-03-12T15:20:00Z",
+  "lastUpdated": "2026-03-12T19:20:00Z",
   "hero": {
-    "currentWeightKg": 62.2,
+    "currentWeightKg": 61.9,
     "targetWeightKg": 58,
-    "remainingKg": 4.2
+    "remainingKg": 3.9
   },
   "kpis": {
-    "weightTrend": -0.43,
-    "adherence": 87.5,
-    "proteinAvg": 113.5,
-    "stepsAvg": 8525,
+    "weightTrend": -0.47,
+    "adherence": 85.7,
+    "proteinAvg": 113.7,
+    "stepsAvg": 8571,
     "trainingCompletion": 100
+  },
+  "summaryCards": {
+    "adherence": {
+      "weekPct": 85.7,
+      "monthPct": 79.4
+    },
+    "weightTrend": {
+      "trend7dKgPerWeek": -0.47,
+      "trend14dKgPerWeek": -0.38,
+      "direction": "down"
+    },
+    "protein": {
+      "avg7dG": 113.7,
+      "consistencyBand": "medium",
+      "targetG": 110
+    },
+    "steps": {
+      "avg7d": 8571,
+      "targetAttainment7dPct": 85.7,
+      "targetMin": 8000
+    },
+    "training": {
+      "completionPctWeek": 100,
+      "plannedSessionsWeek": 6,
+      "completedSessionsWeek": 6,
+      "splitByType": {
+        "push": 3,
+        "pull": 2,
+        "legs": 2
+      }
+    }
   },
   "chart": {
     "weightSeries": [
-      { "date": "2026-03-06", "value": 62.3 },
-      { "date": "2026-03-07", "value": 62.4 },
-      { "date": "2026-03-08", "value": 62.3 },
-      { "date": "2026-03-09", "value": 62.2 },
-      { "date": "2026-03-10", "value": 62.2 },
-      { "date": "2026-03-11", "value": 62.1 },
-      { "date": "2026-03-12", "value": 62.0 }
+      {
+        "date": "2026-03-06",
+        "value": 62.3
+      },
+      {
+        "date": "2026-03-07",
+        "value": 62.2
+      },
+      {
+        "date": "2026-03-08",
+        "value": 62.1
+      },
+      {
+        "date": "2026-03-09",
+        "value": 62.1
+      },
+      {
+        "date": "2026-03-10",
+        "value": 62
+      },
+      {
+        "date": "2026-03-11",
+        "value": 62
+      },
+      {
+        "date": "2026-03-12",
+        "value": 61.9
+      }
     ],
     "stepsSeries": [
-      { "date": "2026-03-06", "value": 8200 },
-      { "date": "2026-03-07", "value": 8100 },
-      { "date": "2026-03-08", "value": 7900 },
-      { "date": "2026-03-09", "value": 8800 },
-      { "date": "2026-03-10", "value": 8600 },
-      { "date": "2026-03-11", "value": 9300 },
-      { "date": "2026-03-12", "value": 8400 }
+      {
+        "date": "2026-03-06",
+        "value": 7700
+      },
+      {
+        "date": "2026-03-07",
+        "value": 8800
+      },
+      {
+        "date": "2026-03-08",
+        "value": 9300
+      },
+      {
+        "date": "2026-03-09",
+        "value": 8400
+      },
+      {
+        "date": "2026-03-10",
+        "value": 8000
+      },
+      {
+        "date": "2026-03-11",
+        "value": 9100
+      },
+      {
+        "date": "2026-03-12",
+        "value": 8700
+      }
+    ],
+    "weightSeries21d": [
+      {
+        "date": "2026-02-20",
+        "value": 63.1
+      },
+      {
+        "date": "2026-02-21",
+        "value": 63
+      },
+      {
+        "date": "2026-02-22",
+        "value": 62.9
+      },
+      {
+        "date": "2026-02-23",
+        "value": 62.9
+      },
+      {
+        "date": "2026-02-24",
+        "value": 62.8
+      },
+      {
+        "date": "2026-02-25",
+        "value": 62.7
+      },
+      {
+        "date": "2026-02-26",
+        "value": 62.8
+      },
+      {
+        "date": "2026-02-27",
+        "value": 62.6
+      },
+      {
+        "date": "2026-02-28",
+        "value": 62.6
+      },
+      {
+        "date": "2026-03-01",
+        "value": 62.5
+      },
+      {
+        "date": "2026-03-02",
+        "value": 62.4
+      },
+      {
+        "date": "2026-03-03",
+        "value": 62.4
+      },
+      {
+        "date": "2026-03-04",
+        "value": 62.3
+      },
+      {
+        "date": "2026-03-05",
+        "value": 62.2
+      },
+      {
+        "date": "2026-03-06",
+        "value": 62.3
+      },
+      {
+        "date": "2026-03-07",
+        "value": 62.2
+      },
+      {
+        "date": "2026-03-08",
+        "value": 62.1
+      },
+      {
+        "date": "2026-03-09",
+        "value": 62.1
+      },
+      {
+        "date": "2026-03-10",
+        "value": 62
+      },
+      {
+        "date": "2026-03-11",
+        "value": 62
+      },
+      {
+        "date": "2026-03-12",
+        "value": 61.9
+      }
+    ],
+    "weightMovingAvg7d": [
+      {
+        "date": "2026-02-20",
+        "value": 63.1
+      },
+      {
+        "date": "2026-02-21",
+        "value": 63.05
+      },
+      {
+        "date": "2026-02-22",
+        "value": 63
+      },
+      {
+        "date": "2026-02-23",
+        "value": 62.98
+      },
+      {
+        "date": "2026-02-24",
+        "value": 62.94
+      },
+      {
+        "date": "2026-02-25",
+        "value": 62.9
+      },
+      {
+        "date": "2026-02-26",
+        "value": 62.89
+      },
+      {
+        "date": "2026-02-27",
+        "value": 62.81
+      },
+      {
+        "date": "2026-02-28",
+        "value": 62.76
+      },
+      {
+        "date": "2026-03-01",
+        "value": 62.7
+      },
+      {
+        "date": "2026-03-02",
+        "value": 62.63
+      },
+      {
+        "date": "2026-03-03",
+        "value": 62.57
+      },
+      {
+        "date": "2026-03-04",
+        "value": 62.51
+      },
+      {
+        "date": "2026-03-05",
+        "value": 62.43
+      },
+      {
+        "date": "2026-03-06",
+        "value": 62.39
+      },
+      {
+        "date": "2026-03-07",
+        "value": 62.33
+      },
+      {
+        "date": "2026-03-08",
+        "value": 62.27
+      },
+      {
+        "date": "2026-03-09",
+        "value": 62.23
+      },
+      {
+        "date": "2026-03-10",
+        "value": 62.17
+      },
+      {
+        "date": "2026-03-11",
+        "value": 62.13
+      },
+      {
+        "date": "2026-03-12",
+        "value": 62.09
+      }
+    ],
+    "proteinSeries21d": [
+      {
+        "date": "2026-02-20",
+        "value": 108
+      },
+      {
+        "date": "2026-02-21",
+        "value": 112
+      },
+      {
+        "date": "2026-02-22",
+        "value": 97
+      },
+      {
+        "date": "2026-02-23",
+        "value": 115
+      },
+      {
+        "date": "2026-02-24",
+        "value": 110
+      },
+      {
+        "date": "2026-02-25",
+        "value": 120
+      },
+      {
+        "date": "2026-02-26",
+        "value": 104
+      },
+      {
+        "date": "2026-02-27",
+        "value": 116
+      },
+      {
+        "date": "2026-02-28",
+        "value": 118
+      },
+      {
+        "date": "2026-03-01",
+        "value": 101
+      },
+      {
+        "date": "2026-03-02",
+        "value": 113
+      },
+      {
+        "date": "2026-03-03",
+        "value": 122
+      },
+      {
+        "date": "2026-03-04",
+        "value": 109
+      },
+      {
+        "date": "2026-03-05",
+        "value": 121
+      },
+      {
+        "date": "2026-03-06",
+        "value": 111
+      },
+      {
+        "date": "2026-03-07",
+        "value": 107
+      },
+      {
+        "date": "2026-03-08",
+        "value": 119
+      },
+      {
+        "date": "2026-03-09",
+        "value": 114
+      },
+      {
+        "date": "2026-03-10",
+        "value": 105
+      },
+      {
+        "date": "2026-03-11",
+        "value": 123
+      },
+      {
+        "date": "2026-03-12",
+        "value": 117
+      }
+    ],
+    "adherenceSeries21d": [
+      {
+        "date": "2026-02-20",
+        "value": 66.7
+      },
+      {
+        "date": "2026-02-21",
+        "value": 100
+      },
+      {
+        "date": "2026-02-22",
+        "value": 0
+      },
+      {
+        "date": "2026-02-23",
+        "value": 100
+      },
+      {
+        "date": "2026-02-24",
+        "value": 100
+      },
+      {
+        "date": "2026-02-25",
+        "value": 100
+      },
+      {
+        "date": "2026-02-26",
+        "value": 33.3
+      },
+      {
+        "date": "2026-02-27",
+        "value": 100
+      },
+      {
+        "date": "2026-02-28",
+        "value": 100
+      },
+      {
+        "date": "2026-03-01",
+        "value": 0
+      },
+      {
+        "date": "2026-03-02",
+        "value": 100
+      },
+      {
+        "date": "2026-03-03",
+        "value": 100
+      },
+      {
+        "date": "2026-03-04",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-05",
+        "value": 100
+      },
+      {
+        "date": "2026-03-06",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-07",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-08",
+        "value": 100
+      },
+      {
+        "date": "2026-03-09",
+        "value": 100
+      },
+      {
+        "date": "2026-03-10",
+        "value": 66.7
+      },
+      {
+        "date": "2026-03-11",
+        "value": 100
+      },
+      {
+        "date": "2026-03-12",
+        "value": 100
+      }
     ]
-  }
+  },
+  "edgeCaseHandling": [
+    "If fewer than 4 valid weight points exist in trailing window, set weight trend fields to null and render trend card as insufficient_data.",
+    "When a day is missing from dailyLogs, do not inject zero values; chart series should remain sparse and UI should render temporal gaps.",
+    "Rest day (workout.status = rest) is neutral for training completion unless explicitly marked as missed planned session.",
+    "If protein or steps is missing for a day, exclude that day from relevant averages and attainment denominator; keep raw field null in logs.",
+    "Single-day weight deltas over ±1.0kg should trigger outlier annotation in chart tooltip, not auto-clamping."
+  ]
 }
