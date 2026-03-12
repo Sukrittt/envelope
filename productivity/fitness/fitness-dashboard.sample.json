@@ -1,0 +1,243 @@
+{
+  "meta": {
+    "version": "v1.0",
+    "generatedAt": "2026-03-12T15:20:00Z",
+    "timezone": "Asia/Calcutta",
+    "weekStart": "2026-03-09"
+  },
+  "athleteProfile": {
+    "name": "Sukrit",
+    "startWeightKg": 68.89,
+    "currentWeightKg": 62.2,
+    "targetWeightKg": 58
+  },
+  "targets": {
+    "calorieRange": { "min": 1600, "max": 1800 },
+    "proteinG": 110,
+    "stepsMin": 8000,
+    "plannedTrainingSessions": 6
+  },
+  "dailyLogs": [
+    {
+      "date": "2026-03-01",
+      "morningWeightKg": 62.8,
+      "caloriesKcal": 1780,
+      "proteinG": 102,
+      "steps": 8400,
+      "sleepHours": 7.1,
+      "hydrationL": 2.8,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Incline DB Press 30kg x 8",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": false, "stepsMet": true },
+      "notes": "Good training, late dinner."
+    },
+    {
+      "date": "2026-03-02",
+      "morningWeightKg": 62.7,
+      "caloriesKcal": 1710,
+      "proteinG": 115,
+      "steps": 9100,
+      "sleepHours": 6.8,
+      "hydrationL": 2.6,
+      "workout": {
+        "status": "done",
+        "type": "pull",
+        "topSet": "Lat Pulldown 70kg x 10",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "Solid day."
+    },
+    {
+      "date": "2026-03-03",
+      "morningWeightKg": 62.6,
+      "caloriesKcal": 1835,
+      "proteinG": 108,
+      "steps": 7600,
+      "sleepHours": 6.3,
+      "hydrationL": 2.3,
+      "workout": {
+        "status": "done",
+        "type": "legs",
+        "topSet": "Hack Squat 100kg x 10",
+        "rpe": 9,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": false, "proteinMet": false, "stepsMet": false },
+      "notes": "Office day fatigue."
+    },
+    {
+      "date": "2026-03-04",
+      "morningWeightKg": 62.5,
+      "caloriesKcal": 1660,
+      "proteinG": 112,
+      "steps": 8700,
+      "sleepHours": 7.3,
+      "hydrationL": 3,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Flat DB Press 32.5kg x 6",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "Best session of week."
+    },
+    {
+      "date": "2026-03-05",
+      "morningWeightKg": 62.4,
+      "caloriesKcal": 1690,
+      "proteinG": 118,
+      "steps": 9400,
+      "sleepHours": 7,
+      "hydrationL": 2.7,
+      "workout": {
+        "status": "done",
+        "type": "pull",
+        "topSet": "Barbell Row 70kg x 8",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "Stable adherence."
+    },
+    {
+      "date": "2026-03-06",
+      "morningWeightKg": 62.3,
+      "caloriesKcal": 1740,
+      "proteinG": 109,
+      "steps": 8200,
+      "sleepHours": 6.9,
+      "hydrationL": 2.5,
+      "workout": {
+        "status": "done",
+        "type": "legs",
+        "topSet": "RDL 100kg x 7",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": false, "stepsMet": true },
+      "notes": "Hamstring soreness."
+    },
+    {
+      "date": "2026-03-07",
+      "morningWeightKg": 62.4,
+      "caloriesKcal": 1640,
+      "proteinG": 121,
+      "steps": 8100,
+      "sleepHours": 7.6,
+      "hydrationL": 3.1,
+      "workout": {
+        "status": "rest",
+        "type": "rest",
+        "completed": false
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "Recovery day."
+    },
+    {
+      "date": "2026-03-08",
+      "morningWeightKg": 62.3,
+      "caloriesKcal": 1750,
+      "proteinG": 114,
+      "steps": 7900,
+      "sleepHours": 7.2,
+      "hydrationL": 2.8,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Incline DB Press 32.5kg x 7",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": false },
+      "notes": "Slightly low steps."
+    },
+    {
+      "date": "2026-03-09",
+      "morningWeightKg": 62.2,
+      "caloriesKcal": 1680,
+      "proteinG": 117,
+      "steps": 8800,
+      "sleepHours": 6.7,
+      "hydrationL": 2.6,
+      "workout": {
+        "status": "done",
+        "type": "pull",
+        "topSet": "Chest-supported Row 42kg x 10",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "Back pump strong."
+    },
+    {
+      "date": "2026-03-10",
+      "morningWeightKg": 62.2,
+      "caloriesKcal": 1790,
+      "proteinG": 111,
+      "steps": 8600,
+      "sleepHours": 7,
+      "hydrationL": 2.9,
+      "workout": {
+        "status": "done",
+        "type": "legs",
+        "topSet": "Leg Press 220kg x 12",
+        "rpe": 9,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "Heavy leg day."
+    },
+    {
+      "date": "2026-03-11",
+      "morningWeightKg": 62.1,
+      "caloriesKcal": 1715,
+      "proteinG": 119,
+      "steps": 9300,
+      "sleepHours": 7.4,
+      "hydrationL": 3,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Overhead Press 50kg x 6",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "PR on overhead press."
+    },
+    {
+      "date": "2026-03-12",
+      "morningWeightKg": 62,
+      "caloriesKcal": 1670,
+      "proteinG": 116,
+      "steps": 8400,
+      "sleepHours": 7.1,
+      "hydrationL": 2.7,
+      "workout": {
+        "status": "done",
+        "type": "pull",
+        "topSet": "Lat Pulldown 72.5kg x 9",
+        "rpe": 8,
+        "completed": true
+      },
+      "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true },
+      "notes": "Week closing in control."
+    }
+  ],
+  "kpis": {
+    "weightTrendKgPerWeek": -0.43,
+    "adherencePct": 87.5,
+    "avgProteinG": 113.5,
+    "avgSteps": 8525,
+    "trainingCompletionPct": 100
+  }
+}

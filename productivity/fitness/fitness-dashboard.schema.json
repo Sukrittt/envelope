@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sumeru.local/schemas/fitness-dashboard.schema.json",
+  "title": "Fitness Dashboard Data Contract",
+  "type": "object",
+  "required": [
+    "meta",
+    "athleteProfile",
+    "targets",
+    "dailyLogs",
+    "kpis"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "generatedAt", "timezone", "weekStart"],
+      "properties": {
+        "version": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+$" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "timezone": { "type": "string" },
+        "weekStart": { "type": "string", "format": "date" }
+      }
+    },
+    "athleteProfile": {
+      "type": "object",
+      "required": ["name", "startWeightKg", "currentWeightKg", "targetWeightKg"],
+      "properties": {
+        "name": { "type": "string" },
+        "startWeightKg": { "type": "number" },
+        "currentWeightKg": { "type": "number" },
+        "targetWeightKg": { "type": "number" }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "required": ["calorieRange", "proteinG", "stepsMin", "plannedTrainingSessions"],
+      "properties": {
+        "calorieRange": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "integer" },
+            "max": { "type": "integer" }
+          }
+        },
+        "proteinG": { "type": "integer" },
+        "stepsMin": { "type": "integer" },
+        "plannedTrainingSessions": { "type": "integer" }
+      }
+    },
+    "dailyLogs": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": [
+          "date",
+          "morningWeightKg",
+          "caloriesKcal",
+          "proteinG",
+          "steps",
+          "sleepHours",
+          "workout"
+        ],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "morningWeightKg": { "type": "number" },
+          "caloriesKcal": { "type": "integer" },
+          "proteinG": { "type": "integer" },
+          "steps": { "type": "integer" },
+          "sleepHours": { "type": "number" },
+          "hydrationL": { "type": "number" },
+          "workout": {
+            "type": "object",
+            "required": ["status", "type"],
+            "properties": {
+              "status": { "type": "string", "enum": ["done", "rest"] },
+              "type": {
+                "type": "string",
+                "enum": ["push", "pull", "legs", "cardio", "rest"]
+              },
+              "topSet": { "type": "string" },
+              "rpe": { "type": "number", "minimum": 1, "maximum": 10 },
+              "completed": { "type": "boolean" }
+            }
+          },
+          "adherence": {
+            "type": "object",
+            "properties": {
+              "calorieInRange": { "type": "boolean" },
+              "proteinMet": { "type": "boolean" },
+              "stepsMet": { "type": "boolean" }
+            }
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "kpis": {
+      "type": "object",
+      "required": [
+        "weightTrendKgPerWeek",
+        "adherencePct",
+        "avgProteinG",
+        "avgSteps",
+        "trainingCompletionPct"
+      ],
+      "properties": {
+        "weightTrendKgPerWeek": { "type": "number" },
+        "adherencePct": { "type": "number" },
+        "avgProteinG": { "type": "number" },
+        "avgSteps": { "type": "number" },
+        "trainingCompletionPct": { "type": "number" }
+      }
+    }
+  }
+}
