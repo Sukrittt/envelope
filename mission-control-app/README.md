@@ -1,122 +1,80 @@
-# Mission Control App — Master Dashboard Foundation
+# Mission Control App
 
-React + Vite + TypeScript app that now acts as a **unified master dashboard shell** across:
-
-- Overview
-- Expense Dashboard
-- Fitness Dashboard
-- Mission Control
+React + Vite + TypeScript app focused on daily operations visibility across departments.
 
 ## What shipped in this run
 
-### 1) Top-level dashboard switcher
-Implemented a persistent, keyboard-accessible top navigation using route-based tabs:
+### 1) Route-driven app structure
+Added route navigation with active state support:
 
-- `/overview`
-- `/expense`
-- `/fitness`
-- `/mission-control`
+- `/` → Dashboard
+- `/departments` → Department overview
+- `/departments/:departmentId` → Department drill-down
+- `/risks` → Risk register
+- `/learnings` → Learning feed
 
-Navigation uses native anchors (`NavLink`) with visible focus styles for keyboard users.
+### 2) Centralized data loading + retry behavior
+Introduced `DashboardProvider` context to handle fetch/load states app-wide:
 
-### 2) Integrated expense + fitness modules
-Added typed `externalModules` data model and in-app module cards with:
+- loading state panel
+- error state panel
+- retry button wired to reload the dashboard
 
-- health/status pill
-- last sync timestamp
-- primary + secondary summary metrics
-- deep links to external apps/data sources
+### 3) High-value operations UX
+Implemented end-to-end workflow upgrades:
 
-This gives one in-app summary while still allowing deep-link drill-down.
+- Department drill-down page with full Done/Changed/Next/Risk details
+- Risk register filtering (severity + department)
+- Learning feed filtering (department + tag)
+- Activity Timeline panel on dashboard for latest cross-team signals
 
-### 3) Cross-department sync panel (typed)
-Added typed `crossDepartmentSync` model and rendered status blocks for:
-
-- Engineering
-- UI/UX
-- Fitness
-- Ops
-
-Each block includes owner, status, updated time, current block, and next action.
-
-### 4) Responsive + accessible UI baseline
-- Responsive grids for mobile/tablet/desktop
-- Focus-visible styles on nav, links, and expandable summaries
-- Wrap-friendly top nav for smaller breakpoints
-
-### 5) Validation
-Run and verify:
+## Validation
 
 ```bash
+cd /root/.openclaw/workspace/mission-control-app
 npm install
 npm run lint
 npm run build
 ```
 
-## Architecture (current)
+## Local development
+
+```bash
+npm run dev
+```
+
+## Data source configuration
+
+By default, app reads from `src/data/mockData.json`.
+
+For API mode, set:
+
+```bash
+VITE_API_BASE_URL=https://your-api.example.com
+```
+
+The app will fetch:
 
 ```text
-src/
-  App.tsx                    # Route shell + overview/expense/fitness/mission-control pages
-  App.css                    # Shared responsive styles + a11y focus styles
-  data/mockData.json         # Mock payload including externalModules + crossDepartmentSync
-  services/dashboardService.ts # Data source switch (mock vs API)
-  types.ts                   # Typed contracts for dashboard and sync/module bindings
+GET {VITE_API_BASE_URL}/mission-control/dashboard
 ```
 
-## Data binding extension guide
+## Deploy to Vercel
 
-### A) Connect to real API
-`src/services/dashboardService.ts` already supports backend mode via:
+### Option A: Vercel CLI
 
-- `VITE_API_BASE_URL`
-
-When set, app fetches:
-
-- `${VITE_API_BASE_URL}/mission-control/dashboard`
-
-Ensure API response includes all `DashboardData` fields from `src/types.ts`.
-
-### B) Add/modify external module cards
-Update `externalModules` in payload:
-
-```ts
-interface ExternalModuleSummary {
-  module: 'expense' | 'fitness'
-  title: string
-  health: 'green' | 'amber' | 'red'
-  lastSync: string
-  primaryMetric: string
-  secondaryMetric: string
-  deepLinks: { label: string; url: string }[]
-  notes: string
-}
+```bash
+npm i -g vercel
+cd /root/.openclaw/workspace/mission-control-app
+vercel
+vercel --prod
 ```
 
-To add another module, extend the `module` union type and map it to a route/page.
+### Option B: Vercel dashboard settings
 
-### C) Extend cross-department sync blocks
-Update `crossDepartmentSync` in payload:
-
-```ts
-interface DepartmentSyncStatus {
-  department: 'Engineering' | 'UI/UX' | 'Fitness' | 'Ops'
-  owner: string
-  status: 'green' | 'amber' | 'red'
-  updatedAt: string
-  block: string
-  next: string
-}
-```
-
-To onboard another department, extend the `department` union and add entries in the payload.
-
-## Deploy/Release checklist
-
-1. `npm ci`
-2. `npm run lint`
-3. `npm run build`
-4. Validate routes load correctly (`/overview`, `/expense`, `/fitness`, `/mission-control`)
-5. Verify deep links open expected external targets
-6. Verify keyboard-only navigation (Tab + Enter)
-7. Deploy `dist/` to hosting target
+- Framework preset: **Vite**
+- Build command: `npm run build`
+- Output directory: `dist`
+- Install command: `npm install`
+- Root directory: `mission-control-app` (if deploying from workspace root)
+- Env vars: set `VITE_API_BASE_URL` if using backend mode
