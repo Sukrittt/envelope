@@ -1,0 +1,38 @@
+{
+  "departmentId": "fitness",
+  "departmentName": "Fitness",
+  "lead": "Arnold",
+  "lastUpdated": "2026-03-12T15:20:00Z",
+  "hero": {
+    "currentWeightKg": 62.2,
+    "targetWeightKg": 58,
+    "remainingKg": 4.2
+  },
+  "kpis": {
+    "weightTrend": -0.43,
+    "adherence": 87.5,
+    "proteinAvg": 113.5,
+    "stepsAvg": 8525,
+    "trainingCompletion": 100
+  },
+  "chart": {
+    "weightSeries": [
+      { "date": "2026-03-06", "value": 62.3 },
+      { "date": "2026-03-07", "value": 62.4 },
+      { "date": "2026-03-08", "value": 62.3 },
+      { "date": "2026-03-09", "value": 62.2 },
+      { "date": "2026-03-10", "value": 62.2 },
+      { "date": "2026-03-11", "value": 62.1 },
+      { "date": "2026-03-12", "value": 62.0 }
+    ],
+    "stepsSeries": [
+      { "date": "2026-03-06", "value": 8200 },
+      { "date": "2026-03-07", "value": 8100 },
+      { "date": "2026-03-08", "value": 7900 },
+      { "date": "2026-03-09", "value": 8800 },
+      { "date": "2026-03-10", "value": 8600 },
+      { "date": "2026-03-11", "value": 9300 },
+      { "date": "2026-03-12", "value": 8400 }
+    ]
+  }
+}

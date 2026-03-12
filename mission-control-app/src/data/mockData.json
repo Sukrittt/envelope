@@ -1,0 +1,270 @@
+{
+  "dateLabel": "Thu, 12 Mar 2026",
+  "overallHealth": "amber",
+  "kpis": [
+    { "label": "Open Risks", "value": "11", "tone": "amber" },
+    { "label": "High/Critical", "value": "4", "tone": "red" },
+    { "label": "Blocked Initiatives", "value": "3", "tone": "red" },
+    { "label": "Departments Updated", "value": "5/5", "tone": "green" },
+    { "label": "Last Update", "value": "14:42 UTC", "tone": "green" }
+  ],
+  "departments": [
+    {
+      "id": "engineering",
+      "name": "Engineering",
+      "lead": "Joe",
+      "status": "green",
+      "lastUpdate": "14:42 UTC",
+      "activeInitiatives": 6,
+      "openRisks": 2
+    },
+    {
+      "id": "fpl",
+      "name": "FPL",
+      "lead": "Riya",
+      "status": "amber",
+      "lastUpdate": "14:18 UTC",
+      "activeInitiatives": 4,
+      "openRisks": 3
+    },
+    {
+      "id": "ops",
+      "name": "Ops",
+      "lead": "Karan",
+      "status": "amber",
+      "lastUpdate": "13:55 UTC",
+      "activeInitiatives": 5,
+      "openRisks": 3
+    },
+    {
+      "id": "manager",
+      "name": "Manager",
+      "lead": "Sukrit",
+      "status": "green",
+      "lastUpdate": "14:05 UTC",
+      "activeInitiatives": 3,
+      "openRisks": 1
+    },
+    {
+      "id": "uiux",
+      "name": "UI/UX",
+      "lead": "Tracy",
+      "status": "green",
+      "lastUpdate": "14:33 UTC",
+      "activeInitiatives": 4,
+      "openRisks": 2
+    }
+  ],
+  "dailyUpdates": [
+    {
+      "departmentId": "engineering",
+      "departmentName": "Engineering",
+      "status": "green",
+      "done": ["Shipped feature flag for voice control action router", "Closed flaky tests in mission-control widgets"],
+      "changed": ["Deferred analytics charting to Phase 2 to protect delivery"],
+      "next": ["Connect dashboard cards to live API contract stubs", "Add risk update forms"],
+      "risk": ["Backend auth route not finalized for role mapping"],
+      "updatedAt": "14:42 UTC"
+    },
+    {
+      "departmentId": "fpl",
+      "departmentName": "FPL",
+      "status": "amber",
+      "done": ["Locked March planning baseline and allocation assumptions"],
+      "changed": ["Moved one non-essential initiative into next sprint"],
+      "next": ["Validate budget impact from tool subscriptions"],
+      "risk": ["Pending final numbers from vendor proposal"],
+      "updatedAt": "14:18 UTC"
+    },
+    {
+      "departmentId": "ops",
+      "departmentName": "Ops",
+      "status": "amber",
+      "done": ["Drafted support runbook for incident tagging"],
+      "changed": ["Escalation path now includes engineering on-call"],
+      "next": ["Finalize SLA labels in helpdesk"],
+      "risk": ["Weekend shift coverage below target"],
+      "updatedAt": "13:55 UTC"
+    },
+    {
+      "departmentId": "manager",
+      "departmentName": "Manager",
+      "status": "green",
+      "done": ["Aligned all leads on daily update format and timing"],
+      "changed": ["Review cadence shifted to end-of-day UTC"],
+      "next": ["Review top 3 risks with owners"],
+      "risk": ["None critical; monitoring delivery pace"],
+      "updatedAt": "14:05 UTC"
+    },
+    {
+      "departmentId": "uiux",
+      "departmentName": "UI/UX",
+      "status": "green",
+      "done": ["Published dashboard visual pass v1", "Updated risk badge contrast for readability"],
+      "changed": ["Simplified card density for easier scanning"],
+      "next": ["Prepare mobile behavior patterns for review"],
+      "risk": ["Design token naming still inconsistent across older files"],
+      "updatedAt": "14:33 UTC"
+    }
+  ],
+  "learnings": [
+    {
+      "id": "l1",
+      "departmentName": "Engineering",
+      "title": "Early API contracts reduced UI churn",
+      "note": "Drafting response shapes before coding prevented rework in 3 components.",
+      "tags": ["process", "tooling"],
+      "author": "Joe",
+      "time": "13:40 UTC",
+      "importance": "high"
+    },
+    {
+      "id": "l2",
+      "departmentName": "UI/UX",
+      "title": "Status color + icon improves scan speed",
+      "note": "Combining text labels with visual tone helped avoid ambiguous states.",
+      "tags": ["product", "design"],
+      "author": "Tracy",
+      "time": "12:55 UTC",
+      "importance": "normal"
+    },
+    {
+      "id": "l3",
+      "departmentName": "Ops",
+      "title": "Short mitigation notes unblock handoffs",
+      "note": "Teams resolved blockers faster when risk entries included a concrete next owner step.",
+      "tags": ["operations", "people"],
+      "author": "Karan",
+      "time": "11:22 UTC",
+      "importance": "normal"
+    }
+  ],
+  "risks": [
+    {
+      "id": "r1",
+      "title": "Auth role matrix pending approval",
+      "severity": "critical",
+      "owner": "Platform Team",
+      "departmentName": "Engineering",
+      "mitigation": "Temporary role map in staging; security review by Friday",
+      "dueDate": "2026-03-13",
+      "state": "open"
+    },
+    {
+      "id": "r2",
+      "title": "Support shift coverage gap",
+      "severity": "high",
+      "owner": "Ops Lead",
+      "departmentName": "Ops",
+      "mitigation": "Cross-train backup resources for weekend window",
+      "dueDate": "2026-03-14",
+      "state": "monitoring"
+    },
+    {
+      "id": "r3",
+      "title": "Vendor data lag for planning inputs",
+      "severity": "med",
+      "owner": "FPL Lead",
+      "departmentName": "FPL",
+      "mitigation": "Use conservative assumptions; refresh once data arrives",
+      "dueDate": "2026-03-15",
+      "state": "open"
+    }
+  ],
+  "activities": [
+    {
+      "id": "a1",
+      "title": "Engineering update submitted",
+      "detail": "Action router feature flag and test stabilization marked complete.",
+      "departmentName": "Engineering",
+      "timestamp": "14:42 UTC",
+      "type": "update"
+    },
+    {
+      "id": "a2",
+      "title": "Critical risk tracked",
+      "detail": "Auth role matrix moved to mission-control watchlist with Friday review.",
+      "departmentName": "Engineering",
+      "timestamp": "14:30 UTC",
+      "type": "risk"
+    },
+    {
+      "id": "a3",
+      "title": "Learning pinned",
+      "detail": "API contract-first workflow reduced UI churn.",
+      "departmentName": "Engineering",
+      "timestamp": "13:40 UTC",
+      "type": "learning"
+    },
+    {
+      "id": "a4",
+      "title": "Ops mitigation updated",
+      "detail": "Weekend shift backup plan added for support coverage gap.",
+      "departmentName": "Ops",
+      "timestamp": "13:05 UTC",
+      "type": "risk"
+    }
+  ],
+  "externalModules": [
+    {
+      "module": "expense",
+      "title": "Expense Dashboard",
+      "health": "amber",
+      "lastSync": "14:36 UTC",
+      "primaryMetric": "₹41.8k spent / ₹45k cap",
+      "secondaryMetric": "Food and commute above weekly trend",
+      "deepLinks": [
+        { "label": "Open Expense App", "url": "../expense-dashboard/" },
+        { "label": "CSV Source", "url": "../productivity/expenses.csv" }
+      ],
+      "notes": "Guardrail mode active. Cooling rule suggested for discretionary purchases."
+    },
+    {
+      "module": "fitness",
+      "title": "Fitness Dashboard",
+      "health": "green",
+      "lastSync": "14:40 UTC",
+      "primaryMetric": "62.2 kg current | target 58 kg",
+      "secondaryMetric": "PPL cadence: 6/6 sessions this week",
+      "deepLinks": [
+        { "label": "Open Fitness Plan", "url": "../productivity/fitness.md" },
+        { "label": "Nutrition Log", "url": "../productivity/nutrition.csv" }
+      ],
+      "notes": "Protein trend improving; maintain 1600–1800 kcal range and 8k step baseline."
+    }
+  ],
+  "crossDepartmentSync": [
+    {
+      "department": "Engineering",
+      "owner": "Joe",
+      "status": "green",
+      "updatedAt": "14:42 UTC",
+      "block": "Awaiting final auth role matrix sign-off",
+      "next": "Ship API-backed widgets behind feature flag"
+    },
+    {
+      "department": "UI/UX",
+      "owner": "Tracy",
+      "status": "green",
+      "updatedAt": "14:33 UTC",
+      "block": "Legacy token naming inconsistency",
+      "next": "Finalize mobile interaction patterns"
+    },
+    {
+      "department": "Fitness",
+      "owner": "Sukrit",
+      "status": "amber",
+      "updatedAt": "14:28 UTC",
+      "block": "Protein target not yet stable daily",
+      "next": "Add protein powder + lock post-workout meal"
+    },
+    {
+      "department": "Ops",
+      "owner": "Karan",
+      "status": "amber",
+      "updatedAt": "13:55 UTC",
+      "block": "Weekend support shift coverage",
+      "next": "Publish cross-trained backup roster"
+    }
+  ]
+}
