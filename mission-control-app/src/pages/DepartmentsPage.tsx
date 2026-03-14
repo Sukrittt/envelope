@@ -1,22 +1,40 @@
 import { Link, useParams } from 'react-router-dom'
+import { StatusChip } from '../components/StatusChip'
 import { useDashboard } from '../context/useDashboard'
 
 export function DepartmentsPage() {
   const { data } = useDashboard()
   if (!data) return null
 
+  const counts = data.departments.reduce(
+    (acc, department) => {
+      acc.total += 1
+      acc[department.status] += 1
+      return acc
+    },
+    { total: 0, green: 0, amber: 0, red: 0 },
+  )
+
   return (
-    <section className="panel">
-      <div className="panel-header">
+    <section className="mc-panel" aria-label="Department status overview">
+      <div className="mc-panel-header">
         <h1>Departments</h1>
         <p>Ownership and current operating status</p>
       </div>
-      <div className="department-grid" aria-label="Department cards">
+
+      <div className="mc-summary-row" aria-label="Department summary">
+        <StatusChip label={`${counts.total} teams`} tone="green" />
+        <StatusChip label={`${counts.green} green`} tone="green" />
+        <StatusChip label={`${counts.amber} amber`} tone="amber" />
+        <StatusChip label={`${counts.red} red`} tone="red" />
+      </div>
+
+      <div className="mc-card-grid mc-department-grid" aria-label="Department cards">
         {data.departments.map((department) => (
-          <article key={department.id} className="department-card">
+          <article key={department.id} className={`mc-department-card status-${department.status}`}>
             <div className="department-title">
               <h2>{department.name}</h2>
-              <span className={`pill ${department.status}`}>{department.status.toUpperCase()}</span>
+              <StatusChip label={department.status.toUpperCase()} tone={department.status} />
             </div>
             <p>Lead: {department.lead}</p>
             <p>Last update: {department.lastUpdate}</p>
@@ -48,20 +66,25 @@ export function DepartmentDetailPage() {
 
   if (!department || !update) {
     return (
-      <section className="state-panel">
+      <section className="state-panel mc-panel">
         <h2>Department not found</h2>
-        <Link to="/departments">Back to departments</Link>
+        <Link className="inline-link" to="/departments">
+          Back to departments
+        </Link>
       </section>
     )
   }
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <h1>{department.name}</h1>
-        <p>
-          Lead: {department.lead} • Last update {department.lastUpdate}
-        </p>
+    <section className="mc-panel" aria-label={`${department.name} details`}>
+      <div className="mc-sticky-mini-header">
+        <div>
+          <h1>{department.name}</h1>
+          <p>
+            Lead: {department.lead} • Last update {department.lastUpdate}
+          </p>
+        </div>
+        <StatusChip label={department.status.toUpperCase()} tone={department.status} />
       </div>
 
       <div className="update-body">
@@ -76,17 +99,15 @@ export function DepartmentDetailPage() {
         <ul className="risk-list spaced-list">
           {risks.length ? (
             risks.map((risk) => (
-              <li key={risk.id}>
+              <li key={risk.id} className={`mc-risk-row severity-${risk.severity}`}>
                 <div>
                   <p className="risk-title">{risk.title}</p>
                   <p className="risk-meta">
                     {risk.owner} • due {risk.dueDate} • {risk.state}
                   </p>
-                  <p>{risk.mitigation}</p>
+                  <p className="clamp-2">{risk.mitigation}</p>
                 </div>
-                <span className={`pill ${risk.severity === 'critical' || risk.severity === 'high' ? 'red' : 'amber'}`}>
-                  {risk.severity.toUpperCase()}
-                </span>
+                <StatusChip label={risk.severity.toUpperCase()} tone={risk.severity} />
               </li>
             ))
           ) : (

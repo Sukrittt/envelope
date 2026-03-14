@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "version": "v1.0",
+    "generatedAt": "2026-03-13T17:20:00Z",
+    "timezone": "Asia/Calcutta",
+    "weekStart": "2026-03-09"
+  },
+  "athleteProfile": {
+    "name": "Sukrit",
+    "startWeightKg": 68.89,
+    "currentWeightKg": 62.2,
+    "targetWeightKg": 58
+  },
+  "targets": {
+    "calorieRange": { "min": 1600, "max": 1800 },
+    "proteinG": 110,
+    "stepsMin": 8000,
+    "plannedTrainingSessions": 6
+  },
+  "dailyLogs": [
+    { "date": "2026-02-28", "morningWeightKg": 62.7, "caloriesKcal": 1860, "proteinG": 102, "steps": 7600, "workout": { "status": "missed", "type": "push", "completed": false }, "adherence": { "calorieInRange": false, "proteinMet": false, "stepsMet": false } },
+    { "date": "2026-03-01", "morningWeightKg": 62.6, "caloriesKcal": 1710, "proteinG": 112, "steps": 8200, "workout": { "status": "done", "type": "pull", "completed": true, "topSet": { "exercise": "Barbell Row", "weightKg": 62.5, "reps": 6 } }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true } },
+    { "date": "2026-03-02", "morningWeightKg": 62.5, "caloriesKcal": 1740, "proteinG": 108, "steps": 8300, "workout": { "status": "done", "type": "legs", "completed": true, "topSet": { "exercise": "Back Squat", "weightKg": 90, "reps": 5 } }, "adherence": { "calorieInRange": true, "proteinMet": false, "stepsMet": true } },
+    { "date": "2026-03-03", "morningWeightKg": 62.5, "caloriesKcal": 1690, "proteinG": 116, "steps": 8900, "workout": { "status": "done", "type": "push", "completed": true, "topSet": { "exercise": "Bench Press", "weightKg": 72.5, "reps": 5 }, "pr": { "exercise": "Bench Press", "value": "72.5kg x5" } }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true } },
+    { "date": "2026-03-04", "morningWeightKg": 62.4, "caloriesKcal": 1825, "proteinG": 106, "steps": 7900, "workout": { "status": "rest", "type": "rest", "completed": false }, "adherence": { "calorieInRange": false, "proteinMet": false, "stepsMet": false } },
+    { "date": "2026-03-05", "morningWeightKg": 62.3, "caloriesKcal": 1680, "proteinG": 114, "steps": 8100, "workout": { "status": "done", "type": "pull", "completed": true, "topSet": { "exercise": "Weighted Pull-up", "weightKg": 20, "reps": 7 } }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true } },
+    { "date": "2026-03-06", "morningWeightKg": 62.3, "caloriesKcal": 1740, "proteinG": 109, "steps": 8200, "workout": { "status": "done", "type": "legs", "completed": true, "topSet": { "exercise": "Romanian Deadlift", "weightKg": 110, "reps": 6 }, "pr": { "exercise": "Romanian Deadlift", "value": "110kg x6" } }, "adherence": { "calorieInRange": true, "proteinMet": false, "stepsMet": true } },
+    { "date": "2026-03-07", "morningWeightKg": 62.4, "caloriesKcal": 1640, "proteinG": 121, "steps": 8100, "workout": { "status": "rest", "type": "rest", "completed": false }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true } },
+    { "date": "2026-03-08", "morningWeightKg": 62.3, "caloriesKcal": 1750, "proteinG": 114, "steps": 7900, "workout": { "status": "done", "type": "push", "completed": true, "topSet": { "exercise": "Incline DB Press", "weightKg": 34, "reps": 8 } }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": false } },
+    { "date": "2026-03-09", "morningWeightKg": 62.2, "caloriesKcal": 1680, "proteinG": 117, "steps": 8800, "workout": { "status": "done", "type": "pull", "completed": true, "topSet": { "exercise": "Barbell Row", "weightKg": 65, "reps": 6 } }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true } },
+    { "date": "2026-03-10", "morningWeightKg": 62.2, "caloriesKcal": 1790, "proteinG": 111, "steps": 8600, "workout": { "status": "done", "type": "legs", "completed": true, "topSet": { "exercise": "Back Squat", "weightKg": 92.5, "reps": 5 }, "pr": { "exercise": "Back Squat", "value": "92.5kg x5" } }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true } },
+    { "date": "2026-03-11", "morningWeightKg": 62.1, "caloriesKcal": 1715, "proteinG": 104, "steps": 9300, "workout": { "status": "done", "type": "push", "completed": true, "topSet": { "exercise": "Bench Press", "weightKg": 72.5, "reps": 6 } }, "adherence": { "calorieInRange": true, "proteinMet": false, "stepsMet": true } },
+    { "date": "2026-03-12", "morningWeightKg": 62.0, "caloriesKcal": 1670, "proteinG": 116, "steps": 8400, "workout": { "status": "done", "type": "pull", "completed": true, "topSet": { "exercise": "Weighted Pull-up", "weightKg": 22.5, "reps": 6 }, "pr": { "exercise": "Weighted Pull-up", "value": "+22.5kg x6" } }, "adherence": { "calorieInRange": true, "proteinMet": true, "stepsMet": true } }
+  ],
+  "kpis": {
+    "weightTrendKgPerWeek": -0.43,
+    "adherencePct": 84.2,
+    "avgProteinG": 112.1,
+    "avgSteps": 8400,
+    "trainingCompletionPct": 100
+  }
+}

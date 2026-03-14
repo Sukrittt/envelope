@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "generatedAt": "2026-03-12T15:46:00+05:30",
+    "month": "2026-03",
+    "monthlySpendCapInr": 45000,
+    "dailySoftCapInr": 1500
+  },
+  "totals": {
+    "monthSpendInr": 66532.59,
+    "essentialSpendInr": 23494.09,
+    "discretionarySpendInr": 43038.5,
+    "duesReceivableInr": 1537.46
+  },
+  "topCategories": [
+    { "category": "Shopping", "amountInr": 33813.0 },
+    { "category": "Bills", "amountInr": 19994.0 },
+    { "category": "Subscription", "amountInr": 4426.59 },
+    { "category": "Food", "amountInr": 3500.5 },
+    { "category": "Travel", "amountInr": 2002.5 },
+    { "category": "Football", "amountInr": 1252.0 }
+  ],
+  "dailySpend": [
+    { "date": "2026-03-01", "amountInr": 954.0 },
+    { "date": "2026-03-02", "amountInr": 366.0 },
+    { "date": "2026-03-03", "amountInr": 1813.8 },
+    { "date": "2026-03-04", "amountInr": 20715.7 },
+    { "date": "2026-03-05", "amountInr": 29004.59 },
+    { "date": "2026-03-06", "amountInr": 614.0 },
+    { "date": "2026-03-07", "amountInr": 1549.0 },
+    { "date": "2026-03-08", "amountInr": 2277.5 },
+    { "date": "2026-03-09", "amountInr": 5394.0 },
+    { "date": "2026-03-10", "amountInr": 24.0 },
+    { "date": "2026-03-11", "amountInr": 1148.0 },
+    { "date": "2026-03-12", "amountInr": 2672.0 }
+  ],
+  "alerts": [
+    "Spend cap breached due to planned rent + shopping burst (Goa + one-time purchases).",
+    "Discretionary share above 60%; trigger cooling rule for non-essential purchases this week.",
+    "Travel and football spending normalized; food remains manageable."
+  ],
+  "deepLinks": [
+    { "label": "Open Expense Dashboard", "url": "../expense-dashboard/" },
+    { "label": "Expenses CSV", "url": "../productivity/expenses.csv" },
+    { "label": "Subscriptions CSV", "url": "../productivity/subscriptions.csv" }
+  ],
+  "subscriptions": [
+    { "service": "Spotify", "amountInr": 99, "billingCycle": "monthly", "status": "active" },
+    { "service": "Netflix", "amountInr": 199, "billingCycle": "monthly", "status": "active" },
+    { "service": "OpenAI Plus", "amountInr": 1999, "billingCycle": "monthly", "status": "active" },
+    { "service": "OpenAI Go", "amountInr": 399, "billingCycle": "monthly", "status": "active" },
+    { "service": "ElevenLabs", "amountInr": 899, "billingCycle": "monthly", "status": "cancelled", "renewalOrEndMonth": "2026-04" },
+    { "service": "Amazon Prime", "amountInr": 1499, "billingCycle": "yearly", "status": "cancelled", "renewalOrEndMonth": "2026-09" }
+  ]
+}

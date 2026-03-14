@@ -21,7 +21,7 @@
     {
       "id": "fpl",
       "name": "FPL",
-      "lead": "Riya",
+      "lead": "Bruno",
       "status": "amber",
       "lastUpdate": "14:18 UTC",
       "activeInitiatives": 4,
@@ -164,7 +164,7 @@
       "id": "r3",
       "title": "Vendor data lag for planning inputs",
       "severity": "med",
-      "owner": "FPL Lead",
+      "owner": "Bruno", 
       "departmentName": "FPL",
       "mitigation": "Use conservative assumptions; refresh once data arrives",
       "dueDate": "2026-03-15",
