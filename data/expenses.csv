@@ -60,3 +60,22 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-03-11T11:38:00+05:30,2026-03-11,Rapido to work,129,Travel,,manual-chat
 2026-03-11T19:40:00+05:30,2026-03-11,Rapido to turf,67,Travel,,manual-chat
 2026-03-11T22:50:00+05:30,2026-03-11,Rapido to home,183,Travel,,manual-chat
+2026-03-11T21:00:16+05:30,2026-03-11,lunch,120,Food,,manual-chat
+2026-03-11T21:00:20+05:30,2026-03-11,coffee,40,Shopping,,manual-chat
+2026-03-11T21:00:20+05:30,2026-03-11,metro,50,Travel,,manual-chat
+2026-03-12T12:05:00+05:30,2026-03-12,Smart watch,2499,Shopping,,manual-chat
+2026-03-12T15:17:00+05:30,2026-03-12,Milk,24,Food,,manual-chat
+2026-03-12T15:46:00+05:30,2026-03-12,Smartwatch Gold subscription (yearly),149,Subscription,yearly plan,manual-chat
+2026-03-13T11:15+05:30,2026-03-13,Football,279,Football,,manual-chat
+2026-03-13T14:12+05:30,2026-03-13,H&M; Cap,948,Shopping,,manual-chat
+2026-03-13T20:58+05:30,2026-03-13,Rapido to turf,209,Travel,,manual-chat
+2026-03-13T23:11+05:30,2026-03-13,Groceries,270,Food,Adjusted: excluded ball pump ₹209 from total ₹479,manual-chat
+2026-03-13T23:11+05:30,2026-03-13,Ball pump,209,Football,Split from groceries entry,manual-chat
+2026-03-13T23:21+05:30,2026-03-13,Rapido to home,146,Travel,,manual-chat
+2026-03-14T13:25+05:30,2026-03-14,Football,255,Football,,manual-chat
+2026-03-14T14:46+05:30,2026-03-14,Milk,24,Food,,manual-chat
+2026-03-14T17:52+05:30,2026-03-14,Rapido to turf,125,Travel,,manual-chat
+2026-03-14T20:05+05:30,2026-03-14,Rapido to watch shop,42,Travel,,manual-chat
+2026-03-14T20:10+05:30,2026-03-14,Watch repair,30,Shopping,,manual-chat
+2026-03-14T20:55+05:30,2026-03-14,Rapido to home,112,Travel,,manual-chat
+,2026-03-15,Suitcase,1899,Goa Shopping,,

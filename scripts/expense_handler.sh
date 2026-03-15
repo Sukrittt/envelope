@@ -2,8 +2,9 @@
 # Expense handler - minimal, fast, non-repetitive
 # Usage: ./expense_handler.sh "item amount" [item amount...]
 
-DATA_DIR="/root/.openclaw/workspace/data"
-EXPENSES="$DATA_DIR/expenses.csv"
+WORKSPACE_DIR="/root/.openclaw/workspace"
+EXPENSES="$WORKSPACE_DIR/productivity/expenses.csv"
+SYNC_SCRIPT="$WORKSPACE_DIR/scripts/sync_expenses.mjs"
 
 log_expense() {
     local item="$1"
@@ -57,8 +58,13 @@ done
 
 if [[ $count -eq 0 ]]; then
     echo "Usage: expense_handler.sh 'lunch 120' 'coffee 40'"
-elif [[ $count -eq 1 ]]; then
-    echo "✓ logged"
-else
-    echo "✓ $count items logged"
+elif [[ $count -ge 1 ]]; then
+    if [[ -f "$SYNC_SCRIPT" ]]; then
+        node "$SYNC_SCRIPT" >/dev/null 2>&1
+    fi
+    if [[ $count -eq 1 ]]; then
+        echo "✓ logged"
+    else
+        echo "✓ $count items logged"
+    fi
 fi
