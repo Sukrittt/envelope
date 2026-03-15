@@ -446,11 +446,9 @@ export function ExpensePage() {
         {period === 'custom' ? (
           <div className="scope-group custom-dates">
             <label>
-              Start
               <input type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} aria-label="Custom start date" />
             </label>
             <label>
-              End
               <input type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} aria-label="Custom end date" />
             </label>
           </div>

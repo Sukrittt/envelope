@@ -1313,15 +1313,21 @@ input[type='date']:hover {
   color: var(--expense-text);
 }
 
-.expense-shell .mc-topbar,
-.expense-shell .mc-shell-context,
-.expense-shell .module-switcher,
-.expense-shell .module-pill,
-.expense-shell .sidebar-link,
-.expense-shell .action-button,
-.expense-shell .mc-chip,
-.expense-shell .mc-panel {
-  border-radius: 0;
+.mc-topbar,
+.mc-shell-context,
+.module-switcher,
+.module-pill,
+.sidebar-link,
+.action-button,
+.mc-chip,
+.mc-panel,
+.spark-bar,
+.category-row,
+.segmented-control,
+.mc-sync-row,
+.mc-secondary-details,
+.fitness-stat {
+  border-radius: 0 !important;
 }
 
 .expense-shell .module-pill.active,
