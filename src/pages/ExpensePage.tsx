@@ -81,6 +81,10 @@ export function ExpensePage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false)
   const [categoryMenuPosition, setCategoryMenuPosition] = useState<{ top: number; left: number; minWidth: number } | null>(null)
+  const [hideAmounts, setHideAmounts] = useState<boolean>(() => {
+    const stored = localStorage.getItem('expense-hide-amounts')
+    return stored === 'true'
+  })
   const categoryMenuRef = useRef<HTMLDivElement | null>(null)
   const categoryTriggerRef = useRef<HTMLButtonElement | null>(null)
 
@@ -102,6 +106,21 @@ export function ExpensePage() {
 
   function toggleCategory(category: string) {
     setSelectedCategories((prev) => (prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]))
+  }
+
+  function toggleHideAmounts() {
+    setHideAmounts((prev) => {
+      const next = !prev
+      localStorage.setItem('expense-hide-amounts', String(next))
+      return next
+    })
+  }
+
+  function formatCurrencyHidden(value: number): React.ReactNode {
+    if (hideAmounts) {
+      return <span className="currency-hidden">--</span>
+    }
+    return formatCurrency(value)
   }
 
   useEffect(() => {
@@ -412,19 +431,28 @@ export function ExpensePage() {
         </span>
       </section>
 
-      <div className="segmented-control expense-tab-switcher">
-        <button type="button" className={`action-button ${activeTab === 'overview' ? 'is-active' : ''}`} onClick={() => setActiveTab('overview')}>
-          Overview
-        </button>
-        <button type="button" className={`action-button ${activeTab === 'transactions' ? 'is-active' : ''}`} onClick={() => setActiveTab('transactions')}>
-          Transactions
+      <div className="expense-tab-row">
+        <div className="tab-nav expense-tab-nav">
+          <button type="button" className={`tab-button expense-tab-button ${activeTab === 'overview' ? 'is-active' : ''}`} onClick={() => setActiveTab('overview')}>
+            Overview
+          </button>
+          <button type="button" className={`tab-button expense-tab-button ${activeTab === 'transactions' ? 'is-active' : ''}`} onClick={() => setActiveTab('transactions')}>
+            Transactions
+          </button>
+        </div>
+
+        <button type="button" className={`action-button hide-amounts-toggle ${hideAmounts ? 'is-active' : ''}`} onClick={toggleHideAmounts}>
+          {hideAmounts ? '👁️ Show amounts' : '🔒 Hide amounts'}
         </button>
       </div>
 
       {activeTab === 'transactions' ? (
-        <TransactionsView />
+        <div className="expense-tab-content">
+          <TransactionsView hideAmounts={hideAmounts} />
+        </div>
       ) : (<>
 
+      <div className="expense-tab-content">
       <section className="mc-filterbar expense-scopebar" aria-label="Scope bar">
         <div className="scope-group" role="group" aria-label="Period selector">
           <div className="mc-filter-chips" role="tablist" aria-label="Period presets">
@@ -477,15 +505,15 @@ export function ExpensePage() {
       <section className="mc-kpi-strip mc-kpi-strip--expense" aria-label="Expense KPIs">
         <article className="mc-kpi-card expense-kpi">
           <p>Total spend vs cap</p>
-          <strong className={panel.runRateStatus === 'overshoot' ? 'red' : ''}>{formatCurrency(filteredTotal)}</strong>
+          <strong className={`${panel.runRateStatus === 'overshoot' ? 'red' : ''} ${hideAmounts ? 'amount-hidden' : ''}`}>{formatCurrencyHidden(filteredTotal)}</strong>
           <span className="kpi-delta">{periodDelta > 0 ? '+' : ''}{periodDelta.toFixed(1)}% vs previous slice</span>
-          <span className="muted">Cap {formatCurrency(panel.monthlySpendCapInr)}</span>
+          <span className="muted">Cap {formatCurrencyHidden(panel.monthlySpendCapInr)}</span>
         </article>
 
         <article className="mc-kpi-card expense-kpi">
           <p>Daily run rate</p>
-          <strong>{formatCurrency(adjustedRunRate)}/day</strong>
-          <span className="kpi-delta">Soft cap {formatCurrency(panel.dailySoftCapInr)}/day</span>
+          <strong className={hideAmounts ? 'amount-hidden' : ''}>{formatCurrencyHidden(adjustedRunRate)}/day</strong>
+          <span className="kpi-delta">Soft cap {formatCurrencyHidden(panel.dailySoftCapInr)}/day</span>
           <span className="muted">Filtered by period + category</span>
         </article>
 
@@ -498,7 +526,7 @@ export function ExpensePage() {
 
         <article className="mc-kpi-card expense-kpi">
           <p>Dues receivable</p>
-          <strong>{formatCurrency(panel.duesReceivableInr)}</strong>
+          <strong className={hideAmounts ? 'amount-hidden' : ''}>{formatCurrencyHidden(panel.duesReceivableInr)}</strong>
           <span className="kpi-delta">Recovery buffer available</span>
           <span className="muted">Use before discretionary spends</span>
         </article>
@@ -530,7 +558,7 @@ export function ExpensePage() {
           <SparkBars
             data={trendSeries}
             size="expanded"
-            formatValue={(value) => formatCurrency(value)}
+            formatValue={(value) => hideAmounts ? '---' : formatCurrency(value)}
             capOutliers
             showReferenceLines
             onBarClick={trendView !== 'daily' ? handleBarClick : undefined}
@@ -553,7 +581,7 @@ export function ExpensePage() {
               {panel.weeklyAnomalies.slice(0, 4).map((week) => (
                 <tr key={week.key}>
                   <td>{week.label}</td>
-                  <td className="num">{formatCurrency(week.totalInr)}</td>
+                  <td className={`num ${hideAmounts ? 'amount-hidden' : ''}`}>{hideAmounts ? '---' : formatCurrency(week.totalInr)}</td>
                 </tr>
               ))}
             </tbody>
@@ -565,7 +593,7 @@ export function ExpensePage() {
             <h3>Subscriptions</h3>
             <p>Recurring drag</p>
           </div>
-          <p className="subscription-amount">{formatCurrency(subscriptionCategory?.amountInr ?? 0)}</p>
+          <p className={`subscription-amount ${hideAmounts ? 'amount-hidden' : ''}`}>{formatCurrencyHidden(subscriptionCategory?.amountInr ?? 0)}</p>
 
           <div className="subscription-lists">
             <details className="subscription-accordion" open>
@@ -576,7 +604,7 @@ export function ExpensePage() {
               <ul className="compact-bullets compact-bullets--tight">
                 {panel.subscriptions.active.map((sub) => (
                   <li key={`${sub.service}-${sub.status}`}>
-                    <strong>{sub.service}</strong> · {sub.billingCycle} · {formatCurrency(sub.amountInr)}
+                    <strong>{sub.service}</strong> · {sub.billingCycle} · {formatCurrencyHidden(sub.amountInr)}
                   </li>
                 ))}
               </ul>
@@ -636,7 +664,7 @@ export function ExpensePage() {
               <div className="donut-chart" style={{ backgroundImage: donutGradient }} />
               <div className="donut-center">
                 <strong>{selectedCategories.length ? categoryScopeLabel : 'All categories'}</strong>
-                <span>{formatCurrency(selectedCategoryTotal)}</span>
+                <span className={hideAmounts ? 'amount-hidden' : ''}>{hideAmounts ? '---' : formatCurrency(selectedCategoryTotal)}</span>
               </div>
             </div>
             <div className="category-card-stack">
@@ -667,7 +695,7 @@ export function ExpensePage() {
                           <span className="category-dot" style={{ background: categoryColorMap.get(category.category) }} />
                           {category.category}
                         </p>
-                        <p className="risk-meta">{formatCurrency(category.amountInr)}</p>
+                        <p className={`risk-meta ${hideAmounts ? 'amount-hidden' : ''}`}>{formatCurrencyHidden(category.amountInr)}</p>
                       </div>
                       <span className="mc-chip">{category.sharePct}%</span>
                     </button>
@@ -685,6 +713,7 @@ export function ExpensePage() {
             {link.label}
           </a>
         ))}
+      </div>
       </div>
       </>)}
       {categoryMenu}

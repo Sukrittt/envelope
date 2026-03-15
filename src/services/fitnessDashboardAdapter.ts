@@ -1,33 +1,29 @@
 export type SplitType = 'push' | 'pull' | 'legs' | 'rest'
 
-export interface TrainingTopSet {
-  exercise: string
-  weightKg: number
-  reps: number
-}
-
 export interface FitnessDailyLog {
   date: string
   morningWeightKg: number
-  caloriesKcal: number
-  proteinG: number
-  steps: number
+  caloriesKcal: number | null
+  proteinG: number | null
+  steps: number | null
+  sleepHours: number | null
+  hydrationL: number | null
   workout: {
     status: 'done' | 'rest' | 'missed' | string
     type: SplitType | string
+    topSet?: string
+    rpe?: number
     completed?: boolean
-    topSet?: TrainingTopSet
-    pr?: {
-      exercise: string
-      value: string
-    } | null
   }
   adherence: { calorieInRange: boolean; proteinMet: boolean; stepsMet: boolean }
+  notes?: string
 }
 
 export interface FitnessDashboardContract {
-  meta: { generatedAt: string; weekStart: string }
+  meta: { generatedAt: string; weekStart: string; version: string }
   athleteProfile: {
+    name: string
+    startWeightKg: number
     currentWeightKg: number
     targetWeightKg: number
   }
@@ -45,112 +41,164 @@ export interface FitnessDashboardContract {
     avgSteps: number
     trainingCompletionPct: number
   }
+  summaries: {
+    adherence: {
+      weekPct: number
+      monthPct: number
+      weekChecksPassed: number
+      weekChecksTotal: number
+    }
+    weightTrend: {
+      trend7dKgPerWeek: number
+      trend14dKgPerWeek: number
+      direction: string
+    }
+    protein: {
+      targetG: number
+      avg7dG: number
+      avg21dG: number
+      daysMet7d: number
+      consistencyBand: string
+    }
+    steps: {
+      targetMin: number
+      avg7d: number
+      avg21d: number
+      targetAttainment7dPct: number
+    }
+    training: {
+      plannedSessionsWeek: number
+      completedSessionsWeek: number
+      completionPctWeek: number
+      splitByType: Record<SplitType, number>
+    }
+  }
+  chartSeries: {
+    weightDaily21d: Array<{ date: string; value: number }>
+    weightMovingAvg7d: Array<{ date: string; value: number }>
+    proteinDaily21d: Array<{ date: string; value: number }>
+    stepsDaily21d: Array<{ date: string; value: number }>
+    adherenceDaily21d: Array<{ date: string; value: number }>
+  }
+  foodLog: Array<{
+    date: string
+    mealType: string
+    items: string
+    caloriesKcal: number | null
+    proteinG: number | null
+    loggedAt?: string
+  }>
+  prList: Array<{
+    date: string
+    lift: string
+    prType: string
+    value: number
+    unit: string
+    bodyWeightKg: number
+    notes: string
+  }>
+  pplRoutines: Array<{
+    routineName: string
+    dayType: string
+    exerciseOrder: number
+    exercise: string
+    sets: number
+    reps: string
+    targetRir: number
+    restSec: number
+    notes: string
+  }>
+  weightTrajectory: Array<{
+    date: string
+    weightKg: number
+    trendKg: number
+    bodyFatPct: number | null
+    waistCm: number | null
+    notes: string
+  }>
+}
+
+export interface WorkoutLog {
+  date: string
+  type: string
+  topSet: string | null
+  rpe: number | null
+  completed: boolean
+  notes: string | null
+}
+
+export interface ExercisePR {
+  exercise: string
+  weight: number
+  reps: number
+  date: string
+  type: string
 }
 
 export interface FitnessDashboardPanel {
   lastUpdated: string
+  athleteName: string
   currentWeightKg: number
+  startWeightKg: number
   targetWeightKg: number
   remainingKg: number
   adherencePct: number
   trainingCompletionPct: number
   avgProteinG: number
   proteinTargetG: number
-  avgSteps: number
-  stepTarget: number
-  caloriesAvg: number
   caloriesBand: { min: number; max: number }
   workoutStreakDays: number
   weightSeries: Array<{ date: string; value: number }>
-  stepsSeries: Array<{ date: string; value: number }>
+  weightTrend7d: number
+  weightTrend14d: number
+  proteinSeries: Array<{ date: string; value: number }>
   nutritionCompliance: {
     hitDays7d: number
     missDays7d: number
-    proteinConsistencyBand: 'high' | 'medium' | 'low'
+    proteinConsistencyBand: string
   }
   trainingDetail: {
     splitCounts7d: Record<SplitType, number>
-    latestTopSet: TrainingTopSet | null
-    latestPr: { date: string; exercise: string; value: string } | null
+    plannedSessions: number
+    completedSessions: number
   }
   summaryCards: {
     adherenceWeekPct: number
     adherenceMonthPct: number
-    trend7dKgPerWeek: number
-    trend14dKgPerWeek: number
+    proteinAvg7d: number
+    proteinDaysMet7d: number
   }
   dailyInsight: {
     date: string
     action: string
     reason: string
   }
+  workoutLogs: WorkoutLog[]
+  exercisePRs: ExercisePR[]
+  foodLog: Array<{
+    date: string
+    mealType: string
+    items: string
+    loggedAt?: string
+  }>
 }
 
-function average(values: number[]): number {
-  if (!values.length) return 0
-  return values.reduce((sum, value) => sum + value, 0) / values.length
-}
-
-function calculateWeightTrend(logs: FitnessDailyLog[]): number {
-  if (logs.length < 2) return 0
-  const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date))
-  const first = sorted[0].morningWeightKg
-  const last = sorted[sorted.length - 1].morningWeightKg
-  return Number((((last - first) / Math.max(logs.length - 1, 1)) * 7).toFixed(2))
-}
-
-function getProteinBand(recent7: FitnessDailyLog[], target: number): 'high' | 'medium' | 'low' {
-  if (!recent7.length) return 'low'
-  const hitRate = recent7.filter((row) => row.proteinG >= target).length / recent7.length
-  if (hitRate >= 0.8) return 'high'
-  if (hitRate >= 0.5) return 'medium'
-  return 'low'
-}
-
-function pickInsight(recent7: FitnessDailyLog[], input: FitnessDashboardContract): { action: string; reason: string } {
-  const missedCalories = recent7.filter((row) => !row.adherence.calorieInRange).length
-  const proteinMisses = recent7.filter((row) => !row.adherence.proteinMet).length
-  const lowStepsDays = recent7.filter((row) => row.steps < input.targets.stepsMin).length
-  const missedTraining = recent7.filter((row) => row.workout.status === 'missed').length
-
-  if (proteinMisses >= 2) {
+function parseTopSet(topSetStr: string | undefined): { exercise: string; weight: number; reps: number } | null {
+  if (!topSetStr) return null
+  const match = topSetStr.match(/^(.+?)\s+([\d.]+)\s*kg?\s*[x×]\s*(\d+)$/i)
+  if (match) {
     return {
-      action: 'Add one 25g protein serving to dinner today.',
-      reason: `${proteinMisses}/7 days missed protein target.`,
+      exercise: match[1].trim(),
+      weight: parseFloat(match[2]),
+      reps: parseInt(match[3], 10),
     }
   }
-
-  if (missedCalories >= 2) {
-    return {
-      action: `Keep intake inside ${input.targets.calorieRange.min}-${input.targets.calorieRange.max} kcal today.`,
-      reason: `${missedCalories}/7 days were outside calorie range.`,
-    }
-  }
-
-  if (lowStepsDays >= 2) {
-    return {
-      action: 'Add a 20-minute walk after your last meal.',
-      reason: `${lowStepsDays}/7 days were below step floor.`,
-    }
-  }
-
-  if (missedTraining >= 1) {
-    return {
-      action: 'Run your scheduled split session before dinner.',
-      reason: `${missedTraining} planned workout was missed this week.`,
-    }
-  }
-
-  return {
-    action: 'Repeat yesterday\'s plan exactly to preserve momentum.',
-    reason: 'Execution is stable across nutrition, training, and activity.',
-  }
+  return null
 }
 
 export function toFitnessDashboardPanel(input: FitnessDashboardContract): FitnessDashboardPanel {
-  const trailing = [...input.dailyLogs].sort((a, b) => a.date.localeCompare(b.date)).slice(-30)
-  const recent14 = trailing.slice(-14)
-  const recent7 = trailing.slice(-7)
+  const sortedLogs = [...input.dailyLogs].sort((a, b) => a.date.localeCompare(b.date))
+  const recent7 = sortedLogs.slice(-7)
 
   let streak = 0
   for (let index = recent7.length - 1; index >= 0; index -= 1) {
@@ -161,65 +209,116 @@ export function toFitnessDashboardPanel(input: FitnessDashboardContract): Fitnes
     break
   }
 
-  const hitDays7d = recent7.filter((row) => row.adherence.calorieInRange).length
   const splitCounts7d: Record<SplitType, number> = { push: 0, pull: 0, legs: 0, rest: 0 }
   for (const row of recent7) {
     const split = row.workout.type as SplitType
     if (split in splitCounts7d) splitCounts7d[split] += 1
   }
 
-  const latestTopSet = [...recent7].reverse().find((row) => row.workout.topSet)?.workout.topSet ?? null
-  const latestPrRow = [...recent14].reverse().find((row) => row.workout.pr)
-  const insight = pickInsight(recent7, input)
+  const hitDays7d = recent7.filter((row) => row.adherence?.calorieInRange).length
+  const avgProtein7d = recent7.reduce((sum, row) => sum + (row.proteinG ?? 0), 0) / recent7.filter((row) => row.proteinG !== null).length
+
+  const workoutLogs: WorkoutLog[] = sortedLogs
+    .filter((log) => log.workout.status === 'done')
+    .map((log) => ({
+      date: log.date,
+      type: log.workout.type,
+      topSet: log.workout.topSet ?? null,
+      rpe: log.workout.rpe ?? null,
+      completed: log.workout.completed ?? false,
+      notes: log.notes ?? null,
+    }))
+    .reverse()
+
+  const exercisePRs: ExercisePR[] = []
+  for (const log of sortedLogs) {
+    if (log.workout.topSet) {
+      const parsed = parseTopSet(log.workout.topSet)
+      if (parsed) {
+        const existing = exercisePRs.find((pr) => pr.exercise.toLowerCase() === parsed.exercise.toLowerCase())
+        if (!existing || parsed.weight > existing.weight) {
+          exercisePRs.push({
+            exercise: parsed.exercise,
+            weight: parsed.weight,
+            reps: parsed.reps,
+            date: log.date,
+            type: log.workout.type,
+          })
+        }
+      }
+    }
+  }
+
+  const weightSeries = sortedLogs
+    .filter((log) => log.morningWeightKg !== null)
+    .map((log) => ({
+      date: log.date,
+      value: log.morningWeightKg,
+    }))
+
+  const proteinSeries = sortedLogs
+    .filter((log) => log.proteinG !== null)
+    .map((log) => ({
+      date: log.date,
+      value: log.proteinG as number,
+    }))
+
+  const trend7d = weightSeries.slice(-7)
+  const trend14d = weightSeries.slice(-14)
+  const weightTrend7d = trend7d.length >= 2
+    ? Number((((trend7d[trend7d.length - 1].value - trend7d[0].value) / Math.max(trend7d.length - 1, 1)) * 7).toFixed(2))
+    : 0
+  const weightTrend14d = trend14d.length >= 2
+    ? Number((((trend14d[trend14d.length - 1].value - trend14d[0].value) / Math.max(trend14d.length - 1, 1)) * 7).toFixed(2))
+    : 0
 
   return {
     lastUpdated: input.meta.generatedAt,
+    athleteName: input.athleteProfile.name,
     currentWeightKg: input.athleteProfile.currentWeightKg,
+    startWeightKg: input.athleteProfile.startWeightKg,
     targetWeightKg: input.athleteProfile.targetWeightKg,
     remainingKg: Number((input.athleteProfile.currentWeightKg - input.athleteProfile.targetWeightKg).toFixed(1)),
     adherencePct: input.kpis.adherencePct,
     trainingCompletionPct: input.kpis.trainingCompletionPct,
-    avgProteinG: Number(input.kpis.avgProteinG.toFixed(1)),
+    avgProteinG: Number(avgProtein7d.toFixed(1)),
     proteinTargetG: input.targets.proteinG,
-    avgSteps: Math.round(input.kpis.avgSteps),
-    stepTarget: input.targets.stepsMin,
-    caloriesAvg: Math.round(average(recent7.map((row) => row.caloriesKcal))),
-    caloriesBand: {
-      min: input.targets.calorieRange.min,
-      max: input.targets.calorieRange.max,
-    },
+    caloriesBand: input.targets.calorieRange,
     workoutStreakDays: streak,
-    weightSeries: recent7.map((row) => ({ date: row.date, value: row.morningWeightKg })),
-    stepsSeries: recent7.map((row) => ({ date: row.date, value: row.steps })),
+    weightSeries,
+    weightTrend7d,
+    weightTrend14d,
+    proteinSeries,
     nutritionCompliance: {
       hitDays7d,
       missDays7d: recent7.length - hitDays7d,
-      proteinConsistencyBand: getProteinBand(recent7, input.targets.proteinG),
+      proteinConsistencyBand: input.summaries.protein.consistencyBand,
     },
     trainingDetail: {
       splitCounts7d,
-      latestTopSet,
-      latestPr: latestPrRow?.workout.pr
-        ? {
-            date: latestPrRow.date,
-            exercise: latestPrRow.workout.pr.exercise,
-            value: latestPrRow.workout.pr.value,
-          }
-        : null,
+      plannedSessions: input.summaries.training.plannedSessionsWeek,
+      completedSessions: input.summaries.training.completedSessionsWeek,
     },
     summaryCards: {
-      adherenceWeekPct: Number(input.kpis.adherencePct.toFixed(1)),
-      adherenceMonthPct: Number((average(trailing.map((row) => {
-        const checks = [row.adherence.calorieInRange, row.adherence.proteinMet, row.adherence.stepsMet]
-        return (checks.filter(Boolean).length / checks.length) * 100
-      })) || 0).toFixed(1)),
-      trend7dKgPerWeek: calculateWeightTrend(recent7),
-      trend14dKgPerWeek: calculateWeightTrend(recent14),
+      adherenceWeekPct: input.summaries.adherence.weekPct,
+      adherenceMonthPct: input.summaries.adherence.monthPct,
+      proteinAvg7d: input.summaries.protein.avg7dG,
+      proteinDaysMet7d: input.summaries.protein.daysMet7d,
     },
     dailyInsight: {
       date: recent7[recent7.length - 1]?.date ?? input.meta.weekStart,
-      action: insight.action,
-      reason: insight.reason,
+      action: recent7[recent7.length - 1]?.workout.status === 'done'
+        ? `Great job on ${recent7[recent7.length - 1]?.workout.type} day!`
+        : 'Keep pushing towards your goals!',
+      reason: `${input.summaries.training.completedSessionsWeek}/${input.summaries.training.plannedSessionsWeek} sessions completed this week`,
     },
+    workoutLogs,
+    exercisePRs,
+    foodLog: input.foodLog.map((f) => ({
+      date: f.date,
+      mealType: f.mealType,
+      items: f.items,
+      loggedAt: f.loggedAt,
+    })),
   }
 }

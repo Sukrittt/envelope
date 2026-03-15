@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import expenseSample from '../data/expensePanel.sample.json'
-import fitnessContract from '../data/fitnessDashboard.sample.json'
+import fitnessContract from '../../productivity/fitness/fitness-dashboard.sample.json'
 import { SparkBars } from '../components/SparkBars'
 import { toExpensePanelData } from '../services/expensePanelAdapter'
 import { toFitnessDashboardPanel } from '../services/fitnessDashboardAdapter'
@@ -38,7 +38,7 @@ export function DashboardPage() {
   )
 
   const expensePanel = toExpensePanelData(expenseSample)
-  const fitnessPanel = toFitnessDashboardPanel(fitnessContract)
+  const fitnessPanel = toFitnessDashboardPanel(fitnessContract as never)
 
   if (!data) return null
 
@@ -165,10 +165,9 @@ export function DashboardPage() {
               <span className="muted">{fitnessPanel.remainingKg.toFixed(1)} kg remaining • adherence {fitnessPanel.adherencePct.toFixed(1)}%</span>
             </article>
           </section>
-          <SparkBars data={fitnessPanel.weightSeries} formatValue={(value) => `${value.toFixed(1)} kg`} />
+          <SparkBars data={fitnessPanel.weightSeries.slice(-7)} formatValue={(value) => `${value.toFixed(1)} kg`} />
           <div className="tags">
             <span className="mc-chip mc-chip--green">Protein {fitnessPanel.avgProteinG.toFixed(1)}g / {fitnessPanel.proteinTargetG}g</span>
-            <span className="mc-chip mc-chip--green">Steps {fitnessPanel.avgSteps.toLocaleString()} avg</span>
             <Link className="inline-link" to="/fitness">
               Open Fitness board →
             </Link>

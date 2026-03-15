@@ -22,7 +22,7 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function TransactionsView() {
+export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolean }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -265,7 +265,7 @@ export function TransactionsView() {
                   <td>{formatDate(t.date)}</td>
                   <td>{t.item}</td>
                   <td>{t.category}</td>
-                  <td className="num">{formatCurrency(t.amountInr)}</td>
+                  <td className={`num ${hideAmounts ? 'amount-hidden' : ''}`}>{hideAmounts ? '---' : formatCurrency(t.amountInr)}</td>
                   <td className="transactions-notes">{t.notes || '–'}</td>
                 </tr>
               ))}
@@ -285,7 +285,7 @@ export function TransactionsView() {
               onClick={() => setPage((p) => p + 1)}>Next</button>
           </div>
         )}
-        <span>Total: {formatCurrency(totalSpend)}</span>
+        <span>Total: {hideAmounts ? '---' : formatCurrency(totalSpend)}</span>
       </div>
     </div>
   )
