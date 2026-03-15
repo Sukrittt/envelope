@@ -214,8 +214,8 @@
       "primaryMetric": "₹41.8k spent / ₹45k cap",
       "secondaryMetric": "Food and commute above weekly trend",
       "deepLinks": [
-        { "label": "Open Expense App", "url": "../expense-dashboard/" },
-        { "label": "CSV Source", "url": "../productivity/expenses.csv" }
+        { "label": "Open Expense App", "url": "../../expense-dashboard/" },
+        { "label": "CSV Source", "url": "../../productivity/expenses.csv" }
       ],
       "notes": "Guardrail mode active. Cooling rule suggested for discretionary purchases."
     },

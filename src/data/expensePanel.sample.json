@@ -39,9 +39,9 @@
     "Travel and football spending normalized; food remains manageable."
   ],
   "deepLinks": [
-    { "label": "Open Expense Dashboard", "url": "../expense-dashboard/" },
-    { "label": "Expenses CSV", "url": "../productivity/expenses.csv" },
-    { "label": "Subscriptions CSV", "url": "../productivity/subscriptions.csv" }
+    { "label": "Open Expense Dashboard", "url": "../../expense-dashboard/" },
+    { "label": "Expenses CSV", "url": "../../productivity/expenses.csv" },
+    { "label": "Subscriptions CSV", "url": "../../productivity/subscriptions.csv" }
   ],
   "subscriptions": [
     { "service": "Spotify", "amountInr": 99, "billingCycle": "monthly", "status": "active" },
