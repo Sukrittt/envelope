@@ -76,7 +76,7 @@ type ExpenseTab = 'overview' | 'transactions'
 export function ExpensePage() {
   const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>('mtd')
-  const [trendView, setTrendView] = useState<TrendView>('weekly')
+  const [trendView, setTrendView] = useState<TrendView>('daily')
   const [drillFilter, setDrillFilter] = useState<DrillFilter>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false)
@@ -227,6 +227,15 @@ export function ExpensePage() {
     }
 
     if (trendView === 'daily') {
+      if (!drillFilter) {
+        const now = new Date()
+        const today = now.toISOString().slice(0, 10)
+        const startOfWeek = new Date(now)
+        const diffToMonday = (startOfWeek.getDay() + 6) % 7
+        startOfWeek.setDate(now.getDate() - diffToMonday)
+        const weekStart = startOfWeek.toISOString().slice(0, 10)
+        source = source.filter((row) => row.date >= weekStart && row.date <= today)
+      }
       return source.map((row) => ({ date: row.date, value: row.value }))
     }
 

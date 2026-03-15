@@ -1375,6 +1375,7 @@ input[type='date']:hover {
 .expense-view .mc-compact-table,
 .expense-view .mc-summary-row .mc-chip {
   border-radius: 0;
+  border: 0;
 }
 
 .expense-scopebar {
@@ -1906,6 +1907,10 @@ input[type='date']:hover {
   border-right: 0;
 }
 
+.segmented-control .action-button.is-active {
+  border-right: 0;
+}
+
 .mc-sync-row {
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
@@ -2087,6 +2092,7 @@ summary:focus-visible,
 .expense-tab-switcher {
   margin-bottom: var(--sp-2);
   border-radius: var(--r-sm);
+  border: 0;
 }
 
 .expense-tab-switcher .action-button {

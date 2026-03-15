@@ -4,7 +4,7 @@ import { loadTransactions, type Transaction } from '../services/expenseTransacti
 
 type SortKey = 'date' | 'amountInr' | 'category'
 type SortDir = 'asc' | 'desc'
-type PeriodKey = '7d' | '30d' | 'mtd' | 'custom'
+type PeriodKey = 'week' | 'month' | 'custom'
 
 const PAGE_SIZE = 20
 
@@ -27,7 +27,7 @@ export function TransactionsView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [period, setPeriod] = useState<PeriodKey>('mtd')
+  const [period, setPeriod] = useState<PeriodKey>('week')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -104,10 +104,14 @@ export function TransactionsView() {
     // Date filter
     const end = new Date(latestDate)
     let start = new Date(0)
-    if (period === '7d') { start = new Date(end); start.setDate(end.getDate() - 6) }
-    else if (period === '30d') { start = new Date(end); start.setDate(end.getDate() - 29) }
-    else if (period === 'mtd') { start = new Date(end.getFullYear(), end.getMonth(), 1) }
-    else if (period === 'custom' && customStart && customEnd) {
+    if (period === 'week') {
+      const now = new Date(end)
+      start = new Date(now)
+      const diffToMonday = (start.getDay() + 6) % 7
+      start.setDate(now.getDate() - diffToMonday)
+    } else if (period === 'month') {
+      start = new Date(end.getFullYear(), end.getMonth(), 1)
+    } else if (period === 'custom' && customStart && customEnd) {
       start = new Date(customStart); end.setTime(new Date(customEnd).getTime())
     }
     rows = rows.filter((t) => { const d = new Date(t.date); return d >= start && d <= end })
@@ -146,6 +150,15 @@ export function TransactionsView() {
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else { setSortKey(key); setSortDir(key === 'date' ? 'desc' : 'asc') }
+  }
+
+  function resetFilters() {
+    setPeriod('week')
+    setSelectedCategory('')
+    setAmountMin('')
+    setAmountMax('')
+    setSearch('')
+    setPage(0)
   }
 
   function sortIndicator(key: SortKey) {
@@ -197,10 +210,10 @@ export function TransactionsView() {
     <div className="transactions-view">
       <div className="transactions-filters">
         <div className="mc-filter-chips" role="tablist" aria-label="Period presets">
-          {(['7d', '30d', 'mtd', 'custom'] as PeriodKey[]).map((key) => (
+          {(['week', 'month', 'custom'] as PeriodKey[]).map((key) => (
             <button key={key} type="button" className={`action-button ${period === key ? 'is-active' : ''}`}
               onClick={() => setPeriod(key)}>
-              {key === '7d' ? '7 days' : key === '30d' ? '30 days' : key === 'mtd' ? 'This month' : 'Custom'}
+              {key === 'week' ? 'This week' : key === 'month' ? 'This month' : 'Custom'}
             </button>
           ))}
         </div>
@@ -224,6 +237,10 @@ export function TransactionsView() {
 
         <input type="search" className="transactions-search" placeholder="Search description or notes…"
           value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search transactions" />
+
+        <button type="button" className="action-button is-ghost" onClick={resetFilters}>
+          Reset
+        </button>
       </div>
 
       {renderDropdown(catOpen, catPos, catMenuRef, categories, selectedCategory, setSelectedCategory, () => setCatOpen(false), 'Category filter')}
