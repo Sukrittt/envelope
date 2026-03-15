@@ -1,14 +1,14 @@
 {
   "meta": {
     "version": "v1.1",
-    "generatedAt": "2026-03-12T19:20:00Z",
+    "generatedAt": "2026-03-15T19:49:00Z",
     "timezone": "Asia/Calcutta",
     "weekStart": "2026-03-09"
   },
   "athleteProfile": {
     "name": "Sukrit",
     "startWeightKg": 68.89,
-    "currentWeightKg": 61.9,
+    "currentWeightKg": 62.2,
     "targetWeightKg": 58
   },
   "targets": {
@@ -478,6 +478,21 @@
         "stepsMet": true
       },
       "notes": "Clean finish to week."
+    },
+    {
+      "date": "2026-03-15",
+      "morningWeightKg": 62.2,
+      "caloriesKcal": null,
+      "proteinG": null,
+      "steps": null,
+      "sleepHours": null,
+      "workout": {
+        "status": "done",
+        "type": "push",
+        "topSet": "Bench Press 60kg x 5",
+        "completed": true
+      },
+      "notes": "Meals logged; nutrition totals pending."
     }
   ],
   "kpis": {
@@ -613,6 +628,10 @@
       {
         "date": "2026-03-12",
         "value": 61.9
+      },
+      {
+        "date": "2026-03-15",
+        "value": 62.2
       }
     ],
     "weightMovingAvg7d": [
@@ -699,6 +718,10 @@
       {
         "date": "2026-03-12",
         "value": 62.09
+      },
+      {
+        "date": "2026-03-15",
+        "value": 62.07
       }
     ],
     "proteinDaily21d": [
@@ -966,5 +989,74 @@
     "Rest day (workout.status = rest) is neutral for training completion unless explicitly marked as missed planned session.",
     "If protein or steps is missing for a day, exclude that day from relevant averages and attainment denominator; keep raw field null in logs.",
     "Single-day weight deltas over ±1.0kg should trigger outlier annotation in chart tooltip, not auto-clamping."
+  ],
+  "foodLog": [
+    {
+      "date": "2026-03-15",
+      "mealType": "breakfast",
+      "items": "2 brown bread + butter; 2-egg omelet; Yogabar muesli 6 tbsp + 500ml milk",
+      "caloriesKcal": null,
+      "proteinG": null,
+      "carbsG": null,
+      "fatG": null,
+      "fiberG": null,
+      "notes": null
+    },
+    {
+      "date": "2026-03-15",
+      "mealType": "snack",
+      "items": "2 slices brown bread + butter",
+      "caloriesKcal": null,
+      "proteinG": null,
+      "carbsG": null,
+      "fatG": null,
+      "fiberG": null,
+      "notes": null
+    },
+    {
+      "date": "2026-03-15",
+      "mealType": "dinner",
+      "items": "2 rotis; 2-egg omelet",
+      "caloriesKcal": null,
+      "proteinG": null,
+      "carbsG": null,
+      "fatG": null,
+      "fiberG": null,
+      "notes": null
+    }
+  ],
+  "prList": [
+    {
+      "date": "2026-03-15",
+      "lift": "bench_press",
+      "prType": "weight",
+      "value": 60,
+      "unit": "kg",
+      "bodyWeightKg": 62.2,
+      "notes": "first time 60kg for 5 reps"
+    }
+  ],
+  "pplRoutines": [
+    {
+      "routineName": "PPL_v1",
+      "dayType": "push",
+      "exerciseOrder": 1,
+      "exercise": "bench_press",
+      "sets": 4,
+      "reps": "6-8",
+      "targetRir": 2,
+      "restSec": 120,
+      "notes": "flat barbell bench"
+    }
+  ],
+  "weightTrajectory": [
+    {
+      "date": "2026-03-15",
+      "weightKg": 62.2,
+      "trendKg": 62.8,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "morning fasted weigh-in"
+    }
   ]
 }
