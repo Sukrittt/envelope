@@ -296,14 +296,11 @@ export function ExpensePage() {
   }
 
   const stalenessText = formatLastUpdated(panel.lastUpdated)
-  const periodLabel = period === 'mtd' ? 'Month to date' : period === 'custom' ? 'Custom range' : period === '7d' ? 'Last 7 days' : 'Last 30 days'
   const categoryScopeLabel = selectedCategories.length ? `${selectedCategories.length} selected` : 'All categories'
 
   const topCategory = filteredCategories[0] ?? panel.topCategories[0]
   const topCategoryShare = topCategory?.sharePct ?? 0
   const adjustedRunRate = panel.avgDailyLast7Inr * categoryScopeRatio
-
-  const peakPoint = trendSeries.reduce((peak, row) => (row.value > peak.value ? row : peak), trendSeries[0] ?? { date: '-', value: 0 })
 
   const subscriptionCategory = panel.topCategories.find((row) => row.category.toLowerCase().includes('subscription'))
   const donutSegments = (selectedCategories.length ? filteredCategories : panel.topCategories).slice(0, 8)
