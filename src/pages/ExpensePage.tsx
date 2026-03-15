@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import expenseSample from '../data/expensePanel.sample.json'
 import { SparkBars } from '../components/SparkBars'
+import { TransactionsView } from '../components/TransactionsView'
 import { toExpensePanelData } from '../services/expensePanelAdapter'
 
 type PeriodKey = '7d' | '30d' | 'mtd' | 'custom'
@@ -70,7 +71,10 @@ function weekRangeLabel(startIso: string): string {
   })}`
 }
 
+type ExpenseTab = 'overview' | 'transactions'
+
 export function ExpensePage() {
+  const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>('mtd')
   const [trendView, setTrendView] = useState<TrendView>('weekly')
   const [drillFilter, setDrillFilter] = useState<DrillFilter>(null)
@@ -399,6 +403,19 @@ export function ExpensePage() {
         </span>
       </section>
 
+      <div className="segmented-control expense-tab-switcher">
+        <button type="button" className={`action-button ${activeTab === 'overview' ? 'is-active' : ''}`} onClick={() => setActiveTab('overview')}>
+          Overview
+        </button>
+        <button type="button" className={`action-button ${activeTab === 'transactions' ? 'is-active' : ''}`} onClick={() => setActiveTab('transactions')}>
+          Transactions
+        </button>
+      </div>
+
+      {activeTab === 'transactions' ? (
+        <TransactionsView />
+      ) : (<>
+
       <section className="mc-filterbar expense-scopebar" aria-label="Scope bar">
         <div className="scope-group" role="group" aria-label="Period selector">
           <div className="mc-filter-chips" role="tablist" aria-label="Period presets">
@@ -662,6 +679,7 @@ export function ExpensePage() {
           </a>
         ))}
       </div>
+      </>)}
       {categoryMenu}
     </section>
   )

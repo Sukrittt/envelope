@@ -261,6 +261,7 @@ h4 {
   padding: var(--sp-4);
   display: grid;
   gap: var(--sp-4);
+  align-content: start;
 }
 
 .mc-topbar {
@@ -2080,6 +2081,136 @@ summary:focus-visible,
   .sidebar-link {
     min-height: 36px;
   }
+}
+
+/* Transactions View */
+.expense-tab-switcher {
+  margin-bottom: var(--sp-2);
+  border-radius: var(--r-sm);
+}
+
+.expense-tab-switcher .action-button {
+  padding: 6px 16px;
+  font-size: var(--fs-13);
+}
+
+.transactions-view {
+  display: grid;
+  gap: var(--sp-4);
+  grid-column: 1 / -1;
+}
+
+.transactions-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.transactions-custom-dates {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.transactions-custom-dates input,
+.transactions-amount-range input,
+.transactions-search {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-12);
+  padding: 6px 10px;
+}
+
+.transactions-amount-range {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.transactions-amount-range input {
+  width: 90px;
+}
+
+.transactions-search {
+  min-width: 200px;
+  flex: 1;
+}
+
+.transactions-table-wrap {
+  overflow-x: auto;
+}
+
+.transactions-table .sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.transactions-table .sortable:hover {
+  color: var(--text-primary, #fff);
+}
+
+.transactions-notes {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transactions-filters .category-trigger {
+  width: auto;
+  min-width: 140px;
+}
+
+.transactions-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-12);
+  color: var(--muted-2);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--divider-soft);
+}
+
+.transactions-pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.transactions-pagination .action-button {
+  font-size: var(--fs-12);
+  padding: 2px 8px;
+}
+
+.transactions-pagination .action-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.transactions-empty {
+  text-align: center;
+  color: var(--muted-2);
+  padding: var(--sp-8) 0;
+  font-size: var(--fs-14);
+}
+
+.transactions-loading {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.skeleton-row {
+  height: 32px;
+  background: var(--panel-soft);
+  border-radius: var(--r-sm);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
 @media (prefers-reduced-motion: reduce) {
