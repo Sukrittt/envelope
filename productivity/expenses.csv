@@ -78,4 +78,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-03-14T20:05+05:30,2026-03-14,Rapido to watch shop,42,Travel,,manual-chat,,,
 2026-03-14T20:10+05:30,2026-03-14,Watch repair,30,Shopping,,manual-chat,,,
 2026-03-14T20:55+05:30,2026-03-14,Rapido to home,112,Travel,,manual-chat,,,
-,2026-03-15,,,Goa Shopping,,,1899,Suitcase,
+,2026-03-15,,1899,Goa Shopping,,,,Suitcase,
