@@ -5,7 +5,7 @@ Loaded always. Only edit by explicit rule from Sukrit.
 ## Communication Style
 - Short answers, no process dumps
 - Just the answer, not how I got there
-- Emoji: 🎈
+- Emoji: 👑
 
 ## Preferences
 - English only (unless asked)

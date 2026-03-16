@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-03-15T18:06:27.684Z",
+    "generatedAt": "2026-03-16T09:44:35.483Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 71080.59,
-    "essentialSpendInr": 30851.59,
+    "monthSpendInr": 71139.59,
+    "essentialSpendInr": 30910.59,
     "discretionarySpendInr": 40229,
     "duesReceivableInr": 1537.46
   },
@@ -18,7 +18,7 @@
     },
     {
       "category": "Bills",
-      "amountInr": 19994
+      "amountInr": 20053
     },
     {
       "category": "Subscription",
@@ -109,6 +109,10 @@
     {
       "date": "2026-03-15",
       "amountInr": 1899
+    },
+    {
+      "date": "2026-03-16",
+      "amountInr": 59
     }
   ],
   "alerts": [
