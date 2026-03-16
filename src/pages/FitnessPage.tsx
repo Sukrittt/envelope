@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import fitnessContract from '../../productivity/fitness/fitness-dashboard.sample.json'
-import { SparkBars } from '../components/SparkBars'
+import { SparkLine } from '../components/SparkLine'
 import { toFitnessDashboardPanel } from '../services/fitnessDashboardAdapter'
 
 const panel = toFitnessDashboardPanel(fitnessContract as never)
@@ -25,12 +25,22 @@ type FitnessTab = 'overview' | 'training' | 'food'
 
 const ITEMS_PER_PAGE = 10
 
+// Mon=push, Tue=pull, Wed=legs, Thu=push, Fri=pull, Sat=legs, Sun=rest
+const DAY_TO_SPLIT: Record<number, SplitFilter> = {
+  1: 'push', 2: 'pull', 3: 'legs', 4: 'push', 5: 'pull', 6: 'legs',
+}
+
+function getTodaySplit(): SplitFilter {
+  return DAY_TO_SPLIT[new Date().getDay()] ?? 'all'
+}
+
 export function FitnessPage() {
   const [activeTab, setActiveTab] = useState<FitnessTab>('overview')
-  const [splitFilter, setSplitFilter] = useState<SplitFilter>('all')
-  const [timeRange, setTimeRange] = useState<'7d' | '14d' | 'all'>('all')
+  const [splitFilter, setSplitFilter] = useState<SplitFilter>(getTodaySplit)
+  const [timeRange, setTimeRange] = useState<'30d' | '60d' | 'all'>('all')
   const [prSearch, setPrSearch] = useState('')
-  const [prMinWeight, setPrMinWeight] = useState('')
+  const [prDateFrom, setPrDateFrom] = useState('')
+  const [prDateTo, setPrDateTo] = useState('')
   const [trainingPage, setTrainingPage] = useState(1)
   const [foodPage, setFoodPage] = useState(1)
   const [trainingDateFrom, setTrainingDateFrom] = useState('')
@@ -54,16 +64,23 @@ export function FitnessPage() {
   const filteredPRs = useMemo(() => {
     let prs = panel.exercisePRs
     if (splitFilter !== 'all') {
-      prs = prs.filter((pr) => pr.type.toLowerCase() === splitFilter)
+      prs = prs.filter((pr) => pr.split === splitFilter)
     }
     if (prSearch) {
-      prs = prs.filter((pr) => pr.exercise.toLowerCase().includes(prSearch.toLowerCase()))
+      const q = prSearch.toLowerCase()
+      prs = prs.filter((pr) => {
+        const prStr = pr.unit === 'plates' ? `${pr.weight} plates × ${pr.reps}` : `${pr.weight} kg × ${pr.reps}`
+        return pr.exercise.toLowerCase().includes(q) || prStr.toLowerCase().includes(q)
+      })
     }
-    if (prMinWeight) {
-      prs = prs.filter((pr) => pr.weight >= parseFloat(prMinWeight))
+    if (prDateFrom) {
+      prs = prs.filter((pr) => pr.lastUpdated >= prDateFrom)
+    }
+    if (prDateTo) {
+      prs = prs.filter((pr) => pr.lastUpdated <= prDateTo)
     }
     return prs.sort((a, b) => b.weight - a.weight)
-  }, [splitFilter, prSearch, prMinWeight])
+  }, [splitFilter, prSearch, prDateFrom, prDateTo])
 
   const paginatedWorkouts = useMemo(() => {
     const start = (trainingPage - 1) * ITEMS_PER_PAGE
@@ -72,17 +89,17 @@ export function FitnessPage() {
 
   const totalTrainingPages = Math.ceil(filteredWorkouts.length / ITEMS_PER_PAGE)
 
-  const displayWeightSeries = timeRange === 'all' 
-    ? panel.weightSeries 
-    : timeRange === '7d' 
-      ? panel.weightSeries.slice(-7)
-      : panel.weightSeries.slice(-14)
+  const filterByDays = (series: typeof panel.weightSeries, days: number) => {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    return series.filter((d) => d.date >= cutoffStr)
+  }
 
-  const displayProteinSeries = timeRange === 'all'
-    ? panel.proteinSeries
-    : timeRange === '7d'
-      ? panel.proteinSeries.slice(-7)
-      : panel.proteinSeries.slice(-14)
+  const displayWeightSeries = timeRange === 'all'
+    ? panel.weightSeries
+    : filterByDays(panel.weightSeries, timeRange === '30d' ? 30 : 60)
+
 
   const sortedFoodLog = useMemo(() => {
     return [...panel.foodLog].sort((a, b) => b.date.localeCompare(a.date))
@@ -167,44 +184,40 @@ export function FitnessPage() {
             </article>
           </section>
 
-          <section className="mc-main-panels">
-            <article className="mc-panel">
-              <div className="mc-panel-header">
-                <h3>Weight trend</h3>
-                <div className="filter-bar">
-                  <button
-                    type="button"
-                    className={`action-button ${timeRange === '7d' ? 'is-active' : ''}`}
-                    onClick={() => setTimeRange('7d')}
-                  >
-                    7d
-                  </button>
-                  <button
-                    type="button"
-                    className={`action-button ${timeRange === '14d' ? 'is-active' : ''}`}
-                    onClick={() => setTimeRange('14d')}
-                  >
-                    14d
-                  </button>
-                  <button
-                    type="button"
-                    className={`action-button ${timeRange === 'all' ? 'is-active' : ''}`}
-                    onClick={() => setTimeRange('all')}
-                  >
-                    All
-                  </button>
-                </div>
+          <article className="mc-panel">
+            <div className="mc-panel-header">
+              <h3>Weight trend</h3>
+              <div className="filter-bar">
+                <button
+                  type="button"
+                  className={`action-button ${timeRange === '30d' ? 'is-active' : ''}`}
+                  onClick={() => setTimeRange('30d')}
+                >
+                  30d
+                </button>
+                <button
+                  type="button"
+                  className={`action-button ${timeRange === '60d' ? 'is-active' : ''}`}
+                  onClick={() => setTimeRange('60d')}
+                >
+                  60d
+                </button>
+                <button
+                  type="button"
+                  className={`action-button ${timeRange === 'all' ? 'is-active' : ''}`}
+                  onClick={() => setTimeRange('all')}
+                >
+                  All
+                </button>
               </div>
-              <SparkBars data={displayWeightSeries} formatValue={(value) => `${value.toFixed(1)} kg`} />
-            </article>
-
-            <article className="mc-panel">
-              <div className="mc-panel-header">
-                <h3>Protein trend</h3>
-              </div>
-              <SparkBars data={displayProteinSeries} formatValue={(value) => `${value.toFixed(0)} g`} />
-            </article>
-          </section>
+            </div>
+            <SparkLine
+              data={displayWeightSeries}
+              formatValue={(value) => `${value.toFixed(1)} kg`}
+              targetValue={panel.targetWeightKg}
+              targetLabel={`${panel.targetWeightKg} kg target`}
+            />
+          </article>
 
           <section className="mc-panel">
             <div className="mc-panel-header">
@@ -259,26 +272,33 @@ export function FitnessPage() {
             <div className="pr-filters">
               <input
                 type="search"
-                placeholder="Search exercise..."
+                placeholder="Search exercise or weight..."
                 value={prSearch}
                 onChange={(e) => setPrSearch(e.target.value)}
                 className="search-input"
               />
-              <input
-                type="number"
-                placeholder="Min weight (kg)"
-                value={prMinWeight}
-                onChange={(e) => setPrMinWeight(e.target.value)}
-                className="search-input"
-              />
+              <div className="pr-date-filters">
+                <input
+                  type="date"
+                  value={prDateFrom}
+                  onChange={(e) => setPrDateFrom(e.target.value)}
+                  className="search-input"
+                />
+                <input
+                  type="date"
+                  value={prDateTo}
+                  onChange={(e) => setPrDateTo(e.target.value)}
+                  className="search-input"
+                />
+              </div>
             </div>
             <table className="mc-compact-table">
               <thead>
                 <tr>
                   <th>Exercise</th>
-                  <th>Weight (kg)</th>
-                  <th>Date</th>
+                  <th>PR</th>
                   <th>Split</th>
+                  <th>Updated</th>
                 </tr>
               </thead>
               <tbody>
@@ -286,13 +306,13 @@ export function FitnessPage() {
                   filteredPRs.map((pr, idx) => (
                     <tr key={idx}>
                       <td>{pr.exercise}</td>
-                      <td>{pr.weight}</td>
-                      <td>{formatDate(pr.date)}</td>
+                      <td>{pr.unit === 'plates' ? `${pr.weight} plates × ${pr.reps}` : `${pr.weight} kg × ${pr.reps}`}</td>
                       <td>
-                        <span className={`mc-chip mc-chip--${pr.type === 'push' ? 'blue' : pr.type === 'pull' ? 'purple' : pr.type === 'legs' ? 'green' : ''}`}>
-                          {capitalize(pr.type)}
+                        <span className={`mc-chip mc-chip--${pr.split === 'push' ? 'blue' : pr.split === 'pull' ? 'purple' : pr.split === 'legs' ? 'green' : ''}`}>
+                          {capitalize(pr.split)}
                         </span>
                       </td>
+                      <td className="muted">{pr.lastUpdated ? formatDate(pr.lastUpdated) : '—'}</td>
                     </tr>
                   ))
                 ) : (

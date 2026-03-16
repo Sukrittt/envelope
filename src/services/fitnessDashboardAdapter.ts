@@ -131,8 +131,9 @@ export interface ExercisePR {
   exercise: string
   weight: number
   reps: number
-  date: string
-  type: string
+  unit: string
+  split: string
+  lastUpdated: string
 }
 
 export interface FitnessDashboardPanel {
@@ -183,18 +184,6 @@ export interface FitnessDashboardPanel {
   }>
 }
 
-function parseTopSet(topSetStr: string | undefined): { exercise: string; weight: number; reps: number } | null {
-  if (!topSetStr) return null
-  const match = topSetStr.match(/^(.+?)\s+([\d.]+)\s*kg?\s*[x×]\s*(\d+)$/i)
-  if (match) {
-    return {
-      exercise: match[1].trim(),
-      weight: parseFloat(match[2]),
-      reps: parseInt(match[3], 10),
-    }
-  }
-  return null
-}
 
 export function toFitnessDashboardPanel(input: FitnessDashboardContract): FitnessDashboardPanel {
   const sortedLogs = [...input.dailyLogs].sort((a, b) => a.date.localeCompare(b.date))
@@ -231,30 +220,30 @@ export function toFitnessDashboardPanel(input: FitnessDashboardContract): Fitnes
     .reverse()
 
   const exercisePRs: ExercisePR[] = []
-  for (const log of sortedLogs) {
-    if (log.workout.topSet) {
-      const parsed = parseTopSet(log.workout.topSet)
-      if (parsed) {
-        const existing = exercisePRs.find((pr) => pr.exercise.toLowerCase() === parsed.exercise.toLowerCase())
-        if (!existing || parsed.weight > existing.weight) {
-          exercisePRs.push({
-            exercise: parsed.exercise,
-            weight: parsed.weight,
-            reps: parsed.reps,
-            date: log.date,
-            type: log.workout.type,
-          })
-        }
-      }
+
+  if (input.prList) {
+    for (const pr of input.prList) {
+      const raw = pr as Record<string, unknown>
+      const name = pr.lift.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+      exercisePRs.push({
+        exercise: name,
+        weight: pr.value,
+        reps: raw.reps as number ?? 1,
+        unit: raw.unit as string ?? 'kg',
+        split: raw.split as string ?? '',
+        lastUpdated: raw.lastUpdated as string ?? '',
+      })
     }
   }
 
-  const weightSeries = sortedLogs
-    .filter((log) => log.morningWeightKg !== null)
-    .map((log) => ({
-      date: log.date,
-      value: log.morningWeightKg,
-    }))
+  const weightSeries = (input.chartSeries?.weightDaily21d?.length
+    ? input.chartSeries.weightDaily21d
+    : sortedLogs
+        .filter((log) => log.morningWeightKg !== null)
+        .map((log) => ({
+          date: log.date,
+          value: log.morningWeightKg,
+        })))
 
   const proteinSeries = sortedLogs
     .filter((log) => log.proteinG !== null)

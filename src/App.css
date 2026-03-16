@@ -1587,6 +1587,94 @@ input[type='date']:hover {
   color: var(--expense-muted);
 }
 
+/* ── SparkLine (weight trend line chart) ─────────────────── */
+.spark-line {
+  position: relative;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.spark-line-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.spark-line-grid {
+  stroke: var(--divider-soft);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.spark-line-target {
+  stroke: var(--ok-fg);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  opacity: 0.6;
+}
+
+.spark-line-target-label {
+  font-size: 9px;
+  fill: var(--ok-fg);
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.spark-line-axis-label {
+  font-size: 10px;
+  fill: var(--muted-2);
+  font-family: inherit;
+}
+
+.spark-line-dot {
+  cursor: pointer;
+  transition: r 0.15s ease;
+}
+
+.spark-line-hover-rule {
+  stroke: var(--muted-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+
+.spark-line-tooltip {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: var(--fs-12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.spark-line-tooltip strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.spark-line-tooltip span {
+  color: var(--muted);
+}
+
+.spark-line-delta-down {
+  color: var(--ok-fg) !important;
+  font-weight: 500;
+}
+
+.spark-line-delta-up {
+  color: var(--warn-fg) !important;
+  font-weight: 500;
+}
+
 .category-card-stack {
   display: grid;
   gap: 6px;
@@ -1962,8 +2050,19 @@ input[type='date']:hover {
 
 .pr-filters {
   display: flex;
+  align-items: center;
   gap: var(--sp-2);
   margin-bottom: var(--sp-3);
+}
+
+.pr-date-filters {
+  display: flex;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.pr-date-filters .search-input {
+  width: 150px;
 }
 
 .search-input {
@@ -1973,7 +2072,7 @@ input[type='date']:hover {
   padding: 6px 10px;
   color: var(--text);
   font-size: var(--fs-13);
-  width: 180px;
+  width: 280px;
 }
 
 .search-input::placeholder {

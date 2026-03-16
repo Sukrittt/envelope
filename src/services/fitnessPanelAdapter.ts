@@ -183,7 +183,7 @@ export function toFitnessPanelData(input: FitnessContractPayload): FitnessPanelD
     },
     chart: {
       weightSeries:
-        chartSeries?.weightDaily21d?.slice(-7) ??
+        chartSeries?.weightDaily21d ??
         trailing7.map((d) => ({ date: d.date, value: d.morningWeightKg })),
       stepsSeries:
         chartSeries?.stepsDaily21d?.slice(-7) ?? trailing7.map((d) => ({ date: d.date, value: d.steps })),
