@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-03-16T10:31:23.221Z",
+    "generatedAt": "2026-03-16T14:23:53.895Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 72313.14,
+    "monthSpendInr": 72403.14,
     "essentialSpendInr": 32084.14,
-    "discretionarySpendInr": 40229,
+    "discretionarySpendInr": 40319,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -42,7 +42,7 @@
     },
     {
       "category": "Personal care",
-      "amountInr": 853
+      "amountInr": 943
     },
     {
       "category": "Entertainment",
@@ -112,7 +112,7 @@
     },
     {
       "date": "2026-03-16",
-      "amountInr": 1232.55
+      "amountInr": 1322.55
     }
   ],
   "alerts": [
