@@ -228,6 +228,8 @@ export function FitnessPage() {
             </article>
           </section>
 
+          <div className="fitness-chart-grid">
+          <div>
           <article className="mc-panel">
             <div className="mc-panel-header">
               <h3>Weight trend</h3>
@@ -262,7 +264,86 @@ export function FitnessPage() {
               targetLabel={`${panel.targetWeightKg} kg target`}
               projectionData={timeRange === 'all' ? weightProjection : undefined}
             />
+            <div className="body-comp-stats">
+              <div className="stat-item">
+                <p>Start</p>
+                <strong>{panel.startWeightKg.toFixed(1)} kg</strong>
+              </div>
+              <div className="stat-item">
+                <p>Current</p>
+                <strong>{panel.currentWeightKg.toFixed(1)} kg</strong>
+              </div>
+              <div className="stat-item">
+                <p>Target</p>
+                <strong>{panel.targetWeightKg.toFixed(1)} kg</strong>
+              </div>
+            </div>
+            <div className="body-comp-progress">
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                <span className="muted">Lost {(panel.startWeightKg - panel.currentWeightKg).toFixed(1)} kg</span>
+                <span className="muted">{panel.remainingKg.toFixed(1)} kg to go</span>
+              </div>
+              <div className="progress-bar">
+                <div
+                  className="progress-bar-fill"
+                  style={{ width: `${Math.min(100, ((panel.startWeightKg - panel.currentWeightKg) / (panel.startWeightKg - panel.targetWeightKg)) * 100).toFixed(0)}%` }}
+                />
+              </div>
+            </div>
           </article>
+
+          <article className="mc-panel journey-snapshot">
+            <h4>Journey Snapshot</h4>
+            {(() => {
+              const daysIn = panel.totalDaysLogged
+              const totalLost = panel.startWeightKg - panel.currentWeightKg
+              const weeklyRate = Math.abs(panel.weightTrend7d)
+              const weeksToGo = weeklyRate > 0 ? Math.ceil(panel.remainingKg / weeklyRate) : null
+              const startDate = panel.weightSeries[0]?.date
+              return (
+                <>
+                  <p>
+                    <strong>{daysIn} days in</strong>{startDate && <> since {formatDate(startDate)}</>}, down <strong>{totalLost.toFixed(1)} kg</strong>.
+                    {' '}Currently losing <strong>{weeklyRate.toFixed(2)} kg/week</strong>.
+                    {weeksToGo && (
+                      <> At this rate, you'll hit {panel.targetWeightKg} kg in <strong>~{weeksToGo} weeks</strong>.</>
+                    )}
+                  </p>
+
+                  <div className="snapshot-section">
+                    <h5>Training</h5>
+                    <p>
+                      <strong>{panel.totalWorkoutDays}</strong> sessions completed across {daysIn} days ({panel.totalRestDays} rest days).
+                      {' '}Split breakdown: {Object.entries(panel.splitCounts).map(([split, count]) =>
+                        `${capitalize(split)} ×${count}`
+                      ).join(', ')}.
+                      {' '}Current streak: <strong>{panel.workoutStreakDays} days</strong>.
+                      {' '}This week: <strong>{panel.trainingCompletionPct}%</strong> completion.
+                    </p>
+                  </div>
+
+                  <div className="snapshot-section">
+                    <h5>Nutrition</h5>
+                    <p>
+                      Protein averaging <strong>{panel.avgProteinG}g/day</strong> against a {panel.proteinTargetG}g target.
+                      {' '}Calorie target: {panel.caloriesBand.min}–{panel.caloriesBand.max} kcal.
+                      {' '}Overall adherence: <strong>{panel.adherencePct}%</strong> (week: {panel.summaryCards.adherenceWeekPct}%, month: {panel.summaryCards.adherenceMonthPct}%).
+                    </p>
+                  </div>
+
+                  <div className="snapshot-section">
+                    <h5>Lifestyle</h5>
+                    <p>
+                      Averaging <strong>{panel.avgSteps.toLocaleString()} steps/day</strong> (target {panel.stepsTarget.toLocaleString()}).
+                      {' '}Sleep: <strong>{panel.avgSleepHours} hrs/night</strong>.
+                      {' '}Lowest weigh-in: <strong>{panel.lowestWeightKg} kg</strong>{panel.lowestWeightDate && <> on {formatDate(panel.lowestWeightDate)}</>}.
+                    </p>
+                  </div>
+                </>
+              )
+            })()}
+          </article>
+          </div>
 
           <article className="mc-panel">
             <div className="mc-panel-header">
@@ -303,6 +384,7 @@ export function FitnessPage() {
               <p className="muted" style={{ padding: 16 }}>No PR history recorded yet</p>
             )}
           </article>
+          </div>
 
           <section className="mc-panel">
             <div className="mc-panel-header">

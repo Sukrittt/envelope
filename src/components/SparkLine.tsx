@@ -222,9 +222,30 @@ export function SparkLine({
             stroke={color}
             strokeWidth="2"
             className="spark-line-dot"
-            onMouseEnter={() => setHoveredIndex(i)}
           />
         ))}
+
+        {/* Invisible hit zones for hover — full chart height per data point */}
+        {points.map((pt, i) => {
+          const halfGap = points.length > 1
+            ? (i === 0
+                ? (points[1].x - pt.x) / 2
+                : i === points.length - 1
+                  ? (pt.x - points[i - 1].x) / 2
+                  : Math.min((pt.x - points[i - 1].x) / 2, (points[i + 1].x - pt.x) / 2))
+            : (svgWidth - paddingLeft - paddingRight) / 2
+          return (
+            <rect
+              key={`hit-${pt.date}`}
+              x={pt.x - halfGap}
+              y={paddingTop}
+              width={halfGap * 2}
+              height={chartHeight}
+              fill="transparent"
+              onMouseEnter={() => setHoveredIndex(i)}
+            />
+          )
+        })}
 
         {/* Y axis labels */}
         {yTicks.map((tick) => (

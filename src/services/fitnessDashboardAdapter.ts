@@ -196,6 +196,15 @@ export interface FitnessDashboardPanel {
     items: string
     loggedAt?: string
   }>
+  avgSteps: number
+  stepsTarget: number
+  avgSleepHours: number
+  totalDaysLogged: number
+  totalWorkoutDays: number
+  totalRestDays: number
+  lowestWeightKg: number
+  lowestWeightDate: string
+  splitCounts: Record<string, number>
 }
 
 
@@ -275,6 +284,22 @@ export function toFitnessDashboardPanel(input: FitnessDashboardContract): Fitnes
     ? Number((((trend14d[trend14d.length - 1].value - trend14d[0].value) / Math.max(trend14d.length - 1, 1)) * 7).toFixed(2))
     : 0
 
+  const stepsArr = sortedLogs.map((l) => l.steps).filter((s): s is number => s !== null)
+  const avgSteps = stepsArr.length ? Math.round(stepsArr.reduce((a, b) => a + b, 0) / stepsArr.length) : 0
+  const sleepArr = sortedLogs.map((l) => l.sleepHours).filter((s): s is number => s !== null)
+  const avgSleepHours = sleepArr.length ? Number((sleepArr.reduce((a, b) => a + b, 0) / sleepArr.length).toFixed(1)) : 0
+  const totalWorkoutDays = sortedLogs.filter((l) => l.workout.status === 'done').length
+  const totalRestDays = sortedLogs.filter((l) => l.workout.status === 'rest' || l.workout.type === 'rest').length
+  const weightEntries = sortedLogs.filter((l) => l.morningWeightKg !== null).map((l) => ({ date: l.date, value: l.morningWeightKg }))
+  const lowestWeight = weightEntries.length ? weightEntries.reduce((min, e) => e.value < min.value ? e : min) : { date: '', value: 0 }
+  const allSplitCounts: Record<string, number> = {}
+  for (const log of sortedLogs) {
+    if (log.workout.status === 'done') {
+      const t = log.workout.type
+      allSplitCounts[t] = (allSplitCounts[t] ?? 0) + 1
+    }
+  }
+
   return {
     lastUpdated: input.meta.generatedAt,
     athleteName: input.athleteProfile.name,
@@ -330,5 +355,14 @@ export function toFitnessDashboardPanel(input: FitnessDashboardContract): Fitnes
       items: f.items,
       loggedAt: f.loggedAt,
     })),
+    avgSteps,
+    stepsTarget: input.targets.stepsMin,
+    avgSleepHours,
+    totalDaysLogged: sortedLogs.length,
+    totalWorkoutDays,
+    totalRestDays,
+    lowestWeightKg: lowestWeight.value,
+    lowestWeightDate: lowestWeight.date,
+    splitCounts: allSplitCounts,
   }
 }

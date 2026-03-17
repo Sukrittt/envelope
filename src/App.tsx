@@ -11,6 +11,8 @@ import {
   Plug,
   Settings,
   Hexagon,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import './App.css'
 import { DashboardProvider } from './context/DashboardProvider'
@@ -148,10 +150,8 @@ function AppShell() {
           </nav>
 
           <footer className="sidebar-footer">
-            <span className="mc-chip mc-chip--green">System nominal</span>
-            <span className="muted">Last sync: {lastSync}</span>
-            <button type="button" className="action-button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              Toggle theme
+            <button type="button" className="action-button theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </footer>
         </aside>

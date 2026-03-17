@@ -545,30 +545,96 @@
   },
   "chartSeries": {
     "weightDaily21d": [
-      { "date": "2026-01-05", "value": 68.89 },
-      { "date": "2026-01-12", "value": 67.10 },
-      { "date": "2026-01-19", "value": 66.65 },
-      { "date": "2026-01-26", "value": 66.05 },
-      { "date": "2026-02-02", "value": 64.95 },
-      { "date": "2026-02-09", "value": 64.35 },
-      { "date": "2026-02-16", "value": 63.45 },
-      { "date": "2026-02-23", "value": 62.90 },
-      { "date": "2026-03-02", "value": 62.30 },
-      { "date": "2026-03-09", "value": 62.10 },
-      { "date": "2026-03-16", "value": 61.05 }
+      {
+        "date": "2026-01-05",
+        "value": 68.89
+      },
+      {
+        "date": "2026-01-12",
+        "value": 67.1
+      },
+      {
+        "date": "2026-01-19",
+        "value": 66.65
+      },
+      {
+        "date": "2026-01-26",
+        "value": 66.05
+      },
+      {
+        "date": "2026-02-02",
+        "value": 64.95
+      },
+      {
+        "date": "2026-02-09",
+        "value": 64.35
+      },
+      {
+        "date": "2026-02-16",
+        "value": 63.45
+      },
+      {
+        "date": "2026-02-23",
+        "value": 62.9
+      },
+      {
+        "date": "2026-03-02",
+        "value": 62.3
+      },
+      {
+        "date": "2026-03-09",
+        "value": 62.1
+      },
+      {
+        "date": "2026-03-16",
+        "value": 61.05
+      }
     ],
     "weightMovingAvg7d": [
-      { "date": "2026-01-05", "value": 68.89 },
-      { "date": "2026-01-12", "value": 68.00 },
-      { "date": "2026-01-19", "value": 67.55 },
-      { "date": "2026-01-26", "value": 67.17 },
-      { "date": "2026-02-02", "value": 66.73 },
-      { "date": "2026-02-09", "value": 66.33 },
-      { "date": "2026-02-16", "value": 65.92 },
-      { "date": "2026-02-23", "value": 65.06 },
-      { "date": "2026-03-02", "value": 64.38 },
-      { "date": "2026-03-09", "value": 63.73 },
-      { "date": "2026-03-16", "value": 63.01 }
+      {
+        "date": "2026-01-05",
+        "value": 68.89
+      },
+      {
+        "date": "2026-01-12",
+        "value": 68.0
+      },
+      {
+        "date": "2026-01-19",
+        "value": 67.55
+      },
+      {
+        "date": "2026-01-26",
+        "value": 67.17
+      },
+      {
+        "date": "2026-02-02",
+        "value": 66.73
+      },
+      {
+        "date": "2026-02-09",
+        "value": 66.33
+      },
+      {
+        "date": "2026-02-16",
+        "value": 65.92
+      },
+      {
+        "date": "2026-02-23",
+        "value": 65.06
+      },
+      {
+        "date": "2026-03-02",
+        "value": 64.38
+      },
+      {
+        "date": "2026-03-09",
+        "value": 63.73
+      },
+      {
+        "date": "2026-03-16",
+        "value": 63.01
+      }
     ],
     "proteinDaily21d": [
       {
@@ -834,7 +900,7 @@
     "When a day is missing from dailyLogs, do not inject zero values; chart series should remain sparse and UI should render temporal gaps.",
     "Rest day (workout.status = rest) is neutral for training completion unless explicitly marked as missed planned session.",
     "If protein or steps is missing for a day, exclude that day from relevant averages and attainment denominator; keep raw field null in logs.",
-    "Single-day weight deltas over ±1.0kg should trigger outlier annotation in chart tooltip, not auto-clamping."
+    "Single-day weight deltas over \u00b11.0kg should trigger outlier annotation in chart tooltip, not auto-clamping."
   ],
   "foodLog": [
     {
@@ -872,66 +938,460 @@
     }
   ],
   "prHistory": [
-    { "date": "2026-01-10", "lift": "flat_bench_press", "value": 40, "reps": 8, "unit": "kg" },
-    { "date": "2026-01-24", "lift": "flat_bench_press", "value": 45, "reps": 8, "unit": "kg" },
-    { "date": "2026-02-07", "lift": "flat_bench_press", "value": 50, "reps": 6, "unit": "kg" },
-    { "date": "2026-02-21", "lift": "flat_bench_press", "value": 55, "reps": 6, "unit": "kg" },
-    { "date": "2026-03-07", "lift": "flat_bench_press", "value": 57.5, "reps": 5, "unit": "kg" },
-    { "date": "2026-03-15", "lift": "flat_bench_press", "value": 60, "reps": 5, "unit": "kg" },
-    { "date": "2026-01-12", "lift": "back_squat", "value": 40, "reps": 10, "unit": "kg" },
-    { "date": "2026-01-26", "lift": "back_squat", "value": 45, "reps": 10, "unit": "kg" },
-    { "date": "2026-02-09", "lift": "back_squat", "value": 50, "reps": 10, "unit": "kg" },
-    { "date": "2026-02-23", "lift": "back_squat", "value": 55, "reps": 10, "unit": "kg" },
-    { "date": "2026-03-11", "lift": "back_squat", "value": 60, "reps": 12, "unit": "kg" },
-    { "date": "2026-01-14", "lift": "deadlift", "value": 50, "reps": 8, "unit": "kg" },
-    { "date": "2026-01-28", "lift": "deadlift", "value": 55, "reps": 8, "unit": "kg" },
-    { "date": "2026-02-11", "lift": "deadlift", "value": 57.5, "reps": 8, "unit": "kg" },
-    { "date": "2026-02-25", "lift": "deadlift", "value": 60, "reps": 8, "unit": "kg" },
-    { "date": "2026-03-14", "lift": "deadlift", "value": 65, "reps": 10, "unit": "kg" },
-    { "date": "2026-01-15", "lift": "barbell_shoulder_press", "value": 15, "reps": 8, "unit": "kg" },
-    { "date": "2026-02-01", "lift": "barbell_shoulder_press", "value": 20, "reps": 8, "unit": "kg" },
-    { "date": "2026-02-15", "lift": "barbell_shoulder_press", "value": 22.5, "reps": 7, "unit": "kg" },
-    { "date": "2026-03-01", "lift": "barbell_shoulder_press", "value": 25, "reps": 7, "unit": "kg" },
-    { "date": "2026-03-12", "lift": "barbell_shoulder_press", "value": 25, "reps": 7, "unit": "kg" }
+    {
+      "date": "2026-01-10",
+      "lift": "flat_bench_press",
+      "value": 10,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-01-24",
+      "lift": "flat_bench_press",
+      "value": 15,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-07",
+      "lift": "flat_bench_press",
+      "value": 20,
+      "reps": 6,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-21",
+      "lift": "flat_bench_press",
+      "value": 30,
+      "reps": 6,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-03-07",
+      "lift": "flat_bench_press",
+      "value": 35,
+      "reps": 5,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-03-15",
+      "lift": "flat_bench_press",
+      "value": 35,
+      "reps": 5,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-01-12",
+      "lift": "back_squat",
+      "value": 20,
+      "reps": 10,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-01-26",
+      "lift": "back_squat",
+      "value": 30,
+      "reps": 10,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-09",
+      "lift": "back_squat",
+      "value": 40,
+      "reps": 10,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-23",
+      "lift": "back_squat",
+      "value": 50,
+      "reps": 10,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-03-11",
+      "lift": "back_squat",
+      "value": 60,
+      "reps": 10,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-01-14",
+      "lift": "deadlift",
+      "value": 30,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-01-28",
+      "lift": "deadlift",
+      "value": 40,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-11",
+      "lift": "deadlift",
+      "value": 50,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-25",
+      "lift": "deadlift",
+      "value": 60,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-03-14",
+      "lift": "deadlift",
+      "value": 65,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-01-15",
+      "lift": "barbell_shoulder_press",
+      "value": 10,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-01",
+      "lift": "barbell_shoulder_press",
+      "value": 12.5,
+      "reps": 8,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-02-15",
+      "lift": "barbell_shoulder_press",
+      "value": 20,
+      "reps": 7,
+      "unit": "kg"
+    },
+    {
+      "date": "2026-03-01",
+      "lift": "barbell_shoulder_press",
+      "value": 25,
+      "reps": 7,
+      "unit": "kg"
+    }
   ],
   "prList": [
-    { "lift": "flat_bench_press", "value": 60, "reps": 5, "unit": "kg", "split": "push", "lastUpdated": "2026-03-15" },
-    { "lift": "incline_bench_press", "value": 30, "reps": 12, "unit": "kg", "split": "push", "lastUpdated": "2026-03-16" },
-    { "lift": "dumbbell_flyes", "value": 10, "reps": 12, "unit": "kg", "split": "push", "lastUpdated": "2026-03-16" },
-    { "lift": "skull_crushers", "value": 15, "reps": 12, "unit": "kg", "split": "push", "lastUpdated": "2026-03-12" },
-    { "lift": "barbell_shoulder_press", "value": 25, "reps": 7, "unit": "kg", "split": "push", "lastUpdated": "2026-03-12" },
-    { "lift": "deadlift", "value": 65, "reps": 10, "unit": "kg", "split": "pull", "lastUpdated": "2026-03-14" },
-    { "lift": "barbell_bent_over_row", "value": 45, "reps": 12, "unit": "kg", "split": "pull", "lastUpdated": "2026-03-14" },
-    { "lift": "seated_cable_row", "value": 8, "reps": 8, "unit": "plates", "split": "pull", "lastUpdated": "2026-03-14" },
-    { "lift": "barbell_bicep_curl", "value": 25, "reps": 8, "unit": "kg", "split": "pull", "lastUpdated": "2026-03-14" },
-    { "lift": "lat_pulldown", "value": 8, "reps": 8, "unit": "plates", "split": "pull", "lastUpdated": "2026-03-07" },
-    { "lift": "back_squat", "value": 60, "reps": 12, "unit": "kg", "split": "legs", "lastUpdated": "2026-03-11" },
-    { "lift": "leg_extension", "value": 7, "reps": 12, "unit": "plates", "split": "legs", "lastUpdated": "2026-03-11" },
-    { "lift": "leg_curl", "value": 45, "reps": 10, "unit": "kg", "split": "legs", "lastUpdated": "2026-03-14" },
-    { "lift": "hip_thrust", "value": 40, "reps": 12, "unit": "kg", "split": "legs", "lastUpdated": "2026-03-14" },
-    { "lift": "bulgarian_split_squat", "value": 20, "reps": 12, "unit": "kg", "split": "legs", "lastUpdated": "2026-03-14" }
+    {
+      "lift": "flat_bench_press",
+      "value": 60,
+      "reps": 5,
+      "unit": "kg",
+      "split": "push",
+      "lastUpdated": "2026-03-15"
+    },
+    {
+      "lift": "incline_bench_press",
+      "value": 30,
+      "reps": 12,
+      "unit": "kg",
+      "split": "push",
+      "lastUpdated": "2026-03-16"
+    },
+    {
+      "lift": "dumbbell_flyes",
+      "value": 10,
+      "reps": 12,
+      "unit": "kg",
+      "split": "push",
+      "lastUpdated": "2026-03-16"
+    },
+    {
+      "lift": "skull_crushers",
+      "value": 15,
+      "reps": 12,
+      "unit": "kg",
+      "split": "push",
+      "lastUpdated": "2026-03-12"
+    },
+    {
+      "lift": "barbell_shoulder_press",
+      "value": 25,
+      "reps": 7,
+      "unit": "kg",
+      "split": "push",
+      "lastUpdated": "2026-03-12"
+    },
+    {
+      "lift": "deadlift",
+      "value": 65,
+      "reps": 10,
+      "unit": "kg",
+      "split": "pull",
+      "lastUpdated": "2026-03-14"
+    },
+    {
+      "lift": "barbell_bent_over_row",
+      "value": 45,
+      "reps": 12,
+      "unit": "kg",
+      "split": "pull",
+      "lastUpdated": "2026-03-14"
+    },
+    {
+      "lift": "seated_cable_row",
+      "value": 8,
+      "reps": 8,
+      "unit": "plates",
+      "split": "pull",
+      "lastUpdated": "2026-03-14"
+    },
+    {
+      "lift": "barbell_bicep_curl",
+      "value": 25,
+      "reps": 8,
+      "unit": "kg",
+      "split": "pull",
+      "lastUpdated": "2026-03-14"
+    },
+    {
+      "lift": "lat_pulldown",
+      "value": 8,
+      "reps": 8,
+      "unit": "plates",
+      "split": "pull",
+      "lastUpdated": "2026-03-07"
+    },
+    {
+      "lift": "back_squat",
+      "value": 60,
+      "reps": 12,
+      "unit": "kg",
+      "split": "legs",
+      "lastUpdated": "2026-03-11"
+    },
+    {
+      "lift": "leg_extension",
+      "value": 7,
+      "reps": 12,
+      "unit": "plates",
+      "split": "legs",
+      "lastUpdated": "2026-03-11"
+    },
+    {
+      "lift": "leg_curl",
+      "value": 45,
+      "reps": 10,
+      "unit": "kg",
+      "split": "legs",
+      "lastUpdated": "2026-03-14"
+    },
+    {
+      "lift": "hip_thrust",
+      "value": 40,
+      "reps": 12,
+      "unit": "kg",
+      "split": "legs",
+      "lastUpdated": "2026-03-14"
+    },
+    {
+      "lift": "bulgarian_split_squat",
+      "value": 20,
+      "reps": 12,
+      "unit": "kg",
+      "split": "legs",
+      "lastUpdated": "2026-03-14"
+    }
   ],
   "pplRoutines": [
-    { "routineName": "PPL_v1", "dayType": "push_a", "day": "Monday", "label": "Push A (Chest Primary)", "exercises": ["Flat Bench Press", "Incline Bench Press", "Dumbbell Flyes", "Shoulder Press", "Rope Triceps Pushdown", "Overhead Triceps Extension"] },
-    { "routineName": "PPL_v1", "dayType": "pull_a", "day": "Tuesday", "label": "Pull (Back Primary)", "exercises": ["Deadlift", "Barbell Bent-over Row", "Seated Cable Row", "Barbell Shrugs", "Barbell Bicep Curl", "Hammer Curl"] },
-    { "routineName": "PPL_v1", "dayType": "legs_a", "day": "Wednesday", "label": "Legs (Quads)", "exercises": ["Back Squat", "Front Squat", "Dumbbell Lunges", "Leg Extension", "Calf Raise"] },
-    { "routineName": "PPL_v1", "dayType": "push_b", "day": "Thursday", "label": "Push B (Shoulder & Tricep Primary)", "exercises": ["Overhead Barbell Press", "Dumbbell Lateral Raise", "Close-Grip Bench Press", "Incline Dumbbell Press", "Skull Crushers", "Cable Triceps"] },
-    { "routineName": "PPL_v1", "dayType": "pull_b", "day": "Friday", "label": "Pull (Back & Bicep)", "exercises": ["Lat Pulldown", "Deadlift", "Single Arm Dumbbell Row", "Face Pulls", "Preacher Barbell Curl", "Incline Dumbbell Curl"] },
-    { "routineName": "PPL_v1", "dayType": "legs_b", "day": "Saturday", "label": "Legs (Posterior Chain)", "exercises": ["Hip Thrust", "Hamstring Curl", "Bulgarian Split Squats", "Calf Raise"] },
-    { "routineName": "PPL_v1", "dayType": "rest", "day": "Sunday", "label": "Rest", "exercises": [] },
-    { "routineName": "PPL_v1", "dayType": "abs", "day": "Accessory", "label": "Abs", "exercises": ["Heel Touch", "Leg Raise", "Reverse Crunches", "Air Twisting Crunches", "Plank"] }
+    {
+      "routineName": "PPL_v1",
+      "dayType": "push_a",
+      "day": "Monday",
+      "label": "Push A (Chest Primary)",
+      "exercises": [
+        "Flat Bench Press",
+        "Incline Bench Press",
+        "Dumbbell Flyes",
+        "Shoulder Press",
+        "Rope Triceps Pushdown",
+        "Overhead Triceps Extension"
+      ]
+    },
+    {
+      "routineName": "PPL_v1",
+      "dayType": "pull_a",
+      "day": "Tuesday",
+      "label": "Pull (Back Primary)",
+      "exercises": [
+        "Deadlift",
+        "Barbell Bent-over Row",
+        "Seated Cable Row",
+        "Barbell Shrugs",
+        "Barbell Bicep Curl",
+        "Hammer Curl"
+      ]
+    },
+    {
+      "routineName": "PPL_v1",
+      "dayType": "legs_a",
+      "day": "Wednesday",
+      "label": "Legs (Quads)",
+      "exercises": [
+        "Back Squat",
+        "Front Squat",
+        "Dumbbell Lunges",
+        "Leg Extension",
+        "Calf Raise"
+      ]
+    },
+    {
+      "routineName": "PPL_v1",
+      "dayType": "push_b",
+      "day": "Thursday",
+      "label": "Push B (Shoulder & Tricep Primary)",
+      "exercises": [
+        "Overhead Barbell Press",
+        "Dumbbell Lateral Raise",
+        "Close-Grip Bench Press",
+        "Incline Dumbbell Press",
+        "Skull Crushers",
+        "Cable Triceps"
+      ]
+    },
+    {
+      "routineName": "PPL_v1",
+      "dayType": "pull_b",
+      "day": "Friday",
+      "label": "Pull (Back & Bicep)",
+      "exercises": [
+        "Lat Pulldown",
+        "Deadlift",
+        "Single Arm Dumbbell Row",
+        "Face Pulls",
+        "Preacher Barbell Curl",
+        "Incline Dumbbell Curl"
+      ]
+    },
+    {
+      "routineName": "PPL_v1",
+      "dayType": "legs_b",
+      "day": "Saturday",
+      "label": "Legs (Posterior Chain)",
+      "exercises": [
+        "Hip Thrust",
+        "Hamstring Curl",
+        "Bulgarian Split Squats",
+        "Calf Raise"
+      ]
+    },
+    {
+      "routineName": "PPL_v1",
+      "dayType": "rest",
+      "day": "Sunday",
+      "label": "Rest",
+      "exercises": []
+    },
+    {
+      "routineName": "PPL_v1",
+      "dayType": "abs",
+      "day": "Accessory",
+      "label": "Abs",
+      "exercises": [
+        "Heel Touch",
+        "Leg Raise",
+        "Reverse Crunches",
+        "Air Twisting Crunches",
+        "Plank"
+      ]
+    }
   ],
   "weightTrajectory": [
-    { "date": "2026-01-05", "weightKg": 68.89, "trendKg": 68.89, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-01-12", "weightKg": 67.10, "trendKg": 68.00, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-01-19", "weightKg": 66.65, "trendKg": 67.55, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-01-26", "weightKg": 66.05, "trendKg": 67.17, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-02-02", "weightKg": 64.95, "trendKg": 66.73, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-02-09", "weightKg": 64.35, "trendKg": 66.33, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-02-16", "weightKg": 63.45, "trendKg": 65.92, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-02-23", "weightKg": 62.90, "trendKg": 65.06, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-03-02", "weightKg": 62.30, "trendKg": 64.38, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-03-09", "weightKg": 62.10, "trendKg": 63.73, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" },
-    { "date": "2026-03-16", "weightKg": 61.05, "trendKg": 63.01, "bodyFatPct": null, "waistCm": null, "notes": "weekly weigh-in" }
+    {
+      "date": "2026-01-05",
+      "weightKg": 68.89,
+      "trendKg": 68.89,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-01-12",
+      "weightKg": 67.1,
+      "trendKg": 68.0,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-01-19",
+      "weightKg": 66.65,
+      "trendKg": 67.55,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-01-26",
+      "weightKg": 66.05,
+      "trendKg": 67.17,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-02-02",
+      "weightKg": 64.95,
+      "trendKg": 66.73,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-02-09",
+      "weightKg": 64.35,
+      "trendKg": 66.33,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-02-16",
+      "weightKg": 63.45,
+      "trendKg": 65.92,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-02-23",
+      "weightKg": 62.9,
+      "trendKg": 65.06,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-03-02",
+      "weightKg": 62.3,
+      "trendKg": 64.38,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-03-09",
+      "weightKg": 62.1,
+      "trendKg": 63.73,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    },
+    {
+      "date": "2026-03-16",
+      "weightKg": 61.05,
+      "trendKg": 63.01,
+      "bodyFatPct": null,
+      "waistCm": null,
+      "notes": "weekly weigh-in"
+    }
   ]
 }
