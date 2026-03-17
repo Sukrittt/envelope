@@ -88,6 +88,13 @@ export interface FitnessDashboardContract {
     proteinG: number | null
     loggedAt?: string
   }>
+  prHistory: Array<{
+    date: string
+    lift: string
+    value: number
+    reps: number
+    unit: string
+  }>
   prList: Array<{
     date: string
     lift: string
@@ -176,6 +183,13 @@ export interface FitnessDashboardPanel {
   }
   workoutLogs: WorkoutLog[]
   exercisePRs: ExercisePR[]
+  prHistory: Array<{
+    date: string
+    lift: string
+    value: number
+    reps: number
+    unit: string
+  }>
   foodLog: Array<{
     date: string
     mealType: string
@@ -303,6 +317,13 @@ export function toFitnessDashboardPanel(input: FitnessDashboardContract): Fitnes
     },
     workoutLogs,
     exercisePRs,
+    prHistory: (input.prHistory ?? []).map((h) => ({
+      date: h.date,
+      lift: h.lift,
+      value: h.value,
+      reps: h.reps,
+      unit: h.unit,
+    })),
     foodLog: input.foodLog.map((f) => ({
       date: f.date,
       mealType: f.mealType,

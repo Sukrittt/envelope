@@ -46,6 +46,7 @@ export function FitnessPage() {
   const [trainingDateFrom, setTrainingDateFrom] = useState('')
   const [trainingDateTo, setTrainingDateTo] = useState('')
   const [selectedFoodDate, setSelectedFoodDate] = useState<{ date: string; meals: typeof panel.foodLog } | null>(null)
+  const [selectedLift, setSelectedLift] = useState<string>('all')
 
   const filteredWorkouts = useMemo(() => {
     let logs = panel.workoutLogs
@@ -99,6 +100,45 @@ export function FitnessPage() {
   const displayWeightSeries = timeRange === 'all'
     ? panel.weightSeries
     : filterByDays(panel.weightSeries, timeRange === '30d' ? 30 : 60)
+
+  const prLifts = useMemo(() => {
+    const lifts = [...new Set(panel.prHistory.map((h) => h.lift))]
+    return lifts
+  }, [])
+
+  const prChartData = useMemo(() => {
+    const KEY_LIFTS = ['flat_bench_press', 'back_squat', 'deadlift', 'barbell_shoulder_press']
+    const liftsToShow = selectedLift === 'all' ? KEY_LIFTS : [selectedLift]
+    const result: Record<string, Array<{ date: string; value: number }>> = {}
+    for (const lift of liftsToShow) {
+      result[lift] = panel.prHistory
+        .filter((h) => h.lift === lift)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((h) => ({ date: h.date, value: h.value }))
+    }
+    return result
+  }, [selectedLift])
+
+  const prChartColors = ['var(--ok-fg)', 'var(--warn-fg)', '#a78bfa', '#f472b6']
+
+  const weightProjection = useMemo(() => {
+    if (panel.weightTrend7d >= 0 || !panel.weightSeries.length) return []
+    const last = panel.weightSeries[panel.weightSeries.length - 1]
+    const ratePerDay = panel.weightTrend7d / 7
+    const points: Array<{ date: string; value: number }> = []
+    let weight = last.value
+    let d = new Date(last.date)
+    while (weight + ratePerDay * 7 > panel.targetWeightKg) {
+      d = new Date(d.getTime() + 7 * 86400000)
+      weight += ratePerDay * 7
+      if (weight <= panel.targetWeightKg) {
+        points.push({ date: d.toISOString().slice(0, 10), value: panel.targetWeightKg })
+        break
+      }
+      points.push({ date: d.toISOString().slice(0, 10), value: Number(weight.toFixed(2)) })
+    }
+    return points
+  }, [])
 
 
   const sortedFoodLog = useMemo(() => {
@@ -159,28 +199,32 @@ export function FitnessPage() {
               </span>
               <span className="muted">Target: {panel.targetWeightKg.toFixed(1)} kg</span>
             </article>
+          </section>
 
-            <article className="mc-kpi-card expense-kpi">
-              <p>Training</p>
-              <strong>{panel.trainingCompletionPct.toFixed(0)}%</strong>
-              <span className="kpi-delta">
-                {panel.trainingDetail.completedSessions}/{panel.trainingDetail.plannedSessions} sessions
-              </span>
-              <span className="muted">Streak: {panel.workoutStreakDays} days</span>
+          <section className="mc-kpi-strip weekly-summary" aria-label="This Week">
+            <article className="mc-kpi-card">
+              <p>Weight Change</p>
+              <strong className={trendTone(
+                panel.weightSeries.length >= 2
+                  ? panel.weightSeries[panel.weightSeries.length - 1].value - panel.weightSeries[panel.weightSeries.length - 2].value
+                  : 0
+              )}>
+                {panel.weightSeries.length >= 2
+                  ? `${(panel.weightSeries[panel.weightSeries.length - 1].value - panel.weightSeries[panel.weightSeries.length - 2].value) > 0 ? '+' : ''}${(panel.weightSeries[panel.weightSeries.length - 1].value - panel.weightSeries[panel.weightSeries.length - 2].value).toFixed(2)} kg`
+                  : '—'}
+              </strong>
             </article>
-
-            <article className="mc-kpi-card expense-kpi">
-              <p>Protein Avg</p>
-              <strong>{panel.avgProteinG.toFixed(0)} g</strong>
-              <span className="kpi-delta">{panel.summaryCards.proteinDaysMet7d}/7 days met</span>
-              <span className="muted">Target: {panel.proteinTargetG} g</span>
+            <article className="mc-kpi-card">
+              <p>Sessions</p>
+              <strong>{panel.trainingDetail.completedSessions}/{panel.trainingDetail.plannedSessions}</strong>
             </article>
-
-            <article className="mc-kpi-card expense-kpi">
-              <p>Adherence</p>
-              <strong className="green">{panel.adherencePct.toFixed(1)}%</strong>
-              <span className="kpi-delta">Week: {panel.summaryCards.adherenceWeekPct.toFixed(0)}%</span>
-              <span className="muted">Month: {panel.summaryCards.adherenceMonthPct.toFixed(0)}%</span>
+            <article className="mc-kpi-card">
+              <p>Today</p>
+              <strong>{getTodaySplit() === 'all' ? 'Rest' : capitalize(getTodaySplit())}</strong>
+            </article>
+            <article className="mc-kpi-card">
+              <p>Streak</p>
+              <strong>{panel.workoutStreakDays}d</strong>
             </article>
           </section>
 
@@ -216,7 +260,48 @@ export function FitnessPage() {
               formatValue={(value) => `${value.toFixed(1)} kg`}
               targetValue={panel.targetWeightKg}
               targetLabel={`${panel.targetWeightKg} kg target`}
+              projectionData={timeRange === 'all' ? weightProjection : undefined}
             />
+          </article>
+
+          <article className="mc-panel">
+            <div className="mc-panel-header">
+              <h3>Strength Progress</h3>
+              <div className="filter-bar">
+                <select
+                  value={selectedLift}
+                  onChange={(e) => setSelectedLift(e.target.value)}
+                  className="search-input"
+                  style={{ minWidth: 140 }}
+                >
+                  <option value="all">Key Lifts</option>
+                  {prLifts.map((lift) => (
+                    <option key={lift} value={lift}>
+                      {lift.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {Object.entries(prChartData).map(([lift, data], idx) => (
+              <div key={lift} style={{ marginBottom: idx < Object.keys(prChartData).length - 1 ? 8 : 0 }}>
+                <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 2, paddingLeft: 4 }}>
+                  {lift.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                </p>
+                <SparkLine
+                  data={data}
+                  formatValue={(v) => `${v} kg`}
+                  height={160}
+                  color={prChartColors[idx % prChartColors.length]}
+                  gradientFrom={prChartColors[idx % prChartColors.length]}
+                  showDots={true}
+                  showArea={false}
+                />
+              </div>
+            ))}
+            {Object.keys(prChartData).length === 0 && (
+              <p className="muted" style={{ padding: 16 }}>No PR history recorded yet</p>
+            )}
           </article>
 
           <section className="mc-panel">

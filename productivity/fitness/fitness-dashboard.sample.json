@@ -871,6 +871,29 @@
       "notes": null
     }
   ],
+  "prHistory": [
+    { "date": "2026-01-10", "lift": "flat_bench_press", "value": 40, "reps": 8, "unit": "kg" },
+    { "date": "2026-01-24", "lift": "flat_bench_press", "value": 45, "reps": 8, "unit": "kg" },
+    { "date": "2026-02-07", "lift": "flat_bench_press", "value": 50, "reps": 6, "unit": "kg" },
+    { "date": "2026-02-21", "lift": "flat_bench_press", "value": 55, "reps": 6, "unit": "kg" },
+    { "date": "2026-03-07", "lift": "flat_bench_press", "value": 57.5, "reps": 5, "unit": "kg" },
+    { "date": "2026-03-15", "lift": "flat_bench_press", "value": 60, "reps": 5, "unit": "kg" },
+    { "date": "2026-01-12", "lift": "back_squat", "value": 40, "reps": 10, "unit": "kg" },
+    { "date": "2026-01-26", "lift": "back_squat", "value": 45, "reps": 10, "unit": "kg" },
+    { "date": "2026-02-09", "lift": "back_squat", "value": 50, "reps": 10, "unit": "kg" },
+    { "date": "2026-02-23", "lift": "back_squat", "value": 55, "reps": 10, "unit": "kg" },
+    { "date": "2026-03-11", "lift": "back_squat", "value": 60, "reps": 12, "unit": "kg" },
+    { "date": "2026-01-14", "lift": "deadlift", "value": 50, "reps": 8, "unit": "kg" },
+    { "date": "2026-01-28", "lift": "deadlift", "value": 55, "reps": 8, "unit": "kg" },
+    { "date": "2026-02-11", "lift": "deadlift", "value": 57.5, "reps": 8, "unit": "kg" },
+    { "date": "2026-02-25", "lift": "deadlift", "value": 60, "reps": 8, "unit": "kg" },
+    { "date": "2026-03-14", "lift": "deadlift", "value": 65, "reps": 10, "unit": "kg" },
+    { "date": "2026-01-15", "lift": "barbell_shoulder_press", "value": 15, "reps": 8, "unit": "kg" },
+    { "date": "2026-02-01", "lift": "barbell_shoulder_press", "value": 20, "reps": 8, "unit": "kg" },
+    { "date": "2026-02-15", "lift": "barbell_shoulder_press", "value": 22.5, "reps": 7, "unit": "kg" },
+    { "date": "2026-03-01", "lift": "barbell_shoulder_press", "value": 25, "reps": 7, "unit": "kg" },
+    { "date": "2026-03-12", "lift": "barbell_shoulder_press", "value": 25, "reps": 7, "unit": "kg" }
+  ],
   "prList": [
     { "lift": "flat_bench_press", "value": 60, "reps": 5, "unit": "kg", "split": "push", "lastUpdated": "2026-03-15" },
     { "lift": "incline_bench_press", "value": 30, "reps": 12, "unit": "kg", "split": "push", "lastUpdated": "2026-03-16" },

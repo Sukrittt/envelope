@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Building2,
+  AlertTriangle,
+  Lightbulb,
+  Clock,
+  IndianRupee,
+  Dumbbell,
+  Plug,
+  Settings,
+  Hexagon,
+} from 'lucide-react'
 import './App.css'
 import { DashboardProvider } from './context/DashboardProvider'
 import { useDashboard } from './context/useDashboard'
@@ -28,16 +40,18 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   '/settings': { title: 'Settings', subtitle: 'Appearance, density, and operations preferences' },
 }
 
+const iconSize = 16
+
 const navIcons: Record<string, ReactNode> = {
-  '/': '◉',
-  '/departments': '▦',
-  '/risks': '▲',
-  '/learnings': '✦',
-  '/activity': '◷',
-  '/expense': '₹',
-  '/fitness': '◍',
-  '/integrations': '◎',
-  '/settings': '⚙',
+  '/': <LayoutDashboard size={iconSize} />,
+  '/departments': <Building2 size={iconSize} />,
+  '/risks': <AlertTriangle size={iconSize} />,
+  '/learnings': <Lightbulb size={iconSize} />,
+  '/activity': <Clock size={iconSize} />,
+  '/expense': <IndianRupee size={iconSize} />,
+  '/fitness': <Dumbbell size={iconSize} />,
+  '/integrations': <Plug size={iconSize} />,
+  '/settings': <Settings size={iconSize} />,
 }
 
 function AppShell() {
@@ -51,7 +65,7 @@ function AppShell() {
     const saved = localStorage.getItem('mc-density')
     return saved === 'compact' ? 'compact' : 'comfortable'
   })
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('mc-sidebar-collapsed') === 'true')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const currentMeta = useMemo(() => {
@@ -88,6 +102,10 @@ function AppShell() {
   }, [density])
 
   useEffect(() => {
+    localStorage.setItem('mc-sidebar-collapsed', String(sidebarCollapsed))
+  }, [sidebarCollapsed])
+
+  useEffect(() => {
     trackEvent('page_view', { path: pathname })
   }, [pathname])
 
@@ -98,6 +116,7 @@ function AppShell() {
       <div className={`mc-layout ${sidebarCollapsed ? 'is-collapsed' : ''} ${mobileNavOpen ? 'is-mobile-open' : ''}`}>
         <aside className="mc-sidebar" aria-label="Primary Navigation">
           <div className="sidebar-brand">
+            <span className="sidebar-brand-icon" aria-hidden="true"><Hexagon size={24} /></span>
             <strong>Mission Control</strong>
             <span>Operations Center</span>
           </div>

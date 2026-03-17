@@ -11,12 +11,13 @@ interface SparkLineProps {
   showArea?: boolean
   targetValue?: number
   targetLabel?: string
+  projectionData?: Array<{ date: string; value: number }>
 }
 
 export function SparkLine({
   data,
   formatValue = (v) => `${v}`,
-  height = 200,
+  height = 280,
   color = 'var(--ok-fg)',
   gradientFrom = 'var(--ok-fg)',
   gradientTo = 'transparent',
@@ -24,36 +25,77 @@ export function SparkLine({
   showArea = true,
   targetValue,
   targetLabel,
+  projectionData,
 }: SparkLineProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   const paddingTop = 24
   const paddingBottom = 32
-  const paddingLeft = 52
+  const paddingLeft = 24
   const paddingRight = 16
   const chartHeight = height - paddingTop - paddingBottom
   const svgWidth = 600
 
   const values = useMemo(() => data.map((d) => d.value), [data])
 
+  const allDates = useMemo(() => {
+    const dates = data.map((d) => d.date)
+    if (projectionData?.length) {
+      for (const p of projectionData) dates.push(p.date)
+    }
+    return dates
+  }, [data, projectionData])
+
   const { min, range } = useMemo(() => {
-    if (!values.length) return { min: 0, max: 0, range: 1 }
-    const mn = Math.min(...values)
-    const mx = Math.max(...values)
-    const pad = (mx - mn) * 0.12 || 1
-    return { min: mn - pad, max: mx + pad, range: mx - mn + pad * 2 }
-  }, [values])
+    const allValues = [...values, ...(projectionData?.map((d) => d.value) ?? [])]
+    if (!allValues.length) return { min: 0, range: 1 }
+    let mn = Math.min(...allValues)
+    let mx = Math.max(...allValues)
+    if (targetValue != null) {
+      mn = Math.min(mn, targetValue)
+      mx = Math.max(mx, targetValue)
+    }
+    // Round to clean numbers with modest padding
+    mn = Math.floor(mn - 1)
+    mx = Math.ceil(mx + 1)
+    return { min: mn, range: mx - mn }
+  }, [values, targetValue])
 
   const points = useMemo(() => {
     if (!data.length) return []
     const chartWidth = svgWidth - paddingLeft - paddingRight
+    const totalPoints = allDates.length
     return data.map((d, i) => ({
-      x: paddingLeft + (data.length > 1 ? (i / (data.length - 1)) * chartWidth : chartWidth / 2),
+      x: paddingLeft + (totalPoints > 1 ? (i / (totalPoints - 1)) * chartWidth : chartWidth / 2),
       y: paddingTop + chartHeight - ((d.value - min) / range) * chartHeight,
       date: d.date,
       value: d.value,
     }))
-  }, [data, min, range, chartHeight])
+  }, [data, allDates, min, range, chartHeight])
+
+  const projectionPoints = useMemo(() => {
+    if (!projectionData?.length || !data.length) return []
+    const chartWidth = svgWidth - paddingLeft - paddingRight
+    const totalPoints = allDates.length
+    const offset = data.length
+    return projectionData.map((d, i) => ({
+      x: paddingLeft + ((offset + i) / (totalPoints - 1)) * chartWidth,
+      y: paddingTop + chartHeight - ((d.value - min) / range) * chartHeight,
+      date: d.date,
+      value: d.value,
+    }))
+  }, [projectionData, data, allDates, min, range, chartHeight])
+
+  const projectionLinePath = useMemo(() => {
+    if (!projectionPoints.length || !points.length) return ''
+    const lastReal = points[points.length - 1]
+    const all = [lastReal, ...projectionPoints]
+    let d = `M${all[0].x},${all[0].y}`
+    for (let i = 1; i < all.length; i++) {
+      d += ` L${all[i].x},${all[i].y}`
+    }
+    return d
+  }, [projectionPoints, points])
 
   const linePath = useMemo(() => {
     if (points.length < 2) return ''
@@ -81,13 +123,16 @@ export function SparkLine({
   }, [linePath, points, chartHeight])
 
   const yTicks = useMemo(() => {
-    const count = 4
+    const top = min + range
+    // Pick a clean step (2 or 5 kg intervals)
+    const rawStep = range / 4
+    const step = rawStep <= 2 ? 2 : rawStep <= 5 ? 5 : Math.ceil(rawStep / 5) * 5
     const ticks = []
-    for (let i = 0; i <= count; i++) {
-      const val = min + (range * i) / count
+    const first = Math.ceil(min / step) * step
+    for (let val = first; val <= top; val += step) {
       ticks.push({
         value: val,
-        y: paddingTop + chartHeight - (i / count) * chartHeight,
+        y: paddingTop + chartHeight - ((val - min) / range) * chartHeight,
       })
     }
     return ticks
@@ -141,8 +186,9 @@ export function SparkLine({
               className="spark-line-target"
             />
             <text
-              x={svgWidth - paddingRight + 4}
-              y={targetY + 3}
+              x={svgWidth - paddingRight - 4}
+              y={targetY - 6}
+              textAnchor="end"
               className="spark-line-target-label"
             >
               {targetLabel ?? formatValue(targetValue!)}
@@ -158,6 +204,11 @@ export function SparkLine({
         {/* Line */}
         {linePath && (
           <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+
+        {/* Projection line */}
+        {projectionLinePath && (
+          <path d={projectionLinePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4" opacity="0.5" />
         )}
 
         {/* Dots */}
@@ -184,13 +235,14 @@ export function SparkLine({
             textAnchor="end"
             className="spark-line-axis-label"
           >
-            {tick.value.toFixed(1)}
+            {Number.isInteger(tick.value) ? tick.value : tick.value.toFixed(1)}
           </text>
         ))}
 
         {/* X axis labels */}
         {points.map((pt, i) => {
-          const showLabel = i === 0 || i === points.length - 1 || (points.length > 5 ? i % Math.ceil(points.length / 5) === 0 : true)
+          const totalLen = points.length + projectionPoints.length
+          const showLabel = i === 0 || (i === points.length - 1 && !projectionPoints.length) || (totalLen > 5 ? i % Math.ceil(totalLen / 5) === 0 : true)
           if (!showLabel) return null
           return (
             <text
@@ -204,6 +256,18 @@ export function SparkLine({
             </text>
           )
         })}
+
+        {/* Projection x-axis labels (show last = ETA) */}
+        {projectionPoints.length > 0 && (
+          <text
+            x={projectionPoints[projectionPoints.length - 1].x}
+            y={height - 6}
+            textAnchor="middle"
+            className="spark-line-axis-label"
+          >
+            {formatDateLabel(projectionPoints[projectionPoints.length - 1].date)}
+          </text>
+        )}
 
         {/* Hover vertical line */}
         {hoveredIndex !== null && points[hoveredIndex] && (
