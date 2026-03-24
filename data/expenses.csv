@@ -83,3 +83,6 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-03-16T10:22:37.734147,2026-03-16,Waffle + milk shake,272.5,Food,,manual-chat
 2026-03-16T10:31:18.929933,2026-03-16,Pizza,901.05,Food,,manual-chat
 2026-03-16T14:23:45.990135,2026-03-16,Cloth ironing,90,Personal care,,manual-chat
+2026-03-17T05:00:24.533122,2026-03-17,Wifi 100 gb,295,Bills,,manual-chat
+2026-03-23T09:36:29.218569,2026-03-23,Zomato lunch,653.83,Food,,manual-chat
+2026-03-23T17:30:22.779762,2026-03-23,Zomato,656.59,Food,,manual-chat
