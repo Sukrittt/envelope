@@ -78,13 +78,6 @@ function AppShell() {
     return pageMeta[pathname] ?? pageMeta['/']
   }, [pathname])
 
-  const lastSync = useMemo(() => {
-    if (!data) return '—'
-
-    const updateTimes = data.dailyUpdates.map((item) => item.updatedAt).sort()
-    return updateTimes.at(-1) ?? data.dateLabel
-  }, [data])
-
   const moduleStatus = useMemo(() => {
     if (!data) return []
 
