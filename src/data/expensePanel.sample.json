@@ -1,28 +1,28 @@
 {
   "meta": {
-    "generatedAt": "2026-03-23T17:30:29.955Z",
+    "generatedAt": "2026-03-26T14:08:24.171Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 74008.56,
-    "essentialSpendInr": 33689.56,
-    "discretionarySpendInr": 40319,
+    "monthSpendInr": 82217.26,
+    "essentialSpendInr": 36725.56,
+    "discretionarySpendInr": 45491.7,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
       "category": "Shopping",
-      "amountInr": 34791
+      "amountInr": 38979.8
     },
     {
       "category": "Bills",
-      "amountInr": 20348
+      "amountInr": 21848
     },
     {
       "category": "Food",
-      "amountInr": 6278.47
+      "amountInr": 7505.47
     },
     {
       "category": "Subscription",
@@ -30,19 +30,19 @@
     },
     {
       "category": "Travel",
-      "amountInr": 2636.5
+      "amountInr": 2945.5
     },
     {
       "category": "Football",
       "amountInr": 1995
     },
     {
-      "category": "Goa Shopping",
-      "amountInr": 1899
+      "category": "Personal care",
+      "amountInr": 1926.9
     },
     {
-      "category": "Personal care",
-      "amountInr": 943
+      "category": "Goa Shopping",
+      "amountInr": 1899
     },
     {
       "category": "Entertainment",
@@ -121,6 +121,18 @@
     {
       "date": "2026-03-23",
       "amountInr": 1310.42
+    },
+    {
+      "date": "2026-03-24",
+      "amountInr": 408
+    },
+    {
+      "date": "2026-03-25",
+      "amountInr": 2524
+    },
+    {
+      "date": "2026-03-26",
+      "amountInr": 5276.7
     }
   ],
   "alerts": [
