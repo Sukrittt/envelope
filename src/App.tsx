@@ -1,58 +1,30 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Building2,
-  AlertTriangle,
-  Lightbulb,
-  Clock,
-  IndianRupee,
-  Dumbbell,
-  Plug,
-  Settings,
-  Hexagon,
-  Sun,
-  Moon,
-} from 'lucide-react'
+import { Lightbulb, IndianRupee, Dumbbell, Settings, Hexagon, Sun, Moon } from 'lucide-react'
 import './App.css'
 import { DashboardProvider } from './context/DashboardProvider'
 import { useDashboard } from './context/useDashboard'
 import { trackEvent } from './lib/telemetry'
 import { navGroups } from './navigation'
-import { ActivityPage } from './pages/ActivityPage'
-import { DashboardPage } from './pages/DashboardPage'
-import { DepartmentDetailPage, DepartmentsPage } from './pages/DepartmentsPage'
 import { ExpensePage } from './pages/ExpensePage'
 import { FitnessPage } from './pages/FitnessPage'
-import { IntegrationsPage } from './pages/IntegrationsPage'
 import { LearningsPage } from './pages/LearningsPage'
-import { RisksPage } from './pages/RisksPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ModuleSwitcher } from './components/ModuleSwitcher'
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
-  '/': { title: 'Overview', subtitle: 'Cross-team pulse and mission health' },
-  '/departments': { title: 'Departments', subtitle: 'Ownership, updates, and execution status' },
   '/expense': { title: 'Expense Dashboard', subtitle: 'Run-rate, category pressure, and cashflow guardrails' },
   '/fitness': { title: 'Fitness Dashboard', subtitle: 'Body metrics, adherence, and training execution' },
-  '/risks': { title: 'Risks', subtitle: 'Severity queue, mitigation, and due windows' },
-  '/learnings': { title: 'Learnings', subtitle: 'Operational insights and reusable discoveries' },
-  '/activity': { title: 'Activity', subtitle: 'Unified timeline across update, risk, and learning events' },
-  '/integrations': { title: 'Integrations', subtitle: 'External system health and deep-link access' },
+  '/learnings': { title: 'Agent Learnings', subtitle: 'What each department/agent is learning over time' },
   '/settings': { title: 'Settings', subtitle: 'Appearance, density, and operations preferences' },
 }
 
 const iconSize = 16
 
 const navIcons: Record<string, ReactNode> = {
-  '/': <LayoutDashboard size={iconSize} />,
-  '/departments': <Building2 size={iconSize} />,
-  '/risks': <AlertTriangle size={iconSize} />,
   '/learnings': <Lightbulb size={iconSize} />,
-  '/activity': <Clock size={iconSize} />,
   '/expense': <IndianRupee size={iconSize} />,
   '/fitness': <Dumbbell size={iconSize} />,
-  '/integrations': <Plug size={iconSize} />,
   '/settings': <Settings size={iconSize} />,
 }
 
@@ -70,21 +42,12 @@ function AppShell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('mc-sidebar-collapsed') === 'true')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
-  const currentMeta = useMemo(() => {
-    if (pathname.startsWith('/departments/')) {
-      return { title: 'Department Detail', subtitle: 'Latest update and risk register' }
-    }
-
-    return pageMeta[pathname] ?? pageMeta['/']
-  }, [pathname])
+  const currentMeta = useMemo(() => pageMeta[pathname] ?? pageMeta['/expense'], [pathname])
 
   const moduleStatus = useMemo(() => {
     if (!data) return []
 
-    return [
-      { label: 'Mission', tone: data.overallHealth },
-      ...data.externalModules.map((module) => ({ label: module.module === 'expense' ? 'Expense' : 'Fitness', tone: module.health })),
-    ]
+    return data.externalModules.map((module) => ({ label: module.module === 'expense' ? 'Expense' : 'Fitness', tone: module.health }))
   }, [data])
 
   useEffect(() => {
@@ -203,15 +166,9 @@ function AppShell() {
             </section>
           ) : (
             <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/departments" element={<DepartmentsPage />} />
-              <Route path="/departments/:departmentId" element={<DepartmentDetailPage />} />
               <Route path="/expense" element={<ExpensePage />} />
               <Route path="/fitness" element={<FitnessPage />} />
-              <Route path="/risks" element={<RisksPage />} />
               <Route path="/learnings" element={<LearningsPage />} />
-              <Route path="/activity" element={<ActivityPage />} />
-              <Route path="/integrations" element={<IntegrationsPage />} />
               <Route
                 path="/settings"
                 element={
@@ -223,7 +180,7 @@ function AppShell() {
                   />
                 }
               />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/expense" replace />} />
             </Routes>
           )}
         </section>

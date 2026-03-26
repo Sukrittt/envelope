@@ -28,7 +28,7 @@ export function LearningsPage() {
   return (
     <section className="mc-panel">
       <div className="mc-panel-header">
-        <h1>Learnings</h1>
+        <h1>Agent Learnings</h1>
         <p>{filtered.length} entries</p>
       </div>
 

@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom'
 
 const moduleTabs = [
-  { label: 'Mission', path: '/' },
   { label: 'Expense', path: '/expense' },
   { label: 'Fitness', path: '/fitness' },
+  { label: 'Learnings', path: '/learnings' },
 ]
 
 export function ModuleSwitcher() {

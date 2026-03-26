@@ -11,21 +11,11 @@ export interface NavGroup {
 
 export const navGroups: NavGroup[] = [
   {
-    label: 'Mission',
-    items: [
-      { label: 'Overview', path: '/', exact: true },
-      { label: 'Departments', path: '/departments' },
-      { label: 'Risks', path: '/risks' },
-      { label: 'Learnings', path: '/learnings' },
-      { label: 'Activity', path: '/activity' },
-    ],
-  },
-  {
     label: 'Master Dashboard',
     items: [
       { label: 'Expense', path: '/expense' },
       { label: 'Fitness', path: '/fitness' },
-      { label: 'Integrations', path: '/integrations' },
+      { label: 'Learnings', path: '/learnings' },
     ],
   },
   {
