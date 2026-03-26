@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { Lightbulb, IndianRupee, Dumbbell, Settings, Hexagon, Sun, Moon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Settings, Sun, Moon } from 'lucide-react'
 import './App.css'
 import { DashboardProvider } from './context/DashboardProvider'
 import { useDashboard } from './context/useDashboard'
 import { trackEvent } from './lib/telemetry'
-import { navGroups } from './navigation'
 import { ExpensePage } from './pages/ExpensePage'
 import { FitnessPage } from './pages/FitnessPage'
 import { LearningsPage } from './pages/LearningsPage'
@@ -19,15 +18,6 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   '/settings': { title: 'Settings', subtitle: 'Appearance, density, and operations preferences' },
 }
 
-const iconSize = 16
-
-const navIcons: Record<string, ReactNode> = {
-  '/learnings': <Lightbulb size={iconSize} />,
-  '/expense': <IndianRupee size={iconSize} />,
-  '/fitness': <Dumbbell size={iconSize} />,
-  '/settings': <Settings size={iconSize} />,
-}
-
 function AppShell() {
   const { data, loading, error, reload } = useDashboard()
   const { pathname } = useLocation()
@@ -39,8 +29,6 @@ function AppShell() {
     const saved = localStorage.getItem('mc-density')
     return saved === 'compact' ? 'compact' : 'comfortable'
   })
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('mc-sidebar-collapsed') === 'true')
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const currentMeta = useMemo(() => pageMeta[pathname] ?? pageMeta['/expense'], [pathname])
 
@@ -60,10 +48,6 @@ function AppShell() {
   }, [density])
 
   useEffect(() => {
-    localStorage.setItem('mc-sidebar-collapsed', String(sidebarCollapsed))
-  }, [sidebarCollapsed])
-
-  useEffect(() => {
     trackEvent('page_view', { path: pathname })
   }, [pathname])
 
@@ -71,52 +55,9 @@ function AppShell() {
 
   return (
     <main className={`mc-page theme-${theme} density-${density} ${isExpenseRoute ? 'expense-shell' : ''}`}>
-      <div className={`mc-layout ${sidebarCollapsed ? 'is-collapsed' : ''} ${mobileNavOpen ? 'is-mobile-open' : ''}`}>
-        <aside className="mc-sidebar" aria-label="Primary Navigation">
-          <div className="sidebar-brand">
-            <span className="sidebar-brand-icon" aria-hidden="true"><Hexagon size={24} /></span>
-            <strong>Mission Control</strong>
-            <span>Operations Center</span>
-          </div>
-
-          <nav>
-            {navGroups.map((group) => (
-              <section className="sidebar-group" key={group.label} aria-label={group.label}>
-                <p className="sidebar-group-label">{group.label}</p>
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.exact}
-                    className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
-                    aria-label={item.label}
-                    title={sidebarCollapsed ? item.label : undefined}
-                    onClick={() => {
-                      trackEvent('nav_click', { target: item.path })
-                      setMobileNavOpen(false)
-                    }}
-                  >
-                    <span className="sidebar-link-indicator" aria-hidden="true" />
-                    <span className="sidebar-link-icon" aria-hidden="true">{navIcons[item.path] ?? '•'}</span>
-                    <span className="sidebar-link-label">{item.label}</span>
-                  </NavLink>
-                ))}
-              </section>
-            ))}
-          </nav>
-
-          <footer className="sidebar-footer">
-            <button type="button" className="action-button theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-          </footer>
-        </aside>
-
+      <div className="mc-layout">
         <section className="mc-main">
           <header className="mc-topbar">
-            <button type="button" className="action-button mobile-only" onClick={() => setMobileNavOpen((value) => !value)}>
-              Menu
-            </button>
             <div className="page-context">
               <h2>{currentMeta.title}</h2>
               <p>{currentMeta.subtitle}</p>
@@ -132,9 +73,12 @@ function AppShell() {
               >
                 Refresh
               </button>
-              <button type="button" className="action-button" onClick={() => setSidebarCollapsed((value) => !value)}>
-                {sidebarCollapsed ? 'Expand' : 'Collapse'} sidebar
+              <button type="button" className="action-button theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
+              <Link to="/settings" className="action-button" aria-label="Open settings" title="Settings">
+                <Settings size={18} />
+              </Link>
             </div>
           </header>
 
