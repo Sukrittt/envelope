@@ -6,3 +6,4 @@ timestamp,service,amount_inr,billing_cycle,status,renewal_or_end_month,notes
 2026-03-01T03:50:00+05:30,OpenAI Go,399,monthly,cancelled,March 2026,Cancelled by user on 2026-03-02
 2026-03-01T03:50:00+05:30,11Labs,1142.24,one-time/monthly-temp,active-temporary,April 2026,Taken for one month; planned cancellation
 2026-03-05T18:46:00+05:30,Whisper Flow (AI),3480.59,yearly,active,March 2027,Newly added subscription
+2026-03-27T01:05:00+05:30,Hostinger VPS,2000,monthly,cancelled,March 2026,Cancelled by user on 2026-03-27
