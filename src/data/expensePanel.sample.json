@@ -1,20 +1,20 @@
 {
   "meta": {
-    "generatedAt": "2026-03-27T15:44:25.107Z",
+    "generatedAt": "2026-03-27T21:42:04.598Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 82793.26,
+    "monthSpendInr": 83791.26,
     "essentialSpendInr": 37051.56,
-    "discretionarySpendInr": 45741.7,
+    "discretionarySpendInr": 46739.7,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
       "category": "Shopping",
-      "amountInr": 38979.8
+      "amountInr": 39977.8
     },
     {
       "category": "Bills",
@@ -137,6 +137,10 @@
     {
       "date": "2026-03-27",
       "amountInr": 576
+    },
+    {
+      "date": "2026-03-28",
+      "amountInr": 998
     }
   ],
   "alerts": [
