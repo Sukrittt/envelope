@@ -100,3 +100,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-03-27T21:12:00+05:30,2026-03-27,Rapido to work,119,Travel,,manual-chat
 2026-03-27T21:12:18+05:30,2026-03-27,Rapido to home,142,Travel,,manual-chat
 2026-03-27T21:12:35+05:30,2026-03-27,Haircut,250,Personal care,,manual-chat
+2026-03-27T21:12:53+05:30,2026-03-27,Rapido from haircut to home,40,Travel,,manual-chat
