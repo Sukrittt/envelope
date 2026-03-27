@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-03-27T15:42:18.662Z",
+    "generatedAt": "2026-03-27T15:42:35.748Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 82478.26,
+    "monthSpendInr": 82728.26,
     "essentialSpendInr": 36986.56,
-    "discretionarySpendInr": 45491.7,
+    "discretionarySpendInr": 45741.7,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -33,12 +33,12 @@
       "amountInr": 3206.5
     },
     {
-      "category": "Football",
-      "amountInr": 1995
+      "category": "Personal care",
+      "amountInr": 2176.9
     },
     {
-      "category": "Personal care",
-      "amountInr": 1926.9
+      "category": "Football",
+      "amountInr": 1995
     },
     {
       "category": "Goa Shopping",
@@ -136,7 +136,7 @@
     },
     {
       "date": "2026-03-27",
-      "amountInr": 261
+      "amountInr": 511
     }
   ],
   "alerts": [
