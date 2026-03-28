@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-03-27T21:42:04.598Z",
+    "generatedAt": "2026-03-28T06:04:13.297Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 83791.26,
-    "essentialSpendInr": 37051.56,
+    "monthSpendInr": 83990.26,
+    "essentialSpendInr": 37250.56,
     "discretionarySpendInr": 46739.7,
     "duesReceivableInr": 1537.46
   },
@@ -26,7 +26,7 @@
     },
     {
       "category": "Subscription",
-      "amountInr": 4426.59
+      "amountInr": 4625.59
     },
     {
       "category": "Travel",
@@ -140,7 +140,7 @@
     },
     {
       "date": "2026-03-28",
-      "amountInr": 998
+      "amountInr": 1197
     }
   ],
   "alerts": [
