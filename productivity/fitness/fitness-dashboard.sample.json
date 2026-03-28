@@ -1,14 +1,14 @@
 {
   "meta": {
     "version": "v1.1",
-    "generatedAt": "2026-03-26T19:34:55.162Z",
+    "generatedAt": "2026-03-28T08:21:40Z",
     "timezone": "Asia/Calcutta",
     "weekStart": "2026-03-09"
   },
   "athleteProfile": {
     "name": "Sukrit",
     "startWeightKg": 68.89,
-    "currentWeightKg": 62.5,
+    "currentWeightKg": 61.55,
     "targetWeightKg": 58
   },
   "targets": {
@@ -493,6 +493,26 @@
         "completed": true
       },
       "notes": "Meals logged; nutrition totals pending."
+    },
+    {
+      "date": "2026-03-28",
+      "morningWeightKg": 61.55,
+      "caloriesKcal": null,
+      "proteinG": null,
+      "steps": null,
+      "sleepHours": null,
+      "hydrationL": null,
+      "workout": {
+        "status": "rest",
+        "type": "rest",
+        "completed": false
+      },
+      "adherence": {
+        "calorieInRange": false,
+        "proteinMet": false,
+        "stepsMet": false
+      },
+      "notes": "weight check-in"
     }
   ],
   "kpis": {
@@ -592,6 +612,10 @@
       {
         "date": "2026-03-27",
         "value": 62.5
+      },
+      {
+        "date": "2026-03-28",
+        "value": 61.55
       }
     ],
     "weightMovingAvg7d": [
@@ -642,6 +666,10 @@
       {
         "date": "2026-03-27",
         "value": 62.5
+      },
+      {
+        "date": "2026-03-28",
+        "value": 61.55
       }
     ],
     "proteinDaily21d": [
@@ -908,7 +936,7 @@
     "When a day is missing from dailyLogs, do not inject zero values; chart series should remain sparse and UI should render temporal gaps.",
     "Rest day (workout.status = rest) is neutral for training completion unless explicitly marked as missed planned session.",
     "If protein or steps is missing for a day, exclude that day from relevant averages and attainment denominator; keep raw field null in logs.",
-    "Single-day weight deltas over ±1.0kg should trigger outlier annotation in chart tooltip, not auto-clamping."
+    "Single-day weight deltas over \u00b11.0kg should trigger outlier annotation in chart tooltip, not auto-clamping."
   ],
   "foodLog": [
     {
