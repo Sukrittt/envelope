@@ -7,6 +7,7 @@ import { useDashboard } from './context/useDashboard'
 import { trackEvent } from './lib/telemetry'
 import { ExpensePage } from './pages/ExpensePage'
 import { FitnessPage } from './pages/FitnessPage'
+import { BettingPage } from './pages/BettingPage'
 import { LearningsPage } from './pages/LearningsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ModuleSwitcher } from './components/ModuleSwitcher'
@@ -14,6 +15,7 @@ import { ModuleSwitcher } from './components/ModuleSwitcher'
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
   '/expense': { title: 'Expense Dashboard', subtitle: 'Run-rate, category pressure, and cashflow guardrails' },
   '/fitness': { title: 'Fitness Dashboard', subtitle: 'Body metrics, adherence, and training execution' },
+  '/betting': { title: 'Betting Department', subtitle: 'Risk-managed IPL framework and market checklist' },
   '/learnings': { title: 'Agent Learnings', subtitle: 'What each department/agent is learning over time' },
   '/settings': { title: 'Settings', subtitle: 'Appearance, density, and operations preferences' },
 }
@@ -112,6 +114,7 @@ function AppShell() {
             <Routes>
               <Route path="/expense" element={<ExpensePage />} />
               <Route path="/fitness" element={<FitnessPage />} />
+              <Route path="/betting" element={<BettingPage />} />
               <Route path="/learnings" element={<LearningsPage />} />
               <Route
                 path="/settings"
