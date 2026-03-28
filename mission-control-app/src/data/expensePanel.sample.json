@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-03-28T06:04:13.297Z",
+    "generatedAt": "2026-03-28T19:44:46.462Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 83990.26,
-    "essentialSpendInr": 37250.56,
-    "discretionarySpendInr": 46739.7,
+    "monthSpendInr": 84902.26,
+    "essentialSpendInr": 37907.56,
+    "discretionarySpendInr": 46994.7,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -22,7 +22,7 @@
     },
     {
       "category": "Food",
-      "amountInr": 7530.47
+      "amountInr": 7879.47
     },
     {
       "category": "Subscription",
@@ -30,15 +30,15 @@
     },
     {
       "category": "Travel",
-      "amountInr": 3246.5
+      "amountInr": 3554.5
+    },
+    {
+      "category": "Football",
+      "amountInr": 2250
     },
     {
       "category": "Personal care",
       "amountInr": 2176.9
-    },
-    {
-      "category": "Football",
-      "amountInr": 1995
     },
     {
       "category": "Goa Shopping",
@@ -140,7 +140,11 @@
     },
     {
       "date": "2026-03-28",
-      "amountInr": 1197
+      "amountInr": 1356
+    },
+    {
+      "date": "2026-03-29",
+      "amountInr": 753
     }
   ],
   "alerts": [

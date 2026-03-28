@@ -104,3 +104,8 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-03-27T21:13:10+05:30,2026-03-27,Milk,25,Food,,manual-chat
 2026-03-28T03:12:04+05:30,2026-03-28,Polo tshirt,998,Shopping,,manual-chat
 2026-03-28T11:34:13+05:30,2026-03-28,Fancode,199,Subscription,,manual-chat
+2026-03-28T18:50:00+05:30,2026-03-28,Rapido for movie,99,Travel,,manual-chat
+2026-03-28T18:51:00+05:30,2026-03-28,Metro for movie,60,Travel,,manual-chat
+2026-03-29T01:11:00+05:30,2026-03-29,Dinner with friends,349,Food,,manual-chat
+2026-03-29T01:11:10+05:30,2026-03-29,Rapido to home,149,Travel,,manual-chat
+2026-03-29T01:11:20+05:30,2026-03-29,Football,255,Football,,manual-chat
