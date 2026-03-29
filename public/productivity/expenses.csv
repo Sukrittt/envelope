@@ -112,3 +112,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-03-29T13:38:00+05:30,2026-03-29,Grocery,530,Food,,manual-chat
 2026-03-29T15:30:02+05:30,2026-03-29,Friend parcel delivery retry,691,Shopping,,manual-chat
 2026-03-29T17:46:05+05:30,2026-03-29,Rapido to football,136,Travel,,manual-chat
+2026-03-29T20:52:39+05:30,2026-03-29,Rapido to home,151,Travel,,manual-chat
