@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-03-29T15:22:39.408Z",
+    "generatedAt": "2026-03-30T15:09:56.078Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 86410.26,
-    "essentialSpendInr": 38724.56,
+    "monthSpendInr": 86707.26,
+    "essentialSpendInr": 39021.56,
     "discretionarySpendInr": 47685.7,
     "duesReceivableInr": 1537.46
   },
@@ -18,7 +18,7 @@
     },
     {
       "category": "Bills",
-      "amountInr": 21848
+      "amountInr": 21898
     },
     {
       "category": "Food",
@@ -30,7 +30,7 @@
     },
     {
       "category": "Travel",
-      "amountInr": 3841.5
+      "amountInr": 4088.5
     },
     {
       "category": "Football",
@@ -144,7 +144,11 @@
     },
     {
       "date": "2026-03-29",
-      "amountInr": 2261
+      "amountInr": 2311
+    },
+    {
+      "date": "2026-03-30",
+      "amountInr": 247
     }
   ],
   "alerts": [
