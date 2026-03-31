@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-03-31T15:06:17.557Z",
+    "generatedAt": "2026-03-31T15:08:10.889Z",
     "month": "2026-03",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 87037.26,
+    "monthSpendInr": 87316.26,
     "essentialSpendInr": 39096.56,
-    "discretionarySpendInr": 47940.7,
+    "discretionarySpendInr": 48219.7,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -34,7 +34,7 @@
     },
     {
       "category": "Football",
-      "amountInr": 2505
+      "amountInr": 2784
     },
     {
       "category": "Personal care",
@@ -152,7 +152,7 @@
     },
     {
       "date": "2026-03-31",
-      "amountInr": 330
+      "amountInr": 609
     }
   ],
   "alerts": [
