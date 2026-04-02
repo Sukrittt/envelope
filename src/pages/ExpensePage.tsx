@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import expenseSample from '../data/expensePanel.sample.json'
 import { SparkBars } from '../components/SparkBars'
 import { TransactionsView } from '../components/TransactionsView'
+import { InsightsView } from '../components/InsightsView'
 import { toExpensePanelData } from '../services/expensePanelAdapter'
 
 type PeriodKey = '7d' | '30d' | 'mtd' | 'custom'
@@ -71,7 +72,7 @@ function weekRangeLabel(startIso: string): string {
   })}`
 }
 
-type ExpenseTab = 'overview' | 'transactions'
+type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
   const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
@@ -439,6 +440,9 @@ export function ExpensePage() {
           <button type="button" className={`tab-button expense-tab-button ${activeTab === 'transactions' ? 'is-active' : ''}`} onClick={() => setActiveTab('transactions')}>
             Transactions
           </button>
+          <button type="button" className={`tab-button expense-tab-button ${activeTab === 'insights' ? 'is-active' : ''}`} onClick={() => setActiveTab('insights')}>
+            Insights
+          </button>
         </div>
 
         <button type="button" className={`action-button hide-amounts-toggle ${hideAmounts ? 'is-active' : ''}`} onClick={toggleHideAmounts}>
@@ -449,6 +453,10 @@ export function ExpensePage() {
       {activeTab === 'transactions' ? (
         <div className="expense-tab-content">
           <TransactionsView hideAmounts={hideAmounts} />
+        </div>
+      ) : activeTab === 'insights' ? (
+        <div className="expense-tab-content">
+          <InsightsView hideAmounts={hideAmounts} />
         </div>
       ) : (<>
 

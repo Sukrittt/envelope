@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "cp -r productivity/expenses.csv public/productivity/expenses.csv",
+    "prebuild": "cp -r productivity/expenses.csv public/productivity/expenses.csv && cp data/subscriptions.csv public/productivity/subscriptions.csv",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
