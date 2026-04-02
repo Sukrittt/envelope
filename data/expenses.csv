@@ -125,3 +125,6 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-01T22:57:00+05:30,2026-04-01,Rapido to home,170,Travel,,manual-chat
 2026-04-01T23:06:00+05:30,2026-04-01,Parimatch Betting,8040,Betting,,manual-chat
 2026-04-02T13:04:00+05:30,2026-04-02,Groceries and personal items,958,Shopping,,manual-chat
+2026-04-02T18:04:00+05:30,2026-04-02,Parcel items,279,Shopping,,manual-chat
+2026-04-02T18:42:00+05:30,2026-04-02,Bubble wrap for parcel,339,Shopping,,manual-chat
+2026-04-02T19:12:00+05:30,2026-04-02,Wifi 15gb,50,Bills,,manual-chat
