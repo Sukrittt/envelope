@@ -120,3 +120,8 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-03-31T19:53:00+05:30,2026-03-31,Football,255,Football,,manual-chat
 2026-03-31T20:36:00+05:30,2026-03-31,Wifi 15gb,50,Bills,,manual-chat
 2026-03-31T20:38:00+05:30,2026-03-31,Football,279,Football,,manual-chat
+2026-04-01T11:33:00+05:30,2026-04-01,Rapido to work,141,Travel,,manual-chat
+2026-04-01T20:24:00+05:30,2026-04-01,Rapido to football,60,Travel,,manual-chat
+2026-04-01T22:57:00+05:30,2026-04-01,Rapido to home,170,Travel,,manual-chat
+2026-04-01T23:06:00+05:30,2026-04-01,Parimatch Betting,8040,Betting,,manual-chat
+2026-04-02T13:04:00+05:30,2026-04-02,Groceries and personal items,958,Shopping,,manual-chat

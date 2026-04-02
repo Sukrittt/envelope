@@ -1,162 +1,42 @@
 {
   "meta": {
-    "generatedAt": "2026-03-31T15:08:10.889Z",
-    "month": "2026-03",
+    "generatedAt": "2026-04-02T07:36:30.319Z",
+    "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 87316.26,
-    "essentialSpendInr": 39096.56,
-    "discretionarySpendInr": 48219.7,
+    "monthSpendInr": 9369,
+    "essentialSpendInr": 371,
+    "discretionarySpendInr": 8998,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
+      "category": "Betting",
+      "amountInr": 8040
+    },
+    {
       "category": "Shopping",
-      "amountInr": 40668.8
-    },
-    {
-      "category": "Bills",
-      "amountInr": 21948
-    },
-    {
-      "category": "Food",
-      "amountInr": 8434.47
-    },
-    {
-      "category": "Subscription",
-      "amountInr": 4625.59
+      "amountInr": 958
     },
     {
       "category": "Travel",
-      "amountInr": 4088.5
-    },
-    {
-      "category": "Football",
-      "amountInr": 2784
-    },
-    {
-      "category": "Personal care",
-      "amountInr": 2176.9
-    },
-    {
-      "category": "Goa Shopping",
-      "amountInr": 1899
-    },
-    {
-      "category": "Entertainment",
-      "amountInr": 691
+      "amountInr": 371
     }
   ],
   "dailySpend": [
     {
-      "date": "2026-03-01",
-      "amountInr": 954
+      "date": "2026-04-01",
+      "amountInr": 8411
     },
     {
-      "date": "2026-03-02",
-      "amountInr": 366
-    },
-    {
-      "date": "2026-03-03",
-      "amountInr": 1813.8
-    },
-    {
-      "date": "2026-03-04",
-      "amountInr": 20715.7
-    },
-    {
-      "date": "2026-03-05",
-      "amountInr": 29004.59
-    },
-    {
-      "date": "2026-03-06",
-      "amountInr": 614
-    },
-    {
-      "date": "2026-03-07",
-      "amountInr": 1549
-    },
-    {
-      "date": "2026-03-08",
-      "amountInr": 2277.5
-    },
-    {
-      "date": "2026-03-09",
-      "amountInr": 5394
-    },
-    {
-      "date": "2026-03-10",
-      "amountInr": 24
-    },
-    {
-      "date": "2026-03-11",
-      "amountInr": 1148
-    },
-    {
-      "date": "2026-03-12",
-      "amountInr": 2672
-    },
-    {
-      "date": "2026-03-13",
-      "amountInr": 2061
-    },
-    {
-      "date": "2026-03-14",
-      "amountInr": 588
-    },
-    {
-      "date": "2026-03-15",
-      "amountInr": 1899
-    },
-    {
-      "date": "2026-03-16",
-      "amountInr": 1322.55
-    },
-    {
-      "date": "2026-03-17",
-      "amountInr": 295
-    },
-    {
-      "date": "2026-03-23",
-      "amountInr": 1310.42
-    },
-    {
-      "date": "2026-03-24",
-      "amountInr": 408
-    },
-    {
-      "date": "2026-03-25",
-      "amountInr": 2524
-    },
-    {
-      "date": "2026-03-26",
-      "amountInr": 5276.7
-    },
-    {
-      "date": "2026-03-27",
-      "amountInr": 576
-    },
-    {
-      "date": "2026-03-28",
-      "amountInr": 1356
-    },
-    {
-      "date": "2026-03-29",
-      "amountInr": 2311
-    },
-    {
-      "date": "2026-03-30",
-      "amountInr": 247
-    },
-    {
-      "date": "2026-03-31",
-      "amountInr": 609
+      "date": "2026-04-02",
+      "amountInr": 958
     }
   ],
   "alerts": [
-    "Spend cap breached; pause discretionary purchases and recover dues."
+    "Discretionary share above 60%; trigger cooling rule for non-essential purchases this week."
   ],
   "deepLinks": [
     {
