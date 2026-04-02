@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import expenseSample from '../data/expensePanel.sample.json'
 import { SparkBars } from '../components/SparkBars'
 import { TransactionsView } from '../components/TransactionsView'
 import { InsightsView } from '../components/InsightsView'
-import { toExpensePanelData } from '../services/expensePanelAdapter'
+import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
+import { loadExpensePanelContract } from '../services/expensePanelLoader'
 
 type PeriodKey = '7d' | '30d' | 'mtd' | 'custom'
 type TrendView = 'daily' | 'weekly' | 'monthly'
 type DrillFilter = { start: string; end: string; parentView: TrendView } | null
 
-const panel = toExpensePanelData(expenseSample)
 const CATEGORY_COLORS = ['#7aa2ff', '#4fd1c5', '#f59e8b', '#b794f4', '#f6c453', '#63b3ed', '#f472b6', '#34d399']
 
 function formatLastUpdated(value: string): string {
@@ -75,6 +74,7 @@ function weekRangeLabel(startIso: string): string {
 type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
+  const [panel, setPanel] = useState<ExpensePanelData | null>(null)
   const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>('mtd')
   const [trendView, setTrendView] = useState<TrendView>('daily')
@@ -89,16 +89,21 @@ export function ExpensePage() {
   const categoryMenuRef = useRef<HTMLDivElement | null>(null)
   const categoryTriggerRef = useRef<HTMLButtonElement | null>(null)
 
+  useEffect(() => {
+    loadExpensePanelContract().then((contract) => setPanel(toExpensePanelData(contract)))
+  }, [])
+
   const latestDate = useMemo(() => {
+    if (!panel) return new Date()
     const last = panel.miniTrend.at(-1)?.date ?? panel.month
     const date = new Date(last)
     return Number.isNaN(date.getTime()) ? new Date() : date
-  }, [])
+  }, [panel])
 
   const [customStart, setCustomStart] = useState<string>(toDateInputValue(new Date(latestDate.getFullYear(), latestDate.getMonth(), 1)))
   const [customEnd, setCustomEnd] = useState<string>(toDateInputValue(latestDate))
 
-  const categoryOptions = useMemo(() => panel.topCategories.map((category) => category.category), [])
+  const categoryOptions = useMemo(() => panel?.topCategories.map((category) => category.category) ?? [], [panel])
   const allCategoriesSelected = selectedCategories.length === 0
 
   function selectAllCategories() {
@@ -177,6 +182,7 @@ export function ExpensePage() {
   }, [isCategoryMenuOpen])
 
   const filteredTrend = useMemo(() => {
+    if (!panel) return []
     const rows = [...panel.miniTrend]
     const end = new Date(latestDate)
     let start = new Date(rows[0]?.date ?? end)
@@ -204,25 +210,27 @@ export function ExpensePage() {
       const date = new Date(row.date)
       return !Number.isNaN(date.getTime()) && date >= start && date <= end
     })
-  }, [customEnd, customStart, latestDate, period])
+  }, [customEnd, customStart, latestDate, panel, period])
 
   const filteredCategories = useMemo(() => {
+    if (!panel) return []
     if (!selectedCategories.length) return panel.topCategories
     return panel.topCategories.filter((row) => selectedCategories.includes(row.category))
-  }, [selectedCategories])
+  }, [panel, selectedCategories])
 
   const categoryColorMap = useMemo(() => {
+    if (!panel) return new Map<string, string>()
     return new Map(panel.topCategories.map((category, index) => [category.category, CATEGORY_COLORS[index % CATEGORY_COLORS.length]]))
-  }, [])
+  }, [panel])
 
-  const categoryTotal = useMemo(() => panel.topCategories.reduce((sum, row) => sum + row.amountInr, 0), [])
+  const categoryTotal = useMemo(() => panel?.topCategories.reduce((sum, row) => sum + row.amountInr, 0) ?? 0, [panel])
 
   const selectedCategoryTotal = useMemo(() => {
-    if (!selectedCategories.length) return categoryTotal
+    if (!panel || !selectedCategories.length) return categoryTotal
     return panel.topCategories
       .filter((row) => selectedCategories.includes(row.category))
       .reduce((sum, row) => sum + row.amountInr, 0)
-  }, [categoryTotal, selectedCategories])
+  }, [categoryTotal, panel, selectedCategories])
 
   const categoryScopeRatio = categoryTotal > 0 ? selectedCategoryTotal / categoryTotal : 1
   const periodTotal = useMemo(() => filteredTrend.reduce((sum, point) => sum + point.value, 0), [filteredTrend])
@@ -328,15 +336,16 @@ export function ExpensePage() {
     }
   }
 
-  const stalenessText = formatLastUpdated(panel.lastUpdated)
+  const stalenessText = panel ? formatLastUpdated(panel.lastUpdated) : 'Loading…'
   const categoryScopeLabel = selectedCategories.length ? `${selectedCategories.length} selected` : 'All categories'
 
-  const topCategory = filteredCategories[0] ?? panel.topCategories[0]
+  const topCats = panel?.topCategories ?? []
+  const topCategory = filteredCategories[0] ?? topCats[0]
   const topCategoryShare = topCategory?.sharePct ?? 0
-  const adjustedRunRate = panel.avgDailyLast7Inr * categoryScopeRatio
+  const adjustedRunRate = (panel?.avgDailyLast7Inr ?? 0) * categoryScopeRatio
 
-  const subscriptionCategory = panel.topCategories.find((row) => row.category.toLowerCase().includes('subscription'))
-  const donutSegments = (selectedCategories.length ? filteredCategories : panel.topCategories).slice(0, 8)
+  const subscriptionCategory = topCats.find((row) => row.category.toLowerCase().includes('subscription'))
+  const donutSegments = (selectedCategories.length ? filteredCategories : topCats).slice(0, 8)
   const donutGradient = useMemo(() => {
     if (!donutSegments.length) return 'conic-gradient(#3b3f47 0 100%)'
 
@@ -357,6 +366,19 @@ export function ExpensePage() {
     }
     return `conic-gradient(${slices.join(', ')})`
   }, [categoryColorMap, donutSegments])
+
+  if (!panel) {
+    return (
+      <section className="mc-content-grid expense-view">
+        <section className="headline">
+          <div>
+            <h1>Expense Command Center</h1>
+            <p className="muted">Loading…</p>
+          </div>
+        </section>
+      </section>
+    )
+  }
 
   const isCategoryMenuVisible = Boolean(isCategoryMenuOpen && categoryMenuPosition)
   const menuPosition =

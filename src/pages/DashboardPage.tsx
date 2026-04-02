@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import expenseSample from '../data/expensePanel.sample.json'
 import fitnessContract from '../../productivity/fitness/fitness-dashboard.sample.json'
 import { SparkBars } from '../components/SparkBars'
-import { toExpensePanelData } from '../services/expensePanelAdapter'
+import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
+import { loadExpensePanelContract } from '../services/expensePanelLoader'
 import { toFitnessDashboardPanel } from '../services/fitnessDashboardAdapter'
 import { PageSectionHeader } from '../components/PageSectionHeader'
 import { StatusChip } from '../components/StatusChip'
@@ -37,7 +37,12 @@ export function DashboardPage() {
     [data?.risks],
   )
 
-  const expensePanel = toExpensePanelData(expenseSample)
+  const [expensePanel, setExpensePanel] = useState<ExpensePanelData | null>(null)
+
+  useEffect(() => {
+    loadExpensePanelContract().then((contract) => setExpensePanel(toExpensePanelData(contract)))
+  }, [])
+
   const fitnessPanel = toFitnessDashboardPanel(fitnessContract as never)
 
   if (!data) return null
@@ -135,6 +140,7 @@ export function DashboardPage() {
       <section className="mc-main-panels" aria-label="Expense and fitness integration">
         <article className="mc-panel" aria-label="Expense integration snapshot">
           <PageSectionHeader title="Expense Snapshot" subtitle="Run-rate, pressure categories, and direct handoff" />
+          {expensePanel ? (<>
           <section className="mc-kpi-strip mc-kpi-strip--stack">
             <article className="mc-kpi-card">
               <p>Spend vs cap</p>
@@ -154,6 +160,7 @@ export function DashboardPage() {
               Launch full Expense dashboard ↗
             </a>
           </div>
+          </>) : <p className="muted">Loading expense data…</p>}
         </article>
 
         <article className="mc-panel" aria-label="Fitness integration snapshot">
