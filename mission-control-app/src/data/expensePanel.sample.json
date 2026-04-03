@@ -1,32 +1,36 @@
 {
   "meta": {
-    "generatedAt": "2026-04-02T14:18:38.349Z",
+    "generatedAt": "2026-04-03T15:00:54.042Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 10037,
-    "essentialSpendInr": 421,
-    "discretionarySpendInr": 9616,
+    "monthSpendInr": 31207,
+    "essentialSpendInr": 21456,
+    "discretionarySpendInr": 9751,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
+    {
+      "category": "Bills",
+      "amountInr": 20716
+    },
     {
       "category": "Betting",
       "amountInr": 8040
     },
     {
       "category": "Shopping",
-      "amountInr": 1576
+      "amountInr": 1711
     },
     {
       "category": "Travel",
       "amountInr": 371
     },
     {
-      "category": "Bills",
-      "amountInr": 50
+      "category": "Food",
+      "amountInr": 369
     }
   ],
   "dailySpend": [
@@ -37,10 +41,14 @@
     {
       "date": "2026-04-02",
       "amountInr": 1626
+    },
+    {
+      "date": "2026-04-03",
+      "amountInr": 21170
     }
   ],
   "alerts": [
-    "Discretionary share above 60%; trigger cooling rule for non-essential purchases this week."
+    "Spend tracking stable; keep daily logging consistent."
   ],
   "deepLinks": [
     {

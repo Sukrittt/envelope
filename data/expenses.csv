@@ -128,3 +128,7 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-02T18:04:00+05:30,2026-04-02,Parcel items,279,Shopping,,manual-chat
 2026-04-02T18:42:00+05:30,2026-04-02,Bubble wrap for parcel,339,Shopping,,manual-chat
 2026-04-02T19:12:00+05:30,2026-04-02,Wifi 15gb,50,Bills,,manual-chat
+2026-04-03T16:08:00+05:30,2026-04-03,Groceries,369,Food,,manual-chat
+2026-04-03T18:52:00+05:30,2026-04-03,Clothes iron,135,Shopping,,manual-chat
+2026-04-03T19:33:00+05:30,2026-04-03,Wifi 15gb,50,Bills,,manual-chat
+2026-04-03T20:30:00+05:30,2026-04-03,Rent,20616,Bills,,manual-chat
