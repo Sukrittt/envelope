@@ -2405,6 +2405,43 @@ input[type='date']:hover {
   gap: var(--sp-2);
 }
 
+.expense-skeleton-card,
+.expense-skeleton-panel {
+  gap: 0.65rem;
+}
+
+.expense-skeleton {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.2) 0%, rgba(148, 163, 184, 0.35) 50%, rgba(148, 163, 184, 0.2) 100%);
+  background-size: 220% 100%;
+  animation: expenseShimmer 1.2s ease-in-out infinite;
+}
+
+.expense-skeleton-line {
+  height: 12px;
+  width: 100%;
+}
+
+.expense-skeleton-line.short {
+  width: 38%;
+}
+
+.expense-skeleton-line.medium {
+  width: 62%;
+}
+
+.expense-skeleton-block {
+  height: 170px;
+  width: 100%;
+  border-radius: 12px;
+}
+
+@keyframes expenseShimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 .error,
 .red {
   color: var(--risk-fg);

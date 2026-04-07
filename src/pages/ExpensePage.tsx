@@ -369,12 +369,41 @@ export function ExpensePage() {
 
   if (!panel) {
     return (
-      <section className="mc-content-grid expense-view">
+      <section className="mc-content-grid expense-view" aria-busy="true" aria-live="polite">
         <section className="headline">
           <div>
             <h1>Expense Command Center</h1>
-            <p className="muted">Loading…</p>
+            <p className="muted">Loading latest transactions…</p>
           </div>
+        </section>
+
+        <section className="mc-kpi-strip" aria-hidden="true">
+          <article className="mc-kpi-card expense-skeleton-card">
+            <span className="expense-skeleton expense-skeleton-line short" />
+            <span className="expense-skeleton expense-skeleton-line" />
+            <span className="expense-skeleton expense-skeleton-line medium" />
+          </article>
+          <article className="mc-kpi-card expense-skeleton-card">
+            <span className="expense-skeleton expense-skeleton-line short" />
+            <span className="expense-skeleton expense-skeleton-line" />
+            <span className="expense-skeleton expense-skeleton-line medium" />
+          </article>
+          <article className="mc-kpi-card expense-skeleton-card">
+            <span className="expense-skeleton expense-skeleton-line short" />
+            <span className="expense-skeleton expense-skeleton-line" />
+            <span className="expense-skeleton expense-skeleton-line medium" />
+          </article>
+        </section>
+
+        <section className="mc-main-panels" aria-hidden="true">
+          <article className="mc-panel expense-skeleton-panel">
+            <span className="expense-skeleton expense-skeleton-line medium" />
+            <span className="expense-skeleton expense-skeleton-block" />
+          </article>
+          <article className="mc-panel expense-skeleton-panel">
+            <span className="expense-skeleton expense-skeleton-line medium" />
+            <span className="expense-skeleton expense-skeleton-block" />
+          </article>
         </section>
       </section>
     )
