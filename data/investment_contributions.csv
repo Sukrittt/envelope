@@ -1,0 +1,2 @@
+timestamp,date,account,asset_type,amount_inr,notes,source
+2026-04-07T15:24:00+05:30,2026-04-07,General investment,mutual-fund,39660,Monthly investment made by user,manual-chat
