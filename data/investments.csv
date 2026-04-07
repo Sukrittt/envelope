@@ -4,3 +4,4 @@ timestamp,date,account,asset_type,amount_inr,notes,source
 2026-03-01T00:35:00+05:30,2026-03-01,Kotak,Stocks,81800,baseline snapshot,manual-chat
 2026-03-02T20:16:00+05:30,2026-03-02,Fixed Deposits,FD,110000,updated after ₹10,000 withdrawal for air fryer purchase fund,manual-chat
 2026-03-04T15:48:00+05:30,2026-03-04,Fixed Deposits,FD,100000,updated after additional ₹10,000 withdrawal,manual-chat
+2026-04-07T15:24:00+05:30,2026-04-07,General investment,mutual-fund,39660,Monthly investment made by user,manual-chat
