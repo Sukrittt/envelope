@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-04-07T09:55:11.184Z",
+    "generatedAt": "2026-04-07T09:55:47.217Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 32589.6,
+    "monthSpendInr": 32844.6,
     "essentialSpendInr": 22814.6,
-    "discretionarySpendInr": 9775,
+    "discretionarySpendInr": 10030,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -34,7 +34,7 @@
     },
     {
       "category": "Football",
-      "amountInr": 24
+      "amountInr": 279
     }
   ],
   "dailySpend": [
@@ -60,7 +60,7 @@
     },
     {
       "date": "2026-04-07",
-      "amountInr": 304
+      "amountInr": 559
     }
   ],
   "alerts": [
