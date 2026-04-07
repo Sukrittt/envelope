@@ -2826,8 +2826,14 @@ summary:focus-visible,
 }
 
 .insights-table-scroll {
-  display: block;
-  overflow-x: auto;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.insights-table-scroll th,
+.insights-table-scroll td {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .insight-chip-row {
