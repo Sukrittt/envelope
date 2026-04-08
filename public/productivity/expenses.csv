@@ -143,3 +143,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-07T15:25:00+05:30,2026-04-07,Milk,25,Food,,manual-chat
 2026-04-07T23:48:00+05:30,2026-04-07,Swish Food Order,208,Food,,manual-chat
 2026-04-08T11:50:00+05:30,2026-04-08,Rapido to work,127.77,Travel,,manual-chat
+2026-04-08T14:25:00+05:30,2026-04-08,Office party,316,Food,,manual-chat
