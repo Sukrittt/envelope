@@ -149,3 +149,5 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-09T13:41:00+05:30,2026-04-09,Groceries,139,Food,,manual-chat
 2026-04-09T14:23:00+05:30,2026-04-09,Milk,24,Food,,manual-chat
 2026-04-09T18:50:00+05:30,2026-04-09,Football,279,Football,,manual-chat
+2026-04-10T12:05:00+05:30,2026-04-10,Auto to work,133.14,Travel,,manual-chat
+2026-04-10T21:03:00+05:30,2026-04-10,Bike to home,97,Travel,,manual-chat

@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-04-09T13:21:26.334Z",
+    "generatedAt": "2026-04-10T21:40:39.651Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 34254.37,
-    "essentialSpendInr": 23945.37,
+    "monthSpendInr": 34484.51,
+    "essentialSpendInr": 24175.51,
     "discretionarySpendInr": 10309,
     "duesReceivableInr": 1537.46
   },
@@ -30,7 +30,7 @@
     },
     {
       "category": "Travel",
-      "amountInr": 562.77
+      "amountInr": 792.91
     },
     {
       "category": "Football",
@@ -69,6 +69,10 @@
     {
       "date": "2026-04-09",
       "amountInr": 442
+    },
+    {
+      "date": "2026-04-10",
+      "amountInr": 230.14
     }
   ],
   "alerts": [
