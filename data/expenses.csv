@@ -154,3 +154,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-11T14:46:00+05:30,2026-04-11,Groceries,347,Food,,manual-chat
 2026-04-11T14:46:20+05:30,2026-04-11,TV rent,1501.8,Bills,,manual-chat
 2026-04-11T15:36:00+05:30,2026-04-11,Milk,24,Food,,manual-chat
+2026-04-12T00:49:00+05:30,2026-04-12,Wifi 150gb,354,Bills,,manual-chat
