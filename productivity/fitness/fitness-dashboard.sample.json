@@ -1,14 +1,14 @@
 {
   "meta": {
     "version": "v1.1",
-    "generatedAt": "2026-04-11T08:55:13Z",
+    "generatedAt": "2026-04-11T08:55:43Z",
     "timezone": "Asia/Calcutta",
     "weekStart": "2026-03-09"
   },
   "athleteProfile": {
     "name": "Sukrit",
     "startWeightKg": 68.89,
-    "currentWeightKg": 62.55,
+    "currentWeightKg": 61.55,
     "targetWeightKg": 58
   },
   "targets": {
@@ -556,7 +556,7 @@
     },
     {
       "date": "2026-04-11",
-      "morningWeightKg": 62.55,
+      "morningWeightKg": 61.55,
       "caloriesKcal": null,
       "proteinG": null,
       "steps": null,
@@ -572,7 +572,7 @@
         "proteinMet": false,
         "stepsMet": false
       },
-      "notes": "check-in"
+      "notes": "corrected check-in"
     }
   ],
   "kpis": {
@@ -687,7 +687,7 @@
       },
       {
         "date": "2026-04-11",
-        "value": 62.55
+        "value": 61.55
       }
     ],
     "weightMovingAvg7d": [
@@ -753,7 +753,7 @@
       },
       {
         "date": "2026-04-11",
-        "value": 62.55
+        "value": 61.55
       }
     ],
     "proteinDaily21d": [
