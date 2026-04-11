@@ -3006,6 +3006,171 @@ summary:focus-visible,
   font-weight: var(--fw-semibold);
 }
 
+/* Category donut layout */
+.category-donut-layout {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+}
+
+.donut-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-12);
+}
+
+.donut-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.donut-legend-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donut-legend-value {
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.donut-legend-pct {
+  color: var(--expense-muted);
+  width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Category trends grid */
+.category-trends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--sp-3);
+}
+
+.category-trend-card {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-inset, #1e2028);
+  border-radius: var(--r-md);
+}
+
+.category-trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+}
+
+.category-trend-card .spark-bars {
+  min-height: 48px;
+}
+
+/* Top spending days horizontal bars */
+.top-days-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.top-day-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-12);
+}
+
+.top-day-label {
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.top-day-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--expense-border);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.top-day-bar-fill {
+  height: 100%;
+  background: #7aa2ff;
+  border-radius: var(--r-pill);
+  transition: width 0.3s ease;
+}
+
+.top-day-value {
+  width: 60px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-semibold);
+}
+
+/* Subscription burn gauge */
+.sub-burn-gauge-wrap {
+  margin-bottom: var(--sp-3);
+}
+
+.sub-burn-gauge-header {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-13);
+}
+
+.sub-burn-gauge-header strong {
+  font-size: var(--fs-16);
+}
+
+.sub-burn-gauge-track {
+  height: 14px;
+  background: var(--expense-border);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.sub-burn-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4fd1c5, #f6c453);
+  border-radius: var(--r-pill);
+  transition: width 0.3s ease;
+}
+
+.sub-burn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sub-burn-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-12);
+  padding: 4px 0;
+}
+
+.sub-burn-item span:first-child {
+  flex: 1;
+}
+
+.sub-burn-item .mc-chip {
+  font-size: var(--fs-11);
+}
+
 @media (max-width: 700px) {
   .insights-grid {
     grid-template-columns: 1fr;
@@ -3017,5 +3182,13 @@ summary:focus-visible,
 
   .patterns-grid {
     grid-template-columns: 1fr;
+  }
+
+  .category-donut-layout {
+    flex-direction: column;
+  }
+
+  .category-trends-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
