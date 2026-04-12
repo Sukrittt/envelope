@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom'
 const moduleTabs = [
   { label: 'Expense', path: '/expense' },
   { label: 'Fitness', path: '/fitness' },
-  { label: 'Betting', path: '/betting' },
   { label: 'Learnings', path: '/learnings' },
 ]
 
