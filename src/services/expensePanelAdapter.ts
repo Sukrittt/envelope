@@ -1,3 +1,11 @@
+export interface ExpenseRowDetail {
+  timestamp: string
+  date: string
+  item: string
+  amountInr: number
+  category: string
+}
+
 export interface ExpensePanelContract {
   meta: {
     generatedAt: string
@@ -13,6 +21,7 @@ export interface ExpensePanelContract {
   }
   topCategories: Array<{ category: string; amountInr: number }>
   dailySpend: Array<{ date: string; amountInr: number }>
+  expenseRows: ExpenseRowDetail[]
   alerts: string[]
   deepLinks: Array<{ label: string; url: string }>
   subscriptions?: Array<{
@@ -45,6 +54,7 @@ export interface ExpensePanelData {
   deepLinks: Array<{ label: string; url: string }>
   miniTrend: Array<{ date: string; value: number }>
   weeklyAnomalies: Array<{ label: string; totalInr: number; key: string }>
+  expenseRows: ExpenseRowDetail[]
   weeklyInsights: {
     wentWrong: string
     nextWeek: string
@@ -186,6 +196,7 @@ export function toExpensePanelData(input: ExpensePanelContract): ExpensePanelDat
     alerts: input.alerts,
     deepLinks: input.deepLinks,
     miniTrend: input.dailySpend.map((row) => ({ date: row.date, value: row.amountInr })),
+    expenseRows: input.expenseRows,
     weeklyAnomalies: toWeeklyAnomalies(input.dailySpend).slice(0, 8),
     weeklyInsights: buildWeeklyInsights(input, avgDailyLast7Inr, trendPct),
     subscriptions: {

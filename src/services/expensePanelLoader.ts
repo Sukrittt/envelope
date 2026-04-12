@@ -1,6 +1,7 @@
 import type { ExpensePanelContract } from './expensePanelAdapter'
 
 interface ExpenseRow {
+  timestamp: string
   date: string
   item: string
   amountInr: number
@@ -21,6 +22,7 @@ function parseExpenseCSV(text: string): ExpenseRow[] {
   const lines = text.trim().split('\n')
   if (lines.length < 2) return []
   const header = lines[0].split(',')
+  const iTimestamp = header.indexOf('timestamp')
   const iDate = header.indexOf('date')
   const iItem = header.indexOf('item')
   const iAmount = header.indexOf('amount_inr')
@@ -32,6 +34,7 @@ function parseExpenseCSV(text: string): ExpenseRow[] {
     const amountInr = Number(cols[iAmount])
     if (Number.isNaN(amountInr)) continue
     rows.push({
+      timestamp: cols[iTimestamp] ?? '',
       date: cols[iDate] ?? '',
       item: cols[iItem] ?? '',
       amountInr,
@@ -127,6 +130,13 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
     },
     topCategories,
     dailySpend,
+    expenseRows: expenses.map((e) => ({
+      timestamp: e.timestamp,
+      date: e.date,
+      item: e.item,
+      amountInr: e.amountInr,
+      category: e.category,
+    })),
     alerts,
     deepLinks: [
       { label: 'Open Expense Dashboard', url: '../../expense-dashboard/' },

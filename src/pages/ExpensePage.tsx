@@ -86,6 +86,7 @@ export function ExpensePage() {
     const stored = localStorage.getItem('expense-hide-amounts')
     return stored === 'true'
   })
+  const [dailyDetailDate, setDailyDetailDate] = useState<string | null>(null)
   const categoryMenuRef = useRef<HTMLDivElement | null>(null)
   const categoryTriggerRef = useRef<HTMLButtonElement | null>(null)
 
@@ -335,6 +336,30 @@ export function ExpensePage() {
       setDrillFilter(null)
     }
   }
+
+  function handleDailyBarClick(index: number) {
+    const entry = trendSeries[index]
+    if (!entry) return
+    setDailyDetailDate(entry.date)
+  }
+
+  const dailyDetailRows = useMemo(() => {
+    if (!dailyDetailDate || !panel) return []
+    return panel.expenseRows
+      .filter((row) => row.date === dailyDetailDate)
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+  }, [dailyDetailDate, panel])
+
+  const dailyDetailTotal = useMemo(() => dailyDetailRows.reduce((sum, row) => sum + row.amountInr, 0), [dailyDetailRows])
+
+  useEffect(() => {
+    if (!dailyDetailDate) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setDailyDetailDate(null)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [dailyDetailDate])
 
   const stalenessText = panel ? formatLastUpdated(panel.lastUpdated) : 'Loading…'
   const categoryScopeLabel = selectedCategories.length ? `${selectedCategories.length} selected` : 'All categories'
@@ -620,8 +645,55 @@ export function ExpensePage() {
             formatValue={(value) => hideAmounts ? '---' : formatCurrency(value)}
             capOutliers
             showReferenceLines
-            onBarClick={trendView !== 'daily' ? handleBarClick : undefined}
+            onBarClick={trendView === 'daily' ? handleDailyBarClick : handleBarClick}
           />
+          {dailyDetailDate && createPortal(
+            <div className="daily-detail-overlay" onClick={() => setDailyDetailDate(null)}>
+              <div className="daily-detail-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="daily-detail-header">
+                  <h4>{new Date(dailyDetailDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h4>
+                  <button type="button" className="daily-detail-close" onClick={() => setDailyDetailDate(null)} aria-label="Close">✕</button>
+                </div>
+                {dailyDetailRows.length === 0 ? (
+                  <p className="daily-detail-empty">No transactions recorded for this day.</p>
+                ) : (
+                  <>
+                    <table className="daily-detail-table">
+                      <thead>
+                        <tr>
+                          <th>Time</th>
+                          <th>Item</th>
+                          <th>Category</th>
+                          <th className="num">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dailyDetailRows.map((row, i) => {
+                          const time = row.timestamp ? new Date(row.timestamp) : null
+                          const timeStr = time && !Number.isNaN(time.getTime())
+                            ? time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                            : '—'
+                          return (
+                            <tr key={`${row.timestamp}-${i}`}>
+                              <td className="daily-detail-time">{timeStr}</td>
+                              <td>{row.item}</td>
+                              <td><span className="daily-detail-category">{row.category}</span></td>
+                              <td className={`num ${hideAmounts ? 'amount-hidden' : ''}`}>{hideAmounts ? '---' : formatCurrency(row.amountInr)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                    <div className="daily-detail-footer">
+                      <span>Total</span>
+                      <span className={`num ${hideAmounts ? 'amount-hidden' : ''}`}>{hideAmounts ? '---' : formatCurrency(dailyDetailTotal)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
         </article>
 
         <article className="mc-panel expense-weekly-panel">
