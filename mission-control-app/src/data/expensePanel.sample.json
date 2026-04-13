@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-04-13T08:55:36.152Z",
+    "generatedAt": "2026-04-13T09:43:42.621Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 37232.31,
-    "essentialSpendInr": 26923.31,
+    "monthSpendInr": 37409.31,
+    "essentialSpendInr": 27100.31,
     "discretionarySpendInr": 10309,
     "duesReceivableInr": 1537.46
   },
@@ -22,7 +22,7 @@
     },
     {
       "category": "Food",
-      "amountInr": 3279.6
+      "amountInr": 3456.6
     },
     {
       "category": "Shopping",
@@ -84,7 +84,7 @@
     },
     {
       "date": "2026-04-13",
-      "amountInr": 217
+      "amountInr": 394
     }
   ],
   "alerts": [
