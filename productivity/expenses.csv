@@ -171,3 +171,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-16T19:52:00+05:30,2026-04-16,Bike to haircut correction,-1.64,Travel,Amount corrected from 37 to 35.36,manual-chat
 2026-04-16T19:53:00+05:30,2026-04-16,Bike to haircut correction reversal,1.64,Travel,Reversal: user confirmed this was a separate transaction,manual-chat
 2026-04-16T19:53:10+05:30,2026-04-16,Bike to haircut,35.36,Travel,,manual-chat
+2026-04-16T20:45:00+05:30,2026-04-16,Haircut,200,Personal care,,manual-chat
