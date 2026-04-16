@@ -166,3 +166,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-15T00:15:00+05:30,2026-04-15,Swish dinner,187,Food,,manual-chat
 2026-04-15T11:17:00+05:30,2026-04-15,Bike to office,144,Travel,,manual-chat
 2026-04-15T19:51:00+05:30,2026-04-15,Bike to home,100,Travel,,manual-chat
+2026-04-16T12:50:00+05:30,2026-04-16,Groceries and household items,990,Shopping,,manual-chat
+2026-04-16T18:32:00+05:30,2026-04-16,Bike to haircut,37,Travel,,manual-chat
