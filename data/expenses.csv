@@ -179,3 +179,9 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-18T17:23:00+05:30,2026-04-18,Swish lunch,334,Food,,manual-chat
 2026-04-18T23:22:00+05:30,2026-04-18,Zomato Pancakes,257.43,Food,,manual-chat
 2026-04-18T23:22:10+05:30,2026-04-18,Swiggy Dominos Pizza,399,Food,,manual-chat
+2026-04-19T16:36:00+05:30,2026-04-19,Bike to turf,131,Travel,,manual-chat
+2026-04-19T20:53:00+05:30,2026-04-19,Bike to home,152,Travel,,manual-chat
+2026-04-19T21:36:00+05:30,2026-04-19,Swish dinner,458,Food,,manual-chat
+2026-04-20T10:59:00+05:30,2026-04-20,Bike to work,146,Travel,,manual-chat
+2026-04-20T18:45:00+05:30,2026-04-20,Hair oil,550,Personal care,,manual-chat
+2026-04-20T19:14:00+05:30,2026-04-20,Bike to home,106,Travel,,manual-chat
