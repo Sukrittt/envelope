@@ -185,3 +185,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-20T10:59:00+05:30,2026-04-20,Bike to work,146,Travel,,manual-chat
 2026-04-20T18:45:00+05:30,2026-04-20,Hair oil,550,Personal care,,manual-chat
 2026-04-20T19:14:00+05:30,2026-04-20,Bike to home,106,Travel,,manual-chat
+2026-04-20T19:14:30+05:30,2026-04-20,Milk,24,Food,,manual-chat
