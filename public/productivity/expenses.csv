@@ -189,3 +189,6 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-21T18:17:00+05:30,2026-04-21,Swish lunch,219,Food,,manual-chat
 2026-04-21T21:13:00+05:30,2026-04-21,Groceries,207.45,Food,,manual-chat
 2026-04-22T10:39:00+05:30,2026-04-22,Football,279,Football,,manual-chat
+2026-04-22T11:25:00+05:30,2026-04-22,Bike to work,137,Travel,,manual-chat
+2026-04-22T18:29:00+05:30,2026-04-22,Bike to home,103.53,Travel,,manual-chat
+2026-04-22T20:35:00+05:30,2026-04-22,Bike to turf,159,Travel,,manual-chat
