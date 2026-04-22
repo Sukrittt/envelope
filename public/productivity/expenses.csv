@@ -192,3 +192,5 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-22T11:25:00+05:30,2026-04-22,Bike to work,137,Travel,,manual-chat
 2026-04-22T18:29:00+05:30,2026-04-22,Bike to home,103.53,Travel,,manual-chat
 2026-04-22T20:35:00+05:30,2026-04-22,Bike to turf,159,Travel,,manual-chat
+2026-04-22T20:36:00+05:30,2026-04-22,Bike to turf,162,Travel,,manual-chat
+2026-04-22T23:06:00+05:30,2026-04-22,Bike to home,138.56,Travel,,manual-chat
