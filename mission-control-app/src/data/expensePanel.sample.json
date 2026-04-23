@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-04-22T17:39:11.444Z",
+    "generatedAt": "2026-04-23T15:00:22.712Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 44731.64,
-    "essentialSpendInr": 32045.64,
+    "monthSpendInr": 45112.64,
+    "essentialSpendInr": 32426.64,
     "discretionarySpendInr": 12686,
     "duesReceivableInr": 1537.46
   },
@@ -22,15 +22,15 @@
     },
     {
       "category": "Food",
-      "amountInr": 6850.48
+      "amountInr": 7020.48
+    },
+    {
+      "category": "Travel",
+      "amountInr": 2834.36
     },
     {
       "category": "Shopping",
       "amountInr": 2804
-    },
-    {
-      "category": "Travel",
-      "amountInr": 2623.36
     },
     {
       "category": "Football",
@@ -125,10 +125,14 @@
     {
       "date": "2026-04-22",
       "amountInr": 979.09
+    },
+    {
+      "date": "2026-04-23",
+      "amountInr": 381
     }
   ],
   "alerts": [
-    "Spend cap nearing; keep discretionary spends below daily soft cap."
+    "Spend cap breached; pause discretionary purchases and recover dues."
   ],
   "deepLinks": [
     {

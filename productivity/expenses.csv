@@ -194,3 +194,6 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-22T20:35:00+05:30,2026-04-22,Bike to turf,159,Travel,,manual-chat
 2026-04-22T20:36:00+05:30,2026-04-22,Bike to turf,162,Travel,,manual-chat
 2026-04-22T23:06:00+05:30,2026-04-22,Bike to home,138.56,Travel,,manual-chat
+2026-04-23T13:18:00+05:30,2026-04-23,Auto to passport office,130,Travel,,manual-chat
+2026-04-23T13:34:00+05:30,2026-04-23,Paneer fried rice,170,Food,,manual-chat
+2026-04-23T20:29:00+05:30,2026-04-23,Bike to home,81,Travel,,manual-chat
