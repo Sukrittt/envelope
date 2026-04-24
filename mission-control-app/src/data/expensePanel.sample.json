@@ -1,20 +1,20 @@
 {
   "meta": {
-    "generatedAt": "2026-04-24T09:38:43.331Z",
+    "generatedAt": "2026-04-24T15:42:23.932Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 45718.64,
-    "essentialSpendInr": 33032.64,
+    "monthSpendInr": 45895.64,
+    "essentialSpendInr": 33209.64,
     "discretionarySpendInr": 12686,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
       "category": "Bills",
-      "amountInr": 22571.8
+      "amountInr": 22748.8
     },
     {
       "category": "Betting",
@@ -132,7 +132,7 @@
     },
     {
       "date": "2026-04-24",
-      "amountInr": 54
+      "amountInr": 231
     }
   ],
   "alerts": [
