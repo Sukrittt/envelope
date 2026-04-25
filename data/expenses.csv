@@ -202,3 +202,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-24T21:11:00+05:30,2026-04-24,Wifi 50gb,177,Bills,,manual-chat
 2026-04-24T21:36:00+05:30,2026-04-24,Brik oven pizza,690.54,Food,,manual-chat
 2026-04-24T22:55:00+05:30,2026-04-24,Swish dessert,2394,Food,,manual-chat
+2026-04-25T17:50:00+05:30,2026-04-24,Swish dessert correction,-2154.6,Food,Corrected amount from 2394 to 239.4,manual-chat
