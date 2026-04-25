@@ -249,7 +249,9 @@ export function ExpensePage() {
   }, [filteredTrend])
 
   const trendSeries = useMemo(() => {
-    let source = filteredTrend.map((row) => ({ ...row, value: row.value * categoryScopeRatio }))
+    const useFullHistory = trendView === 'monthly' || (drillFilter?.parentView === 'monthly')
+    const baseRows = useFullHistory && panel ? panel.miniTrend : filteredTrend
+    let source = baseRows.map((row) => ({ ...row, value: row.value * categoryScopeRatio }))
 
     if (drillFilter) {
       source = source.filter((row) => row.date >= drillFilter.start && row.date <= drillFilter.end)
@@ -288,10 +290,11 @@ export function ExpensePage() {
       date,
       value,
     }))
-  }, [categoryScopeRatio, drillFilter, filteredTrend, trendView])
+  }, [categoryScopeRatio, drillFilter, filteredTrend, trendView, panel])
 
   const trendKeys = useMemo(() => {
-    let source = filteredTrend
+    const useFullHistory = trendView === 'monthly' || (drillFilter?.parentView === 'monthly')
+    let source = useFullHistory && panel ? panel.miniTrend : filteredTrend
     if (drillFilter) {
       source = source.filter((row) => row.date >= drillFilter.start && row.date <= drillFilter.end)
     }
@@ -312,7 +315,7 @@ export function ExpensePage() {
       if (!seen.has(k)) { seen.add(k); keys.push(k) }
     })
     return keys
-  }, [drillFilter, filteredTrend, trendView])
+  }, [drillFilter, filteredTrend, trendView, panel])
 
   function handleBarClick(index: number) {
     if (trendView === 'monthly') {
