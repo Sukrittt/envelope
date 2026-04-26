@@ -207,3 +207,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-26T00:34:00+05:30,2026-04-26,Swish midnight snack,354,Food,,manual-chat
 2026-04-26T13:14:00+05:30,2026-04-26,Football,279,Football,,manual-chat
 2026-04-26T13:14:30+05:30,2026-04-26,Football,255,Football,,manual-chat
+2026-04-26T17:36:00+05:30,2026-04-26,Bike to turf,127,Travel,,manual-chat
+2026-04-26T21:53:00+05:30,2026-04-26,Bike to home,127,Travel,,manual-chat
