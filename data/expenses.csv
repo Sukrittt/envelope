@@ -205,3 +205,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-04-25T17:50:00+05:30,2026-04-24,Swish dessert correction,-2154.6,Food,Corrected amount from 2394 to 239.4,manual-chat
 2026-04-25T18:04:00+05:30,2026-04-25,Milk,48,Food,,manual-chat
 2026-04-26T00:34:00+05:30,2026-04-26,Swish midnight snack,354,Food,,manual-chat
+2026-04-26T13:14:00+05:30,2026-04-26,Football,279,Football,,manual-chat
