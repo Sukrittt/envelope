@@ -210,3 +210,5 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-04-26T17:36:00+05:30,2026-04-26,Bike to turf,127,Travel,,manual-chat
 2026-04-26T21:53:00+05:30,2026-04-26,Bike to home,127,Travel,,manual-chat
 2026-04-26T22:28:00+05:30,2026-04-26,Meghana's biriyani,412.33,Food,,manual-chat
+2026-04-27T17:29:00+05:30,2026-04-27,Wifi 30gb,118,Bills,,manual-chat
+2026-04-27T19:56:00+05:30,2026-04-27,Groceries + snacks,494.4,Food,,manual-chat
