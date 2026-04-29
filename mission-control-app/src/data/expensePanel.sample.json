@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-04-28T17:23:49.189Z",
+    "generatedAt": "2026-04-29T15:45:21.626Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 49182.31,
-    "essentialSpendInr": 35962.31,
+    "monthSpendInr": 49752.53,
+    "essentialSpendInr": 36532.53,
     "discretionarySpendInr": 13220,
     "duesReceivableInr": 1537.46
   },
@@ -18,7 +18,7 @@
     },
     {
       "category": "Food",
-      "amountInr": 9835.15
+      "amountInr": 10197.15
     },
     {
       "category": "Betting",
@@ -26,7 +26,7 @@
     },
     {
       "category": "Travel",
-      "amountInr": 3142.36
+      "amountInr": 3251.58
     },
     {
       "category": "Shopping",
@@ -39,6 +39,10 @@
     {
       "category": "Personal care",
       "amountInr": 750
+    },
+    {
+      "category": "Subscription",
+      "amountInr": 99
     }
   ],
   "dailySpend": [
@@ -149,6 +153,10 @@
     {
       "date": "2026-04-28",
       "amountInr": 142
+    },
+    {
+      "date": "2026-04-29",
+      "amountInr": 570.22
     }
   ],
   "alerts": [
