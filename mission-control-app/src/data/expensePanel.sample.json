@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-04-29T15:45:21.626Z",
+    "generatedAt": "2026-04-30T10:09:37.212Z",
     "month": "2026-04",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 49752.53,
-    "essentialSpendInr": 36532.53,
+    "monthSpendInr": 50345.53,
+    "essentialSpendInr": 37125.53,
     "discretionarySpendInr": 13220,
     "duesReceivableInr": 1537.46
   },
@@ -18,7 +18,7 @@
     },
     {
       "category": "Food",
-      "amountInr": 10197.15
+      "amountInr": 10790.15
     },
     {
       "category": "Betting",
@@ -157,6 +157,10 @@
     {
       "date": "2026-04-29",
       "amountInr": 570.22
+    },
+    {
+      "date": "2026-04-30",
+      "amountInr": 593
     }
   ],
   "alerts": [
