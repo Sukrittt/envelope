@@ -225,3 +225,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-02T14:52:10+05:30,2026-05-02,Travel to home,120,Travel,,manual-chat
 2026-05-02T14:52:20+05:30,2026-05-02,Travel to home,181,Travel,,manual-chat
 2026-05-02T17:57:00+05:30,2026-05-02,Dinner prep,145,Food,,manual-chat
+2026-05-02T18:22:00+05:30,2026-05-02,Dinner prep,145,Food,,manual-chat
