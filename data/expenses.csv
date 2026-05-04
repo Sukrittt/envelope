@@ -232,3 +232,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-03T16:38:10+05:30,2026-05-03,Airport travel,75,Travel,,manual-chat
 2026-05-03T18:15:00+05:30,2026-05-03,Travel to home,59,Travel,,manual-chat
 2026-05-04T17:11:00+05:30,2026-05-04,Travel to passport office,84,Travel,,manual-chat
+2026-05-04T17:36:00+05:30,2026-05-04,Travel to home,290,Travel,,manual-chat
+2026-05-04T18:37:00+05:30,2026-05-04,Haircut,200,Personal care,,manual-chat
