@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-05-04T13:23:29.128Z",
+    "generatedAt": "2026-05-05T05:12:36.833Z",
     "month": "2026-05",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 1738,
-    "essentialSpendInr": 1538,
+    "monthSpendInr": 1937,
+    "essentialSpendInr": 1737,
     "discretionarySpendInr": 200,
     "duesReceivableInr": 1537.46
   },
@@ -23,6 +23,10 @@
     {
       "category": "Personal care",
       "amountInr": 200
+    },
+    {
+      "category": "Subscription",
+      "amountInr": 199
     }
   ],
   "dailySpend": [
@@ -37,6 +41,10 @@
     {
       "date": "2026-05-04",
       "amountInr": 574
+    },
+    {
+      "date": "2026-05-05",
+      "amountInr": 199
     }
   ],
   "alerts": [
