@@ -235,3 +235,10 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-05-04T17:36:00+05:30,2026-05-04,Travel to home,290,Travel,,manual-chat
 2026-05-04T18:37:00+05:30,2026-05-04,Haircut,200,Personal care,,manual-chat
 2026-05-05T10:39:00+05:30,2026-05-05,Netflix subscription,199,Subscription,,manual-chat
+2026-05-05T12:49:00+05:30,2026-05-05,Groceries,690,Food,,manual-chat
+2026-05-05T15:17:00+05:30,2026-05-05,Football,279,Football,,manual-chat
+2026-05-05T15:19:00+05:30,2026-05-05,Rent,21094,Bills,,manual-chat
+2026-05-06T14:15:00+05:30,2026-05-06,Bike to work,151,Travel,,manual-chat
+2026-05-06T14:15:10+05:30,2026-05-06,Metro,50,Travel,,manual-chat
+2026-05-06T20:14:00+05:30,2026-05-06,Metro,30,Travel,,manual-chat
+2026-05-06T20:50:00+05:30,2026-05-06,Bike to football,72,Travel,,manual-chat

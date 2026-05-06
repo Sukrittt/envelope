@@ -1,24 +1,32 @@
 {
   "meta": {
-    "generatedAt": "2026-05-05T05:12:36.833Z",
+    "generatedAt": "2026-05-06T15:32:24.667Z",
     "month": "2026-05",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 1937,
-    "essentialSpendInr": 1737,
-    "discretionarySpendInr": 200,
+    "monthSpendInr": 24303,
+    "essentialSpendInr": 23824,
+    "discretionarySpendInr": 479,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
+      "category": "Bills",
+      "amountInr": 21094
+    },
+    {
       "category": "Travel",
-      "amountInr": 1198
+      "amountInr": 1501
     },
     {
       "category": "Food",
-      "amountInr": 340
+      "amountInr": 1030
+    },
+    {
+      "category": "Football",
+      "amountInr": 279
     },
     {
       "category": "Personal care",
@@ -44,7 +52,11 @@
     },
     {
       "date": "2026-05-05",
-      "amountInr": 199
+      "amountInr": 22262
+    },
+    {
+      "date": "2026-05-06",
+      "amountInr": 303
     }
   ],
   "alerts": [
