@@ -244,3 +244,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-06T20:50:00+05:30,2026-05-06,Bike to football,72,Travel,,manual-chat
 2026-05-06T22:52:00+05:30,2026-05-06,Bike to home,172,Travel,,manual-chat
 2026-05-06T23:29:00+05:30,2026-05-06,Perfora teeth whitening strips,933,Personal care,,manual-chat
+2026-05-08T12:43:00+05:30,2026-05-08,Groceries,443,Food,,manual-chat
+2026-05-08T13:28:00+05:30,2026-05-08,Milk,25,Food,,manual-chat
