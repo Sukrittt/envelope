@@ -247,3 +247,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-05-08T12:43:00+05:30,2026-05-08,Groceries,443,Food,,manual-chat
 2026-05-08T13:28:00+05:30,2026-05-08,Milk,25,Food,,manual-chat
 2026-05-09T10:51:00+05:30,2026-05-09,Lip balm,458.24,Personal care,,manual-chat
+2026-05-10T01:20:00+05:30,2026-05-10,Football,269,Football,,manual-chat
