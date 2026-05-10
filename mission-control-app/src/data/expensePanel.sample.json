@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-05-09T19:50:51.600Z",
+    "generatedAt": "2026-05-10T10:28:01.222Z",
     "month": "2026-05",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 26603.24,
-    "essentialSpendInr": 24464,
+    "monthSpendInr": 26659.24,
+    "essentialSpendInr": 24520,
     "discretionarySpendInr": 2139.24,
     "duesReceivableInr": 1537.46
   },
@@ -18,7 +18,7 @@
     },
     {
       "category": "Travel",
-      "amountInr": 1673
+      "amountInr": 1729
     },
     {
       "category": "Personal care",
@@ -68,7 +68,7 @@
     },
     {
       "date": "2026-05-10",
-      "amountInr": 269
+      "amountInr": 325
     }
   ],
   "alerts": [
