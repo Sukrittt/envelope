@@ -249,3 +249,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-09T10:51:00+05:30,2026-05-09,Lip balm,458.24,Personal care,,manual-chat
 2026-05-10T01:20:00+05:30,2026-05-10,Football,269,Football,,manual-chat
 2026-05-10T15:53:00+05:30,2026-05-10,Bike to police station for passport,56,Travel,,manual-chat
+2026-05-10T16:31:00+05:30,2026-05-10,Bike to home,41,Travel,,manual-chat
