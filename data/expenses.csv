@@ -250,3 +250,11 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-10T01:20:00+05:30,2026-05-10,Football,269,Football,,manual-chat
 2026-05-10T15:53:00+05:30,2026-05-10,Bike to police station for passport,56,Travel,,manual-chat
 2026-05-10T16:31:00+05:30,2026-05-10,Bike to home,41,Travel,,manual-chat
+2026-05-10T18:42:00+05:30,2026-05-10,Bike to turf,135,Travel,,manual-chat
+2026-05-10T21:02:00+05:30,2026-05-10,Turf to home,159,Travel,,manual-chat
+2026-05-10T22:06:00+05:30,2026-05-10,TV rent,1510.08,Bills,,manual-chat
+2026-05-11T00:33:00+05:30,2026-05-11,El classico fancode,35,Subscription,,manual-chat
+2026-05-11T13:59:00+05:30,2026-05-11,Groceries,194,Food,,manual-chat
+2026-05-11T14:42:00+05:30,2026-05-11,Ghee,170,Food,,manual-chat
+2026-05-11T17:04:00+05:30,2026-05-11,Milk,25,Food,,manual-chat
+2026-05-11T17:06:00+05:30,2026-05-11,Football Jersey,1299,Shopping,Paid via SuperMoney credit card,manual-chat
