@@ -258,3 +258,7 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-11T14:42:00+05:30,2026-05-11,Ghee,170,Food,,manual-chat
 2026-05-11T17:04:00+05:30,2026-05-11,Milk,25,Food,,manual-chat
 2026-05-11T17:06:00+05:30,2026-05-11,Football Jersey,1299,Shopping,Paid via SuperMoney credit card,manual-chat
+2026-05-13T11:29:00+05:30,2026-05-13,Football,279,Football,,manual-chat
+2026-05-13T22:57:00+05:30,2026-05-13,Bike travel,148.36,Travel,,manual-chat
+2026-05-13T22:57:10+05:30,2026-05-13,Bike travel,146,Travel,,manual-chat
+2026-05-14T01:58:00+05:30,2026-05-14,Wifi 100 gb,295,Bills,,manual-chat
