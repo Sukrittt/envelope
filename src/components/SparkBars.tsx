@@ -136,7 +136,7 @@ export function SparkBars({
               onClick={() => onBarClick?.(index)}
             >
               <div className="spark-bar-track">
-                <div className={`spark-bar ${isZero ? 'spark-bar-zero' : ''}`} style={{ height: `${isZero ? 2 : height}%` }} />
+                <div className={`spark-bar ${isZero ? 'spark-bar-zero' : ''}`} style={{ height: isZero ? '2px' : `${height}%` }} />
               </div>
               <span>{index % labelEvery === 0 || index === data.length - 1 ? getLabel(row.date) : ''}</span>
 
