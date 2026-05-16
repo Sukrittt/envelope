@@ -262,3 +262,10 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-13T22:57:00+05:30,2026-05-13,Bike travel,148.36,Travel,,manual-chat
 2026-05-13T22:57:10+05:30,2026-05-13,Bike travel,146,Travel,,manual-chat
 2026-05-14T01:58:00+05:30,2026-05-14,Wifi 100 gb,295,Bills,,manual-chat
+2026-05-14T13:51:00+05:30,2026-05-14,Groceries,1041,Food,,manual-chat
+2026-05-14T15:09:00+05:30,2026-05-14,Milk,25,Food,,manual-chat
+2026-05-15T14:21:00+05:30,2026-05-15,Iron,30,Shopping,,manual-chat
+2026-05-15T21:34:00+05:30,2026-05-15,Date night,587,Food,,manual-chat
+2026-05-15T22:41:00+05:30,2026-05-15,Dessert,516,Food,,manual-chat
+2026-05-16T15:09:00+05:30,2026-05-16,Football,255,Football,,manual-chat
+2026-05-16T16:45:00+05:30,2026-05-16,Cake ingredients,304,Food,,manual-chat
