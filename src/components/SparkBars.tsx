@@ -126,6 +126,8 @@ export function SparkBars({
           const isCurrent = index === data.length - 1
           const isHovered = hoveredIndex === index
 
+          const isZero = row.value === 0
+
           return (
             <div
               key={`${row.date}-${index}`}
@@ -134,7 +136,7 @@ export function SparkBars({
               onClick={() => onBarClick?.(index)}
             >
               <div className="spark-bar-track">
-                <div className="spark-bar" style={{ height: `${height}%` }} />
+                <div className={`spark-bar ${isZero ? 'spark-bar-zero' : ''}`} style={{ height: `${isZero ? 2 : height}%` }} />
               </div>
               <span>{index % labelEvery === 0 || index === data.length - 1 ? getLabel(row.date) : ''}</span>
 

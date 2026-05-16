@@ -1306,6 +1306,12 @@ input[type='date']:hover {
   min-height: 14px;
 }
 
+.spark-bar-zero {
+  background: #ef4444;
+  border-color: #ef4444;
+  border-radius: 2px;
+}
+
 .spark-cap-marker,
 .spark-floor-marker {
   font-size: 10px;
