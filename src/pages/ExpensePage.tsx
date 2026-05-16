@@ -267,7 +267,21 @@ export function ExpensePage() {
         const weekStart = startOfWeek.toISOString().slice(0, 10)
         source = source.filter((row) => row.date >= weekStart && row.date <= today)
       }
-      return source.map((row) => ({ date: row.date, value: row.value }))
+
+      const byDate = new Map(source.map((row) => [row.date, row.value]))
+      const startIso = drillFilter ? drillFilter.start : source[0]?.date
+      const endIso = drillFilter ? drillFilter.end : source[source.length - 1]?.date
+      if (!startIso || !endIso) return source.map((row) => ({ date: row.date, value: row.value }))
+
+      const out: { date: string; value: number }[] = []
+      const cursor = new Date(startIso)
+      const end = new Date(endIso)
+      while (cursor <= end) {
+        const key = cursor.toISOString().slice(0, 10)
+        out.push({ date: key, value: byDate.get(key) ?? 0 })
+        cursor.setDate(cursor.getDate() + 1)
+      }
+      return out
     }
 
     if (trendView === 'weekly') {
