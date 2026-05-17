@@ -271,3 +271,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-05-16T16:45:00+05:30,2026-05-16,Cake ingredients,304,Food,,manual-chat
 2026-05-16T17:15:00+05:30,2026-05-16,Milk and curd,60,Food,,manual-chat
 2026-05-17T11:24:00+05:30,2026-05-17,Football,279,Football,,manual-chat
+2026-05-17T17:34:00+05:30,2026-05-17,Bike to football,128,Travel,,manual-chat
