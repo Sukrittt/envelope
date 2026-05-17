@@ -273,3 +273,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-17T11:24:00+05:30,2026-05-17,Football,279,Football,,manual-chat
 2026-05-17T17:34:00+05:30,2026-05-17,Bike to football,128,Travel,,manual-chat
 2026-05-17T17:53:00+05:30,2026-05-17,Movie date,466.44,Entertainment,,manual-chat
+2026-05-17T21:14:00+05:30,2026-05-17,Bike to home,149,Travel,,manual-chat
