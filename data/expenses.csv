@@ -279,3 +279,7 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-18T18:53:00+05:30,2026-05-18,Auto to home,357,Travel,,manual-chat
 2026-05-18T18:54:00+05:30,2026-05-18,Milk,25,Food,,manual-chat
 2026-05-19T11:57:00+05:30,2026-05-19,Groceries,137,Food,,manual-chat
+2026-05-19T21:59:00+05:30,2026-05-19,Football,279,Football,,manual-chat
+2026-05-19T22:20:00+05:30,2026-05-19,Bike to mall,218,Travel,,manual-chat
+2026-05-20T03:15:00+05:30,2026-05-20,Cab to home,239,Travel,,manual-chat
+2026-05-20T17:00:00+05:30,2026-05-20,Dominos,874,Food,,manual-chat
