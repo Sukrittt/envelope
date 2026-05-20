@@ -283,3 +283,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-19T22:20:00+05:30,2026-05-19,Bike to mall,218,Travel,,manual-chat
 2026-05-20T03:15:00+05:30,2026-05-20,Cab to home,239,Travel,,manual-chat
 2026-05-20T17:00:00+05:30,2026-05-20,Dominos,874,Food,,manual-chat
+2026-05-20T18:26:00+05:30,2026-05-20,Waffle,238.03,Food,,manual-chat
+2026-05-20T20:43:00+05:30,2026-05-20,Swish dinner,364,Food,,manual-chat
