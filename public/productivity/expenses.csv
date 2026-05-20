@@ -274,3 +274,8 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-05-17T17:34:00+05:30,2026-05-17,Bike to football,128,Travel,,manual-chat
 2026-05-17T17:53:00+05:30,2026-05-17,Movie date,466.44,Entertainment,,manual-chat
 2026-05-17T21:14:00+05:30,2026-05-17,Bike to home,149,Travel,,manual-chat
+2026-05-18T10:49:00+05:30,2026-05-18,Metro card recharge,500,Travel,,manual-chat
+2026-05-18T11:26:00+05:30,2026-05-18,Bike to work,158,Travel,,manual-chat
+2026-05-18T18:53:00+05:30,2026-05-18,Auto to home,357,Travel,,manual-chat
+2026-05-18T18:54:00+05:30,2026-05-18,Milk,25,Food,,manual-chat
+2026-05-19T11:57:00+05:30,2026-05-19,Groceries,137,Food,,manual-chat
