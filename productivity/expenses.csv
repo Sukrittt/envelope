@@ -285,3 +285,15 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-05-20T17:00:00+05:30,2026-05-20,Dominos,874,Food,,manual-chat
 2026-05-20T18:26:00+05:30,2026-05-20,Waffle,238.03,Food,,manual-chat
 2026-05-20T20:43:00+05:30,2026-05-20,Swish dinner,364,Food,,manual-chat
+2026-05-21T16:12:00+05:30,2026-05-21,Wifi 75gb,236,Bills,,manual-chat
+2026-05-21T19:24:00+05:30,2026-05-21,Swish dinner,427,Food,,manual-chat
+2026-05-22T11:57:00+05:30,2026-05-22,Bike to work,108,Travel,,manual-chat
+2026-05-22T21:08:00+05:30,2026-05-22,Bike to home,128,Travel,,manual-chat
+2026-05-22T23:06:00+05:30,2026-05-22,Dominos,896.38,Food,,manual-chat
+2026-05-22T23:06:10+05:30,2026-05-22,Waffle,227.53,Food,,manual-chat
+2026-05-23T13:36:00+05:30,2026-05-23,Football,255,Football,,manual-chat
+2026-05-23T15:38:00+05:30,2026-05-23,Milk and bread,85,Food,,manual-chat
+2026-05-23T22:15:00+05:30,2026-05-23,Late night snacks,307,Food,,manual-chat
+2026-05-24T17:42:00+05:30,2026-05-24,Lunch with Niladri,200,Food,,manual-chat
+2026-05-24T17:42:10+05:30,2026-05-24,Bike to turf,122,Travel,,manual-chat
+2026-05-24T20:51:00+05:30,2026-05-24,Bike to home,159,Travel,,manual-chat
