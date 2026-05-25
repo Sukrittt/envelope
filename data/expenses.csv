@@ -297,3 +297,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-05-24T17:42:00+05:30,2026-05-24,Lunch with Niladri,200,Food,,manual-chat
 2026-05-24T17:42:10+05:30,2026-05-24,Bike to turf,122,Travel,,manual-chat
 2026-05-24T20:51:00+05:30,2026-05-24,Bike to home,159,Travel,,manual-chat
+2026-05-25T18:22:00+05:30,2026-05-25,Swish snacks,448,Food,,manual-chat
+2026-05-25T20:09:00+05:30,2026-05-25,Groceries,298,Food,,manual-chat
