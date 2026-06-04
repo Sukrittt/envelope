@@ -333,3 +333,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-06-04T12:49:00+05:30,2026-06-04,Milk,30,Food,,manual-chat
 2026-06-04T19:21:00+05:30,2026-06-04,Supermoney credit card bill,1299,Bills,,manual-chat
 2026-06-04T19:24:00+05:30,2026-06-04,Rent,20819,Bills,,manual-chat
+2026-06-04T20:46:00+05:30,2026-06-04,Haircut,200,Personal care,,manual-chat
