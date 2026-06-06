@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-06-06T14:50:55.486Z",
+    "generatedAt": "2026-06-06T15:35:38.382Z",
     "month": "2026-06",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 27367.98,
-    "essentialSpendInr": 26354.98,
+    "monthSpendInr": 28002.98,
+    "essentialSpendInr": 26989.98,
     "discretionarySpendInr": 1013,
     "duesReceivableInr": 1537.46
   },
@@ -18,7 +18,7 @@
     },
     {
       "category": "Food",
-      "amountInr": 2231.98
+      "amountInr": 2866.98
     },
     {
       "category": "Travel",
@@ -60,7 +60,7 @@
     },
     {
       "date": "2026-06-06",
-      "amountInr": 683
+      "amountInr": 1318
     }
   ],
   "alerts": [
