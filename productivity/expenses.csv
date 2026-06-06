@@ -341,3 +341,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-06-06T17:12:00+05:30,2026-06-06,Bike to turf,137,Travel,,manual-chat
 2026-06-06T19:59:00+05:30,2026-06-06,Bike to home,142,Travel,,manual-chat
 2026-06-06T20:05:00+05:30,2026-06-06,Football,255,Football,,manual-chat
+2026-06-06T20:20:00+05:30,2026-06-06,Fancode monthly subscription,149,Subscription,,manual-chat
