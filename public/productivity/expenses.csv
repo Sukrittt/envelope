@@ -347,3 +347,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-06-07T12:43:00+05:30,2026-06-07,Football,279,Football,,manual-chat
 2026-06-07T18:04:00+05:30,2026-06-07,Bike to turf,135.15,Travel,,manual-chat
 2026-06-07T20:57:00+05:30,2026-06-07,Bike to home,150,Travel,,manual-chat
+2026-06-08T12:59:00+05:30,2026-06-08,Groceries,643,Food,,manual-chat
