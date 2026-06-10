@@ -356,3 +356,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-06-10T17:36:00+05:30,2026-06-10,Metro,50,Travel,,manual-chat
 2026-06-10T17:36:10+05:30,2026-06-10,Bike to home,102,Travel,,manual-chat
 2026-06-10T20:32:00+05:30,2026-06-10,Bike to turf,131,Travel,,manual-chat
+2026-06-10T22:53:00+05:30,2026-06-10,Bike to home,145,Travel,,manual-chat
