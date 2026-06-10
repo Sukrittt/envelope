@@ -350,3 +350,7 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-06-08T12:59:00+05:30,2026-06-08,Groceries,643,Food,,manual-chat
 2026-06-08T17:52:00+05:30,2026-06-08,Milk,30,Food,,manual-chat
 2026-06-09T14:03:00+05:30,2026-06-09,Milk,30,Food,,manual-chat
+2026-06-09T14:06:00+05:30,2026-06-09,Mangoes,38,Food,,manual-chat
+2026-06-10T11:49:00+05:30,2026-06-10,Bike to work,150,Travel,,manual-chat
+2026-06-10T11:49:10+05:30,2026-06-10,Metro,50,Travel,,manual-chat
+2026-06-10T17:36:00+05:30,2026-06-10,Metro,50,Travel,,manual-chat
