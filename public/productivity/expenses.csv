@@ -363,3 +363,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-06-11T21:13:00+05:30,2026-06-11,Bike to turf,130,Travel,,manual-chat
 2026-06-11T23:17:00+05:30,2026-06-11,Bike to home,165,Travel,,manual-chat
 2026-06-11T23:49:00+05:30,2026-06-11,Swish dinner,563,Food,,manual-chat
+2026-06-12T08:32:00+05:30,2026-06-12,Redbull,111,Food,,manual-chat
