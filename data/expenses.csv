@@ -386,3 +386,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-06-15T18:08:00+05:30,2026-06-15,Milk,30,Food,,manual-chat
 2026-06-15T18:33:00+05:30,2026-06-15,Wifi 100gb,295,Bills,,manual-chat
 2026-06-15T21:06:00+05:30,2026-06-15,Popeyes dinner,486,Food,,manual-chat
+2026-06-16T00:14:00+05:30,2026-06-16,Dessert,403.78,Food,,manual-chat
