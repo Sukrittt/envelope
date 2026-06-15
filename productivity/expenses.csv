@@ -379,3 +379,7 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-06-14T04:38:00+05:30,2026-06-14,Snacks,364,Food,,manual-chat
 2026-06-14T19:17:00+05:30,2026-06-14,Donut,129.81,Food,,manual-chat
 2026-06-14T19:18:00+05:30,2026-06-14,Swish,427,Food,,manual-chat
+2026-06-15T11:23:00+05:30,2026-06-15,Bike to work,168,Travel,,manual-chat
+2026-06-15T11:25:00+05:30,2026-06-15,Metro recharge,500,Travel,,manual-chat
+2026-06-15T11:26:00+05:30,2026-06-15,Metro,50,Travel,,manual-chat
+2026-06-15T18:07:00+05:30,2026-06-15,Bike to home,137.37,Travel,,manual-chat
