@@ -1,40 +1,40 @@
 {
   "meta": {
-    "generatedAt": "2026-06-15T18:44:33.291Z",
+    "generatedAt": "2026-06-24T12:42:05.568Z",
     "month": "2026-06",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 38403.09,
-    "essentialSpendInr": 35938.09,
-    "discretionarySpendInr": 2465,
+    "monthSpendInr": 46827.91,
+    "essentialSpendInr": 42875.91,
+    "discretionarySpendInr": 3952,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
       "category": "Bills",
-      "amountInr": 22413
+      "amountInr": 24358.82
     },
     {
       "category": "Food",
-      "amountInr": 7986.57
+      "amountInr": 12164.57
     },
     {
       "category": "Travel",
-      "amountInr": 4391.52
+      "amountInr": 5205.52
     },
     {
       "category": "Football",
-      "amountInr": 1616
+      "amountInr": 2453
+    },
+    {
+      "category": "Shopping",
+      "amountInr": 1299
     },
     {
       "category": "Subscription",
       "amountInr": 1147
-    },
-    {
-      "category": "Shopping",
-      "amountInr": 649
     },
     {
       "category": "Personal care",
@@ -105,10 +105,18 @@
     {
       "date": "2026-06-16",
       "amountInr": 403.78
+    },
+    {
+      "date": "2026-06-23",
+      "amountInr": 8399.82
+    },
+    {
+      "date": "2026-06-24",
+      "amountInr": 25
     }
   ],
   "alerts": [
-    "Spend cap nearing; keep discretionary spends below daily soft cap."
+    "Spend cap breached; pause discretionary purchases and recover dues."
   ],
   "deepLinks": [
     {

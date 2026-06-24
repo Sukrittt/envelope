@@ -387,3 +387,30 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-06-15T18:33:00+05:30,2026-06-15,Wifi 100gb,295,Bills,,manual-chat
 2026-06-15T21:06:00+05:30,2026-06-15,Popeyes dinner,486,Food,,manual-chat
 2026-06-16T00:14:00+05:30,2026-06-16,Dessert,403.78,Food,,manual-chat
+2026-06-23T09:25:00+05:30,2026-06-23,Swish,396,Food,,manual-chat
+2026-06-23T09:25:10+05:30,2026-06-23,Pg token amount,590,Bills,,manual-chat
+2026-06-23T09:25:20+05:30,2026-06-23,Groceries and dessert,574,Food,,manual-chat
+2026-06-23T09:25:30+05:30,2026-06-23,Swish,522,Food,,manual-chat
+2026-06-23T09:25:40+05:30,2026-06-23,Groceries,602,Food,,manual-chat
+2026-06-23T09:25:50+05:30,2026-06-23,Groceries,192,Food,,manual-chat
+2026-23T09:26:00+05:30,2026-06-23,Football,279,Football,,manual-chat
+2026-06-23T09:26:10+05:30,2026-06-23,Domain renewal,1060.82,Bills,,manual-chat
+2026-06-23T09:26:20+05:30,2026-06-23,Milk,50,Food,,manual-chat
+2026-06-23T09:26:30+05:30,2026-06-23,Bike to football,156,Travel,,manual-chat
+2026-06-23T09:26:40+05:30,2026-06-23,Drinks,457,Food,,manual-chat
+2026-06-23T09:26:50+05:30,2026-06-23,Bike to home,147,Travel,,manual-chat
+2026-06-23T09:27:00+05:30,2026-06-23,Cake ingredients,219,Food,,manual-chat
+2026-06-23T09:27:10+05:30,2026-06-23,Wifi 100 gb,295,Bills,,manual-chat
+2026-06-23T09:27:20+05:30,2026-06-23,Snacks,214,Food,,manual-chat
+2026-06-23T09:27:30+05:30,2026-06-23,Snacks,259,Food,,manual-chat
+2026-06-23T09:27:40+05:30,2026-06-23,Jersey remaining,650,Shopping,,manual-chat
+2026-06-23T09:27:50+05:30,2026-06-23,Football,279,Football,,manual-chat
+2026-06-23T09:28:00+05:30,2026-06-23,Bike to turf,156,Travel,,manual-chat
+2026-06-23T09:28:10+05:30,2026-06-23,Bike to home,149,Travel,,manual-chat
+2026-06-23T09:28:20+05:30,2026-06-23,Snacks,297,Food,,manual-chat
+2026-06-23T09:28:30+05:30,2026-06-23,Bike to work,103,Travel,,manual-chat
+2026-06-23T09:28:40+05:30,2026-06-23,Bike to home,103,Travel,,manual-chat
+2026-06-23T09:28:50+05:30,2026-06-23,Milk,30,Food,,manual-chat
+2026-06-23T09:29:00+05:30,2026-06-23,Football,279,Football,,manual-chat
+2026-06-23T18:17:00+05:30,2026-06-23,Groceries,341,Food,,manual-chat
+2026-06-24T17:15:00+05:30,2026-06-24,Milk,25,Food,,manual-chat
