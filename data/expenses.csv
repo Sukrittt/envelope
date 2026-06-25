@@ -415,3 +415,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-06-23T18:17:00+05:30,2026-06-23,Groceries,341,Food,,manual-chat
 2026-06-24T17:15:00+05:30,2026-06-24,Milk,25,Food,,manual-chat
 2026-06-24T23:53:00+05:30,2026-06-24,Almond Milk,239,Food,,manual-chat
+2026-06-25T18:52:00+05:30,2026-06-25,Haircut,200,Personal care,,manual-chat
+2026-06-26T01:11:00+05:30,2026-06-26,Swish dinner,563,Food,,manual-chat
