@@ -421,3 +421,9 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-06-26T17:48:00+05:30,2026-06-26,Bike to home,92,Travel,,manual-chat
 2026-06-26T18:18:00+05:30,2026-06-26,Groceries,238,Food,,manual-chat
 2026-06-26T20:20:00+05:30,2026-06-26,Wifi 50gb,177,Bills,,manual-chat
+2026-06-27T21:09:00+05:30,2026-06-27,Groceries,558,Food,,manual-chat
+2026-06-28T13:47:00+05:30,2026-06-28,Travel,250,Travel,,manual-chat
+2026-06-28T15:22:00+05:30,2026-06-28,Condom,99,Personal care,,manual-chat
+2026-06-28T15:22:10+05:30,2026-06-28,Dbc corner house,263,Food,,manual-chat
+2026-06-28T20:24:00+05:30,2026-06-28,Dinner,250,Food,,manual-chat
+2026-06-28T22:43:00+05:30,2026-06-28,Travel,148,Travel,,manual-chat
