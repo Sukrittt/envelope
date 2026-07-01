@@ -430,3 +430,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-06-30T03:26:00+05:30,2026-06-30,Cookies,313,Food,,manual-chat
 2026-06-30T03:32:00+05:30,2026-06-30,Credit card bill,3450,Bills,,manual-chat
 2026-06-30T03:34:00+05:30,2026-06-30,Amazon credit bill,2745.54,Bills,,manual-chat
+2026-07-01T07:21:00+05:30,2026-07-01,Snacks,341,Food,,manual-chat

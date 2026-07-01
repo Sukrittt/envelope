@@ -1,142 +1,30 @@
 {
   "meta": {
-    "generatedAt": "2026-06-29T22:04:50.887Z",
-    "month": "2026-06",
+    "generatedAt": "2026-07-01T01:51:27.772Z",
+    "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 56519.45,
-    "essentialSpendInr": 52268.45,
-    "discretionarySpendInr": 4251,
+    "monthSpendInr": 341,
+    "essentialSpendInr": 341,
+    "discretionarySpendInr": 0,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
-      "category": "Bills",
-      "amountInr": 30731.36
-    },
-    {
       "category": "Food",
-      "amountInr": 14588.57
-    },
-    {
-      "category": "Travel",
-      "amountInr": 5801.52
-    },
-    {
-      "category": "Football",
-      "amountInr": 2453
-    },
-    {
-      "category": "Shopping",
-      "amountInr": 1299
-    },
-    {
-      "category": "Subscription",
-      "amountInr": 1147
-    },
-    {
-      "category": "Personal care",
-      "amountInr": 499
+      "amountInr": 341
     }
   ],
   "dailySpend": [
     {
-      "date": "2026-06-01",
-      "amountInr": 1341.98
-    },
-    {
-      "date": "2026-06-02",
-      "amountInr": 1249
-    },
-    {
-      "date": "2026-06-03",
-      "amountInr": 734
-    },
-    {
-      "date": "2026-06-04",
-      "amountInr": 22532
-    },
-    {
-      "date": "2026-06-05",
-      "amountInr": 828
-    },
-    {
-      "date": "2026-06-06",
-      "amountInr": 1318
-    },
-    {
-      "date": "2026-06-07",
-      "amountInr": 812.15
-    },
-    {
-      "date": "2026-06-08",
-      "amountInr": 673
-    },
-    {
-      "date": "2026-06-09",
-      "amountInr": 68
-    },
-    {
-      "date": "2026-06-10",
-      "amountInr": 628
-    },
-    {
-      "date": "2026-06-11",
-      "amountInr": 2654
-    },
-    {
-      "date": "2026-06-12",
-      "amountInr": 1086
-    },
-    {
-      "date": "2026-06-13",
-      "amountInr": 1488
-    },
-    {
-      "date": "2026-06-14",
-      "amountInr": 920.81
-    },
-    {
-      "date": "2026-06-15",
-      "amountInr": 1666.37
-    },
-    {
-      "date": "2026-06-16",
-      "amountInr": 403.78
-    },
-    {
-      "date": "2026-06-23",
-      "amountInr": 8399.82
-    },
-    {
-      "date": "2026-06-24",
-      "amountInr": 264
-    },
-    {
-      "date": "2026-06-25",
-      "amountInr": 200
-    },
-    {
-      "date": "2026-06-26",
-      "amountInr": 1176
-    },
-    {
-      "date": "2026-06-27",
-      "amountInr": 558
-    },
-    {
-      "date": "2026-06-28",
-      "amountInr": 1010
-    },
-    {
-      "date": "2026-06-30",
-      "amountInr": 6508.54
+      "date": "2026-07-01",
+      "amountInr": 341
     }
   ],
   "alerts": [
-    "Spend cap breached; pause discretionary purchases and recover dues."
+    "Spend tracking stable; keep daily logging consistent."
   ],
   "deepLinks": [
     {
