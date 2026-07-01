@@ -1,17 +1,21 @@
 {
   "meta": {
-    "generatedAt": "2026-07-01T19:46:34.480Z",
+    "generatedAt": "2026-07-01T19:47:00.643Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 842,
+    "monthSpendInr": 8139,
     "essentialSpendInr": 842,
-    "discretionarySpendInr": 0,
+    "discretionarySpendInr": 7297,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
+    {
+      "category": "Shopping",
+      "amountInr": 7297
+    },
     {
       "category": "Food",
       "amountInr": 842
@@ -20,11 +24,15 @@
   "dailySpend": [
     {
       "date": "2026-07-01",
-      "amountInr": 842
+      "amountInr": 2646
+    },
+    {
+      "date": "2026-07-02",
+      "amountInr": 5493
     }
   ],
   "alerts": [
-    "Spend tracking stable; keep daily logging consistent."
+    "Discretionary share above 60%; trigger cooling rule for non-essential purchases this week."
   ],
   "deepLinks": [
     {
