@@ -436,3 +436,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-02T00:01:00+05:30,2026-07-02,Shoes,3899,Shopping,,manual-chat (credit card)
 2026-07-02T01:13:00+05:30,2026-07-02,Shoes,1594,Shopping,,manual-chat (credit card)
 2026-07-02T05:34:00+05:30,2026-07-02,Snacks,222,Food,,manual-chat
+2026-07-02T15:46:00+05:30,2026-07-02,Groceries,467,Food,,manual-chat
+2026-07-02T19:00:00+05:30,2026-07-02,Milk,30,Food,,manual-chat
