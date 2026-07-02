@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-07-01T19:47:00.643Z",
+    "generatedAt": "2026-07-02T00:04:23.609Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 8139,
-    "essentialSpendInr": 842,
+    "monthSpendInr": 8361,
+    "essentialSpendInr": 1064,
     "discretionarySpendInr": 7297,
     "duesReceivableInr": 1537.46
   },
@@ -18,7 +18,7 @@
     },
     {
       "category": "Food",
-      "amountInr": 842
+      "amountInr": 1064
     }
   ],
   "dailySpend": [
@@ -28,7 +28,7 @@
     },
     {
       "date": "2026-07-02",
-      "amountInr": 5493
+      "amountInr": 5715
     }
   ],
   "alerts": [
