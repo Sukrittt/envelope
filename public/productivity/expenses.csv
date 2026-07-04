@@ -439,3 +439,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-02T15:46:00+05:30,2026-07-02,Groceries,467,Food,,manual-chat
 2026-07-02T19:00:00+05:30,2026-07-02,Milk,30,Food,,manual-chat
 2026-07-03T08:40:00+05:30,2026-07-03,Wifi 15gb,59,Bills,,manual-chat
+2026-07-04T09:56:00+05:30,2026-07-04,Rent,20580,Bills,,manual-chat
