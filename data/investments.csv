@@ -6,3 +6,4 @@ timestamp,date,account,asset_type,amount_inr,notes,source
 2026-06-06T21:02:00+05:30,2026-06-06,Fixed Deposits,FD,-5000,withdrawal,,manual-chat
 2026-06-23T09:25:00+05:30,2026-06-23,Fixed Deposits,FD,-5000,withdrawal,,manual-chat
 2026-07-04T20:20:00+05:30,2026-07-04,Fixed Deposits,FD,-20000,withdrawal (new flat),,manual-chat
+2026-07-04T20:41:00+05:30,2026-07-04,Fixed Deposits,FD,-10000,withdrawal (total now 50k),,manual-chat
