@@ -1,20 +1,20 @@
 {
   "meta": {
-    "generatedAt": "2026-07-04T11:35:20.217Z",
+    "generatedAt": "2026-07-04T14:50:37.290Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 34893,
-    "essentialSpendInr": 22200,
+    "monthSpendInr": 62093,
+    "essentialSpendInr": 49400,
     "discretionarySpendInr": 12693,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
       "category": "Bills",
-      "amountInr": 20639
+      "amountInr": 47839
     },
     {
       "category": "Shopping",
@@ -44,11 +44,11 @@
     },
     {
       "date": "2026-07-04",
-      "amountInr": 25976
+      "amountInr": 53176
     }
   ],
   "alerts": [
-    "Spend tracking stable; keep daily logging consistent."
+    "Spend cap breached; pause discretionary purchases and recover dues."
   ],
   "deepLinks": [
     {
