@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-07-07T11:14:10.646Z",
+    "generatedAt": "2026-07-07T11:14:31.759Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 101230.14,
+    "monthSpendInr": 101609.14,
     "essentialSpendInr": 50942.14,
-    "discretionarySpendInr": 50288,
+    "discretionarySpendInr": 50667,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -18,7 +18,7 @@
     },
     {
       "category": "Shopping",
-      "amountInr": 46288
+      "amountInr": 46667
     },
     {
       "category": "Entertainment",
@@ -60,7 +60,7 @@
     },
     {
       "date": "2026-07-07",
-      "amountInr": 1581
+      "amountInr": 1960
     }
   ],
   "alerts": [
