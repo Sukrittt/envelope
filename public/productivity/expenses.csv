@@ -459,3 +459,7 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-07T16:37:00+05:30,2026-07-07,Flat items,1121,Shopping,,manual-chat
 2026-07-07T16:42:00+05:30,2026-07-07,Flat items,379,Shopping,,manual-chat
 2026-07-07T16:58:00+05:30,2026-07-07,Brush holder,311,Shopping,,manual-chat
+2026-07-07T20:04:00+05:30,2026-07-07,Bathroom mirror,304,Shopping,,manual-chat
+2026-07-08T11:08:00+05:30,2026-07-08,Jio recharge,49,Bills,,manual-chat
+2026-07-08T11:12:00+05:30,2026-07-08,Metro + bike to work,97,Travel,,manual-chat
+2026-07-08T11:17:00+05:30,2026-07-08,Induction,2064,Shopping,,manual-chat
