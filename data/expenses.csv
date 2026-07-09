@@ -463,3 +463,12 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-08T11:08:00+05:30,2026-07-08,Jio recharge,49,Bills,,manual-chat
 2026-07-08T11:12:00+05:30,2026-07-08,Metro + bike to work,97,Travel,,manual-chat
 2026-07-08T11:17:00+05:30,2026-07-08,Induction,2064,Shopping,,manual-chat
+2026-07-08T17:44:00+05:30,2026-07-08,Metro,30,Travel,,manual-chat
+2026-07-08T18:14:00+05:30,2026-07-08,Bike to home,57,Travel,,manual-chat
+2026-07-08T19:02:00+05:30,2026-07-08,Momo,60,Food,,manual-chat
+2026-07-08T19:03:00+05:30,2026-07-08,Laddoo,35,Food,,manual-chat
+2026-07-08T20:54:00+05:30,2026-07-08,Bike to football,40,Travel,,manual-chat
+2026-07-08T20:55:00+05:30,2026-07-08,Milk,29,Food,,manual-chat
+2026-07-08T20:55:10+05:30,2026-07-08,House items,422,Shopping,,manual-chat
+2026-07-09T17:45:00+05:30,2026-07-09,Hangers,431,Shopping,,manual-chat
+2026-07-09T19:36:00+05:30,2026-07-09,Football,510,Football,,manual-chat
