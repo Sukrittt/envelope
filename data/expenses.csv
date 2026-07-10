@@ -474,3 +474,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-09T19:36:00+05:30,2026-07-09,Football,510,Football,,manual-chat
 2026-07-09T20:27:00+05:30,2026-07-09,Bike to turf,44,Travel,,manual-chat
 2026-07-09T23:40:00+05:30,2026-07-09,Water 10L,150,Bills,,manual-chat
+2026-07-10T11:11:00+05:30,2026-07-10,Bike to work,55.46,Travel,,monthly: travel
