@@ -482,3 +482,14 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-11T18:45:00+05:30,2026-07-11,Travel to turf,48,Travel,,monthly: travel
 2026-07-11T21:46:00+05:30,2026-07-11,Shampoo conditioner & other stuff,953,Household,,monthly: household
 2026-07-11T22:28:00+05:30,2026-07-11,Football,279,Personal,,personal: football
+2026-07-12T02:20:00+05:30,2026-07-12,Late night snacks,399,Personal,,personal: snacks
+2026-07-12T11:02:00+05:30,2026-07-12,Furniture transportation,100,Travel,,monthly: travel
+2026-07-12T18:19:00+05:30,2026-07-12,Bike to turf,45,Travel,,monthly: travel
+2026-07-12T18:38:00+05:30,2026-07-12,Energy drink,70,Personal,,personal: misc
+2026-07-12T20:33:00+05:30,2026-07-12,Water,45,Water,,monthly: water
+2026-07-12T21:00:00+05:30,2026-07-12,Groceries,295,Groceries,,monthly: groceries
+2026-07-13T11:11:00+05:30,2026-07-13,Bike to work,73.47,Travel,,monthly: travel
+2026-07-13T18:07:00+05:30,2026-07-13,Bike to home,63.38,Travel,,monthly: travel
+2026-07-13T19:00:00+05:30,2026-07-13,Haircut,100,Personal,,personal: grooming
+2026-07-14T10:21:00+05:30,2026-07-14,Groceries,204,Groceries,,monthly: groceries
+2026-07-14T15:38:00+05:30,2026-07-14,Football,279,Personal,,personal: football

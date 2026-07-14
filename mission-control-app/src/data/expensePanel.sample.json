@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-07-11T17:20:46.497Z",
+    "generatedAt": "2026-07-14T10:09:32.853Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 108245.6,
-    "essentialSpendInr": 51692.6,
-    "discretionarySpendInr": 56553,
+    "monthSpendInr": 109919.45,
+    "essentialSpendInr": 51974.45,
+    "discretionarySpendInr": 57945,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -30,23 +30,27 @@
     },
     {
       "category": "Travel",
-      "amountInr": 1294.6
+      "amountInr": 1576.45
+    },
+    {
+      "category": "Personal",
+      "amountInr": 1406
     },
     {
       "category": "Household",
       "amountInr": 953
     },
     {
-      "category": "Personal",
-      "amountInr": 558
+      "category": "Groceries",
+      "amountInr": 832
     },
     {
       "category": "Football",
       "amountInr": 510
     },
     {
-      "category": "Groceries",
-      "amountInr": 333
+      "category": "Water",
+      "amountInr": 45
     }
   ],
   "dailySpend": [
@@ -93,6 +97,18 @@
     {
       "date": "2026-07-11",
       "amountInr": 1436
+    },
+    {
+      "date": "2026-07-12",
+      "amountInr": 954
+    },
+    {
+      "date": "2026-07-13",
+      "amountInr": 236.85
+    },
+    {
+      "date": "2026-07-14",
+      "amountInr": 483
     }
   ],
   "alerts": [
