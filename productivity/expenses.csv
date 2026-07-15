@@ -498,3 +498,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-15T13:59:00+05:30,2026-07-15,Football,510,Personal,,personal: football
 2026-07-15T15:06:00+05:30,2026-07-15,Football,279,Personal,,personal: football
 2026-07-15T16:14:00+05:30,2026-07-15,Bike to home,56,Travel,,monthly: travel
+2026-07-15T17:50:00+05:30,2026-07-15,Momo,70,Personal,,personal: food
