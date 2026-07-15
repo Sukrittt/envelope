@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generatedAt": "2026-07-14T19:57:01.590Z",
+    "generatedAt": "2026-07-15T18:46:42.680Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 110150.45,
-    "essentialSpendInr": 51974.45,
+    "monthSpendInr": 110207.66,
+    "essentialSpendInr": 52031.66,
     "discretionarySpendInr": 58176,
     "duesReceivableInr": 1537.46
   },
@@ -34,7 +34,7 @@
     },
     {
       "category": "Travel",
-      "amountInr": 1576.45
+      "amountInr": 1633.66
     },
     {
       "category": "Household",
@@ -112,7 +112,7 @@
     },
     {
       "date": "2026-07-15",
-      "amountInr": 231
+      "amountInr": 288.21
     }
   ],
   "alerts": [

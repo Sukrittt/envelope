@@ -494,3 +494,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-14T10:21:00+05:30,2026-07-14,Groceries,204,Groceries,,monthly: groceries
 2026-07-14T15:38:00+05:30,2026-07-14,Football,279,Personal,,personal: football
 2026-07-15T01:26:00+05:30,2026-07-15,Late night snacks,231,Personal,,personal: snacks
+2026-07-15T11:26:00+05:30,2026-07-15,Bike to work,57.21,Travel,,monthly: travel
