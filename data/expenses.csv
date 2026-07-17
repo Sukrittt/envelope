@@ -500,3 +500,6 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-15T16:14:00+05:30,2026-07-15,Bike to home,56,Travel,,monthly: travel
 2026-07-15T17:50:00+05:30,2026-07-15,Momo,70,Personal,,personal: food
 2026-07-16T11:05:00+05:30,2026-07-16,Keychain,604,Personal,,personal: misc
+2026-07-16T16:09:00+05:30,2026-07-16,Gym membership,7999,Personal,,personal: fitness
+2026-07-16T16:09:10+05:30,2026-07-16,Groceries,154,Groceries,,monthly: groceries
+2026-07-17T13:24:00+05:30,2026-07-17,Furniture one time yearly cost,9124,Personal,,one-time: furniture
