@@ -508,3 +508,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-18T13:21:00+05:30,2026-07-18,Icecream,260,Personal,,personal: misc
 2026-07-19T14:38:00+05:30,2026-07-19,Groceries,57.5,Groceries,,monthly: groceries
 2026-07-19T20:15:00+05:30,2026-07-19,Day out with friends,1080,Personal,,personal: misc
+2026-07-19T20:39:00+05:30,2026-07-19,Turf travel,98,Travel,,monthly: travel
