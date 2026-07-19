@@ -506,3 +506,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-17T14:52:00+05:30,2026-07-17,Football,279,Personal,,personal: football
 2026-07-17T19:14:00+05:30,2026-07-17,Groceries,250,Groceries,,monthly: groceries
 2026-07-18T13:21:00+05:30,2026-07-18,Icecream,260,Personal,,personal: misc
+2026-07-19T14:38:00+05:30,2026-07-19,Groceries,57.5,Groceries,,monthly: groceries
+2026-07-19T20:15:00+05:30,2026-07-19,Day out with friends,1080,Personal,,personal: misc
