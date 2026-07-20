@@ -513,3 +513,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-20T15:12:10+05:30,2026-07-20,Furniture delivery,100,Travel,,monthly: travel
 2026-07-20T19:24:00+05:30,2026-07-20,Groceries,243,Groceries,,monthly: groceries
 2026-07-20T20:32:00+05:30,2026-07-20,Dinner,185,Personal,,personal: food
+2026-07-20T21:07:00+05:30,2026-07-20,Jersey,1599,Personal,,personal: misc
