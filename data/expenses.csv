@@ -519,3 +519,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-21T17:36:00+05:30,2026-07-21,Banana,20,Groceries,,monthly: groceries
 2026-07-21T20:09:00+05:30,2026-07-21,Swish dinner,328,Personal,,personal: food
 2026-07-21T23:12:00+05:30,2026-07-21,Icecream,100,Personal,,personal: misc
+2026-07-22T10:37:00+05:30,2026-07-22,Football,279,Personal,,personal: football
