@@ -521,3 +521,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-21T23:12:00+05:30,2026-07-21,Icecream,100,Personal,,personal: misc
 2026-07-22T10:37:00+05:30,2026-07-22,Football,279,Personal,,personal: football
 2026-07-22T11:12:00+05:30,2026-07-22,Bike to work,69.78,Travel,,monthly: travel
+2026-07-22T13:13:00+05:30,2026-07-22,Amazon pay later bill,1617,Bills,,monthly: amazon pay later
