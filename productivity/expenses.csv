@@ -527,3 +527,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-24T11:28:00+05:30,2026-07-24,Bike to work,67,Travel,,monthly: travel
 2026-07-24T16:51:00+05:30,2026-07-24,Metro card recharge,500,Travel,,monthly: travel
 2026-07-24T22:35:00+05:30,2026-07-24,Dessert items,521,Personal,,personal: food
+2026-07-24T17:25:00+05:30,2026-07-24,Bike to home,60.3,Travel,,monthly: travel
