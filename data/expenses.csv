@@ -525,3 +525,4 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-22T11:12:00+05:30,2026-07-22,Bike to work,69.78,Travel,,monthly: travel
 2026-07-22T17:18:00+05:30,2026-07-22,Trip to home,59.75,Travel,,monthly: travel
 2026-07-24T11:28:00+05:30,2026-07-24,Bike to work,67,Travel,,monthly: travel
+2026-07-24T16:51:00+05:30,2026-07-24,Metro card recharge,500,Travel,,monthly: travel
