@@ -533,3 +533,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-26T19:54:00+05:30,2026-07-26,Bike to turf,41,Travel,,monthly: travel
 2026-07-26T21:32:00+05:30,2026-07-26,Bike to home,40,Travel,,monthly: travel
 2026-07-27T11:09:00+05:30,2026-07-27,Turf to work,80,Travel,,monthly: travel
+2026-07-27T14:24:00+05:30,2026-07-27,Outing,675.71,Personal,,personal: misc
