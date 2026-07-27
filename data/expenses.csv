@@ -446,7 +446,6 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-05T13:44:00+05:30,2026-07-05,Travel,232,Travel,,manual-chat
 2026-07-05T18:12:00+05:30,2026-07-05,Travel,221,Travel,,manual-chat
 2026-07-06T10:34:00+05:30,2026-07-06,Room Furniture,16868,Shopping,,manual-chat
-2026-07-06T10:34:00+05:30,2026-07-06,Room Furniture,16868,Shopping,,manual-chat
 2026-07-06T11:00:00+05:30,2026-07-06,Bike to work,78.14,Travel,,manual-chat
 2026-07-06T11:02:00+05:30,2026-07-06,Metro to work,30,Travel,,manual-chat
 2026-07-06T12:51:00+05:30,2026-07-06,Chair and table rent + deposit,626,Bills,,manual-chat

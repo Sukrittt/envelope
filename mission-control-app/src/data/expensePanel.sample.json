@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-07-27T17:30:33.263Z",
+    "generatedAt": "2026-07-27T17:34:32.006Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 140247.48,
+    "monthSpendInr": 123379.48,
     "essentialSpendInr": 54946.27,
-    "discretionarySpendInr": 85301.21,
+    "discretionarySpendInr": 68433.21,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -18,7 +18,7 @@
     },
     {
       "category": "Shopping",
-      "amountInr": 50199
+      "amountInr": 33331
     },
     {
       "category": "Personal",
@@ -76,7 +76,7 @@
     },
     {
       "date": "2026-07-06",
-      "amountInr": 37103.14
+      "amountInr": 20235.14
     },
     {
       "date": "2026-07-07",
@@ -156,8 +156,7 @@
     }
   ],
   "alerts": [
-    "Spend cap breached; pause discretionary purchases and recover dues.",
-    "Discretionary share above 60%; trigger cooling rule for non-essential purchases this week."
+    "Spend cap breached; pause discretionary purchases and recover dues."
   ],
   "deepLinks": [
     {
