@@ -536,3 +536,5 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-27T17:18:00+05:30,2026-07-27,Bike to home,56,Travel,,monthly: travel
 2026-07-27T20:07:00+05:30,2026-07-27,Momos,60,Personal,,personal: food
 2026-07-27T22:59:00+05:30,2026-07-27,Football,179,Personal,,personal: football
+2026-07-28T16:08:00+05:30,2026-07-28,Haircut,100,Personal,,personal: grooming
+2026-07-28T16:12:00+05:30,2026-07-28,Laundry,190,Household,,monthly: household
