@@ -8,7 +8,9 @@ const workspace = path.resolve(__dirname, '..')
 
 const sourceExpensesPath = path.join(workspace, 'productivity', 'expenses.csv')
 const sourceSubscriptionsPath = path.join(workspace, 'productivity', 'subscriptions.csv')
+const sourceBudgetsPath = path.join(workspace, 'productivity', 'budgets.csv')
 const dataExpensesPath = path.join(workspace, 'data', 'expenses.csv')
+const dataBudgetsPath = path.join(workspace, 'data', 'budgets.csv')
 const expensePanelPaths = [
   path.join(workspace, 'src', 'data', 'expensePanel.sample.json'),
   path.join(workspace, 'mission-control-app', 'src', 'data', 'expensePanel.sample.json'),
@@ -128,7 +130,7 @@ function getLatestDate(rows) {
   return latest
 }
 
-function buildExpensePanel(expensesRows, subscriptionsRows) {
+function buildExpensePanel(expensesRows, subscriptionsRows, budgetsRows) {
   const latestDate = getLatestDate(expensesRows)
   const month = latestDate ? latestDate.slice(0, 7) : new Date().toISOString().slice(0, 7)
   const monthRows = expensesRows.filter((row) => row.date?.startsWith(month))
@@ -194,6 +196,7 @@ function buildExpensePanel(expensesRows, subscriptionsRows) {
       { label: 'Subscriptions CSV', url: '../../productivity/subscriptions.csv' },
     ],
     subscriptions,
+    budgets: budgetsRows,
   }
 }
 
@@ -217,7 +220,17 @@ function main() {
   fs.mkdirSync(path.dirname(dataExpensesPath), { recursive: true })
   fs.writeFileSync(dataExpensesPath, formatCsv(dataRows), 'utf8')
 
-  const panelPayload = buildExpensePanel(expensesRows, subscriptionsRows)
+  if (fs.existsSync(sourceBudgetsPath)) {
+    const budgetText = fs.readFileSync(sourceBudgetsPath, 'utf8')
+    fs.mkdirSync(path.dirname(dataBudgetsPath), { recursive: true })
+    fs.writeFileSync(dataBudgetsPath, budgetText, 'utf8')
+  }
+
+  const { rows: budgetsRows } = fs.existsSync(sourceBudgetsPath)
+    ? readCsvAsObjects(sourceBudgetsPath)
+    : { rows: [] }
+
+  const panelPayload = buildExpensePanel(expensesRows, subscriptionsRows, budgetsRows)
   const panelJson = JSON.stringify(panelPayload, null, 2) + '\n'
   expensePanelPaths.forEach((panelPath) => {
     fs.mkdirSync(path.dirname(panelPath), { recursive: true })

@@ -6,6 +6,8 @@ export interface ExpenseRowDetail {
   category: string
 }
 
+import type { EnvelopeState } from '../types/expense'
+
 export interface ExpensePanelContract {
   meta: {
     generatedAt: string
@@ -22,6 +24,7 @@ export interface ExpensePanelContract {
   topCategories: Array<{ category: string; amountInr: number }>
   dailySpend: Array<{ date: string; amountInr: number }>
   expenseRows: ExpenseRowDetail[]
+  envelopeState: EnvelopeState | null
   alerts: string[]
   deepLinks: Array<{ label: string; url: string }>
   subscriptions?: Array<{
@@ -55,6 +58,7 @@ export interface ExpensePanelData {
   miniTrend: Array<{ date: string; value: number }>
   weeklyAnomalies: Array<{ label: string; totalInr: number; key: string }>
   expenseRows: ExpenseRowDetail[]
+  envelopeState: EnvelopeState | null
   weeklyInsights: {
     wentWrong: string
     nextWeek: string
@@ -176,6 +180,7 @@ export function toExpensePanelData(input: ExpensePanelContract): ExpensePanelDat
   return {
     lastUpdated: input.meta.generatedAt,
     month: input.meta.month,
+    envelopeState: input.envelopeState,
     spendVsCapPct: round(spendVsCapPct),
     runRateStatus,
     monthSpendInr: input.totals.monthSpendInr,

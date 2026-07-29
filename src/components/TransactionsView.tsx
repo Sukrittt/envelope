@@ -2,11 +2,44 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { loadTransactions, type Transaction } from '../services/expenseTransactions'
 
-type SortKey = 'date' | 'amountInr' | 'category'
-type SortDir = 'asc' | 'desc'
 type PeriodKey = 'week' | 'month' | 'custom'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 40
+
+const CATEGORY_ICONS: Record<string, string> = {
+  'Food & Drink': '🍔',
+  'food': '🍔',
+  'Rent': '🏠',
+  'Transport': '🚗',
+  'Groceries': '🛒',
+  'Utilities': '💡',
+  'Entertainment': '🎬',
+  'Movies': '🎬',
+  'Shopping': '🛍️',
+  'Health': '💊',
+  'Medical': '💊',
+  'Education': '📚',
+  'Subscriptions': '📡',
+  'Insurance': '🛡️',
+  'Travel': '✈️',
+  'Dining': '🍽️',
+  'Bills': '📋',
+  'Fitness': '🏋️',
+  'Gifts': '🎁',
+  'Clothing': '👕',
+  'Electronics': '💻',
+  'Pet': '🐾',
+  'Coffee': '☕',
+  'Salary': '💰',
+  'Income': '💰',
+  'Transfer': '🔄',
+  'Misc': '📦',
+  'Miscellaneous': '📦',
+}
+
+function getCategoryIcon(category: string): string {
+  return CATEGORY_ICONS[category] ?? CATEGORY_ICONS[category.toLowerCase()] ?? '💳'
+}
 
 function formatCurrency(value: number): string {
   return `₹${Math.round(value).toLocaleString('en-IN')}`
@@ -16,11 +49,30 @@ function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-function formatDate(iso: string): string {
+function formatDateHeader(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().slice(0, 10)
+
+  if (iso === todayStr) return 'Today'
+  if (iso === yesterdayStr) return 'Yesterday'
+
+  return d.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+  })
 }
+
+type TimelineItem =
+  | { kind: 'header'; date: string; label: string; total: number }
+  | { kind: 'txn'; txn: Transaction }
 
 export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolean }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -31,16 +83,10 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [amountMin, setAmountMin] = useState('')
-  const [amountMax, setAmountMax] = useState('')
   const [search, setSearch] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('date')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(0)
 
-  // Dropdown state
   const [catOpen, setCatOpen] = useState(false)
-  const [catPos, setCatPos] = useState<{ top: number; left: number } | null>(null)
   const catTriggerRef = useRef<HTMLButtonElement>(null)
   const catMenuRef = useRef<HTMLDivElement>(null)
 
@@ -75,7 +121,6 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     return max.getTime() === 0 ? new Date() : max
   }, [transactions])
 
-  // Close dropdowns on outside click / escape
   useEffect(() => {
     if (!catOpen) return
     function handleClick(e: MouseEvent) {
@@ -90,18 +135,9 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     return () => { window.removeEventListener('mousedown', handleClick); window.removeEventListener('keydown', handleKey) }
   }, [catOpen])
 
-  // Position dropdowns
-  useEffect(() => {
-    if (catOpen) {
-      const r = catTriggerRef.current?.getBoundingClientRect()
-      if (r) setCatPos({ top: r.bottom + 4, left: r.left })
-    }
-  }, [catOpen])
-
   const filtered = useMemo(() => {
     let rows = [...transactions]
 
-    // Date filter
     const end = new Date(latestDate)
     let start = new Date(0)
     if (period === 'week') {
@@ -118,71 +154,64 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
 
     if (selectedCategory) rows = rows.filter((t) => t.category === selectedCategory)
 
-    const min = Number(amountMin)
-    const max = Number(amountMax)
-    if (!Number.isNaN(min) && amountMin) rows = rows.filter((t) => t.amountInr >= min)
-    if (!Number.isNaN(max) && amountMax) rows = rows.filter((t) => t.amountInr <= max)
-
     if (search) {
       const q = search.toLowerCase()
       rows = rows.filter((t) => t.item.toLowerCase().includes(q) || t.notes.toLowerCase().includes(q))
     }
 
     rows.sort((a, b) => {
-      let cmp = 0
-      if (sortKey === 'date') cmp = a.date.localeCompare(b.date)
-      else if (sortKey === 'amountInr') cmp = a.amountInr - b.amountInr
-      else cmp = a.category.localeCompare(b.category)
-      return sortDir === 'desc' ? -cmp : cmp
+      const cmp = b.date.localeCompare(a.date)
+      if (cmp !== 0) return cmp
+      return b.timestamp.localeCompare(a.timestamp)
     })
 
     return rows
-  }, [transactions, period, customStart, customEnd, selectedCategory, amountMin, amountMax, search, sortKey, sortDir, latestDate])
+  }, [transactions, period, customStart, customEnd, selectedCategory, search, latestDate])
 
-  // Reset page when filters change
-  useEffect(() => { setPage(0) }, [period, customStart, customEnd, selectedCategory, amountMin, amountMax, search])
+  useEffect(() => { setPage(0) }, [period, customStart, customEnd, selectedCategory, search])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const grouped = useMemo(() => {
+    const groups = new Map<string, Transaction[]>()
+    for (const t of filtered) {
+      const g = groups.get(t.date) ?? []
+      g.push(t)
+      groups.set(t.date, g)
+    }
+    const items: TimelineItem[] = []
+    for (const [date, txns] of groups) {
+      const total = txns.reduce((s, t) => s + t.amountInr, 0)
+      items.push({ kind: 'header', date, label: formatDateHeader(date), total })
+      for (const txn of txns) {
+        items.push({ kind: 'txn', txn })
+      }
+    }
+    return items
+  }, [filtered])
 
+  const totalPages = Math.max(1, Math.ceil(grouped.length / PAGE_SIZE))
+  const paged = grouped.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const totalSpend = useMemo(() => filtered.reduce((s, t) => s + t.amountInr, 0), [filtered])
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    else { setSortKey(key); setSortDir(key === 'date' ? 'desc' : 'asc') }
-  }
 
   function resetFilters() {
     setPeriod('week')
     setSelectedCategory('')
-    setAmountMin('')
-    setAmountMax('')
     setSearch('')
     setPage(0)
   }
 
-  function sortIndicator(key: SortKey) {
-    if (sortKey !== key) return ''
-    return sortDir === 'asc' ? ' ↑' : ' ↓'
-  }
-
-  function renderDropdown(
-    open: boolean, pos: { top: number; left: number } | null,
-    menuRef: React.RefObject<HTMLDivElement | null>,
-    options: string[], selected: string,
-    onSelect: (v: string) => void, onClose: () => void, label: string,
-  ) {
-    if (!open || !pos) return null
+  function renderPortal() {
+    const r = catTriggerRef.current?.getBoundingClientRect()
+    if (!catOpen || !r) return null
     return createPortal(
-      <div ref={menuRef} className="category-menu category-menu--portal" role="menu" aria-label={label}
-        style={{ position: 'fixed', top: pos.top, left: pos.left, display: 'grid', minWidth: 180 }}>
+      <div ref={catMenuRef} className="category-menu category-menu--portal" role="menu" aria-label="Category filter"
+        style={{ position: 'fixed', top: r.bottom + 4, left: r.left, display: 'grid', minWidth: 160 }}>
         <div className="category-menu-list">
-          <button type="button" className={`action-button is-ghost category-option ${!selected ? 'is-selected' : ''}`}
-            onClick={() => { onSelect(''); onClose() }}>All</button>
-          {options.map((o) => (
+          <button type="button" className={`action-button is-ghost category-option ${!selectedCategory ? 'is-selected' : ''}`}
+            onClick={() => { setSelectedCategory(''); setCatOpen(false) }}>All</button>
+          {categories.map((o) => (
             <button type="button" key={o}
-              className={`action-button is-ghost category-option ${selected === o ? 'is-selected' : ''}`}
-              onClick={() => { onSelect(o); onClose() }}>{o}</button>
+              className={`action-button is-ghost category-option ${selectedCategory === o ? 'is-selected' : ''}`}
+              onClick={() => { setSelectedCategory(o); setCatOpen(false) }}>{o}</button>
           ))}
         </div>
       </div>, document.body)
@@ -190,8 +219,8 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
 
   if (loading) {
     return (
-      <div className="transactions-view">
-        <div className="transactions-loading">
+      <div className="txn-timeline">
+        <div className="txn-timeline-loading">
           {[...Array(6)].map((_, i) => <div key={i} className="skeleton-row" />)}
         </div>
       </div>
@@ -200,15 +229,15 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
 
   if (error) {
     return (
-      <div className="transactions-view">
-        <p className="transactions-empty">Couldn't load transactions. {error}</p>
+      <div className="txn-timeline">
+        <div className="txn-timeline-empty">Couldn't load transactions. {error}</div>
       </div>
     )
   }
 
   return (
-    <div className="transactions-view">
-      <div className="transactions-filters">
+    <div className="txn-timeline">
+      <div className="txn-timeline-filters">
         <div className="mc-filter-chips" role="tablist" aria-label="Period presets">
           {(['week', 'month', 'custom'] as PeriodKey[]).map((key) => (
             <button key={key} type="button" className={`action-button ${period === key ? 'is-active' : ''}`}
@@ -219,7 +248,7 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
         </div>
 
         {period === 'custom' && (
-          <div className="transactions-custom-dates">
+          <div className="txn-timeline-dates">
             <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} aria-label="Start date" />
             <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} aria-label="End date" />
           </div>
@@ -230,54 +259,52 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
           <span>{selectedCategory || 'Category'}</span> <span aria-hidden="true">▾</span>
         </button>
 
-        <div className="transactions-amount-range">
-          <input type="number" placeholder="Min ₹" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} aria-label="Minimum amount" />
-          <input type="number" placeholder="Max ₹" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} aria-label="Maximum amount" />
-        </div>
-
-        <input type="search" className="transactions-search" placeholder="Search description or notes…"
-          value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search transactions" />
+        <input type="search" className="txn-timeline-search" placeholder="Search…"
+          value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
 
         <button type="button" className="action-button is-ghost" onClick={resetFilters}>
           Reset
         </button>
       </div>
 
-      {renderDropdown(catOpen, catPos, catMenuRef, categories, selectedCategory, setSelectedCategory, () => setCatOpen(false), 'Category filter')}
+      {renderPortal()}
 
       {filtered.length === 0 ? (
-        <p className="transactions-empty">No transactions for this filter.</p>
+        <div className="txn-timeline-empty">No transactions for this filter.</div>
       ) : (
-        <div className="transactions-table-wrap">
-          <table className="mc-compact-table transactions-table">
-            <thead>
-              <tr>
-                <th className="sortable" onClick={() => toggleSort('date')}>Date{sortIndicator('date')}</th>
-                <th>Description</th>
-                <th className="sortable" onClick={() => toggleSort('category')}>Category{sortIndicator('category')}</th>
-                <th className="num sortable" onClick={() => toggleSort('amountInr')}>Amount{sortIndicator('amountInr')}</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((t, i) => (
-                <tr key={`${t.timestamp}-${i}`}>
-                  <td>{formatDate(t.date)}</td>
-                  <td>{t.item}</td>
-                  <td>{t.category}</td>
-                  <td className={`num ${hideAmounts ? 'amount-hidden' : ''}`}>{hideAmounts ? '---' : formatCurrency(t.amountInr)}</td>
-                  <td className="transactions-notes">{t.notes || '–'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="txn-timeline-list">
+          {paged.map((item, i) => {
+            if (item.kind === 'header') {
+              return (
+                <div key={`h-${item.date}`} className="txn-timeline-header">
+                  <span className="txn-timeline-header-label">{item.label}</span>
+                  <span className={`txn-timeline-header-total ${hideAmounts ? 'amount-hidden' : ''}`}>
+                    {hideAmounts ? '---' : formatCurrency(item.total)}
+                  </span>
+                </div>
+              )
+            }
+            const t = item.txn
+            return (
+              <div key={`t-${t.timestamp}-${i}`} className="txn-timeline-row">
+                <span className="txn-timeline-icon" title={t.category}>{getCategoryIcon(t.category)}</span>
+                <span className="txn-timeline-desc">
+                  <span className="txn-timeline-item">{t.item}</span>
+                  <span className="txn-timeline-category">{t.category}</span>
+                </span>
+                <span className={`txn-timeline-amount ${t.amountInr < 0 ? 'is-negative' : 'is-positive'} ${hideAmounts ? 'amount-hidden' : ''}`}>
+                  {hideAmounts ? '---' : `${t.amountInr < 0 ? '-' : '+'}${formatCurrency(Math.abs(t.amountInr))}`}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
 
-      <div className="transactions-footer">
+      <div className="txn-timeline-footer">
         <span>{filtered.length} transaction{filtered.length !== 1 ? 's' : ''}</span>
         {totalPages > 1 && (
-          <div className="transactions-pagination">
+          <div className="txn-timeline-pagination">
             <button type="button" className="action-button is-ghost" disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}>Prev</button>
             <span>{page + 1} / {totalPages}</span>

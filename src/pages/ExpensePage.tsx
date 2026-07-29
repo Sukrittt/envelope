@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SparkBars } from '../components/SparkBars'
-import { TransactionsView } from '../components/TransactionsView'
-import { InsightsView } from '../components/InsightsView'
+import { ReadyToAssignBanner } from '../components/ReadyToAssignBanner'
+import { EnvelopeGrid } from '../components/EnvelopeGrid'
+import { MoveMoneyModal } from '../components/MoveMoneyModal'
+import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
 import { loadExpensePanelContract } from '../services/expensePanelLoader'
+import type { EnvelopeState } from '../types/expense'
 
 type PeriodKey = '7d' | '30d' | 'mtd' | 'custom'
 type TrendView = 'daily' | 'weekly' | 'monthly'
 type DrillFilter = { start: string; end: string; parentView: TrendView } | null
-
-const CATEGORY_COLORS = ['#7aa2ff', '#4fd1c5', '#f59e8b', '#b794f4', '#f6c453', '#63b3ed', '#f472b6', '#34d399']
 
 function formatLastUpdated(value: string): string {
   const date = new Date(value)
@@ -71,27 +72,44 @@ function weekRangeLabel(startIso: string): string {
   })}`
 }
 
-type ExpenseTab = 'overview' | 'transactions' | 'insights'
+// type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
   const [panel, setPanel] = useState<ExpensePanelData | null>(null)
-  const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
+  // const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>('mtd')
   const [trendView, setTrendView] = useState<TrendView>('daily')
   const [drillFilter, setDrillFilter] = useState<DrillFilter>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false)
   const [categoryMenuPosition, setCategoryMenuPosition] = useState<{ top: number; left: number; minWidth: number } | null>(null)
-  const [hideAmounts, setHideAmounts] = useState<boolean>(() => {
+  const [hideAmounts] = useState<boolean>(() => {
     const stored = localStorage.getItem('expense-hide-amounts')
     return stored === 'true'
   })
   const [dailyDetailDate, setDailyDetailDate] = useState<string | null>(null)
+  const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(null)
+  const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null)
+
+  function handleIncomeChange(newIncome: number) {
+    setEnvelopeState((prev) => {
+      if (!prev) return prev
+      const totalAssigned = prev.envelopes.reduce((s, e) => s + e.assigned, 0)
+      const rta = newIncome - totalAssigned
+      return { ...prev, income: newIncome, readyToAssign: rta, isOverAssigned: rta < 0 }
+    })
+    localStorage.setItem('expense-income-override', String(newIncome))
+  }
+
   const categoryMenuRef = useRef<HTMLDivElement | null>(null)
   const categoryTriggerRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
-    loadExpensePanelContract().then((contract) => setPanel(toExpensePanelData(contract)))
+    loadExpensePanelContract().then((contract) => {
+      const data = toExpensePanelData(contract)
+      setPanel(data)
+      setEnvelopeState(data.envelopeState)
+    })
   }, [])
 
   const latestDate = useMemo(() => {
@@ -113,14 +131,6 @@ export function ExpensePage() {
 
   function toggleCategory(category: string) {
     setSelectedCategories((prev) => (prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]))
-  }
-
-  function toggleHideAmounts() {
-    setHideAmounts((prev) => {
-      const next = !prev
-      localStorage.setItem('expense-hide-amounts', String(next))
-      return next
-    })
   }
 
   function formatCurrencyHidden(value: number): React.ReactNode {
@@ -213,40 +223,26 @@ export function ExpensePage() {
     })
   }, [customEnd, customStart, latestDate, panel, period])
 
-  const filteredCategories = useMemo(() => {
-    if (!panel) return []
-    if (!selectedCategories.length) return panel.topCategories
-    return panel.topCategories.filter((row) => selectedCategories.includes(row.category))
+  const categoryScopeRatio = useMemo(() => {
+    if (!panel || !selectedCategories.length) return 1
+    const catTotal = panel.topCategories.reduce((s, r) => s + r.amountInr, 0)
+    if (!catTotal) return 1
+    const selTotal = panel.topCategories
+      .filter((row) => selectedCategories.includes(row.category))
+      .reduce((s, r) => s + r.amountInr, 0)
+    return selTotal / catTotal
   }, [panel, selectedCategories])
 
-  const categoryColorMap = useMemo(() => {
-    if (!panel) return new Map<string, string>()
-    return new Map(panel.topCategories.map((category, index) => [category.category, CATEGORY_COLORS[index % CATEGORY_COLORS.length]]))
+  const dailyCategoryMap = useMemo(() => {
+    if (!panel) return new Map<string, Record<string, number>>()
+    const map = new Map<string, Record<string, number>>()
+    for (const row of panel.expenseRows) {
+      const prev = map.get(row.date) ?? {}
+      prev[row.category] = (prev[row.category] ?? 0) + row.amountInr
+      map.set(row.date, prev)
+    }
+    return map
   }, [panel])
-
-  const categoryTotal = useMemo(() => panel?.topCategories.reduce((sum, row) => sum + row.amountInr, 0) ?? 0, [panel])
-
-  const selectedCategoryTotal = useMemo(() => {
-    if (!panel || !selectedCategories.length) return categoryTotal
-    return panel.topCategories
-      .filter((row) => selectedCategories.includes(row.category))
-      .reduce((sum, row) => sum + row.amountInr, 0)
-  }, [categoryTotal, panel, selectedCategories])
-
-  const categoryScopeRatio = categoryTotal > 0 ? selectedCategoryTotal / categoryTotal : 1
-  const periodTotal = useMemo(() => filteredTrend.reduce((sum, point) => sum + point.value, 0), [filteredTrend])
-  const filteredTotal = periodTotal * categoryScopeRatio
-
-  const periodDelta = useMemo(() => {
-    if (filteredTrend.length < 2) return 0
-    const half = Math.floor(filteredTrend.length / 2)
-    const first = filteredTrend.slice(0, half)
-    const second = filteredTrend.slice(half)
-    const firstAvg = first.length ? first.reduce((sum, row) => sum + row.value, 0) / first.length : 0
-    const secondAvg = second.length ? second.reduce((sum, row) => sum + row.value, 0) / second.length : 0
-    if (!firstAvg) return 0
-    return ((secondAvg - firstAvg) / firstAvg) * 100
-  }, [filteredTrend])
 
   const trendSeries = useMemo(() => {
     const useFullHistory = trendView === 'monthly' || (drillFilter?.parentView === 'monthly')
@@ -273,12 +269,20 @@ export function ExpensePage() {
       const endIso = drillFilter ? drillFilter.end : source[source.length - 1]?.date
       if (!startIso || !endIso) return source.map((row) => ({ date: row.date, value: row.value }))
 
-      const out: { date: string; value: number }[] = []
+      const out: { date: string; value: number; categories?: Record<string, number> }[] = []
       const cursor = new Date(startIso)
       const end = new Date(endIso)
       while (cursor <= end) {
         const key = cursor.toISOString().slice(0, 10)
-        out.push({ date: key, value: byDate.get(key) ?? 0 })
+        const rawCats = dailyCategoryMap.get(key)
+        const categories = rawCats && allCategoriesSelected
+          ? rawCats
+          : rawCats && selectedCategories.length > 0
+            ? Object.fromEntries(
+                Object.entries(rawCats).filter(([cat]) => selectedCategories.includes(cat))
+              )
+            : undefined
+        out.push({ date: key, value: byDate.get(key) ?? 0, categories })
         cursor.setDate(cursor.getDate() + 1)
       }
       return out
@@ -304,7 +308,7 @@ export function ExpensePage() {
       date,
       value,
     }))
-  }, [categoryScopeRatio, drillFilter, filteredTrend, trendView, panel])
+  }, [categoryScopeRatio, allCategoriesSelected, dailyCategoryMap, drillFilter, filteredTrend, trendView, panel, selectedCategories])
 
   const trendKeys = useMemo(() => {
     const useFullHistory = trendView === 'monthly' || (drillFilter?.parentView === 'monthly')
@@ -382,71 +386,60 @@ export function ExpensePage() {
   const categoryScopeLabel = selectedCategories.length ? `${selectedCategories.length} selected` : 'All categories'
 
   const topCats = panel?.topCategories ?? []
-  const topCategory = filteredCategories[0] ?? topCats[0]
-  const topCategoryShare = topCategory?.sharePct ?? 0
-  const adjustedRunRate = (panel?.avgDailyLast7Inr ?? 0) * categoryScopeRatio
-
   const subscriptionCategory = topCats.find((row) => row.category.toLowerCase().includes('subscription'))
-  const donutSegments = (selectedCategories.length ? filteredCategories : topCats).slice(0, 8)
-  const donutGradient = useMemo(() => {
-    if (!donutSegments.length) return 'conic-gradient(#3b3f47 0 100%)'
-
-    const total = donutSegments.reduce((sum, segment) => sum + segment.amountInr, 0)
-    if (!total) return 'conic-gradient(#3b3f47 0 100%)'
-
-    let start = 0
-    const slices = donutSegments.map((segment) => {
-      const segmentPct = (segment.amountInr / total) * 100
-      const next = start + segmentPct
-      const color = categoryColorMap.get(segment.category) ?? '#8f97a3'
-      const slice = `${color} ${start}% ${Math.min(100, next)}%`
-      start = next
-      return slice
-    })
-    if (start < 100) {
-      slices.push(`#2f333a ${start}% 100%`)
-    }
-    return `conic-gradient(${slices.join(', ')})`
-  }, [categoryColorMap, donutSegments])
 
   if (!panel) {
     return (
-      <section className="mc-content-grid expense-view" aria-busy="true" aria-live="polite">
-        <section className="headline">
-          <div>
-            <h1>Expense Command Center</h1>
-            <p className="muted">Loading latest transactions…</p>
+      <section className="expense-view" aria-busy="true" aria-live="polite">
+        <div className="expense-layout">
+          <nav className="expense-sidebar">
+            <div className="expense-sidebar-brand">Expenses</div>
+            <div className="expense-sidebar-group">
+              <div className="expense-sidebar-group-label">General</div>
+              <div className="expense-sidebar-link is-active">
+                <span className="expense-sidebar-link-icon">◆</span>
+                Overview
+              </div>
+            </div>
+          </nav>
+          <div className="expense-main">
+            <section className="headline">
+              <div>
+                <h1>Expense Command Center</h1>
+                <p className="muted">Loading latest transactions…</p>
+              </div>
+            </section>
+
+            <section className="mc-kpi-strip" aria-hidden="true">
+              <article className="mc-kpi-card expense-skeleton-card">
+                <span className="expense-skeleton expense-skeleton-line short" />
+                <span className="expense-skeleton expense-skeleton-line" />
+                <span className="expense-skeleton expense-skeleton-line medium" />
+              </article>
+              <article className="mc-kpi-card expense-skeleton-card">
+                <span className="expense-skeleton expense-skeleton-line short" />
+                <span className="expense-skeleton expense-skeleton-line" />
+                <span className="expense-skeleton expense-skeleton-line medium" />
+              </article>
+              <article className="mc-kpi-card expense-skeleton-card">
+                <span className="expense-skeleton expense-skeleton-line short" />
+                <span className="expense-skeleton expense-skeleton-line" />
+                <span className="expense-skeleton expense-skeleton-line medium" />
+              </article>
+            </section>
+
+            <section className="mc-main-panels" aria-hidden="true">
+              <article className="mc-panel expense-skeleton-panel">
+                <span className="expense-skeleton expense-skeleton-line medium" />
+                <span className="expense-skeleton expense-skeleton-block" />
+              </article>
+              <article className="mc-panel expense-skeleton-panel">
+                <span className="expense-skeleton expense-skeleton-line medium" />
+                <span className="expense-skeleton expense-skeleton-block" />
+              </article>
+            </section>
           </div>
-        </section>
-
-        <section className="mc-kpi-strip" aria-hidden="true">
-          <article className="mc-kpi-card expense-skeleton-card">
-            <span className="expense-skeleton expense-skeleton-line short" />
-            <span className="expense-skeleton expense-skeleton-line" />
-            <span className="expense-skeleton expense-skeleton-line medium" />
-          </article>
-          <article className="mc-kpi-card expense-skeleton-card">
-            <span className="expense-skeleton expense-skeleton-line short" />
-            <span className="expense-skeleton expense-skeleton-line" />
-            <span className="expense-skeleton expense-skeleton-line medium" />
-          </article>
-          <article className="mc-kpi-card expense-skeleton-card">
-            <span className="expense-skeleton expense-skeleton-line short" />
-            <span className="expense-skeleton expense-skeleton-line" />
-            <span className="expense-skeleton expense-skeleton-line medium" />
-          </article>
-        </section>
-
-        <section className="mc-main-panels" aria-hidden="true">
-          <article className="mc-panel expense-skeleton-panel">
-            <span className="expense-skeleton expense-skeleton-line medium" />
-            <span className="expense-skeleton expense-skeleton-block" />
-          </article>
-          <article className="mc-panel expense-skeleton-panel">
-            <span className="expense-skeleton expense-skeleton-line medium" />
-            <span className="expense-skeleton expense-skeleton-block" />
-          </article>
-        </section>
+        </div>
       </section>
     )
   }
@@ -513,47 +506,40 @@ export function ExpensePage() {
     document.body,
   )
 
+  function handleSidebarMoveMoney() {
+    const firstOverspent = envelopeState?.envelopes.find((e) => e.isOverspent)
+    if (firstOverspent) setMoveMoneyTarget(firstOverspent.category)
+  }
+
+  function handleShowCategories() {
+    const el = document.querySelector('.expense-envelope-panel')
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
-    <section className="mc-content-grid expense-view">
-      <section className="headline">
-        <div>
-          <h1>Expense Command Center</h1>
-          <p className="muted">{panel.month} • Premium dark control board</p>
-        </div>
-        <span className={`mc-chip mc-chip--${panel.runRateStatus === 'overshoot' ? 'red' : panel.runRateStatus === 'watch' ? 'amber' : 'green'}`}>
-          {panel.runRateStatus === 'overshoot' ? 'CAP BREACHED' : panel.runRateStatus === 'watch' ? 'WATCH' : 'ON TRACK'}
-        </span>
-      </section>
-
-      <div className="expense-tab-row">
-        <div className="tab-nav expense-tab-nav">
-          <button type="button" className={`tab-button expense-tab-button ${activeTab === 'overview' ? 'is-active' : ''}`} onClick={() => setActiveTab('overview')}>
-            Overview
-          </button>
-          <button type="button" className={`tab-button expense-tab-button ${activeTab === 'transactions' ? 'is-active' : ''}`} onClick={() => setActiveTab('transactions')}>
-            Transactions
-          </button>
-          <button type="button" className={`tab-button expense-tab-button ${activeTab === 'insights' ? 'is-active' : ''}`} onClick={() => setActiveTab('insights')}>
-            Insights
-          </button>
-        </div>
-
-        <button type="button" className={`action-button hide-amounts-toggle ${hideAmounts ? 'is-active' : ''}`} onClick={toggleHideAmounts}>
-          {hideAmounts ? '👁️ Show amounts' : '🔒 Hide amounts'}
-        </button>
-      </div>
-
-      {activeTab === 'transactions' ? (
-        <div className="expense-tab-content">
-          <TransactionsView hideAmounts={hideAmounts} />
-        </div>
-      ) : activeTab === 'insights' ? (
-        <div className="expense-tab-content">
-          <InsightsView hideAmounts={hideAmounts} />
-        </div>
-      ) : (<>
+    <section className="expense-view">
+      <div className="expense-layout">
+        <ExpenseSidebar
+          onMoveMoney={handleSidebarMoveMoney}
+          onShowCategories={handleShowCategories}
+          month={panel.month}
+          income={envelopeState?.income}
+          totalSpent={envelopeState?.totalSpent}
+        />
+        <div className="expense-main">
 
       <div className="expense-tab-content">
+      {envelopeState && (
+        <ReadyToAssignBanner
+          income={envelopeState.income}
+          totalAssigned={envelopeState.totalAssigned}
+          readyToAssign={envelopeState.readyToAssign}
+          isOverAssigned={envelopeState.isOverAssigned}
+          onIncomeChange={handleIncomeChange}
+          sparkData={panel.miniTrend.slice(-7)}
+        />
+      )}
+
       <section className="mc-filterbar expense-scopebar" aria-label="Scope bar">
         <div className="scope-group" role="group" aria-label="Period selector">
           <div className="mc-filter-chips" role="tablist" aria-label="Period presets">
@@ -603,36 +589,6 @@ export function ExpensePage() {
         </div>
       </section>
 
-      <section className="mc-kpi-strip mc-kpi-strip--expense" aria-label="Expense KPIs">
-        <article className="mc-kpi-card expense-kpi">
-          <p>Total spend vs cap</p>
-          <strong className={`${panel.runRateStatus === 'overshoot' ? 'red' : ''} ${hideAmounts ? 'amount-hidden' : ''}`}>{formatCurrencyHidden(filteredTotal)}</strong>
-          <span className="kpi-delta">{periodDelta > 0 ? '+' : ''}{periodDelta.toFixed(1)}% vs previous slice</span>
-          <span className="muted">Cap {formatCurrencyHidden(panel.monthlySpendCapInr)}</span>
-        </article>
-
-        <article className="mc-kpi-card expense-kpi">
-          <p>Daily run rate</p>
-          <strong className={hideAmounts ? 'amount-hidden' : ''}>{formatCurrencyHidden(adjustedRunRate)}/day</strong>
-          <span className="kpi-delta">Soft cap {formatCurrencyHidden(panel.dailySoftCapInr)}/day</span>
-          <span className="muted">Filtered by period + category</span>
-        </article>
-
-        <article className="mc-kpi-card expense-kpi">
-          <p>Top category pressure</p>
-          <strong>{topCategoryShare}%</strong>
-          <span className="kpi-delta">{topCategory?.category ?? 'Category'}</span>
-          <span className="muted">Share of total spend</span>
-        </article>
-
-        <article className="mc-kpi-card expense-kpi">
-          <p>Dues receivable</p>
-          <strong className={hideAmounts ? 'amount-hidden' : ''}>{formatCurrencyHidden(panel.duesReceivableInr)}</strong>
-          <span className="kpi-delta">Recovery buffer available</span>
-          <span className="muted">Use before discretionary spends</span>
-        </article>
-      </section>
-
       <section className="expense-grid-xman">
         <article className="mc-panel expense-trend-panel">
           <div className="mc-panel-header">
@@ -661,7 +617,6 @@ export function ExpensePage() {
             size="expanded"
             formatValue={(value) => hideAmounts ? '---' : formatCurrency(value)}
             capOutliers
-            showReferenceLines
             onBarClick={trendView === 'daily' ? handleDailyBarClick : handleBarClick}
           />
           {dailyDetailDate && createPortal(
@@ -713,27 +668,18 @@ export function ExpensePage() {
           )}
         </article>
 
-        <article className="mc-panel expense-weekly-panel">
+        <article className="mc-panel expense-envelope-panel">
           <div className="mc-panel-header">
-            <h3>Weekly anomalies</h3>
-            <p>Largest spend weeks first</p>
+            <h3>Envelopes</h3>
+            <p>Assigned · Spent · Available</p>
           </div>
-          <table className="mc-compact-table">
-            <thead>
-              <tr>
-                <th>Week</th>
-                <th className="num">Spend</th>
-              </tr>
-            </thead>
-            <tbody>
-              {panel.weeklyAnomalies.slice(0, 4).map((week) => (
-                <tr key={week.key}>
-                  <td>{week.label}</td>
-                  <td className={`num ${hideAmounts ? 'amount-hidden' : ''}`}>{hideAmounts ? '---' : formatCurrency(week.totalInr)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {envelopeState && (
+            <EnvelopeGrid
+              envelopes={envelopeState.envelopes}
+              hideAmounts={hideAmounts}
+              onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
+            />
+          )}
         </article>
 
         <article className="mc-panel expense-subscriptions-panel">
@@ -777,82 +723,6 @@ export function ExpensePage() {
             </details>
           </div>
         </article>
-
-        <article className="mc-panel expense-review-panel">
-          <div className="mc-panel-header">
-            <h3>Weekly review & insights</h3>
-            <p>Concise decision notes</p>
-          </div>
-          <div className="review-points">
-            <div>
-              <h4>What went wrong</h4>
-              <p>{panel.weeklyInsights.wentWrong}</p>
-            </div>
-            <div>
-              <h4>What to do next</h4>
-              <p>{panel.weeklyInsights.nextWeek}</p>
-            </div>
-          </div>
-          <div className="mc-summary-row">
-            {panel.alerts.slice(0, 2).map((alert) => (
-              <span key={alert} className="mc-chip mc-chip--neutral premium-chip">
-                {alert}
-              </span>
-            ))}
-          </div>
-        </article>
-
-        <article className="mc-panel expense-category-panel">
-          <div className="mc-panel-header">
-            <h3>Category breakdown</h3>
-            <p>Donut + ranked list</p>
-          </div>
-          <div className="category-breakdown-grid">
-            <div className="donut-wrap" aria-label="Category share donut" role="img">
-              <div className="donut-chart" style={{ backgroundImage: donutGradient }} />
-              <div className="donut-center">
-                <strong>{selectedCategories.length ? categoryScopeLabel : 'All categories'}</strong>
-                <span className={hideAmounts ? 'amount-hidden' : ''}>{hideAmounts ? '---' : formatCurrency(selectedCategoryTotal)}</span>
-              </div>
-            </div>
-            <div className="category-card-stack">
-              <button
-                type="button"
-                className={`category-row category-card category-card--all ${allCategoriesSelected ? 'is-focused' : ''}`}
-                onClick={selectAllCategories}
-              >
-                <div>
-                  <p className="risk-title">All categories</p>
-                  <p className="risk-meta">Reset to full dashboard scope</p>
-                </div>
-                <span className="mc-chip mc-chip--neutral">{allCategoriesSelected ? 'Active' : 'Reset'}</span>
-              </button>
-
-              <div className="category-card-grid">
-                {panel.topCategories.slice(0, 8).map((category) => {
-                  const isFocused = selectedCategories.includes(category.category)
-                  return (
-                    <button
-                      type="button"
-                      key={category.category}
-                      className={`category-row category-card ${isFocused ? 'is-focused' : ''}`}
-                      onClick={() => toggleCategory(category.category)}
-                    >
-                      <div>
-                        <p className="risk-title">
-                          <span className="category-dot" style={{ background: categoryColorMap.get(category.category) }} />
-                          {category.category}
-                        </p>
-                        <p className={`risk-meta ${hideAmounts ? 'amount-hidden' : ''}`}>{formatCurrencyHidden(category.amountInr)}</p>
-                      </div>
-                      <span className="mc-chip">{category.sharePct}%</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </article>
       </section>
 
       <div className="tags">
@@ -863,8 +733,30 @@ export function ExpensePage() {
         ))}
       </div>
       </div>
-      </>)}
+      {moveMoneyTarget && envelopeState && (
+        <MoveMoneyModal
+          targetCategory={moveMoneyTarget}
+          envelopes={envelopeState.envelopes}
+          onClose={() => setMoveMoneyTarget(null)}
+          onTransfer={(from, to, amount) => {
+            setEnvelopeState((prev) => {
+              if (!prev) return prev
+              const updated = prev.envelopes.map((e) => {
+                if (e.category === from) return { ...e, assigned: e.assigned - amount, available: e.available - amount }
+                if (e.category === to) return { ...e, assigned: e.assigned + amount, available: e.available + amount }
+                return e
+              })
+              const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
+              const rta = prev.income - totalAssigned
+              return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
+            })
+            setMoveMoneyTarget(null)
+          }}
+        />
+      )}
       {categoryMenu}
+        </div>
+      </div>
     </section>
   )
 }

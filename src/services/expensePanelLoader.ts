@@ -1,4 +1,6 @@
 import type { ExpensePanelContract } from './expensePanelAdapter'
+import { computeEnvelopes } from './budgetLoader'
+import type { BudgetRow } from '../types/expense'
 
 interface ExpenseRow {
   timestamp: string
@@ -17,6 +19,30 @@ interface SubscriptionRow {
 }
 
 const ESSENTIAL_CATEGORIES = new Set(['Bills', 'Food', 'Travel', 'Personal care'])
+
+function parseBudgetCSV(text: string): BudgetRow[] {
+  const lines = text.trim().split('\n')
+  if (lines.length < 2) return []
+  const header = lines[0].split(',')
+  const iMonth = header.indexOf('month')
+  const iCategory = header.indexOf('category')
+  const iAssigned = header.indexOf('assigned')
+  const iRolledOver = header.indexOf('rolled_over')
+
+  const rows: BudgetRow[] = []
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',')
+    const assigned = Number(cols[iAssigned])
+    if (Number.isNaN(assigned)) continue
+    rows.push({
+      month: cols[iMonth] ?? '',
+      category: cols[iCategory] ?? '',
+      assigned,
+      rolledOver: Number(cols[iRolledOver]) || 0,
+    })
+  }
+  return rows
+}
 
 function parseExpenseCSV(text: string): ExpenseRow[] {
   const lines = text.trim().split('\n')
@@ -71,13 +97,15 @@ function parseSubscriptionCSV(text: string): SubscriptionRow[] {
 }
 
 export async function loadExpensePanelContract(): Promise<ExpensePanelContract> {
-  const [expenseText, subText] = await Promise.all([
+  const [expenseText, subText, budgetText] = await Promise.all([
     fetch('/productivity/expenses.csv').then((r) => r.text()),
     fetch('/productivity/subscriptions.csv').then((r) => (r.ok ? r.text() : '')),
+    fetch('/productivity/budgets.csv').then((r) => (r.ok ? r.text() : '')),
   ])
 
   const expenses = parseExpenseCSV(expenseText)
   const subscriptions = parseSubscriptionCSV(subText)
+  const budgets = budgetText ? parseBudgetCSV(budgetText) : []
 
   const now = new Date()
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -109,7 +137,12 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
     .sort((a, b) => a.date.localeCompare(b.date))
 
   // Alerts
+  const envelopeState = computeEnvelopes(budgets, expenses, currentMonth)
+
   const alerts: string[] = []
+  if (envelopeState.isOverAssigned) {
+    alerts.push(`Over-assigned by ₹${Math.abs(envelopeState.readyToAssign)} — reduce category budgets.`)
+  }
   const discretionaryPct = monthSpend > 0 ? (discretionarySpend / monthSpend) * 100 : 0
   if (discretionaryPct > 60) {
     alerts.push('Discretionary share above 60%; trigger cooling rule for non-essential purchases this week.')
@@ -137,6 +170,7 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
       amountInr: e.amountInr,
       category: e.category,
     })),
+    envelopeState,
     alerts,
     deepLinks: [
       { label: 'Open Expense Dashboard', url: '../../expense-dashboard/' },

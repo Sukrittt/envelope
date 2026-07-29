@@ -1,10 +1,15 @@
 import { useMemo, useState } from 'react'
 
+interface SparkBarDatum {
+  date: string
+  value: number
+  categories?: Record<string, number>
+}
+
 interface SparkBarsProps {
-  data: Array<{ date: string; value: number }>
+  data: Array<SparkBarDatum>
   formatValue?: (value: number) => string
   size?: 'compact' | 'default' | 'expanded'
-  showReferenceLines?: boolean
   capOutliers?: boolean
   outlierThreshold?: number
   outlierPercentile?: number
@@ -15,7 +20,6 @@ export function SparkBars({
   data,
   formatValue = (value) => `${value}`,
   size = 'default',
-  showReferenceLines = false,
   capOutliers = false,
   outlierThreshold = 1.6,
   outlierPercentile = 0.9,
@@ -25,7 +29,6 @@ export function SparkBars({
 
   const values = data.map((row) => row.value).filter((value) => Number.isFinite(value))
 
-  const rawMin = values.length ? Math.min(...values, 0) : 0
   const rawMax = values.length ? Math.max(...values, 0) : 0
 
   const scaleMax = useMemo(() => {
@@ -44,21 +47,8 @@ export function SparkBars({
     return data.reduce((sum, row) => sum + row.value, 0) / data.length
   }, [data])
 
-  const referenceLevels = useMemo(() => {
-    if (!showReferenceLines) return []
-    return [
-      { label: 'Max', value: rawMax },
-      { label: 'Average', value: avg },
-      { label: 'Min', value: rawMin },
-    ]
-  }, [avg, rawMax, rawMin, showReferenceLines])
-
-  const yTicks = useMemo(() => {
-    const top = maxValue
-    const mid = rawMin + (maxValue - rawMin) / 2
-    const low = rawMin
-    return [top, mid, low]
-  }, [maxValue, rawMin])
+  const avgNormalized = maxValue ? Math.max(0, Math.min(1, avg / maxValue)) : 0
+  const avgOffset = avgNormalized * 100
 
   const labelEvery = size === 'expanded' ? 2 : size === 'default' ? 2 : 4
 
@@ -96,27 +86,10 @@ export function SparkBars({
 
   return (
     <div className={`spark-bars spark-bars--${size}`} role="img" aria-label="Expense trend chart">
-      <div className="spark-scale" aria-hidden="true">
-        {yTicks.map((tick) => (
-          <span key={tick}>{formatValue(tick)}</span>
-        ))}
-      </div>
-
-      {showReferenceLines ? (
-        <div className="spark-reference-grid" aria-hidden="true">
-          {referenceLevels.map((level) => {
-            const normalized = maxValue ? Math.max(0, Math.min(1, level.value / maxValue)) : 0
-            const offset = normalized * 100
-            return (
-              <div key={level.label} className="spark-reference-line" style={{ bottom: `${offset}%` }}>
-                <span>{level.label}</span>
-              </div>
-            )
-          })}
-        </div>
-      ) : null}
-
       <div className="spark-bars-inner" onMouseLeave={() => setHoveredIndex(null)}>
+        {avg > 0 && (
+          <div className="spark-avg-line" style={{ bottom: `${avgOffset}%` }} />
+        )}
         {data.map((row, index) => {
           const normalized = maxValue ? Math.max(0, Math.min(1, row.value / maxValue)) : 0
           const height = normalized * 100

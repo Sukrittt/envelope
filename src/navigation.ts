@@ -1,25 +1,25 @@
 export interface NavItem {
-  label: string
-  path: string
-  exact?: boolean
+  label: string;
+  path: string;
+  exact?: boolean;
 }
 
 export interface NavGroup {
-  label: string
-  items: NavItem[]
+  label: string;
+  items: NavItem[];
 }
 
 export const navGroups: NavGroup[] = [
   {
-    label: 'Master Dashboard',
+    label: "Master Dashboard",
     items: [
-      { label: 'Expense', path: '/expense' },
-      { label: 'Fitness', path: '/fitness' },
-      { label: 'Learnings', path: '/learnings' },
+      { label: "Expense", path: "/expense" },
+      { label: "Fitness", path: "/fitness" },
+      { label: "Learnings", path: "/learnings" },
     ],
   },
   {
-    label: 'Admin',
-    items: [{ label: 'Settings', path: '/settings' }],
+    label: "Admin",
+    items: [{ label: "Settings", path: "/settings" }],
   },
-]
+];
