@@ -5,6 +5,7 @@ import { ReadyToAssignBanner } from '../components/ReadyToAssignBanner'
 import { EnvelopeGrid } from '../components/EnvelopeGrid'
 import { MoveMoneyModal } from '../components/MoveMoneyModal'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
+import { CategoryManager } from '../components/CategoryManager'
 import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
 import { loadExpensePanelContract } from '../services/expensePanelLoader'
 import type { EnvelopeState } from '../types/expense'
@@ -90,6 +91,18 @@ export function ExpensePage() {
   const [dailyDetailDate, setDailyDetailDate] = useState<string | null>(null)
   const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(null)
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null)
+  const [showCategoryManager, setShowCategoryManager] = useState(false)
+
+  async function refreshPanel() {
+    try {
+      const contract = await loadExpensePanelContract()
+      const data = toExpensePanelData(contract)
+      setPanel(data)
+      setEnvelopeState(data.envelopeState)
+    } catch {
+      // silent
+    }
+  }
 
   function handleIncomeChange(newIncome: number) {
     setEnvelopeState((prev) => {
@@ -667,8 +680,13 @@ export function ExpensePage() {
 
         <article className="mc-panel expense-envelope-panel">
           <div className="mc-panel-header">
-            <h3>Envelopes</h3>
-            <p>Assigned · Spent · Available</p>
+            <div>
+              <h3>Envelopes</h3>
+              <p>Assigned · Spent · Available</p>
+            </div>
+            <button type="button" className="env-manage-btn" onClick={() => setShowCategoryManager(true)}>
+              Manage
+            </button>
           </div>
           {envelopeState && (
             <EnvelopeGrid
@@ -742,6 +760,14 @@ export function ExpensePage() {
         ))}
       </div>
       </div>
+      {showCategoryManager && (
+        <CategoryManager
+          currentMonth={panel?.month ?? new Date().toISOString().slice(0, 7)}
+          onClose={() => setShowCategoryManager(false)}
+          onSaved={refreshPanel}
+          envelopes={envelopeState?.envelopes ?? null}
+        />
+      )}
       {moveMoneyTarget && envelopeState && (
         <MoveMoneyModal
           targetCategory={moveMoneyTarget}

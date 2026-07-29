@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { loadTransactions, type Transaction } from '../services/expenseTransactions'
+import { getBudgets } from '../services/api'
+import { TransactionEntry } from './TransactionEntry'
 
 type PeriodKey = 'week' | 'month' | 'custom'
 
@@ -94,25 +96,34 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const catMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadTransactions()
-      .then((rows) => {
-        setTransactions(rows)
-        if (rows.length) {
-          let latest = new Date(0)
-          for (const r of rows) {
-            const d = new Date(r.date)
-            if (!Number.isNaN(d.getTime()) && d > latest) latest = d
-          }
-          if (latest.getTime() === 0) latest = new Date()
-          setCustomStart(toDateInput(new Date(latest.getFullYear(), latest.getMonth(), 1)))
-          setCustomEnd(toDateInput(latest))
+    Promise.all([
+      loadTransactions(),
+      getBudgets().catch(() => [] as { category: string }[]),
+    ]).then(([rows, budgetRows]) => {
+      setTransactions(rows)
+      setBudgetCategories(budgetRows.map(b => b.category).filter(c => c !== '__income__'))
+      if (rows.length) {
+        let latest = new Date(0)
+        for (const r of rows) {
+          const d = new Date(r.date)
+          if (!Number.isNaN(d.getTime()) && d > latest) latest = d
         }
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+        if (latest.getTime() === 0) latest = new Date()
+        setCustomStart(toDateInput(new Date(latest.getFullYear(), latest.getMonth(), 1)))
+        setCustomEnd(toDateInput(latest))
+      }
+    })
+    .catch((err) => setError(err.message))
+    .finally(() => setLoading(false))
   }, [])
 
-  const categories = useMemo(() => [...new Set(transactions.map((t) => t.category).filter(Boolean))].sort(), [transactions])
+  const [budgetCategories, setBudgetCategories] = useState<string[]>([])
+
+  const categories = useMemo(() => {
+    const fromTxns = new Set(transactions.map((t) => t.category).filter(Boolean))
+    for (const c of budgetCategories) fromTxns.add(c)
+    return [...fromTxns].sort()
+  }, [transactions, budgetCategories])
 
   const latestDate = useMemo(() => {
     if (!transactions.length) return new Date()
@@ -202,6 +213,19 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     setPage(0)
   }
 
+  async function refreshTransactions() {
+    try {
+      const [rows, budgetRows] = await Promise.all([
+        loadTransactions(),
+        getBudgets().catch(() => [] as { category: string }[]),
+      ])
+      setTransactions(rows)
+      setBudgetCategories(budgetRows.map(b => b.category).filter(c => c !== '__income__'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh')
+    }
+  }
+
   function renderPortal() {
     const r = catTriggerRef.current?.getBoundingClientRect()
     if (!catOpen || !r) return null
@@ -271,6 +295,8 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
       </div>
 
       {renderPortal()}
+
+      <TransactionEntry categories={categories} onSaved={refreshTransactions} />
 
       {filtered.length === 0 ? (
         <div className="txn-timeline-empty">No transactions for this filter.</div>

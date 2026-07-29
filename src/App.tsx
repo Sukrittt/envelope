@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { Settings, Sun, Moon } from "lucide-react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Sun, Moon } from "lucide-react";
 import "./App.css";
 import { DashboardProvider } from "./context/DashboardProvider";
 import { useDashboard } from "./context/useDashboard";
@@ -79,7 +79,7 @@ function AppShell() {
               <p>{currentMeta.subtitle}</p>
             </div>
             <div className="utility-cluster">
-              <button
+              {/* <button
                 type="button"
                 className="action-button"
                 onClick={() => {
@@ -88,7 +88,7 @@ function AppShell() {
                 }}
               >
                 Refresh
-              </button>
+              </button> */}
               <button
                 type="button"
                 className="action-button theme-toggle"
@@ -97,14 +97,14 @@ function AppShell() {
               >
                 {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-              <Link
+              {/* <Link
                 to="/settings"
                 className="action-button"
                 aria-label="Open settings"
                 title="Settings"
               >
                 <Settings size={18} />
-              </Link>
+              </Link> */}
             </div>
           </header>
 
@@ -146,7 +146,10 @@ function AppShell() {
             </section>
           ) : (
             <Routes>
-              <Route path="/expense/transactions" element={<TransactionsPage />} />
+              <Route
+                path="/expense/transactions"
+                element={<TransactionsPage />}
+              />
               <Route path="/expense" element={<ExpensePage />} />
               <Route path="/fitness" element={<FitnessPage />} />
               <Route path="/learnings" element={<LearningsPage />} />
