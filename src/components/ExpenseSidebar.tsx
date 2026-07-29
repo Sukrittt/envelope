@@ -1,3 +1,5 @@
+import { Link, useLocation } from 'react-router-dom'
+
 interface Props {
   onMoveMoney: () => void
   onShowCategories: () => void
@@ -17,9 +19,12 @@ function daysLeftInMonth(): number {
 }
 
 export function ExpenseSidebar({ onMoveMoney, onShowCategories, month, income, totalSpent }: Props) {
+  const { pathname } = useLocation()
+  const isTransactions = pathname === '/expense/transactions'
+
   return (
     <nav className="expense-sidebar">
-      <div className="expense-sidebar-brand">Expense</div>
+      <Link to="/expense" className="expense-sidebar-brand">Expense</Link>
 
       <div className="expense-sidebar-summary">
         {month && <span className="ess-month">{month}</span>}
@@ -35,6 +40,24 @@ export function ExpenseSidebar({ onMoveMoney, onShowCategories, month, income, t
           <span className="ess-label">Left</span>
           <span className="ess-value">{daysLeftInMonth()} days</span>
         </div>
+      </div>
+
+      <div>
+        <div className="expense-sidebar-group-label">Views</div>
+        <Link
+          to="/expense"
+          className={`expense-sidebar-link ${!isTransactions ? 'is-active' : ''}`}
+        >
+          <span className="expense-sidebar-link-icon">◈</span>
+          Dashboard
+        </Link>
+        <Link
+          to="/expense/transactions"
+          className={`expense-sidebar-link ${isTransactions ? 'is-active' : ''}`}
+        >
+          <span className="expense-sidebar-link-icon">↕</span>
+          Transactions
+        </Link>
       </div>
 
       <div>

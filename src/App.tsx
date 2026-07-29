@@ -6,6 +6,7 @@ import { DashboardProvider } from "./context/DashboardProvider";
 import { useDashboard } from "./context/useDashboard";
 import { trackEvent } from "./lib/telemetry";
 import { ExpensePage } from "./pages/ExpensePage";
+import { TransactionsPage } from "./pages/TransactionsPage";
 import { FitnessPage } from "./pages/FitnessPage";
 import { LearningsPage } from "./pages/LearningsPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -15,6 +16,10 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/expense": {
     title: "Expense Dashboard",
     subtitle: "Run-rate, category pressure, and cashflow guardrails",
+  },
+  "/expense/transactions": {
+    title: "Transactions",
+    subtitle: "Timeline of all recorded expenses",
   },
   "/fitness": {
     title: "Fitness Dashboard",
@@ -60,7 +65,7 @@ function AppShell() {
     trackEvent("page_view", { path: pathname });
   }, [pathname]);
 
-  const isExpenseRoute = pathname === "/expense";
+  const isExpenseRoute = pathname.startsWith("/expense");
 
   return (
     <main
@@ -141,6 +146,7 @@ function AppShell() {
             </section>
           ) : (
             <Routes>
+              <Route path="/expense/transactions" element={<TransactionsPage />} />
               <Route path="/expense" element={<ExpensePage />} />
               <Route path="/fitness" element={<FitnessPage />} />
               <Route path="/learnings" element={<LearningsPage />} />
