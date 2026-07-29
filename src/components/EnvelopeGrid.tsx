@@ -33,24 +33,32 @@ export function EnvelopeGrid({ envelopes, hideAmounts, onMoveMoney }: Props) {
       <tbody>
         {envelopes.map((e) => {
           const isOverspent = e.isOverspent
+          const hasBalance = e.available > 0
+          const pct = Math.min(100, e.spentPct)
           return (
             <tr key={e.category} className={`env-row ${isOverspent ? 'env-row-overspent' : ''}`}>
-              <td className="env-cell env-cell-cat">{e.category}</td>
+              <td className="env-cell env-cell-cat">
+                <span>{e.category}</span>
+                <div className="env-bar-track">
+                  <div
+                    className={`env-bar-fill ${isOverspent ? 'env-bar-red' : pct > 85 ? 'env-bar-warn' : ''}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </td>
               <td className="env-cell env-cell-num env-cell-assigned">
                 {hideAmounts ? '---' : formatCurrency(e.assigned)}
               </td>
               <td className="env-cell env-cell-num env-cell-spent">
                 {hideAmounts ? '---' : formatCurrency(e.spent)}
               </td>
-              <td className={`env-cell env-cell-num env-cell-avail ${isOverspent ? 'env-cell-negative' : ''}`}>
+              <td className={`env-cell env-cell-num env-cell-avail ${isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : ''}`}>
                 {hideAmounts ? '---' : formatCurrency(e.available)}
               </td>
               <td className="env-cell env-cell-action">
-                {isOverspent && (
-                  <button type="button" className="env-move-btn" onClick={() => onMoveMoney(e.category)}>
-                    ⇄
-                  </button>
-                )}
+                <button type="button" className={`env-move-btn ${isOverspent ? 'env-move-btn-visible' : ''}`} onClick={() => onMoveMoney(e.category)} title="Move money">
+                  ⇄
+                </button>
               </td>
             </tr>
           )

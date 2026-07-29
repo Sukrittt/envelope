@@ -6,33 +6,36 @@ type PeriodKey = 'week' | 'month' | 'custom'
 
 const PAGE_SIZE = 40
 
+const INCOME_CATEGORIES = new Set(['Salary', 'Income', 'Refund', 'Cashback', 'Bonus', 'Interest', 'Gift', 'Transfer'])
+
 const CATEGORY_ICONS: Record<string, string> = {
-  'Food & Drink': '🍔',
-  'food': '🍔',
+  'Bills': '📋',
+  'Entertainment': '🎬',
+  'Food': '🍔',
+  'Football': '⚽',
+  'Goa Shopping': '🛍️',
+  'Groceries': '🛒',
+  'Household': '🏠',
+  'Personal': '👤',
+  'Personal care': '🧴',
+  'Shopping': '🛍️',
+  'Subscription': '📡',
+  'Travel': '🚗',
+  'Water': '💧',
+  'Work/Investment': '💼',
+  'Betting': '🎲',
   'Rent': '🏠',
   'Transport': '🚗',
-  'Groceries': '🛒',
   'Utilities': '💡',
-  'Entertainment': '🎬',
-  'Movies': '🎬',
-  'Shopping': '🛍️',
+  'Education': '📚',
   'Health': '💊',
   'Medical': '💊',
-  'Education': '📚',
-  'Subscriptions': '📡',
-  'Insurance': '🛡️',
-  'Travel': '✈️',
-  'Dining': '🍽️',
-  'Bills': '📋',
   'Fitness': '🏋️',
   'Gifts': '🎁',
   'Clothing': '👕',
   'Electronics': '💻',
   'Pet': '🐾',
   'Coffee': '☕',
-  'Salary': '💰',
-  'Income': '💰',
-  'Transfer': '🔄',
   'Misc': '📦',
   'Miscellaneous': '📦',
 }
@@ -285,15 +288,16 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
               )
             }
             const t = item.txn
+            const isIncome = INCOME_CATEGORIES.has(t.category)
             return (
               <div key={`t-${t.timestamp}-${i}`} className="txn-timeline-row">
                 <span className="txn-timeline-icon" title={t.category}>{getCategoryIcon(t.category)}</span>
                 <span className="txn-timeline-desc">
                   <span className="txn-timeline-item">{t.item}</span>
-                  <span className="txn-timeline-category">{t.category}</span>
+                  <span className="txn-timeline-category"> · {t.category}</span>
                 </span>
-                <span className={`txn-timeline-amount ${t.amountInr < 0 ? 'is-negative' : 'is-positive'} ${hideAmounts ? 'amount-hidden' : ''}`}>
-                  {hideAmounts ? '---' : `${t.amountInr < 0 ? '-' : '+'}${formatCurrency(Math.abs(t.amountInr))}`}
+                <span className={`txn-timeline-amount ${isIncome ? 'is-income' : 'is-expense'} ${hideAmounts ? 'amount-hidden' : ''}`}>
+                  {hideAmounts ? '---' : `${isIncome ? '+' : '-'}${formatCurrency(t.amountInr)}`}
                 </span>
               </div>
             )

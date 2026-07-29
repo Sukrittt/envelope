@@ -12,10 +12,11 @@ function formatCurrency(value: number): string {
   return `₹${Math.round(value).toLocaleString('en-IN')}`
 }
 
-function daysLeftInMonth(): number {
+function daysLeftInMonth(): string {
   const now = new Date()
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-  return lastDay - now.getDate()
+  const left = lastDay - now.getDate()
+  return `${left} day${left !== 1 ? 's' : ''} left`
 }
 
 export function ExpenseSidebar({ onMoveMoney, onShowCategories, month, income, totalSpent }: Props) {
@@ -38,7 +39,7 @@ export function ExpenseSidebar({ onMoveMoney, onShowCategories, month, income, t
         </div>
         <div className="ess-row">
           <span className="ess-label">Left</span>
-          <span className="ess-value">{daysLeftInMonth()} days</span>
+          <span className="ess-value">{daysLeftInMonth()}</span>
         </div>
       </div>
 

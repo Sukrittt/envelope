@@ -50,7 +50,7 @@ export function SparkBars({
   const avgNormalized = maxValue ? Math.max(0, Math.min(1, avg / maxValue)) : 0
   const avgOffset = avgNormalized * 100
 
-  const labelEvery = size === 'expanded' ? 2 : size === 'default' ? 2 : 4
+  const labelEvery = data.length > 8 ? Math.max(1, Math.floor(data.length / 6)) : 1
 
   function getLabel(input: string): string {
     if (/^\d{4}-\d{2}$/.test(input)) {
@@ -100,11 +100,12 @@ export function SparkBars({
           const isHovered = hoveredIndex === index
 
           const isZero = row.value === 0
+          const isToday = row.date === new Date().toISOString().slice(0, 10)
 
           return (
             <div
               key={`${row.date}-${index}`}
-              className={`spark-bar-wrap ${isCurrent ? 'is-current' : ''} ${isHovered ? 'is-hovered' : ''} ${onBarClick ? 'is-clickable' : ''}`}
+              className={`spark-bar-wrap ${isCurrent ? 'is-current' : ''} ${isHovered ? 'is-hovered' : ''} ${isToday ? 'is-today' : ''} ${onBarClick ? 'is-clickable' : ''}`}
               onMouseEnter={() => setHoveredIndex(index)}
               onClick={() => onBarClick?.(index)}
             >

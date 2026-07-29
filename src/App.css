@@ -1212,8 +1212,7 @@ input[type='date']:hover {
 }
 
 .spark-bars-inner {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
+  display: flex;
   gap: 6px;
   align-items: stretch;
   min-height: 210px;
@@ -1241,6 +1240,8 @@ input[type='date']:hover {
   gap: var(--sp-2);
   justify-items: center;
   position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .spark-bar-track {
@@ -1799,7 +1800,6 @@ input[type='date']:hover {
 
 .expense-view .spark-bars-inner {
   gap: 8px;
-  grid-template-rows: 1fr;
 }
 
 .spark-avg-line {
@@ -1815,12 +1815,7 @@ input[type='date']:hover {
   background: var(--chart-bar, #3b4252);
   border: none;
   box-shadow: none;
-}
-
-.expense-view .spark-bar-wrap.is-current .spark-bar {
-  background: var(--chart-bar-current, #5a6a8a);
-  border: none;
-  box-shadow: none;
+  border-radius: 1px;
 }
 
 .expense-view .spark-bar-wrap.is-hovered::before {
@@ -1830,6 +1825,25 @@ input[type='date']:hover {
   background: var(--hover, rgba(255, 255, 255, 0.06));
   pointer-events: none;
   z-index: 0;
+}
+
+.expense-view .spark-bar-wrap.is-today .spark-bar {
+  box-shadow: 0 0 0 1px var(--accent-strong, #656f7e);
+}
+
+.expense-view .spark-bar-wrap.is-today::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 3px solid var(--accent-strong, #656f7e);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .spark-tooltip {
@@ -2225,6 +2239,32 @@ input[type='date']:hover {
 .env-cell-cat {
   color: var(--expense-text);
   font-weight: 400;
+  min-width: 140px;
+}
+
+.env-bar-track {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  margin-top: 4px;
+  border-radius: 1px;
+  overflow: hidden;
+  max-width: 160px;
+}
+
+.env-bar-fill {
+  height: 100%;
+  background: var(--accent-strong, #656f7e);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+.env-bar-red {
+  background: var(--risk-fg, #ff8b9a);
+}
+
+.env-bar-warn {
+  background: var(--accent-strong, #656f7e);
+  opacity: 0.6;
 }
 
 .env-cell-num {
@@ -2248,6 +2288,10 @@ input[type='date']:hover {
   color: var(--risk-fg, #ff8b9a);
 }
 
+.env-cell-positive {
+  color: var(--ok-fg, #67b57a);
+}
+
 .env-cell-action {
   text-align: center;
 }
@@ -2259,12 +2303,20 @@ input[type='date']:hover {
   cursor: pointer;
   padding: 2px 4px;
   font-size: 0.85rem;
-  opacity: 0.5;
-  transition: opacity 0.15s;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.env-row:hover .env-move-btn {
+  opacity: 0.4;
 }
 
 .env-move-btn:hover {
-  opacity: 1;
+  opacity: 1 !important;
+}
+
+.env-move-btn-visible {
+  opacity: 0.6;
 }
 
 .env-row-overspent .env-cell-cat {
@@ -3401,16 +3453,22 @@ summary:focus-visible,
 
 .txn-timeline-header-total {
   font-size: var(--fs-12);
+  font-weight: 400;
   color: var(--muted-2);
+  letter-spacing: 0.02em;
 }
 
 .txn-timeline-row {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-sm);
+  padding: var(--sp-1) var(--sp-3);
+  border-bottom: 1px solid var(--divider-soft);
   transition: background 0.15s;
+}
+
+.txn-timeline-row:last-child {
+  border-bottom: none;
 }
 
 .txn-timeline-row:hover {
@@ -3429,8 +3487,9 @@ summary:focus-visible,
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: baseline;
+  gap: 0;
+  overflow: hidden;
 }
 
 .txn-timeline-item {
@@ -3439,11 +3498,16 @@ summary:focus-visible,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 1;
 }
 
 .txn-timeline-category {
   font-size: var(--fs-11);
   color: var(--muted-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .txn-timeline-amount {
@@ -3454,11 +3518,11 @@ summary:focus-visible,
   font-variant-numeric: tabular-nums;
 }
 
-.txn-timeline-amount.is-negative {
+.txn-timeline-amount.is-expense {
   color: var(--coral);
 }
 
-.txn-timeline-amount.is-positive {
+.txn-timeline-amount.is-income {
   color: var(--mint);
 }
 

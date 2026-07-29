@@ -254,7 +254,7 @@ export function ExpensePage() {
     }
 
     if (trendView === 'daily') {
-      if (!drillFilter) {
+      if (!drillFilter && (period === '7d' || period === '30d')) {
         const now = new Date()
         const today = now.toISOString().slice(0, 10)
         const startOfWeek = new Date(now)
@@ -384,9 +384,6 @@ export function ExpensePage() {
 
   const stalenessText = panel ? formatLastUpdated(panel.lastUpdated) : 'Loading…'
   const categoryScopeLabel = selectedCategories.length ? `${selectedCategories.length} selected` : 'All categories'
-
-  const topCats = panel?.topCategories ?? []
-  const subscriptionCategory = topCats.find((row) => row.category.toLowerCase().includes('subscription'))
 
   if (!panel) {
     return (
@@ -687,7 +684,19 @@ export function ExpensePage() {
             <h3>Subscriptions</h3>
             <p>Recurring drag</p>
           </div>
-          <p className={`subscription-amount ${hideAmounts ? 'amount-hidden' : ''}`}>{formatCurrencyHidden(subscriptionCategory?.amountInr ?? 0)}</p>
+          {(() => {
+            const monthlyTotal = panel.subscriptions.active.reduce((sum, sub) => {
+              if (/yearly|annual/i.test(sub.billingCycle)) return sum + sub.amountInr / 12
+              if (/quarterly/i.test(sub.billingCycle)) return sum + sub.amountInr / 3
+              if (/weekly/i.test(sub.billingCycle)) return sum + sub.amountInr * 4.33
+              return sum + sub.amountInr
+            }, 0)
+            return (
+              <p className={`subscription-amount ${hideAmounts ? 'amount-hidden' : ''}`}>
+                {hideAmounts ? '---' : `~${formatCurrency(Math.round(monthlyTotal))}/mo`}
+              </p>
+            )
+          })()}
 
           <div className="subscription-lists">
             <details className="subscription-accordion" open>
