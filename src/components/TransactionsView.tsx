@@ -56,6 +56,11 @@ function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
+function formatTime(ts: string): string {
+  const m = ts.match(/T(\d{2}:\d{2})/)
+  return m ? m[1] : ''
+}
+
 function formatDateHeader(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
@@ -359,11 +364,21 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
         <div className="txn-timeline-empty">No transactions for this filter.</div>
       ) : (
         <div className="txn-timeline-list">
+          <div className="txn-timeline-col-headers">
+            <span />
+            <span className="txn-timeline-col-label">Time</span>
+            <span className="txn-timeline-col-label">Description</span>
+            <span className="txn-timeline-col-label">Category</span>
+            <span className="txn-timeline-col-label txn-timeline-col-label--right">Amount</span>
+          </div>
           {paged.map((item, i) => {
             if (item.kind === 'header') {
               return (
                 <div key={`h-${item.date}`} className="txn-timeline-header">
+                  <span />
+                  <span />
                   <span className="txn-timeline-header-label">{item.label}</span>
+                  <span />
                   <span className={`txn-timeline-header-total ${hideAmounts ? 'amount-hidden' : ''}`}>
                     {hideAmounts ? '---' : formatCurrency(item.total)}
                   </span>
@@ -377,6 +392,7 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
             return (
               <div key={`t-${t.timestamp}-${i}`} className="txn-timeline-row">
                 <span className="txn-timeline-icon" title={t.category}>{getCategoryIcon(t.category)}</span>
+                <span className="txn-timeline-time">{formatTime(t.timestamp)}</span>
                 <span className="txn-timeline-item">{t.item}</span>
                 {isEditing ? (
                   <span className="txn-timeline-cat-col">
@@ -418,6 +434,7 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
                     }}
                   >
                     {t.category}
+                    <span className="cat-chevron">▾</span>
                   </span>
                 )}
                 <span className={`txn-timeline-amount ${isIncome ? 'is-income' : 'is-expense'} ${hideAmounts ? 'amount-hidden' : ''}`}>

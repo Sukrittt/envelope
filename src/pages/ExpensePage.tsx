@@ -6,8 +6,9 @@ import { EnvelopeGrid } from '../components/EnvelopeGrid'
 import { MoveMoneyModal } from '../components/MoveMoneyModal'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { CategoryManager } from '../components/CategoryManager'
+import { SubscriptionModal } from '../components/SubscriptionModal'
 import { SpendingInsights } from '../components/SpendingInsights'
-import { cancelSubscription } from '../services/api'
+import { cancelSubscription, reactivateSubscription } from '../services/api'
 import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
 import { loadExpensePanelContract } from '../services/expensePanelLoader'
 import type { EnvelopeState } from '../types/expense'
@@ -95,6 +96,15 @@ export function ExpensePage() {
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [cancellingSub, setCancellingSub] = useState<string | null>(null)
+  const [reactivatingSub, setReactivatingSub] = useState<string | null>(null)
+  const [showSubModal, setShowSubModal] = useState(false)
+  const [editSub, setEditSub] = useState<{
+    service: string
+    amount_inr: string
+    billing_cycle: string
+    next_due_date: string
+    notes: string
+  } | null>(null)
 
   async function refreshPanel() {
     try {
@@ -105,6 +115,8 @@ export function ExpensePage() {
     } catch {
       // silent
     }
+    setCancellingSub(null)
+    setReactivatingSub(null)
   }
 
   function handleIncomeChange(newIncome: number) {
@@ -543,6 +555,8 @@ export function ExpensePage() {
           isOverAssigned={envelopeState.isOverAssigned}
           onIncomeChange={handleIncomeChange}
           sparkData={panel.miniTrend.slice(-7)}
+          overspentCount={envelopeState.envelopes.filter(e => e.isOverspent).length}
+          totalEnvelopes={envelopeState.envelopes.length}
         />
       )}
 
@@ -702,6 +716,9 @@ export function ExpensePage() {
         <article className="mc-panel expense-subscriptions-panel">
           <div className="mc-panel-header">
             <h3>Subscriptions</h3>
+            <button type="button" className="env-manage-btn" onClick={() => setShowSubModal(true)} title="Add subscription">
+              + Add
+            </button>
           </div>
           {(() => {
             const p = panel!
@@ -721,31 +738,36 @@ export function ExpensePage() {
               return cycle
             }
 
-            function daysUntil(dateStr: string): string {
+            function rollForward(dateStr: string, cycle: string): string {
               const d = new Date(dateStr)
               if (Number.isNaN(d.getTime())) return ''
-              const diff = Math.round((d.getTime() - Date.now()) / 86400000)
-              if (diff < 0) return ''
-              if (diff === 0) return 'renews today'
-              if (diff === 1) return 'renews tomorrow'
-              return `renews in ${diff}d`
+              if (/yearly|annual/i.test(cycle)) d.setFullYear(d.getFullYear() + 1)
+              else if (/quarterly/i.test(cycle)) d.setMonth(d.getMonth() + 3)
+              else if (/weekly/i.test(cycle)) d.setDate(d.getDate() + 7)
+              else d.setMonth(d.getMonth() + 1)
+              return d.toISOString().slice(0, 10)
             }
 
-            function renewalText(sub: typeof p.subscriptions.active[0]): string {
-              if (/one-time/i.test(sub.billingCycle)) return ''
+            function getEffectiveDueDate(sub: typeof p.subscriptions.active[0]): string {
+              if (sub.nextDueDate) {
+                let d = new Date(sub.nextDueDate)
+                if (Number.isNaN(d.getTime())) return ''
+                const now = new Date()
+                while (d <= now) {
+                  const rolled = rollForward(d.toISOString().slice(0, 10), sub.billingCycle)
+                  if (!rolled) break
+                  d = new Date(rolled)
+                }
+                return d.toISOString().slice(0, 10)
+              }
               if (sub.renewalOrEndMonth) {
                 const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
                 const parts = sub.renewalOrEndMonth.split(' ')
                 if (parts.length >= 2) {
                   const m = months.indexOf(parts[0])
                   const y = parseInt(parts[1])
-                  if (m >= 0 && !Number.isNaN(y)) {
-                    const renewDate = new Date(y, m, 1)
-                    const txt = daysUntil(renewDate.toISOString())
-                    if (txt) return txt
-                  }
+                  if (m >= 0 && !Number.isNaN(y)) return new Date(y, m, 1).toISOString().slice(0, 10)
                 }
-                return `renews ${sub.renewalOrEndMonth}`
               }
               if (sub.timestamp && /monthly/i.test(sub.billingCycle)) {
                 const start = new Date(sub.timestamp)
@@ -753,34 +775,72 @@ export function ExpensePage() {
                   const now = new Date()
                   const next = new Date(now.getFullYear(), now.getMonth() + 1, start.getDate())
                   if (next <= now) next.setMonth(next.getMonth() + 1)
-                  const txt = daysUntil(next.toISOString())
-                  if (txt) return txt
+                  return next.toISOString().slice(0, 10)
                 }
               }
               return ''
             }
 
+            function daysUntil(dateStr: string): string {
+              if (!dateStr) return ''
+              const diff = Math.round((new Date(dateStr).getTime() - Date.now()) / 86400000)
+              if (diff < 0) return ''
+              if (diff === 0) return 'renews today'
+              if (diff === 1) return 'renews tomorrow'
+              return `renews in ${diff}d`
+            }
+
+            function renewalDays(sub: typeof p.subscriptions.active[0]): number {
+              if (/one-time/i.test(sub.billingCycle)) return Infinity
+              const due = getEffectiveDueDate(sub)
+              if (!due) return Infinity
+              return Math.round((new Date(due).getTime() - Date.now()) / 86400000)
+            }
+
+            function renewalText(sub: typeof p.subscriptions.active[0]): string {
+              return daysUntil(getEffectiveDueDate(sub))
+            }
+
+            function urgencyClass(days: number): string {
+              if (days === 0) return 'urgency-today'
+              if (days <= 3) return 'urgency-soon'
+              if (days <= 7) return 'urgency-week'
+              return 'urgency-later'
+            }
+
             const sorted = [...panel.subscriptions.active].sort((a, b) => monthlyEq(b) - monthlyEq(a))
-            const maxMonthly = sorted.length ? Math.max(...sorted.map(monthlyEq)) : 1
             const totalMonthly = Math.round(sorted.reduce((s, sub) => s + monthlyEq(sub), 0))
+            const totalYearly = Math.round(totalMonthly * 12)
 
             return (
               <>
-                <div className={`subscription-amount ${hideAmounts ? 'amount-hidden' : ''}`}>
-                  {hideAmounts ? '---' : `~${formatCurrency(totalMonthly)}/mo`}
+                <div className="sub-metrics">
+                  <div className="sub-metric">
+                    <span className="sub-metric-value">{hideAmounts ? '---' : `~${formatCurrency(totalMonthly)}`}</span>
+                    <span className="sub-metric-label">/mo</span>
+                  </div>
+                  <div className="sub-metric">
+                    <span className="sub-metric-value">{panel.subscriptions.active.length}</span>
+                    <span className="sub-metric-label">Active</span>
+                  </div>
+                  <div className="sub-metric">
+                    <span className="sub-metric-value">{hideAmounts ? '---' : `~${formatCurrency(totalYearly)}`}</span>
+                    <span className="sub-metric-label">/yr</span>
+                  </div>
                 </div>
 
                 <div className="sub-breakdown">
+                  <span className="sub-breakdown-label">% of monthly spend</span>
                   {sorted.map((sub) => {
                     const meq = monthlyEq(sub)
-                    const pct = Math.max(3, (meq / maxMonthly) * 100)
+                    const pct = totalMonthly > 0 ? (meq / totalMonthly) * 100 : 0
                     return (
                       <div key={sub.service} className="sub-bar-row">
                         <span className="sub-bar-label">{sub.service}</span>
                         <div className="sub-bar-track">
-                          <div className="sub-bar-fill" style={{ width: `${pct}%` }} />
+                          <div className="sub-bar-fill" style={{ width: `${Math.max(3, pct)}%` }} />
                         </div>
-                        <span className="sub-bar-value">{formatCurrency(Math.round(meq))}/mo</span>
+                        <span className="sub-bar-value">{Math.round(pct)}% · {formatCurrency(Math.round(meq))}/mo</span>
                       </div>
                     )
                   })}
@@ -795,31 +855,57 @@ export function ExpensePage() {
                     <ul className="sub-list">
                       {sorted.map((sub) => {
                         const renew = renewalText(sub)
+                        const rDays = renewalDays(sub)
+                        const isYearly = /yearly|annual/i.test(sub.billingCycle)
                         return (
                           <li key={sub.service} className="sub-row">
                             <div className="sub-row-info">
                               <strong>{sub.service}</strong>
                               <span className="sub-meta">
                                 {cleanCycle(sub.billingCycle)}
-                                {renew ? <> · {renew}</> : null}
+                                {renew ? (
+                                  <>
+                                    {' · '}
+                                    {rDays < Infinity && (
+                                      <span className={`urgency-dot ${urgencyClass(rDays)}`} />
+                                    )}
+                                    {renew}
+                                  </>
+                                ) : null}
                                 <>{' · '}{hideAmounts ? '---' : formatCurrency(sub.amountInr)}</>
+                                {isYearly && ` (${formatCurrency(Math.round(monthlyEq(sub)))}/mo)`}
                               </span>
                             </div>
-                            {cancellingSub === sub.service ? (
-                              <span className="sub-cancelling">Cancelling…</span>
-                            ) : (
-                              <button type="button" className="sub-action" onClick={async () => {
-                                setCancellingSub(sub.service)
-                                try {
-                                  await cancelSubscription(sub.service)
-                                  setTimeout(() => refreshPanel(), 500)
-                                } catch {
-                                  setCancellingSub(null)
-                                }
-                              }}>
-                                Cancel
+                            <div className="sub-actions">
+                              <button type="button" className="sub-icon-btn" title="Edit"
+                                onClick={() => {
+                                  setEditSub({
+                                    service: sub.service,
+                                    amount_inr: String(sub.amountInr),
+                                    billing_cycle: sub.billingCycle,
+                                    next_due_date: sub.nextDueDate,
+                                    notes: sub.notes,
+                                  })
+                                  setShowSubModal(true)
+                                }}>
+                                ✏️
                               </button>
-                            )}
+                              {cancellingSub === sub.service ? (
+                                <span className="sub-cancelling">Cancelling…</span>
+                              ) : (
+                                <button type="button" className="sub-action" onClick={async () => {
+                                  setCancellingSub(sub.service)
+                                  try {
+                                    await cancelSubscription(sub.service)
+                                    setTimeout(() => refreshPanel(), 500)
+                                  } catch {
+                                    setCancellingSub(null)
+                                  }
+                                }}>
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
                           </li>
                         )
                       })}
@@ -838,6 +924,36 @@ export function ExpensePage() {
                             <div className="sub-row-info">
                               <strong>{sub.service}</strong>
                               <span className="sub-meta">{sub.renewalOrEndMonth ?? 'n/a'}</span>
+                            </div>
+                            <div className="sub-actions">
+                              <button type="button" className="sub-icon-btn" title="Edit"
+                                onClick={() => {
+                                  setEditSub({
+                                    service: sub.service,
+                                    amount_inr: String(sub.amountInr),
+                                    billing_cycle: sub.billingCycle,
+                                    next_due_date: sub.nextDueDate,
+                                    notes: sub.notes,
+                                  })
+                                  setShowSubModal(true)
+                                }}>
+                                ✏️
+                              </button>
+                              {reactivatingSub === sub.service ? (
+                                <span className="sub-cancelling">Reactivating…</span>
+                              ) : (
+                                <button type="button" className="sub-action" onClick={async () => {
+                                  setReactivatingSub(sub.service)
+                                  try {
+                                    await reactivateSubscription(sub.service)
+                                    setTimeout(() => refreshPanel(), 500)
+                                  } catch {
+                                    setReactivatingSub(null)
+                                  }
+                                }}>
+                                  Reactivate
+                                </button>
+                              )}
                             </div>
                           </li>
                         ))}
@@ -867,6 +983,13 @@ export function ExpensePage() {
           onClose={() => setShowCategoryManager(false)}
           onSaved={refreshPanel}
           envelopes={envelopeState?.envelopes ?? null}
+        />
+      )}
+      {showSubModal && (
+        <SubscriptionModal
+          onClose={() => { setShowSubModal(false); setEditSub(null) }}
+          onSaved={() => { setShowSubModal(false); setEditSub(null); setTimeout(() => refreshPanel(), 500) }}
+          editData={editSub ?? undefined}
         />
       )}
       {moveMoneyTarget && envelopeState && (

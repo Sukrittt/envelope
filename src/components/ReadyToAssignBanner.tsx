@@ -7,13 +7,15 @@ interface Props {
   isOverAssigned: boolean
   onIncomeChange: (value: number) => void
   sparkData?: Array<{ date: string; value: number }>
+  overspentCount: number
+  totalEnvelopes: number
 }
 
 function formatCurrency(value: number): string {
   return `₹${Math.round(value).toLocaleString('en-IN')}`
 }
 
-export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOverAssigned, onIncomeChange, sparkData }: Props) {
+export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOverAssigned, onIncomeChange, sparkData, overspentCount, totalEnvelopes }: Props) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(String(income))
 
@@ -39,7 +41,7 @@ export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOv
   return (
     <div className={`rta-banner ${rtaClass}`}>
       <div className="rta-main">
-        <div>
+        <div className="rta-text-block">
           <span className="rta-label">Ready to Assign</span>
           <span className="rta-amount">{formatCurrency(readyToAssign)}</span>
           {isOverAssigned && (
@@ -52,7 +54,7 @@ export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOv
         {sparkData && sparkData.length > 0 && (
           <div className="rta-spark">
             {sparkData.map((d) => {
-              const h = Math.max(2, (d.value / maxSpark) * 32)
+              const h = Math.max(2, (d.value / maxSpark) * 20)
               return (
                 <div
                   key={d.date}
@@ -90,9 +92,9 @@ export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOv
           <span className="rta-item-value">{formatCurrency(totalAssigned)}</span>
         </div>
         <div className="rta-item">
-          <span className="rta-item-label">Ready to Assign</span>
-          <span className={`rta-item-value ${isOverAssigned ? 'rta-negative' : ''}`}>
-            {formatCurrency(readyToAssign)}
+          <span className="rta-item-label">Overspent</span>
+          <span className={`rta-item-value ${overspentCount > 0 ? 'rta-negative' : ''}`}>
+            {overspentCount} of {totalEnvelopes}
           </span>
         </div>
       </div>

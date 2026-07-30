@@ -1,11 +1,12 @@
-timestamp,service,amount_inr,billing_cycle,status,renewal_or_end_month,notes
-2026-03-01T03:50:00+05:30,Spotify,99,monthly,active,,
-2026-03-01T03:50:00+05:30,Netflix,199,monthly,active,,
-2026-03-01T03:50:00+05:30,Amazon Prime,1499,yearly,active,September 2026,Intends to cancel at end of current term
-2026-03-01T03:50:00+05:30,OpenAI Plus,1999,monthly,cancelled,April 2026,Cancelled by user on 2026-04-01
-2026-03-01T03:50:00+05:30,OpenAI Go,399,monthly,cancelled,March 2026,Cancelled by user on 2026-03-02
-2026-03-01T03:50:00+05:30,11Labs,1142.24,one-time/monthly-temp,active-temporary,April 2026,Taken for one month; planned cancellation
-2026-03-05T18:46:00+05:30,Whisper Flow (AI),3480.59,yearly,active,March 2027,Newly added subscription
-2026-03-27T01:05:00+05:30,Hostinger VPS,2000,monthly,cancelled,March 2026,Cancelled by user on 2026-03-27
-2026-03-28T11:34:13+05:30,Fancode,199,monthly,active,,Added by user on 2026-03-28
-2026-03-31T15:39:50+05:30,TV Rent,1510.08,monthly,active,,Updated by user: now paying full monthly amount from 2026-03-31
+timestamp,service,amount_inr,billing_cycle,next_due_date,status,renewal_or_end_month,notes
+2026-03-01T03:50:00+05:30,Spotify,99,monthly,2026-08-29,active,,
+2026-03-01T03:50:00+05:30,Netflix,199,monthly,2026-08-05,active,,
+2026-03-01T03:50:00+05:30,Amazon Prime,1499,yearly,2026-09-01,active,September 2026,Intends to cancel at end of current term
+2026-03-01T03:50:00+05:30,OpenAI Plus,1999,monthly,,cancelled,April 2026,Cancelled by user on 2026-04-01
+2026-03-01T03:50:00+05:30,OpenAI Go,399,monthly,,cancelled,March 2026,Cancelled by user on 2026-03-02
+2026-03-01T03:50:00+05:30,11Labs,1142.24,one-time,,cancelled,August 2026,Taken for one month; planned cancellation
+2026-03-05T18:46:00+05:30,Whisper Flow (AI),3480.59,yearly,,cancelled,August 2026,Newly added subscription
+2026-03-27T01:05:00+05:30,Hostinger VPS,2000,monthly,,cancelled,March 2026,Cancelled by user on 2026-03-27
+2026-03-28T11:34:13+05:30,Fancode,199,monthly,2026-08-06,active,,Added by user on 2026-03-28
+2026-03-31T15:39:50+05:30,TV Rent,1510.08,monthly,,cancelled,August 2026,Updated by user: now paying full monthly amount from 2026-03-31
+2026-07-30T00:50:47+05:30,Whisper Flow AI,3840,yearly,2027-03-05,active,,

@@ -74,8 +74,7 @@ function buildHeatmap(expenseRows: Array<{ date: string; amountInr: number; cate
     catMap.set(row.category, (catMap.get(row.category) ?? 0) + row.amountInr)
   }
 
-  let maxTotal = 0
-  for (const v of dailyTotals.values()) if (v > maxTotal) maxTotal = v
+  const nonZeroTotals = Array.from(dailyTotals.values()).filter(v => v > 0).sort((a, b) => a - b)
 
   const cells: { day: number; date: string; total: number; topCat: string; level: number; isToday: boolean }[] = []
   for (let d = 1; d <= daysInMonth; d++) {
@@ -90,13 +89,11 @@ function buildHeatmap(expenseRows: Array<{ date: string; amountInr: number; cate
       }
     }
 
-    const rawIntensity = maxTotal > 0 ? total / maxTotal : 0
     let level = 0
-    if (total > 0) {
-      if (rawIntensity <= 0.25) level = 1
-      else if (rawIntensity <= 0.5) level = 2
-      else if (rawIntensity <= 0.75) level = 3
-      else level = 4
+    if (total > 0 && nonZeroTotals.length > 0) {
+      const rank = nonZeroTotals.findIndex(v => v >= total)
+      const percentile = rank / nonZeroTotals.length
+      level = Math.min(Math.floor(percentile * 4), 3) + 1
     }
 
     cells.push({
@@ -109,7 +106,7 @@ function buildHeatmap(expenseRows: Array<{ date: string; amountInr: number; cate
     })
   }
 
-  return { cells, maxTotal, daysInMonth }
+  return { cells, daysInMonth }
 }
 
 const LEVEL_COLORS = [

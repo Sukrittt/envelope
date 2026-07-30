@@ -104,11 +104,68 @@ export async function updateExpenseCategory(
   if (!resp.ok) throw new Error(`Failed to update expense: ${resp.status}`)
 }
 
-export async function cancelSubscription(service: string): Promise<void> {
+export interface SubscriptionRow {
+  timestamp: string
+  service: string
+  amount_inr: string
+  billing_cycle: string
+  next_due_date: string
+  status: string
+  renewal_or_end_month: string
+  notes: string
+}
+
+export async function getSubscriptions(): Promise<SubscriptionRow[]> {
+  const resp = await fetch('/api/subscriptions')
+  if (!resp.ok) throw new Error(`Failed to load subscriptions: ${resp.status}`)
+  const data: CsvResponse<SubscriptionRow> = await resp.json()
+  return data.rows
+}
+
+export async function updateSubscription(
+  service: string,
+  updates: {
+    new_service?: string
+    amount_inr?: string
+    billing_cycle?: string
+    next_due_date?: string
+    notes?: string
+    status?: string
+  },
+): Promise<void> {
   const resp = await fetch('/api/subscriptions', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ service, status: 'cancelled' }),
+    body: JSON.stringify({ service, ...updates }),
   })
-  if (!resp.ok) throw new Error(`Failed to cancel subscription: ${resp.status}`)
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}))
+    throw new Error(detail.error ?? `Failed to update subscription: ${resp.status}`)
+  }
+}
+
+export async function cancelSubscription(service: string): Promise<void> {
+  await updateSubscription(service, { status: 'cancelled' })
+}
+
+export async function reactivateSubscription(service: string): Promise<void> {
+  await updateSubscription(service, { status: 'active' })
+}
+
+export async function addSubscription(row: {
+  service: string
+  amount_inr: string
+  billing_cycle?: string
+  next_due_date?: string
+  notes?: string
+}): Promise<void> {
+  const resp = await fetch('/api/subscriptions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(row),
+  })
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}))
+    throw new Error(detail.error ?? `Failed to add subscription: ${resp.status}`)
+  }
 }

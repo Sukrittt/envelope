@@ -6,6 +6,8 @@ import { resolve } from 'node:path'
 const PRODUCTIVITY = resolve(import.meta.dirname, 'productivity')
 const EXPENSES_PATH = resolve(PRODUCTIVITY, 'expenses.csv')
 const BUDGETS_PATH = resolve(PRODUCTIVITY, 'budgets.csv')
+// Subscriptions live under data/, not productivity/ — see prebuild in package.json
+const SUBSCRIPTIONS_PATH = resolve(import.meta.dirname, 'data', 'subscriptions.csv')
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = []
@@ -276,36 +278,87 @@ async function handleApi(req: any, res: any): Promise<boolean> {
   }
 
   // ── Subscriptions ──
+  if (pathname === '/api/subscriptions' && method === 'GET') {
+    const rows = readCsv(SUBSCRIPTIONS_PATH)
+    if (!rows.length) { json({ headers: [], rows: [] }); return true }
+    const headers = rows[0]
+    const data = rows.slice(1).map(r => {
+      const obj: Record<string, string> = {}
+      headers.forEach((h, i) => { obj[h] = r[i] ?? '' })
+      return obj
+    })
+    json({ headers, rows: data })
+    return true
+  }
+
+  if (pathname === '/api/subscriptions' && method === 'POST') {
+    const body = await readBody()
+    if (!body.service || !body.amount_inr) { error('service, amount_inr required'); return true }
+    const rows = readCsv(SUBSCRIPTIONS_PATH)
+    if (!rows.length) rows.push(['timestamp', 'service', 'amount_inr', 'billing_cycle', 'next_due_date', 'status', 'renewal_or_end_month', 'notes'])
+    const header = rows[0]
+    const iService = header.indexOf('service')
+    if (rows.slice(1).some(r => r[iService]?.toLowerCase() === body.service.toLowerCase())) {
+      error('subscription already exists', 409)
+      return true
+    }
+    const now = new Date()
+    rows.push(header.map(h => {
+      switch (h) {
+        case 'timestamp': return body.timestamp || `${now.toISOString().slice(0, 10)}T${now.toTimeString().slice(0, 8)}+05:30`
+        case 'service': return body.service
+        case 'amount_inr': return String(body.amount_inr)
+        case 'billing_cycle': return body.billing_cycle || 'monthly'
+        case 'next_due_date': return body.next_due_date ?? ''
+        case 'status': return 'active'
+        case 'renewal_or_end_month': return body.renewal_or_end_month ?? ''
+        case 'notes': return body.notes ?? ''
+        default: return ''
+      }
+    }))
+    writeCsv(SUBSCRIPTIONS_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
   if (pathname === '/api/subscriptions' && method === 'PUT') {
     const body = await readBody()
     if (!body.service) { error('service required'); return true }
-    const rows = readCsv(resolve(PRODUCTIVITY, 'subscriptions.csv'))
+    const rows = readCsv(SUBSCRIPTIONS_PATH)
     if (rows.length < 2) { error('no subscriptions', 404); return true }
     const header = rows[0]
     const iService = header.indexOf('service')
+    const iAmount = header.indexOf('amount_inr')
+    const iCycle = header.indexOf('billing_cycle')
+    const iDue = header.indexOf('next_due_date')
     const iStatus = header.indexOf('status')
     const iRenewal = header.indexOf('renewal_or_end_month')
+    const iNotes = header.indexOf('notes')
     let found = false
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][iService] === body.service) {
-        if (body.status !== undefined) rows[i][iStatus] = body.status
-        if (body.renewalOrEndMonth !== undefined) rows[i][iRenewal] = body.renewalOrEndMonth
-        found = true
-        break
+      if (rows[i][iService] !== body.service) continue
+      if (body.new_service !== undefined) rows[i][iService] = body.new_service
+      if (body.amount_inr !== undefined) rows[i][iAmount] = String(body.amount_inr)
+      if (body.billing_cycle !== undefined) rows[i][iCycle] = body.billing_cycle
+      if (body.next_due_date !== undefined) rows[i][iDue] = body.next_due_date
+      if (body.notes !== undefined) rows[i][iNotes] = body.notes
+      if (body.status !== undefined) rows[i][iStatus] = body.status
+      if (body.renewalOrEndMonth !== undefined) rows[i][iRenewal] = body.renewalOrEndMonth
+      // Cancelling: access runs to the end of the current billing term
+      if (body.status === 'cancelled' && body.renewalOrEndMonth === undefined) {
+        const expiry = new Date()
+        expiry.setMonth(expiry.getMonth() + 1)
+        rows[i][iRenewal] = expiry.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
       }
+      // Reactivating: drop the stale cancellation end date
+      if (body.status === 'active' && body.renewalOrEndMonth === undefined) {
+        rows[i][iRenewal] = ''
+      }
+      found = true
+      break
     }
     if (!found) { error('subscription not found', 404); return true }
-    writeCsv(resolve(PRODUCTIVITY, 'subscriptions.csv'), rows)
-    if (body.status === 'cancelled') {
-      const expiry = new Date()
-      expiry.setMonth(expiry.getMonth() + 1)
-      const expiryStr = expiry.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      const cancelledRow = rows.find(r => r[iService] === body.service)
-      if (cancelledRow) {
-        cancelledRow[iRenewal] = expiryStr
-        writeCsv(resolve(PRODUCTIVITY, 'subscriptions.csv'), rows)
-      }
-    }
+    writeCsv(SUBSCRIPTIONS_PATH, rows)
     json({ ok: true })
     return true
   }

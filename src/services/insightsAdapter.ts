@@ -1,4 +1,4 @@
-import { getExpenses } from './api'
+import { getExpenses, getSubscriptions } from './api'
 
 export interface ExpenseRow {
   date: string
@@ -89,32 +89,6 @@ const PRIORITY_CATEGORIES = ['Food', 'Travel', 'Football', 'Bills', 'Subscriptio
 const EXCEPTIONAL_KEYWORDS = ['goa', 'betting', 'refund']
 const RECURRING_SUBSCRIPTION_HINTS = ['netflix', 'spotify', 'prime', 'openai', '11labs', 'whisper', 'subscription']
 
-function parseSubscriptionCSV(text: string): SubscriptionRow[] {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const header = lines[0].split(',')
-  const iService = header.indexOf('service')
-  const iAmount = header.indexOf('amount_inr')
-  const iBilling = header.indexOf('billing_cycle')
-  const iStatus = header.indexOf('status')
-  const iRenewal = header.indexOf('renewal_or_end_month')
-
-  const rows: SubscriptionRow[] = []
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',')
-    const amountInr = Number(cols[iAmount])
-    if (Number.isNaN(amountInr)) continue
-    rows.push({
-      service: cols[iService] ?? '',
-      amountInr,
-      billingCycle: cols[iBilling] ?? '',
-      status: cols[iStatus] ?? '',
-      renewalOrEndMonth: cols[iRenewal] ?? '',
-    })
-  }
-  return rows
-}
-
 function normalizeCategory(category: string): string {
   const clean = category.trim()
   if (/^subscription$/i.test(clean)) return 'Subscriptions'
@@ -138,9 +112,9 @@ function monthKeyFromDate(date: Date): string {
 }
 
 export async function loadInsightsData(cap: number): Promise<InsightsData> {
-  const [apiExpenses, subText] = await Promise.all([
+  const [apiExpenses, apiSubs] = await Promise.all([
     getExpenses().catch(() => []),
-    fetch('/productivity/subscriptions.csv').then((r) => (r.ok ? r.text() : '')),
+    getSubscriptions().catch(() => []),
   ])
 
   const expenses: ExpenseRow[] = apiExpenses.map((r) => ({
@@ -149,7 +123,13 @@ export async function loadInsightsData(cap: number): Promise<InsightsData> {
     amountInr: Number(r.amount_inr) || 0,
     category: r.category,
   }))
-  const subscriptions = parseSubscriptionCSV(subText)
+  const subscriptions: SubscriptionRow[] = apiSubs.map((r) => ({
+    service: r.service,
+    amountInr: Number(r.amount_inr) || 0,
+    billingCycle: r.billing_cycle,
+    status: r.status,
+    renewalOrEndMonth: r.renewal_or_end_month,
+  }))
 
   return computeInsights(expenses, subscriptions, cap)
 }

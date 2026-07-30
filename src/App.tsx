@@ -14,12 +14,12 @@ import { SettingsPage } from "./pages/SettingsPage";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/expense": {
-    title: "Expense Dashboard",
-    subtitle: "Run-rate, category pressure, and cashflow guardrails",
+    title: "Hey Sukrit 👋",
+    subtitle: "What's your dashboard looking like today?",
   },
   "/expense/transactions": {
-    title: "Transactions",
-    subtitle: "Timeline of all recorded expenses",
+    title: "Hey Sukrit 👋",
+    subtitle: "Check out all your transactions",
   },
   "/fitness": {
     title: "Fitness Dashboard",

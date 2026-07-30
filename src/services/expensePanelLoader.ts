@@ -1,6 +1,6 @@
 import type { ExpensePanelContract } from './expensePanelAdapter'
 import { computeEnvelopes } from './budgetLoader'
-import { getBudgets, getExpenses } from './api'
+import { getBudgets, getExpenses, getSubscriptions } from './api'
 
 interface ExpenseRow {
   timestamp: string
@@ -15,44 +15,18 @@ interface SubscriptionRow {
   service: string
   amountInr: number
   billingCycle: string
+  nextDueDate: string
   status: string
   renewalOrEndMonth: string
+  notes: string
 }
 
 const ESSENTIAL_CATEGORIES = new Set(['Bills', 'Food', 'Travel', 'Personal care'])
 
-function parseSubscriptionCSV(text: string): SubscriptionRow[] {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const header = lines[0].split(',')
-  const iTimestamp = header.indexOf('timestamp')
-  const iService = header.indexOf('service')
-  const iAmount = header.indexOf('amount_inr')
-  const iBilling = header.indexOf('billing_cycle')
-  const iStatus = header.indexOf('status')
-  const iRenewal = header.indexOf('renewal_or_end_month')
-
-  const rows: SubscriptionRow[] = []
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',')
-    const amountInr = Number(cols[iAmount])
-    if (Number.isNaN(amountInr)) continue
-    rows.push({
-      timestamp: cols[iTimestamp] ?? '',
-      service: cols[iService] ?? '',
-      amountInr,
-      billingCycle: cols[iBilling] ?? '',
-      status: cols[iStatus] ?? '',
-      renewalOrEndMonth: cols[iRenewal] ?? '',
-    })
-  }
-  return rows
-}
-
 export async function loadExpensePanelContract(): Promise<ExpensePanelContract> {
-  const [apiExpenses, subText, budgetRows] = await Promise.all([
+  const [apiExpenses, apiSubscriptions, budgetRows] = await Promise.all([
     getExpenses().catch(() => []),
-    fetch('/productivity/subscriptions.csv').then((r) => (r.ok ? r.text() : '')),
+    getSubscriptions().catch(() => []),
     getBudgets().catch(() => []),
   ])
 
@@ -63,7 +37,16 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
     amountInr: Number(r.amount_inr) || 0,
     category: r.category,
   }))
-  const subscriptions = parseSubscriptionCSV(subText)
+  const subscriptions: SubscriptionRow[] = apiSubscriptions.map((r) => ({
+    timestamp: r.timestamp,
+    service: r.service,
+    amountInr: Number(r.amount_inr) || 0,
+    billingCycle: r.billing_cycle,
+    nextDueDate: r.next_due_date ?? '',
+    status: r.status,
+    renewalOrEndMonth: r.renewal_or_end_month,
+    notes: r.notes ?? '',
+  }))
   const budgets = budgetRows.map((r) => ({
     month: r.month,
     category: r.category,
@@ -146,8 +129,10 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
       service: s.service,
       amountInr: s.amountInr,
       billingCycle: s.billingCycle,
+      nextDueDate: s.nextDueDate,
       status: s.status,
       renewalOrEndMonth: s.renewalOrEndMonth,
+      notes: s.notes,
     })),
   }
 }
