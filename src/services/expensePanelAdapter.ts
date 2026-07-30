@@ -28,6 +28,7 @@ export interface ExpensePanelContract {
   alerts: string[]
   deepLinks: Array<{ label: string; url: string }>
   subscriptions?: Array<{
+    timestamp: string
     service: string
     amountInr: number
     billingCycle: string
@@ -64,8 +65,8 @@ export interface ExpensePanelData {
     nextWeek: string
   }
   subscriptions: {
-    active: Array<{ service: string; amountInr: number; billingCycle: string; status: string; renewalOrEndMonth?: string }>
-    cancelled: Array<{ service: string; amountInr: number; billingCycle: string; status: string; renewalOrEndMonth?: string }>
+    active: Array<{ timestamp: string; service: string; amountInr: number; billingCycle: string; status: string; renewalOrEndMonth?: string }>
+    cancelled: Array<{ timestamp: string; service: string; amountInr: number; billingCycle: string; status: string; renewalOrEndMonth?: string }>
   }
 }
 

@@ -89,3 +89,12 @@ export async function getCategoryMap(): Promise<CategoryMap> {
   if (!resp.ok) throw new Error(`Failed to load category map: ${resp.status}`)
   return resp.json()
 }
+
+export async function cancelSubscription(service: string): Promise<void> {
+  const resp = await fetch('/api/subscriptions', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ service, status: 'cancelled' }),
+  })
+  if (!resp.ok) throw new Error(`Failed to cancel subscription: ${resp.status}`)
+}

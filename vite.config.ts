@@ -248,5 +248,40 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     return true
   }
 
+  // ── Subscriptions ──
+  if (pathname === '/api/subscriptions' && method === 'PUT') {
+    const body = await readBody()
+    if (!body.service) { error('service required'); return true }
+    const rows = readCsv(resolve(PRODUCTIVITY, 'subscriptions.csv'))
+    if (rows.length < 2) { error('no subscriptions', 404); return true }
+    const header = rows[0]
+    const iService = header.indexOf('service')
+    const iStatus = header.indexOf('status')
+    const iRenewal = header.indexOf('renewal_or_end_month')
+    let found = false
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][iService] === body.service) {
+        if (body.status !== undefined) rows[i][iStatus] = body.status
+        if (body.renewalOrEndMonth !== undefined) rows[i][iRenewal] = body.renewalOrEndMonth
+        found = true
+        break
+      }
+    }
+    if (!found) { error('subscription not found', 404); return true }
+    writeCsv(resolve(PRODUCTIVITY, 'subscriptions.csv'), rows)
+    if (body.status === 'cancelled') {
+      const expiry = new Date()
+      expiry.setMonth(expiry.getMonth() + 1)
+      const expiryStr = expiry.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      const cancelledRow = rows.find(r => r[iService] === body.service)
+      if (cancelledRow) {
+        cancelledRow[iRenewal] = expiryStr
+        writeCsv(resolve(PRODUCTIVITY, 'subscriptions.csv'), rows)
+      }
+    }
+    json({ ok: true })
+    return true
+  }
+
   return false
 }

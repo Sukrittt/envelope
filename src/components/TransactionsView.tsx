@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useSearchParams } from 'react-router-dom'
 import { loadTransactions, type Transaction } from '../services/expenseTransactions'
 import { getBudgets } from '../services/api'
 import { TransactionEntry } from './TransactionEntry'
@@ -95,6 +96,9 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const catTriggerRef = useRef<HTMLButtonElement>(null)
   const catMenuRef = useRef<HTMLDivElement>(null)
 
+  const [searchParams] = useSearchParams()
+  const dateParam = searchParams.get('date')
+
   useEffect(() => {
     Promise.all([
       loadTransactions(),
@@ -102,7 +106,11 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     ]).then(([rows, budgetRows]) => {
       setTransactions(rows)
       setBudgetCategories(budgetRows.map(b => b.category).filter(c => c !== '__income__'))
-      if (rows.length) {
+      if (dateParam) {
+        setPeriod('custom')
+        setCustomStart(dateParam)
+        setCustomEnd(dateParam)
+      } else if (rows.length) {
         let latest = new Date(0)
         for (const r of rows) {
           const d = new Date(r.date)
@@ -115,7 +123,7 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     })
     .catch((err) => setError(err.message))
     .finally(() => setLoading(false))
-  }, [])
+  }, [dateParam])
 
   const [budgetCategories, setBudgetCategories] = useState<string[]>([])
 

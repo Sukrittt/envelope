@@ -11,6 +11,7 @@ interface ExpenseRow {
 }
 
 interface SubscriptionRow {
+  timestamp: string
   service: string
   amountInr: number
   billingCycle: string
@@ -74,6 +75,7 @@ function parseSubscriptionCSV(text: string): SubscriptionRow[] {
   const lines = text.trim().split('\n')
   if (lines.length < 2) return []
   const header = lines[0].split(',')
+  const iTimestamp = header.indexOf('timestamp')
   const iService = header.indexOf('service')
   const iAmount = header.indexOf('amount_inr')
   const iBilling = header.indexOf('billing_cycle')
@@ -86,6 +88,7 @@ function parseSubscriptionCSV(text: string): SubscriptionRow[] {
     const amountInr = Number(cols[iAmount])
     if (Number.isNaN(amountInr)) continue
     rows.push({
+      timestamp: cols[iTimestamp] ?? '',
       service: cols[iService] ?? '',
       amountInr,
       billingCycle: cols[iBilling] ?? '',
@@ -178,6 +181,7 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
       { label: 'Subscriptions CSV', url: '../../productivity/subscriptions.csv' },
     ],
     subscriptions: subscriptions.map((s) => ({
+      timestamp: s.timestamp,
       service: s.service,
       amountInr: s.amountInr,
       billingCycle: s.billingCycle,

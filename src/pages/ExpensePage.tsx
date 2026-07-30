@@ -6,6 +6,8 @@ import { EnvelopeGrid } from '../components/EnvelopeGrid'
 import { MoveMoneyModal } from '../components/MoveMoneyModal'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { CategoryManager } from '../components/CategoryManager'
+import { SpendingInsights } from '../components/SpendingInsights'
+import { cancelSubscription } from '../services/api'
 import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
 import { loadExpensePanelContract } from '../services/expensePanelLoader'
 import type { EnvelopeState } from '../types/expense'
@@ -92,6 +94,7 @@ export function ExpensePage() {
   const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(null)
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
+  const [cancellingSub, setCancellingSub] = useState<string | null>(null)
 
   async function refreshPanel() {
     try {
@@ -144,13 +147,6 @@ export function ExpensePage() {
 
   function toggleCategory(category: string) {
     setSelectedCategories((prev) => (prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]))
-  }
-
-  function formatCurrencyHidden(value: number): React.ReactNode {
-    if (hideAmounts) {
-      return <span className="currency-hidden">--</span>
-    }
-    return formatCurrency(value)
   }
 
   useEffect(() => {
@@ -697,58 +693,163 @@ export function ExpensePage() {
           )}
         </article>
 
+        <SpendingInsights
+          envelopes={envelopeState?.envelopes ?? []}
+          expenseRows={panel.expenseRows}
+          month={panel.month}
+        />
+
         <article className="mc-panel expense-subscriptions-panel">
           <div className="mc-panel-header">
             <h3>Subscriptions</h3>
-            <p>Recurring drag</p>
           </div>
           {(() => {
-            const monthlyTotal = panel.subscriptions.active.reduce((sum, sub) => {
-              if (/yearly|annual/i.test(sub.billingCycle)) return sum + sub.amountInr / 12
-              if (/quarterly/i.test(sub.billingCycle)) return sum + sub.amountInr / 3
-              if (/weekly/i.test(sub.billingCycle)) return sum + sub.amountInr * 4.33
-              return sum + sub.amountInr
-            }, 0)
+            const p = panel!
+            function monthlyEq(sub: typeof p.subscriptions.active[0]): number {
+              if (/yearly|annual/i.test(sub.billingCycle)) return sub.amountInr / 12
+              if (/quarterly/i.test(sub.billingCycle)) return sub.amountInr / 3
+              if (/weekly/i.test(sub.billingCycle)) return sub.amountInr * 4.33
+              return sub.amountInr
+            }
+
+            function cleanCycle(cycle: string): string {
+              if (/one-time/i.test(cycle)) return 'one-time'
+              if (/monthly/i.test(cycle)) return 'monthly'
+              if (/yearly|annual/i.test(cycle)) return 'yearly'
+              if (/quarterly/i.test(cycle)) return 'quarterly'
+              if (/weekly/i.test(cycle)) return 'weekly'
+              return cycle
+            }
+
+            function daysUntil(dateStr: string): string {
+              const d = new Date(dateStr)
+              if (Number.isNaN(d.getTime())) return ''
+              const diff = Math.round((d.getTime() - Date.now()) / 86400000)
+              if (diff < 0) return ''
+              if (diff === 0) return 'renews today'
+              if (diff === 1) return 'renews tomorrow'
+              return `renews in ${diff}d`
+            }
+
+            function renewalText(sub: typeof p.subscriptions.active[0]): string {
+              if (/one-time/i.test(sub.billingCycle)) return ''
+              if (sub.renewalOrEndMonth) {
+                const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+                const parts = sub.renewalOrEndMonth.split(' ')
+                if (parts.length >= 2) {
+                  const m = months.indexOf(parts[0])
+                  const y = parseInt(parts[1])
+                  if (m >= 0 && !Number.isNaN(y)) {
+                    const renewDate = new Date(y, m, 1)
+                    const txt = daysUntil(renewDate.toISOString())
+                    if (txt) return txt
+                  }
+                }
+                return `renews ${sub.renewalOrEndMonth}`
+              }
+              if (sub.timestamp && /monthly/i.test(sub.billingCycle)) {
+                const start = new Date(sub.timestamp)
+                if (!Number.isNaN(start.getTime())) {
+                  const now = new Date()
+                  const next = new Date(now.getFullYear(), now.getMonth() + 1, start.getDate())
+                  if (next <= now) next.setMonth(next.getMonth() + 1)
+                  const txt = daysUntil(next.toISOString())
+                  if (txt) return txt
+                }
+              }
+              return ''
+            }
+
+            const sorted = [...panel.subscriptions.active].sort((a, b) => monthlyEq(b) - monthlyEq(a))
+            const maxMonthly = sorted.length ? Math.max(...sorted.map(monthlyEq)) : 1
+            const totalMonthly = Math.round(sorted.reduce((s, sub) => s + monthlyEq(sub), 0))
+
             return (
-              <p className={`subscription-amount ${hideAmounts ? 'amount-hidden' : ''}`}>
-                {hideAmounts ? '---' : `~${formatCurrency(Math.round(monthlyTotal))}/mo`}
-              </p>
+              <>
+                <div className={`subscription-amount ${hideAmounts ? 'amount-hidden' : ''}`}>
+                  {hideAmounts ? '---' : `~${formatCurrency(totalMonthly)}/mo`}
+                </div>
+
+                <div className="sub-breakdown">
+                  {sorted.map((sub) => {
+                    const meq = monthlyEq(sub)
+                    const pct = Math.max(3, (meq / maxMonthly) * 100)
+                    return (
+                      <div key={sub.service} className="sub-bar-row">
+                        <span className="sub-bar-label">{sub.service}</span>
+                        <div className="sub-bar-track">
+                          <div className="sub-bar-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="sub-bar-value">{formatCurrency(Math.round(meq))}/mo</span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="subscription-lists">
+                  <details className="subscription-accordion" open>
+                    <summary>
+                      <h4>Active ({panel.subscriptions.active.length})</h4>
+                      <span className="chevron" aria-hidden="true">▾</span>
+                    </summary>
+                    <ul className="sub-list">
+                      {sorted.map((sub) => {
+                        const renew = renewalText(sub)
+                        return (
+                          <li key={sub.service} className="sub-row">
+                            <div className="sub-row-info">
+                              <strong>{sub.service}</strong>
+                              <span className="sub-meta">
+                                {cleanCycle(sub.billingCycle)}
+                                {renew ? <> · {renew}</> : null}
+                                <>{' · '}{hideAmounts ? '---' : formatCurrency(sub.amountInr)}</>
+                              </span>
+                            </div>
+                            {cancellingSub === sub.service ? (
+                              <span className="sub-cancelling">Cancelling…</span>
+                            ) : (
+                              <button type="button" className="sub-action" onClick={async () => {
+                                setCancellingSub(sub.service)
+                                try {
+                                  await cancelSubscription(sub.service)
+                                  setTimeout(() => refreshPanel(), 500)
+                                } catch {
+                                  setCancellingSub(null)
+                                }
+                              }}>
+                                Cancel
+                              </button>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </details>
+
+                  <details className="subscription-accordion">
+                    <summary>
+                      <h4>Cancelled ({panel.subscriptions.cancelled.length})</h4>
+                      <span className="chevron" aria-hidden="true">▾</span>
+                    </summary>
+                    {panel.subscriptions.cancelled.length ? (
+                      <ul className="sub-list">
+                        {panel.subscriptions.cancelled.map((sub) => (
+                          <li key={sub.service} className="sub-row">
+                            <div className="sub-row-info">
+                              <strong>{sub.service}</strong>
+                              <span className="sub-meta">{sub.renewalOrEndMonth ?? 'n/a'}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="muted">No cancelled subscriptions found.</p>
+                    )}
+                  </details>
+                </div>
+              </>
             )
           })()}
-
-          <div className="subscription-lists">
-            <details className="subscription-accordion" open>
-              <summary>
-                <h4>Active ({panel.subscriptions.active.length})</h4>
-                <span className="chevron" aria-hidden="true">▾</span>
-              </summary>
-              <ul className="compact-bullets compact-bullets--tight">
-                {panel.subscriptions.active.map((sub) => (
-                  <li key={`${sub.service}-${sub.status}`}>
-                    <strong>{sub.service}</strong> · {sub.billingCycle} · {formatCurrencyHidden(sub.amountInr)}
-                  </li>
-                ))}
-              </ul>
-            </details>
-
-            <details className="subscription-accordion">
-              <summary>
-                <h4>Cancelled ({panel.subscriptions.cancelled.length})</h4>
-                <span className="chevron" aria-hidden="true">▾</span>
-              </summary>
-              {panel.subscriptions.cancelled.length ? (
-                <ul className="compact-bullets compact-bullets--tight">
-                  {panel.subscriptions.cancelled.map((sub) => (
-                    <li key={`${sub.service}-${sub.status}`}>
-                      <strong>{sub.service}</strong> · {sub.status} · {sub.renewalOrEndMonth ?? 'n/a'}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="muted">No cancelled subscriptions found.</p>
-              )}
-            </details>
-          </div>
         </article>
       </section>
 
