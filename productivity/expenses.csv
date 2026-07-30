@@ -542,3 +542,4 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-29T11:07:00+05:30,2026-07-29,Turf to work,63,Travel,,monthly: travel
 2026-07-29T15:46:00+05:30,2026-07-29,Football,279,Personal,,personal: football
 2026-07-29T17:14:00+05:30,2026-07-29,Bike to home,56,Travel,,monthly: travel
+2026-07-30T21:12:00+05:30,2026-07-30,Groceries,619.5,Groceries,,monthly: groceries

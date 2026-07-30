@@ -1,14 +1,14 @@
 {
   "meta": {
-    "generatedAt": "2026-07-29T21:11:25.173Z",
+    "generatedAt": "2026-07-30T15:42:16.525Z",
     "month": "2026-07",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 124122.48,
+    "monthSpendInr": 124741.98,
     "essentialSpendInr": 55120.27,
-    "discretionarySpendInr": 69002.21,
+    "discretionarySpendInr": 69621.71,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
@@ -33,12 +33,12 @@
       "amountInr": 3105.27
     },
     {
-      "category": "Food",
-      "amountInr": 1685
+      "category": "Groceries",
+      "amountInr": 2176
     },
     {
-      "category": "Groceries",
-      "amountInr": 1556.5
+      "category": "Food",
+      "amountInr": 1685
     },
     {
       "category": "Household",
@@ -161,6 +161,10 @@
     {
       "date": "2026-07-29",
       "amountInr": 398
+    },
+    {
+      "date": "2026-07-30",
+      "amountInr": 619.5
     }
   ],
   "alerts": [
