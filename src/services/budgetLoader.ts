@@ -40,6 +40,7 @@ export function computeEnvelopes(
   budgets: BudgetRow[],
   expenses: Array<{ date: string; amountInr: number; category: string }>,
   currentMonth: string,
+  categories: string[],
 ): EnvelopeState {
   const monthBudgets = budgets.filter((b) => b.month === currentMonth)
   const prevMonthBudgets = budgets.filter((b) => b.month < currentMonth)
@@ -55,17 +56,20 @@ export function computeEnvelopes(
   const income = incomeRow?.assigned ?? 0
 
   const monthSpending = getMonthSpendingByCategory(expenses, currentMonth)
-  const categorySet = new Set<string>()
 
-  for (const b of monthBudgets) {
-    if (b.category !== '__income__') categorySet.add(b.category)
-  }
+  const budgetCategories = new Set(
+    [...monthBudgets, ...prevMonthBudgets]
+      .filter((b) => b.category !== '__income__')
+      .map((b) => b.category),
+  )
+
+  const allCategories = [...new Set([...categories, ...budgetCategories])]
 
   const envelopes: Envelope[] = []
   let totalAssigned = 0
   let totalSpent = 0
 
-  for (const category of categorySet) {
+  for (const category of allCategories) {
     const curr = monthBudgets.find((b) => b.category === category)
     const prevMonths = prevMonthMap.get(category) ?? []
     const prevSorted = prevMonths.sort((a, b) => b.month.localeCompare(a.month))
@@ -79,17 +83,20 @@ export function computeEnvelopes(
       prevSpent = prevExpenses.reduce((s, e) => s + e.amountInr, 0)
     }
 
+    const isCC = category === '__credit_card__'
     const assigned = curr?.assigned ?? 0
     const rolledOver = curr?.rolledOver ?? 0
     const computedRollover = prev
-      ? prev.assigned + prev.rolledOver - prevSpent
+      ? Math.max(0, prev.assigned + prev.rolledOver - prevSpent)
       : rolledOver
 
     const spent = monthSpending.get(category) ?? 0
     const available = assigned + computedRollover - spent
 
-    totalAssigned += assigned
-    totalSpent += spent
+    if (!isCC) {
+      totalAssigned += assigned
+      totalSpent += spent
+    }
 
     envelopes.push({
       category,
@@ -99,6 +106,7 @@ export function computeEnvelopes(
       rolledOver: computedRollover,
       isOverspent: available < 0,
       spentPct: assigned > 0 ? Math.min(100, (spent / assigned) * 100) : spent > 0 ? 100 : 0,
+      isCreditCardPayment: isCC,
     })
   }
 
@@ -107,7 +115,7 @@ export function computeEnvelopes(
     return a.category.localeCompare(b.category)
   })
 
-  const readyToAssign = income - totalAssigned
+  const readyToAssign = Math.round(income - totalAssigned)
 
   return {
     month: currentMonth,
@@ -123,6 +131,7 @@ export function computeEnvelopes(
 export async function loadBudgetState(
   expenses: Array<{ date: string; amountInr: number; category: string }>,
   currentMonth: string,
+  categories: string[],
 ): Promise<EnvelopeState> {
   let budgets: BudgetRow[] = []
 
@@ -133,8 +142,7 @@ export async function loadBudgetState(
       budgets = parseBudgetCSV(text)
     }
   } catch {
-    // budgets file not found — proceed with empty budgets
   }
 
-  return computeEnvelopes(budgets, expenses, currentMonth)
+  return computeEnvelopes(budgets, expenses, currentMonth, categories)
 }

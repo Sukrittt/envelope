@@ -14,11 +14,15 @@ function fmt(n: number): string {
 }
 
 function buildReview(envelopes: Envelope[]): { wentWrong: string; nextAction: string } {
-  const overspent = envelopes
+  const ccEnvelope = envelopes.find(e => e.isCreditCardPayment)
+  const ccBalance = ccEnvelope?.available ?? 0
+
+  const spendingEnvelopes = envelopes.filter(e => !e.isCreditCardPayment)
+  const overspent = spendingEnvelopes
     .filter(e => e.isOverspent)
     .sort((a, b) => a.available - b.available)
 
-  const hasSurplus = envelopes.filter(e => e.available > 0)
+  const hasSurplus = spendingEnvelopes.filter(e => e.available > 0)
 
   let wentWrong = ''
   let nextAction = ''
@@ -32,14 +36,18 @@ function buildReview(envelopes: Envelope[]): { wentWrong: string; nextAction: st
       const secondDeficit = Math.abs(second.available)
       wentWrong += ` ${second.category} follows at ${fmt(secondDeficit)}.`
     }
-  } else if (envelopes.length > 0) {
-    const low = [...envelopes].sort((a, b) => a.available - b.available)[0]
+  } else if (ccBalance > 0 && overspent.length === 0) {
+    wentWrong = `Credit card payment of ${fmt(ccBalance)} is pending.`
+  } else if (spendingEnvelopes.length > 0) {
+    const low = [...spendingEnvelopes].sort((a, b) => a.available - b.available)[0]
     wentWrong = `${low.category} has only ${fmt(low.available)} left — keep an eye on it.`
   } else {
     wentWrong = 'No envelopes with data this month.'
   }
 
-  if (overspent.length > 0 && hasSurplus.length > 0) {
+  if (ccBalance > 0) {
+    nextAction = `Pay credit card bill (${fmt(ccBalance)}) — the money is set aside in the Credit Card envelope.`
+  } else if (overspent.length > 0 && hasSurplus.length > 0) {
     const worst = overspent[0]
     const best = [...hasSurplus].sort((a, b) => b.available - a.available)[0]
     nextAction = `Move money from ${best.category} (${fmt(best.available)} available) to cover the ${worst.category} overspend.`

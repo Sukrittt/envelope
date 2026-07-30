@@ -117,7 +117,7 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
       getBudgets().catch(() => [] as { category: string }[]),
     ]).then(([rows, budgetRows]) => {
       setTransactions(rows)
-      setBudgetCategories(budgetRows.map(b => b.category).filter(c => c !== '__income__'))
+      setBudgetCategories(budgetRows.map(b => b.category).filter(c => c !== '__income__' && c !== '__credit_card__'))
       if (dateParam) {
         setPeriod('custom')
         setCustomStart(dateParam)
@@ -256,7 +256,7 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
         getBudgets().catch(() => [] as { category: string }[]),
       ])
       setTransactions(rows)
-      setBudgetCategories(budgetRows.map(b => b.category).filter(c => c !== '__income__'))
+      setBudgetCategories(budgetRows.map(b => b.category).filter(c => c !== '__income__' && c !== '__credit_card__'))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh')
     }

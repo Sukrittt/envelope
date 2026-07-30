@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 interface Props {
   onMoveMoney?: () => void
   onShowCategories?: () => void
+  onBulkReturn?: () => void
   month?: string
   income?: number
   totalSpent?: number
@@ -19,7 +20,7 @@ function daysLeftInMonth(): string {
   return `${left} day${left !== 1 ? 's' : ''} left`
 }
 
-export function ExpenseSidebar({ onMoveMoney, onShowCategories, month, income, totalSpent }: Props) {
+export function ExpenseSidebar({ onMoveMoney, onShowCategories, onBulkReturn, month, income, totalSpent }: Props) {
   const { pathname } = useLocation()
   const isBudget = pathname.startsWith('/expense')
   const isInvestments = pathname === '/investments'
@@ -85,6 +86,15 @@ export function ExpenseSidebar({ onMoveMoney, onShowCategories, month, income, t
           <button type="button" className="expense-sidebar-link" onClick={onMoveMoney}>
             <span className="expense-sidebar-link-icon">⇄</span>
             Move money
+          </button>
+        </div>
+      )}
+      {onBulkReturn && (
+        <div>
+          <div className="expense-sidebar-group-label">Settings</div>
+          <button type="button" className="expense-sidebar-link" onClick={onBulkReturn}>
+            <span className="expense-sidebar-link-icon">⟲</span>
+            Return all to RTA
           </button>
         </div>
       )}

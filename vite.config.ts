@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 const PRODUCTIVITY = resolve(import.meta.dirname, 'productivity')
 const EXPENSES_PATH = resolve(PRODUCTIVITY, 'expenses.csv')
 const BUDGETS_PATH = resolve(PRODUCTIVITY, 'budgets.csv')
+const CATEGORIES_PATH = resolve(PRODUCTIVITY, 'categories.csv')
 // Subscriptions live under data/, not productivity/ — see prebuild in package.json
 const SUBSCRIPTIONS_PATH = resolve(import.meta.dirname, 'data', 'subscriptions.csv')
 const HOLDINGS_PATH = resolve(import.meta.dirname, 'data', 'holdings.csv')
@@ -203,6 +204,48 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     return true
   }
 
+  // ── Categories ──
+  if (pathname === '/api/categories' && method === 'GET') {
+    const rows = readCsv(CATEGORIES_PATH).filter(r => r.length > 0)
+    json(rows.slice(1).map(r => r[0]).filter(Boolean))
+    return true
+  }
+
+  if (pathname === '/api/categories' && method === 'POST') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    const rows = readCsv(CATEGORIES_PATH)
+    if (rows.length === 0) rows.push(['name'])
+    rows.push([body.name])
+    writeCsv(CATEGORIES_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  if (pathname === '/api/categories' && method === 'PUT') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    const rows = readCsv(CATEGORIES_PATH)
+    const idx = rows.findIndex(r => r[0] === body.name)
+    if (idx < 1) { error('category not found', 404); return true }
+    if (body.newName) rows[idx][0] = body.newName
+    writeCsv(CATEGORIES_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  if (pathname === '/api/categories' && method === 'DELETE') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    let rows = readCsv(CATEGORIES_PATH)
+    const before = rows.length
+    rows = [rows[0], ...rows.slice(1).filter(r => r[0] !== body.name)]
+    if (rows.length === before) { error('category not found', 404); return true }
+    writeCsv(CATEGORIES_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
   // ── Expenses ──
   if (pathname === '/api/expenses' && method === 'GET') {
     const rows = readCsv(EXPENSES_PATH)
@@ -223,6 +266,7 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     const now = new Date()
     const date = body.date || now.toISOString().slice(0, 10)
     const timestamp = body.timestamp || `${date}T${now.toTimeString().slice(0, 8)}+05:30`
+    const paymentMethod = body.payment_method ?? 'bank'
     const rows = readCsv(EXPENSES_PATH)
     if (!rows.length) rows.push(['timestamp', 'date', 'item', 'amount_inr', 'category', 'notes', 'source', 'amount', 'description', 'payment_method'])
     const header = rows[0]
@@ -235,12 +279,41 @@ async function handleApi(req: any, res: any): Promise<boolean> {
         case 'category': return body.category
         case 'notes': return body.notes ?? ''
         case 'source': return 'manual'
+        case 'payment_method': return paymentMethod
         default: return ''
       }
     })
     rows.push(row)
     writeCsv(EXPENSES_PATH, rows)
     categoryCache = null
+
+    // Auto-transfer to Credit Card envelope for CC purchases
+    if (paymentMethod === 'credit_card') {
+      const amountNum = Number(body.amount_inr)
+      if (!Number.isNaN(amountNum) && amountNum > 0) {
+        const month = date.slice(0, 7)
+        const budgetRows = readCsv(BUDGETS_PATH)
+        if (!budgetRows.length) budgetRows.push(['month', 'category', 'assigned', 'rolled_over'])
+        const bHeader = budgetRows[0]
+        const iMonth = bHeader.indexOf('month')
+        const iCategory = bHeader.indexOf('category')
+        const iAssigned = bHeader.indexOf('assigned')
+        let found = false
+        for (let i = 1; i < budgetRows.length; i++) {
+          if (budgetRows[i][iMonth] === month && budgetRows[i][iCategory] === '__credit_card__') {
+            const current = Number(budgetRows[i][iAssigned]) || 0
+            budgetRows[i][iAssigned] = String(current + amountNum)
+            found = true
+            break
+          }
+        }
+        if (!found) {
+          budgetRows.push([month, '__credit_card__', String(amountNum), '0'])
+        }
+        writeCsv(BUDGETS_PATH, budgetRows)
+      }
+    }
+
     json({ ok: true })
     return true
   }

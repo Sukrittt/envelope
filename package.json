@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "cp -r productivity/expenses.csv public/productivity/expenses.csv && cp productivity/budgets.csv public/productivity/budgets.csv && cp data/subscriptions.csv public/productivity/subscriptions.csv && cp data/holdings.csv public/productivity/holdings.csv && cp data/holding_events.csv public/productivity/holding_events.csv",
+    "prebuild": "cp -r productivity/expenses.csv public/productivity/expenses.csv && cp productivity/budgets.csv public/productivity/budgets.csv && cp productivity/categories.csv public/productivity/categories.csv && cp data/subscriptions.csv public/productivity/subscriptions.csv && cp data/holdings.csv public/productivity/holdings.csv && cp data/holding_events.csv public/productivity/holding_events.csv",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

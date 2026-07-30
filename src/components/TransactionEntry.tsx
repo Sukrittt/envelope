@@ -14,6 +14,7 @@ export function TransactionEntry({ categories, onSaved }: Props) {
   const [category, setCategory] = useState('')
   const [date, setDate] = useState(getTodayISO())
   const [notes, setNotes] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'credit_card'>('bank')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const itemRef = useRef<HTMLInputElement>(null)
@@ -39,6 +40,7 @@ export function TransactionEntry({ categories, onSaved }: Props) {
     setCategory('')
     setDate(getTodayISO())
     setNotes('')
+    setPaymentMethod('bank')
     setError('')
   }
 
@@ -62,6 +64,7 @@ export function TransactionEntry({ categories, onSaved }: Props) {
         category,
         date,
         notes: notes.trim(),
+        payment_method: paymentMethod,
       })
       invalidateCategoryCache()
       reset()
@@ -105,6 +108,12 @@ export function TransactionEntry({ categories, onSaved }: Props) {
       <div className="txn-entry-row">
         <input type="text" className="txn-entry-input txn-entry-notes" placeholder="Notes (optional)"
           value={notes} onChange={(e) => setNotes(e.target.value)} aria-label="Notes" />
+        <label className="txn-entry-paymethod">
+          <span className={`txn-entry-paymethod-opt ${paymentMethod === 'bank' ? 'is-active' : ''}`}
+            onClick={() => setPaymentMethod('bank')}>Bank/UPI</span>
+          <span className={`txn-entry-paymethod-opt ${paymentMethod === 'credit_card' ? 'is-active' : ''}`}
+            onClick={() => setPaymentMethod('credit_card')}>Credit Card</span>
+        </label>
       </div>
       {error && <p className="txn-entry-error">{error}</p>}
     </form>

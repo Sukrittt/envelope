@@ -13,6 +13,7 @@ export interface Envelope {
   rolledOver: number
   isOverspent: boolean
   spentPct: number
+  isCreditCardPayment?: boolean
 }
 
 export interface EnvelopeState {

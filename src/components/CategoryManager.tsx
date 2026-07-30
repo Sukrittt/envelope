@@ -1,34 +1,31 @@
 import { useState, useEffect } from 'react'
-import { getBudgets, addBudget, updateBudget, deleteBudget, type BudgetRow } from '../services/api'
+import { getCategories, addCategory, updateCategory, deleteCategory } from '../services/api'
 import type { Envelope } from '../types/expense'
 
 interface Props {
-  currentMonth: string
   onClose: () => void
   onSaved: () => void
   envelopes: Envelope[] | null
 }
 
-export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: Props) {
-  const [budgets, setBudgets] = useState<BudgetRow[]>([])
+export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
+  const [categories, setCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const [newName, setNewName] = useState('')
-  const [newAmount, setNewAmount] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [editAmount, setEditAmount] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   useEffect(() => {
-    getBudgets()
-      .then((rows) => {
-        setBudgets(rows.filter(r => r.month === currentMonth && r.category !== '__income__'))
+    getCategories()
+      .then((cats) => {
+        setCategories(cats)
         setLoading(false)
       })
       .catch((err) => { setError(err.message); setLoading(false) })
-  }, [currentMonth])
+  }, [])
 
   function isOverspent(category: string): boolean {
     if (!envelopes) return false
@@ -37,16 +34,13 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
   }
 
   async function handleAdd() {
-    if (!newName.trim() || !newAmount.trim()) return
-    const amt = parseFloat(newAmount)
-    if (Number.isNaN(amt)) return
+    if (!newName.trim()) return
     setError('')
     try {
-      await addBudget({ month: currentMonth, category: newName.trim(), assigned: String(amt) })
+      await addCategory(newName.trim())
       setNewName('')
-      setNewAmount('')
-      const rows = await getBudgets()
-      setBudgets(rows.filter(r => r.month === currentMonth && r.category !== '__income__'))
+      const cats = await getCategories()
+      setCategories(cats)
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add')
@@ -54,17 +48,15 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
   }
 
   async function handleSaveEdit(originalName: string) {
-    if (!editName.trim() || !editAmount.trim()) return
-    const amt = parseFloat(editAmount)
-    if (Number.isNaN(amt)) return
+    if (!editName.trim()) return
     setError('')
     try {
-      const updates: Partial<BudgetRow> & { newCategory?: string } = { assigned: String(amt) }
-      if (editName.trim() !== originalName) updates.newCategory = editName.trim()
-      await updateBudget(currentMonth, originalName, updates)
+      if (editName.trim() !== originalName) {
+        await updateCategory(originalName, editName.trim())
+      }
       setEditing(null)
-      const rows = await getBudgets()
-      setBudgets(rows.filter(r => r.month === currentMonth && r.category !== '__income__'))
+      const cats = await getCategories()
+      setCategories(cats)
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update')
@@ -74,10 +66,10 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
   async function handleDelete(category: string) {
     setError('')
     try {
-      await deleteBudget(currentMonth, category)
+      await deleteCategory(category)
       setDeleteTarget(null)
-      const rows = await getBudgets()
-      setBudgets(rows.filter(r => r.month === currentMonth && r.category !== '__income__'))
+      const cats = await getCategories()
+      setCategories(cats)
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete')
@@ -99,38 +91,35 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
             <p className="muted">Loading…</p>
           ) : (
             <div className="category-manager-list">
-              {budgets.map((b) => {
-                const overspent = isOverspent(b.category)
+              {categories.map((cat) => {
+                const overspent = isOverspent(cat)
                 return (
-                  <div key={b.category} className={`category-manager-row ${overspent ? 'cm-row-overspent' : ''}`}>
-                    {editing === b.category ? (
+                  <div key={cat} className={`category-manager-row ${overspent ? 'cm-row-overspent' : ''}`}>
+                    {editing === cat ? (
                       <>
                         <input type="text" className="txn-entry-input" value={editName}
                           onChange={(e) => setEditName(e.target.value)} aria-label="Category name" />
-                        <input type="number" step="any" className="txn-entry-input txn-entry-amount" value={editAmount}
-                          onChange={(e) => setEditAmount(e.target.value)} aria-label="Budget amount" />
-                        <button type="button" className="action-button" onClick={() => handleSaveEdit(b.category)}>Save</button>
+                        <button type="button" className="action-button" onClick={() => handleSaveEdit(cat)}>Save</button>
                         <button type="button" className="action-button is-ghost" onClick={() => setEditing(null)}>Cancel</button>
                       </>
-                    ) : deleteTarget === b.category ? (
+                    ) : deleteTarget === cat ? (
                       <div className="cm-delete-confirm">
-                        <span className="muted">Remove "{b.category}"? Past transactions are kept.</span>
+                        <span className="muted">Remove "{cat}"? Past transactions are kept.</span>
                         <div className="cm-delete-actions">
-                          <button type="button" className="action-button" onClick={() => handleDelete(b.category)}>Remove</button>
+                          <button type="button" className="action-button" onClick={() => handleDelete(cat)}>Remove</button>
                           <button type="button" className="action-button is-ghost" onClick={() => setDeleteTarget(null)}>Keep</button>
                         </div>
                       </div>
                     ) : (
                       <>
                         <span className={`cm-indicator ${overspent ? 'cm-indicator-overspent' : ''}`} />
-                        <span className="category-manager-name">{b.category}</span>
-                        <span className="category-manager-amount">₹{Math.round(parseFloat(b.assigned) || 0).toLocaleString('en-IN')}</span>
+                        <span className="category-manager-name">{cat}</span>
                         <button type="button" className="cm-icon-btn" title="Edit"
-                          onClick={() => { setEditing(b.category); setEditName(b.category); setEditAmount(b.assigned) }}>
+                          onClick={() => { setEditing(cat); setEditName(cat) }}>
                           ✏️
                         </button>
                         <button type="button" className="cm-icon-btn" title="Delete"
-                          onClick={() => setDeleteTarget(b.category)}>
+                          onClick={() => setDeleteTarget(cat)}>
                           🗑️
                         </button>
                       </>
@@ -138,6 +127,7 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
                   </div>
                 )
               })}
+              {categories.length === 0 && <p className="muted">No categories yet. Add one below.</p>}
             </div>
           )}
         </div>
@@ -149,10 +139,6 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
               value={newName} onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
               aria-label="New category name" />
-            <input type="number" step="any" className="txn-entry-input txn-entry-amount" placeholder="Monthly budget"
-              value={newAmount} onChange={(e) => setNewAmount(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-              aria-label="Monthly budget amount" />
             <button type="button" className="action-button" onClick={handleAdd}>Add</button>
           </div>
         </div>

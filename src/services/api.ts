@@ -57,6 +57,39 @@ export async function deleteBudget(month: string, category: string): Promise<voi
   if (!resp.ok) throw new Error(`Failed to delete budget: ${resp.status}`)
 }
 
+export async function getCategories(): Promise<string[]> {
+  const resp = await fetch('/api/categories')
+  if (!resp.ok) throw new Error(`Failed to load categories: ${resp.status}`)
+  return resp.json()
+}
+
+export async function addCategory(name: string): Promise<void> {
+  const resp = await fetch('/api/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!resp.ok) throw new Error(`Failed to add category: ${resp.status}`)
+}
+
+export async function updateCategory(name: string, newName: string): Promise<void> {
+  const resp = await fetch('/api/categories', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, newName }),
+  })
+  if (!resp.ok) throw new Error(`Failed to update category: ${resp.status}`)
+}
+
+export async function deleteCategory(name: string): Promise<void> {
+  const resp = await fetch('/api/categories', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!resp.ok) throw new Error(`Failed to delete category: ${resp.status}`)
+}
+
 export async function getExpenses(): Promise<ExpenseRow[]> {
   const resp = await fetch('/api/expenses')
   if (!resp.ok) throw new Error(`Failed to load expenses: ${resp.status}`)
@@ -70,6 +103,7 @@ export async function addExpense(row: {
   category: string
   date?: string
   notes?: string
+  payment_method?: string
 }): Promise<void> {
   const resp = await fetch('/api/expenses', {
     method: 'POST',

@@ -8,10 +8,11 @@ import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { CategoryManager } from '../components/CategoryManager'
 import { SubscriptionModal } from '../components/SubscriptionModal'
 import { SpendingInsights } from '../components/SpendingInsights'
-import { cancelSubscription, reactivateSubscription, addBudget, updateBudget } from '../services/api'
+import { cancelSubscription, reactivateSubscription, addBudget, updateBudget, getBudgets, getCategories, addExpense } from '../services/api'
 import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
 import { loadExpensePanelContract } from '../services/expensePanelLoader'
-import type { EnvelopeState } from '../types/expense'
+import { MonthRolloverBanner } from '../components/MonthRolloverBanner'
+import type { BudgetRow, EnvelopeState } from '../types/expense'
 
 type PeriodKey = '7d' | '30d' | 'mtd' | 'custom'
 type TrendView = 'daily' | 'weekly' | 'monthly'
@@ -97,9 +98,17 @@ export function ExpensePage() {
   const [envelopeSearch, setEnvelopeSearch] = useState('')
   const [envelopeSort, setEnvelopeSort] = useState<'overspent-first' | 'alphabetical' | 'by-assigned'>('overspent-first')
   const [showCategoryManager, setShowCategoryManager] = useState(false)
+  const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false)
+  const [showRolloverBanner, setShowRolloverBanner] = useState(false)
+  const [rolloverData, setRolloverData] = useState<{
+    lastMonth: string
+    lastIncome: number
+    lastAssignments: Array<{ category: string; assigned: number }>
+  } | null>(null)
   const [cancellingSub, setCancellingSub] = useState<string | null>(null)
   const [reactivatingSub, setReactivatingSub] = useState<string | null>(null)
   const [showSubModal, setShowSubModal] = useState(false)
+  const [payCreditCardAmount, setPayCreditCardAmount] = useState<number | null>(null)
   const [editSub, setEditSub] = useState<{
     service: string
     amount_inr: string
@@ -152,9 +161,65 @@ export function ExpensePage() {
         return e
       })
       const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
-      const rta = prev.income - totalAssigned
+      const rta = Math.round(prev.income - totalAssigned)
       return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
     })
+  }
+
+  function handleBulkReturnToRTA() {
+    if (!envelopeState) return
+    const positive = envelopeState.envelopes.filter((e) => e.available > 0)
+    if (positive.length === 0) return
+
+    setEnvelopeState((prev) => {
+      if (!prev) return prev
+      const month = prev.month
+      const updated = prev.envelopes.map((e) => {
+        if (e.available > 0) {
+          updateBudget(month, e.category, { assigned: String(e.assigned - e.available) }).catch(() => {})
+          return { ...e, assigned: e.assigned - e.available, available: 0 }
+        }
+        return e
+      })
+      const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
+      const rta = prev.income - totalAssigned
+      const log = {
+        type: 'bulk-return-to-rta',
+        month,
+        timestamp: new Date().toISOString(),
+        categories: positive.map((e) => ({ category: e.category, amount: e.available })),
+        totalReturned: positive.reduce((s, e) => s + e.available, 0),
+      }
+      try {
+        const logs = JSON.parse(localStorage.getItem('budget-transfer-log') || '[]')
+        logs.push(log)
+        localStorage.setItem('budget-transfer-log', JSON.stringify(logs))
+      } catch {}
+      return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
+    })
+    setShowBulkReturnConfirm(false)
+  }
+
+  async function handlePayCreditCard() {
+    const ccEnv = envelopeState?.envelopes.find(e => e.isCreditCardPayment)
+    const amount = ccEnv?.available
+    if (!amount || amount <= 0) return
+    setPayCreditCardAmount(amount)
+  }
+
+  async function confirmPayCreditCard(amount: number) {
+    try {
+      await addExpense({
+        item: 'Credit Card Payment',
+        amount_inr: String(amount),
+        category: '__credit_card__',
+        payment_method: 'bank',
+      })
+      setPayCreditCardAmount(null)
+      await refreshPanel()
+    } catch {
+      // silent
+    }
   }
 
   const categoryMenuRef = useRef<HTMLDivElement | null>(null)
@@ -167,6 +232,84 @@ export function ExpensePage() {
       setEnvelopeState(data.envelopeState)
     })
   }, [])
+
+  useEffect(() => {
+    if (!panel) return
+    const storedMonth = localStorage.getItem('budget-active-month')
+    if (storedMonth === panel.month) return
+    const p = panel
+
+    async function checkRollover() {
+      const budgets: BudgetRow[] = (await getBudgets().catch(() => []))
+        .map((r) => ({ month: r.month, category: r.category, assigned: Number(r.assigned), rolledOver: Number(r.rolled_over) }))
+
+      const hasCurrentMonthData = budgets.some(
+        (r) => r.month === p.month && (r.category === '__income__' || r.assigned > 0),
+      )
+      if (hasCurrentMonthData) {
+        localStorage.setItem('budget-active-month', p.month)
+        return
+      }
+
+      const lastMonthKey = prevMonth(p.month)
+      const lastIncome = budgets.find((r) => r.month === lastMonthKey && r.category === '__income__')?.assigned ?? 0
+      const lastAssignments = budgets
+        .filter((r) => r.month === lastMonthKey && r.category !== '__income__')
+        .map((r) => ({ category: r.category, assigned: r.assigned }))
+      setRolloverData({ lastMonth: lastMonthKey, lastIncome, lastAssignments })
+      setShowRolloverBanner(true)
+    }
+    checkRollover()
+  }, [panel])
+
+  function prevMonth(key: string): string {
+    const [y, m] = key.split('-')
+    const d = new Date(Number(y), Number(m) - 2, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+
+  async function handleRolloverConfirm(income: number, copyAssigned: boolean) {
+    const p = panel
+    if (!p) return
+    const month = p.month
+    const lastMonthKey = prevMonth(month)
+
+    const budgets: BudgetRow[] = (await getBudgets().catch(() => []))
+      .map((r) => ({ month: r.month, category: r.category, assigned: Number(r.assigned), rolledOver: Number(r.rolled_over) }))
+    const categories = await getCategories().catch(() => [] as string[])
+
+    const lastMonthRows = budgets.filter((b) => b.month === lastMonthKey && b.category !== '__income__')
+    let totalOverspent = 0
+    for (const row of lastMonthRows) {
+      const lastExpenses = p.expenseRows.filter((e) => e.date.startsWith(lastMonthKey) && e.category === row.category)
+      const spent = lastExpenses.reduce((s, e) => s + e.amountInr, 0)
+      const available = row.assigned + row.rolledOver - spent
+      if (available < 0) totalOverspent += Math.abs(available)
+    }
+
+    const effectiveIncome = Math.max(0, income - totalOverspent)
+    await addBudget({ month, category: '__income__', assigned: String(effectiveIncome) }).catch(() => {})
+
+    const allCategoryNames = [...new Set([...categories, ...lastMonthRows.map((r) => r.category)])]
+    for (const cat of allCategoryNames) {
+      const lastRow = lastMonthRows.find((r) => r.category === cat)
+      const assigned = copyAssigned && lastRow ? lastRow.assigned : 0
+      await addBudget({ month, category: cat, assigned: String(assigned) }).catch(() => {})
+    }
+
+    localStorage.setItem('budget-active-month', month)
+    setShowRolloverBanner(false)
+    setRolloverData(null)
+    const contract = await loadExpensePanelContract()
+    const data = toExpensePanelData(contract)
+    setPanel(data)
+    setEnvelopeState(data.envelopeState)
+  }
+
+  function handleRolloverDismiss() {
+    setShowRolloverBanner(false)
+    setRolloverData(null)
+  }
 
   const latestDate = useMemo(() => {
     if (!panel) return new Date()
@@ -568,6 +711,7 @@ export function ExpensePage() {
         <ExpenseSidebar
           onMoveMoney={handleSidebarMoveMoney}
           onShowCategories={handleShowCategories}
+          onBulkReturn={() => setShowBulkReturnConfirm(true)}
           month={panel.month}
           income={envelopeState?.income}
           totalSpent={envelopeState?.totalSpent}
@@ -585,6 +729,17 @@ export function ExpensePage() {
           sparkData={panel.miniTrend.slice(-7)}
           overspentCount={envelopeState.envelopes.filter(e => e.isOverspent).length}
           totalEnvelopes={envelopeState.envelopes.length}
+        />
+      )}
+
+      {showRolloverBanner && rolloverData && (
+        <MonthRolloverBanner
+          currentMonth={panel.month}
+          lastMonth={rolloverData.lastMonth}
+          lastIncome={rolloverData.lastIncome}
+          lastAssignments={rolloverData.lastAssignments}
+          onConfirm={handleRolloverConfirm}
+          onDismiss={handleRolloverDismiss}
         />
       )}
 
@@ -756,6 +911,7 @@ export function ExpensePage() {
               sortKey={envelopeSort}
               onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
               onAssignFromRTA={handleAssignFromRTA}
+              onPayCreditCard={handlePayCreditCard}
             />
           )}
         </article>
@@ -1022,17 +1178,9 @@ export function ExpensePage() {
         </article>
       </section>
 
-      <div className="tags">
-        {panel.deepLinks.map((link) => (
-          <a key={link.label} className="inline-link" href={link.url} target="_blank" rel="noreferrer">
-            {link.label}
-          </a>
-        ))}
-      </div>
       </div>
       {showCategoryManager && (
         <CategoryManager
-          currentMonth={panel?.month ?? new Date().toISOString().slice(0, 7)}
           onClose={() => setShowCategoryManager(false)}
           onSaved={refreshPanel}
           envelopes={envelopeState?.envelopes ?? null}
@@ -1044,6 +1192,25 @@ export function ExpensePage() {
           onSaved={() => { setShowSubModal(false); setEditSub(null); setTimeout(() => refreshPanel(), 500) }}
           editData={editSub ?? undefined}
         />
+      )}
+      {payCreditCardAmount !== null && envelopeState && (
+        <div className="modal-overlay" onClick={() => setPayCreditCardAmount(null)}>
+          <div className="modal-content move-money-modal" onClick={e => e.stopPropagation()}>
+            <div className="move-money-header">
+              <h4>Pay Credit Card Bill</h4>
+              <button type="button" className="move-money-close" onClick={() => setPayCreditCardAmount(null)}>✕</button>
+            </div>
+            <p className="move-money-desc">
+              Pay the full outstanding balance of {formatCurrency(payCreditCardAmount)} from your bank account?
+            </p>
+            <div className="move-money-actions">
+              <button type="button" className="move-money-cancel" onClick={() => setPayCreditCardAmount(null)}>Cancel</button>
+              <button type="button" className="action-button" onClick={() => confirmPayCreditCard(payCreditCardAmount)}>
+                Pay {formatCurrency(payCreditCardAmount)}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {moveMoneyTarget && envelopeState && (
         <MoveMoneyModal
@@ -1060,7 +1227,7 @@ export function ExpensePage() {
                   return e
                 })
                 const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
-                const rta = prev.income - totalAssigned
+                const rta = Math.round(prev.income - totalAssigned)
                 const current = prev.envelopes.find((e) => e.category === to)
                 const newAssigned = (current?.assigned ?? 0) + amount
                 updateBudget(prev.month, to, { assigned: String(newAssigned) }).catch(() => {})
@@ -1072,13 +1239,50 @@ export function ExpensePage() {
                 return e
               })
               const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
-              const rta = prev.income - totalAssigned
+              const rta = Math.round(prev.income - totalAssigned)
               return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
             })
             setMoveMoneyTarget(null)
           }}
         />
       )}
+      {showBulkReturnConfirm && envelopeState && (() => {
+        const positive = envelopeState.envelopes.filter((e) => e.available > 0)
+        const total = positive.reduce((s, e) => s + e.available, 0)
+        return (
+          <div className="move-money-overlay" onClick={() => setShowBulkReturnConfirm(false)}>
+            <div className="move-money-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="move-money-header">
+                <h4>Return all to Ready to Assign</h4>
+                <button type="button" className="move-money-close" onClick={() => setShowBulkReturnConfirm(false)}>✕</button>
+              </div>
+              {positive.length === 0 ? (
+                <p className="move-money-empty">No categories with leftover available balance.</p>
+              ) : (
+                <>
+                  <p className="move-money-desc">
+                    Move <strong>{formatCurrency(total)}</strong> from {positive.length} categor{positive.length === 1 ? 'y' : 'ies'} back to Ready to Assign. Each category's Available will reset to ₹0.
+                  </p>
+                  <div className="bulk-return-list">
+                    {positive.map((e) => (
+                      <div key={e.category} className="bulk-return-row">
+                        <span>{e.category}</span>
+                        <span className="num">{formatCurrency(e.available)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="move-money-actions">
+                    <button type="button" className="action-button" onClick={() => setShowBulkReturnConfirm(false)}>Cancel</button>
+                    <button type="button" className="action-button is-active" onClick={handleBulkReturnToRTA}>
+                      Return {formatCurrency(total)} to RTA
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
       {categoryMenu}
         </div>
       </div>
