@@ -39,7 +39,7 @@ export async function addBudget(row: Omit<BudgetRow, 'rolled_over'> & { rolled_o
   if (!resp.ok) throw new Error(`Failed to add budget: ${resp.status}`)
 }
 
-export async function updateBudget(month: string, category: string, updates: Partial<BudgetRow>): Promise<void> {
+export async function updateBudget(month: string, category: string, updates: Partial<BudgetRow & { newCategory?: string }>): Promise<void> {
   const resp = await fetch('/api/budgets', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -88,6 +88,20 @@ export async function getCategoryMap(): Promise<CategoryMap> {
   const resp = await fetch('/api/category-map')
   if (!resp.ok) throw new Error(`Failed to load category map: ${resp.status}`)
   return resp.json()
+}
+
+export async function updateExpenseCategory(
+  timestamp: string,
+  item: string,
+  amountInr: number,
+  category: string,
+): Promise<void> {
+  const resp = await fetch('/api/expenses', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ timestamp, item, amount_inr: String(amountInr), category }),
+  })
+  if (!resp.ok) throw new Error(`Failed to update expense: ${resp.status}`)
 }
 
 export async function cancelSubscription(service: string): Promise<void> {

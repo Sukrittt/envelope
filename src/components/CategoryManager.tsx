@@ -59,10 +59,9 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
     if (Number.isNaN(amt)) return
     setError('')
     try {
-      await updateBudget(currentMonth, originalName, {
-        category: editName.trim() !== originalName ? editName.trim() : undefined,
-        assigned: String(amt),
-      })
+      const updates: Partial<BudgetRow> & { newCategory?: string } = { assigned: String(amt) }
+      if (editName.trim() !== originalName) updates.newCategory = editName.trim()
+      await updateBudget(currentMonth, originalName, updates)
       setEditing(null)
       const rows = await getBudgets()
       setBudgets(rows.filter(r => r.month === currentMonth && r.category !== '__income__'))

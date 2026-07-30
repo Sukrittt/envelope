@@ -1,3 +1,5 @@
+import { getExpenses } from './api'
+
 export interface ExpenseRow {
   date: string
   item: string
@@ -87,30 +89,6 @@ const PRIORITY_CATEGORIES = ['Food', 'Travel', 'Football', 'Bills', 'Subscriptio
 const EXCEPTIONAL_KEYWORDS = ['goa', 'betting', 'refund']
 const RECURRING_SUBSCRIPTION_HINTS = ['netflix', 'spotify', 'prime', 'openai', '11labs', 'whisper', 'subscription']
 
-function parseExpenseCSV(text: string): ExpenseRow[] {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const header = lines[0].split(',')
-  const iDate = header.indexOf('date')
-  const iItem = header.indexOf('item')
-  const iAmount = header.indexOf('amount_inr')
-  const iCategory = header.indexOf('category')
-
-  const rows: ExpenseRow[] = []
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',')
-    const amountInr = Number(cols[iAmount])
-    if (Number.isNaN(amountInr)) continue
-    rows.push({
-      date: cols[iDate] ?? '',
-      item: cols[iItem] ?? '',
-      amountInr,
-      category: cols[iCategory] ?? '',
-    })
-  }
-  return rows
-}
-
 function parseSubscriptionCSV(text: string): SubscriptionRow[] {
   const lines = text.trim().split('\n')
   if (lines.length < 2) return []
@@ -160,12 +138,17 @@ function monthKeyFromDate(date: Date): string {
 }
 
 export async function loadInsightsData(cap: number): Promise<InsightsData> {
-  const [expenseText, subText] = await Promise.all([
-    fetch('/productivity/expenses.csv').then((r) => r.text()),
+  const [apiExpenses, subText] = await Promise.all([
+    getExpenses().catch(() => []),
     fetch('/productivity/subscriptions.csv').then((r) => (r.ok ? r.text() : '')),
   ])
 
-  const expenses = parseExpenseCSV(expenseText)
+  const expenses: ExpenseRow[] = apiExpenses.map((r) => ({
+    date: r.date,
+    item: r.item,
+    amountInr: Number(r.amount_inr) || 0,
+    category: r.category,
+  }))
   const subscriptions = parseSubscriptionCSV(subText)
 
   return computeInsights(expenses, subscriptions, cap)

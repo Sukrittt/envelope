@@ -3764,31 +3764,62 @@ summary:focus-visible,
   text-align: center;
 }
 
-.txn-timeline-desc {
+.txn-timeline-item {
   flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 0;
-  overflow: hidden;
-}
-
-.txn-timeline-item {
   font-size: var(--fs-13);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 1;
 }
 
-.txn-timeline-category {
+.txn-timeline-cat-col {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.txn-timeline-cat-pill {
+  display: inline-block;
   font-size: var(--fs-11);
   color: var(--muted-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 0;
+  max-width: 120px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 6px;
+  transition: background 0.1s, color 0.1s;
+  border: 1px solid transparent;
+}
+
+.txn-timeline-cat-pill:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: var(--border);
+}
+
+.txn-timeline-category-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.txn-cat-select {
+  font-size: var(--fs-11);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--accent);
+  background: var(--panel);
+  color: var(--text);
+  outline: none;
+  max-width: 140px;
+}
+
+.txn-cat-saving {
+  font-size: var(--fs-11);
+  color: var(--muted);
 }
 
 .txn-timeline-amount {

@@ -1,6 +1,6 @@
 import type { ExpensePanelContract } from './expensePanelAdapter'
 import { computeEnvelopes } from './budgetLoader'
-import { getBudgets } from './api'
+import { getBudgets, getExpenses } from './api'
 
 interface ExpenseRow {
   timestamp: string
@@ -20,32 +20,6 @@ interface SubscriptionRow {
 }
 
 const ESSENTIAL_CATEGORIES = new Set(['Bills', 'Food', 'Travel', 'Personal care'])
-
-function parseExpenseCSV(text: string): ExpenseRow[] {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const header = lines[0].split(',')
-  const iTimestamp = header.indexOf('timestamp')
-  const iDate = header.indexOf('date')
-  const iItem = header.indexOf('item')
-  const iAmount = header.indexOf('amount_inr')
-  const iCategory = header.indexOf('category')
-
-  const rows: ExpenseRow[] = []
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',')
-    const amountInr = Number(cols[iAmount])
-    if (Number.isNaN(amountInr)) continue
-    rows.push({
-      timestamp: cols[iTimestamp] ?? '',
-      date: cols[iDate] ?? '',
-      item: cols[iItem] ?? '',
-      amountInr,
-      category: cols[iCategory] ?? '',
-    })
-  }
-  return rows
-}
 
 function parseSubscriptionCSV(text: string): SubscriptionRow[] {
   const lines = text.trim().split('\n')
@@ -76,13 +50,19 @@ function parseSubscriptionCSV(text: string): SubscriptionRow[] {
 }
 
 export async function loadExpensePanelContract(): Promise<ExpensePanelContract> {
-  const [expenseText, subText, budgetRows] = await Promise.all([
-    fetch('/productivity/expenses.csv').then((r) => r.text()),
+  const [apiExpenses, subText, budgetRows] = await Promise.all([
+    getExpenses().catch(() => []),
     fetch('/productivity/subscriptions.csv').then((r) => (r.ok ? r.text() : '')),
     getBudgets().catch(() => []),
   ])
 
-  const expenses = parseExpenseCSV(expenseText)
+  const expenses: ExpenseRow[] = apiExpenses.map((r) => ({
+    timestamp: r.timestamp,
+    date: r.date,
+    item: r.item,
+    amountInr: Number(r.amount_inr) || 0,
+    category: r.category,
+  }))
   const subscriptions = parseSubscriptionCSV(subText)
   const budgets = budgetRows.map((r) => ({
     month: r.month,

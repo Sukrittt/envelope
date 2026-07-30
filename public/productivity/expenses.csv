@@ -430,116 +430,116 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-06-30T03:26:00+05:30,2026-06-30,Cookies,313,Food,,manual-chat
 2026-06-30T03:32:00+05:30,2026-06-30,Credit card bill,3450,Bills,,manual-chat
 2026-06-30T03:34:00+05:30,2026-06-30,Amazon credit bill,2745.54,Bills,,manual-chat
-2026-07-01T07:21:00+05:30,2026-07-01,Snacks,341,Food,,manual-chat
-2026-07-01T21:25:00+05:30,2026-07-01,Swish dinner,501,Food,,manual-chat (credit card)
-2026-07-01T23:53:00+05:30,2026-07-01,Shopping,1804,Shopping,,manual-chat (credit card)
-2026-07-02T00:01:00+05:30,2026-07-02,Shoes,3899,Shopping,,manual-chat (credit card)
-2026-07-02T01:13:00+05:30,2026-07-02,Shoes,1594,Shopping,,manual-chat (credit card)
-2026-07-02T05:34:00+05:30,2026-07-02,Snacks,222,Food,,manual-chat
-2026-07-02T15:46:00+05:30,2026-07-02,Groceries,467,Food,,manual-chat
-2026-07-02T19:00:00+05:30,2026-07-02,Milk,30,Food,,manual-chat
-2026-07-03T08:40:00+05:30,2026-07-03,Wifi 15gb,59,Bills,,manual-chat
-2026-07-04T09:56:00+05:30,2026-07-04,Rent,20580,Bills,,manual-chat
-2026-07-04T09:56:10+05:30,2026-07-04,Chainsmokers Concert,4000,Entertainment,,manual-chat
-2026-07-04T17:02:00+05:30,2026-07-04,Hand shower,1396,Shopping,,manual-chat
-2026-07-04T20:20:10+05:30,2026-07-04,New flat Deposit + expenses,27200,Bills,,manual-chat
-2026-07-05T13:44:00+05:30,2026-07-05,Travel,232,Travel,,manual-chat
-2026-07-05T18:12:00+05:30,2026-07-05,Travel,221,Travel,,manual-chat
-2026-07-06T10:34:00+05:30,2026-07-06,Room Furniture,16868,Shopping,,manual-chat
-2026-07-06T11:00:00+05:30,2026-07-06,Bike to work,78.14,Travel,,manual-chat
-2026-07-06T11:02:00+05:30,2026-07-06,Metro to work,30,Travel,,manual-chat
-2026-07-06T12:51:00+05:30,2026-07-06,Chair and table rent + deposit,626,Bills,,manual-chat
-2026-07-06T14:28:00+05:30,2026-07-06,Study lamp,710,Shopping,,manual-chat
-2026-07-06T14:30:00+05:30,2026-07-06,Bed sheet,710,Shopping,,manual-chat (Amazon pay later)
-2026-07-06T14:30:10+05:30,2026-07-06,Smart bulbs,907,Shopping,,manual-chat (Amazon pay later) x2
-2026-07-06T20:16:00+05:30,2026-07-06,Travel,306,Travel,,manual-chat
-2026-07-07T10:48:00+05:30,2026-07-07,Jio recharge,49,Bills,,manual-chat
-2026-07-07T16:34:00+05:30,2026-07-07,Door mat,411,Shopping,,manual-chat
-2026-07-07T16:37:00+05:30,2026-07-07,Flat items,1121,Shopping,,manual-chat
-2026-07-07T16:42:00+05:30,2026-07-07,Flat items,379,Shopping,,manual-chat
-2026-07-07T16:58:00+05:30,2026-07-07,Brush holder,311,Shopping,,manual-chat
-2026-07-07T20:04:00+05:30,2026-07-07,Bathroom mirror,304,Shopping,,manual-chat
-2026-07-08T11:08:00+05:30,2026-07-08,Jio recharge,49,Bills,,manual-chat
-2026-07-08T11:12:00+05:30,2026-07-08,Metro + bike to work,97,Travel,,manual-chat
-2026-07-08T11:17:00+05:30,2026-07-08,Induction,2064,Shopping,,manual-chat
-2026-07-08T17:44:00+05:30,2026-07-08,Metro,30,Travel,,manual-chat
-2026-07-08T18:14:00+05:30,2026-07-08,Bike to home,57,Travel,,manual-chat
-2026-07-08T19:02:00+05:30,2026-07-08,Momo,60,Food,,manual-chat
-2026-07-08T19:03:00+05:30,2026-07-08,Laddoo,35,Food,,manual-chat
-2026-07-08T20:54:00+05:30,2026-07-08,Bike to football,40,Travel,,manual-chat
-2026-07-08T20:55:00+05:30,2026-07-08,Milk,29,Food,,manual-chat
-2026-07-08T20:55:10+05:30,2026-07-08,House items,422,Shopping,,manual-chat
-2026-07-09T17:45:00+05:30,2026-07-09,Hangers,431,Shopping,,manual-chat
-2026-07-09T19:36:00+05:30,2026-07-09,Football,510,Football,,manual-chat
-2026-07-09T20:27:00+05:30,2026-07-09,Bike to turf,44,Travel,,manual-chat
-2026-07-09T23:40:00+05:30,2026-07-09,Water 10L,150,Bills,,manual-chat
-2026-07-10T11:11:00+05:30,2026-07-10,Bike to work,55.46,Travel,,monthly: travel
-2026-07-10T13:58:00+05:30,2026-07-10,Football,279,Personal,,personal: football
-2026-07-10T17:44:00+05:30,2026-07-10,Bike to home,56,Travel,,monthly: travel
-2026-07-10T18:48:00+05:30,2026-07-10,Groceries,177,Groceries,,monthly: groceries
-2026-07-11T16:05:00+05:30,2026-07-11,Groceries,156,Groceries,,monthly: groceries
-2026-07-11T18:45:00+05:30,2026-07-11,Travel to turf,48,Travel,,monthly: travel
-2026-07-11T21:46:00+05:30,2026-07-11,Shampoo conditioner & other stuff,953,Household,,monthly: household
-2026-07-11T22:28:00+05:30,2026-07-11,Football,279,Personal,,personal: football
-2026-07-12T02:20:00+05:30,2026-07-12,Late night snacks,399,Personal,,personal: snacks
-2026-07-12T11:02:00+05:30,2026-07-12,Furniture transportation,100,Travel,,monthly: travel
-2026-07-12T18:19:00+05:30,2026-07-12,Bike to turf,45,Travel,,monthly: travel
-2026-07-12T18:38:00+05:30,2026-07-12,Energy drink,70,Personal,,personal: misc
-2026-07-12T20:33:00+05:30,2026-07-12,Water,45,Water,,monthly: water
-2026-07-12T21:00:00+05:30,2026-07-12,Groceries,295,Groceries,,monthly: groceries
-2026-07-13T11:11:00+05:30,2026-07-13,Bike to work,73.47,Travel,,monthly: travel
-2026-07-13T18:07:00+05:30,2026-07-13,Bike to home,63.38,Travel,,monthly: travel
-2026-07-13T19:00:00+05:30,2026-07-13,Haircut,100,Personal,,personal: grooming
-2026-07-14T10:21:00+05:30,2026-07-14,Groceries,204,Groceries,,monthly: groceries
-2026-07-14T15:38:00+05:30,2026-07-14,Football,279,Personal,,personal: football
-2026-07-15T01:26:00+05:30,2026-07-15,Late night snacks,231,Personal,,personal: snacks
-2026-07-15T11:26:00+05:30,2026-07-15,Bike to work,57.21,Travel,,monthly: travel
-2026-07-15T13:59:00+05:30,2026-07-15,Football,510,Personal,,personal: football
-2026-07-15T15:06:00+05:30,2026-07-15,Football,279,Personal,,personal: football
-2026-07-15T16:14:00+05:30,2026-07-15,Bike to home,56,Travel,,monthly: travel
-2026-07-15T17:50:00+05:30,2026-07-15,Momo,70,Personal,,personal: food
-2026-07-16T11:05:00+05:30,2026-07-16,Keychain,604,Personal,,personal: misc
-2026-07-16T16:09:00+05:30,2026-07-16,Gym membership,7999,Personal,,personal: fitness
-2026-07-16T16:09:10+05:30,2026-07-16,Groceries,154,Groceries,,monthly: groceries
-2026-07-17T13:24:00+05:30,2026-07-17,Furniture one time yearly cost,9124,Personal,,one-time: furniture
-2026-07-17T14:52:00+05:30,2026-07-17,Football,279,Personal,,personal: football
-2026-07-17T19:14:00+05:30,2026-07-17,Groceries,250,Groceries,,monthly: groceries
-2026-07-18T13:21:00+05:30,2026-07-18,Icecream,260,Personal,,personal: misc
-2026-07-19T14:38:00+05:30,2026-07-19,Groceries,57.5,Groceries,,monthly: groceries
-2026-07-19T20:15:00+05:30,2026-07-19,Day out with friends,1080,Personal,,personal: misc
-2026-07-19T20:39:00+05:30,2026-07-19,Turf travel,98,Travel,,monthly: travel
-2026-07-20T15:12:00+05:30,2026-07-20,Laundry,190,Household,,monthly: household
-2026-07-20T15:12:10+05:30,2026-07-20,Furniture delivery,100,Travel,,monthly: travel
-2026-07-20T19:24:00+05:30,2026-07-20,Groceries,243,Groceries,,monthly: groceries
-2026-07-20T20:32:00+05:30,2026-07-20,Dinner,185,Personal,,personal: food
-2026-07-20T21:07:00+05:30,2026-07-20,Jersey,1599,Personal,,personal: misc
-2026-07-20T21:38:00+05:30,2026-07-20,Jersey,900,Personal,,personal: misc
-2026-07-21T17:35:00+05:30,2026-07-21,Pant altering,100,Personal,,personal: misc
-2026-07-21T17:36:00+05:30,2026-07-21,Banana,20,Groceries,,monthly: groceries
-2026-07-21T20:09:00+05:30,2026-07-21,Swish dinner,328,Personal,,personal: food
-2026-07-21T23:12:00+05:30,2026-07-21,Icecream,100,Personal,,personal: misc
-2026-07-22T10:37:00+05:30,2026-07-22,Football,279,Personal,,personal: football
-2026-07-22T11:12:00+05:30,2026-07-22,Bike to work,69.78,Travel,,monthly: travel
+2026-07-01T07:21:00+05:30,2026-07-01,Snacks,341,🍲 Food Order,,manual-chat
+2026-07-01T21:25:00+05:30,2026-07-01,Swish dinner,501,🍲 Food Order,,manual-chat (credit card)
+2026-07-01T23:53:00+05:30,2026-07-01,Shopping,1804,🛍️ Shopping,,manual-chat (credit card)
+2026-07-02T00:01:00+05:30,2026-07-02,Shoes,3899,🛍️ Shopping,,manual-chat (credit card)
+2026-07-02T01:13:00+05:30,2026-07-02,Shoes,1594,🛍️ Shopping,,manual-chat (credit card)
+2026-07-02T05:34:00+05:30,2026-07-02,Snacks,222,🍲 Food Order,,manual-chat
+2026-07-02T15:46:00+05:30,2026-07-02,Groceries,467,🍎 Groceries,,manual-chat
+2026-07-02T19:00:00+05:30,2026-07-02,Milk,30,🍲 Food Order,,manual-chat
+2026-07-03T08:40:00+05:30,2026-07-03,Wifi 15gb,59,🎟️ Miscellaneous,,manual-chat
+2026-07-04T09:56:00+05:30,2026-07-04,Rent,20580,🏠 Rent,,manual-chat
+2026-07-04T09:56:10+05:30,2026-07-04,Chainsmokers Concert,4000,💃 Outings,,manual-chat
+2026-07-04T17:02:00+05:30,2026-07-04,Hand shower,1396,🛍️ Shopping,,manual-chat
+2026-07-04T20:20:10+05:30,2026-07-04,New flat Deposit + expenses,27200,🏠 Rent,,manual-chat
+2026-07-05T13:44:00+05:30,2026-07-05,Travel,232,🛵 Travel,,manual-chat
+2026-07-05T18:12:00+05:30,2026-07-05,Travel,221,🛵 Travel,,manual-chat
+2026-07-06T10:34:00+05:30,2026-07-06,Room Furniture,16868,🛍️ Shopping,,manual-chat
+2026-07-06T11:00:00+05:30,2026-07-06,Bike to work,78.14,🛵 Travel,,manual-chat
+2026-07-06T11:02:00+05:30,2026-07-06,Metro to work,30,🛵 Travel,,manual-chat
+2026-07-06T12:51:00+05:30,2026-07-06,Chair and table rent + deposit,626,🪑 Furniture Rent,,manual-chat
+2026-07-06T14:28:00+05:30,2026-07-06,Study lamp,710,🛍️ Shopping,,manual-chat
+2026-07-06T14:30:00+05:30,2026-07-06,Bed sheet,710,🛍️ Shopping,,manual-chat (Amazon pay later)
+2026-07-06T14:30:10+05:30,2026-07-06,Smart bulbs,907,🛍️ Shopping,,manual-chat (Amazon pay later) x2
+2026-07-06T20:16:00+05:30,2026-07-06,Travel,306,🛵 Travel,,manual-chat
+2026-07-07T10:48:00+05:30,2026-07-07,Jio recharge,49,🎟️ Miscellaneous,,manual-chat
+2026-07-07T16:34:00+05:30,2026-07-07,Door mat,411,🛍️ Shopping,,manual-chat
+2026-07-07T16:37:00+05:30,2026-07-07,Flat items,1121,🛍️ Shopping,,manual-chat
+2026-07-07T16:42:00+05:30,2026-07-07,Flat items,379,🛍️ Shopping,,manual-chat
+2026-07-07T16:58:00+05:30,2026-07-07,Brush holder,311,🛍️ Shopping,,manual-chat
+2026-07-07T20:04:00+05:30,2026-07-07,Bathroom mirror,304,🛍️ Shopping,,manual-chat
+2026-07-08T11:08:00+05:30,2026-07-08,Jio recharge,49,🎟️ Miscellaneous,,manual-chat
+2026-07-08T11:12:00+05:30,2026-07-08,Metro + bike to work,97,🛵 Travel,,manual-chat
+2026-07-08T11:17:00+05:30,2026-07-08,Induction,2064,🛍️ Shopping,,manual-chat
+2026-07-08T17:44:00+05:30,2026-07-08,Metro,30,🛵 Travel,,manual-chat
+2026-07-08T18:14:00+05:30,2026-07-08,Bike to home,57,🛵 Travel,,manual-chat
+2026-07-08T19:02:00+05:30,2026-07-08,Momo,60,🍲 Food Order,,manual-chat
+2026-07-08T19:03:00+05:30,2026-07-08,Laddoo,35,🍲 Food Order,,manual-chat
+2026-07-08T20:54:00+05:30,2026-07-08,Bike to football,40,🛵 Travel,,manual-chat
+2026-07-08T20:55:00+05:30,2026-07-08,Milk,29,🍲 Food Order,,manual-chat
+2026-07-08T20:55:10+05:30,2026-07-08,House items,422,🛵 Travel,,manual-chat
+2026-07-09T17:45:00+05:30,2026-07-09,Hangers,431,🛍️ Shopping,,manual-chat
+2026-07-09T19:36:00+05:30,2026-07-09,Football,510,⚽ Football,,manual-chat
+2026-07-09T20:27:00+05:30,2026-07-09,Bike to turf,44,🛵 Travel,,manual-chat
+2026-07-09T23:40:00+05:30,2026-07-09,Water 10L,150,🍎 Groceries,,manual-chat
+2026-07-10T11:11:00+05:30,2026-07-10,Bike to work,55.46,🛵 Travel,,monthly: travel
+2026-07-10T13:58:00+05:30,2026-07-10,Football,279,⚽ Football,,personal: football
+2026-07-10T17:44:00+05:30,2026-07-10,Bike to home,56,🛵 Travel,,monthly: travel
+2026-07-10T18:48:00+05:30,2026-07-10,Groceries,177,🍎 Groceries,,monthly: groceries
+2026-07-11T16:05:00+05:30,2026-07-11,Groceries,156,🍎 Groceries,,monthly: groceries
+2026-07-11T18:45:00+05:30,2026-07-11,Travel to turf,48,🛵 Travel,,monthly: travel
+2026-07-11T21:46:00+05:30,2026-07-11,Shampoo conditioner & other stuff,953,🛍️ Shopping,,monthly: household
+2026-07-11T22:28:00+05:30,2026-07-11,Football,279,⚽ Football,,personal: football
+2026-07-12T02:20:00+05:30,2026-07-12,Late night snacks,399,🍲 Food Order,,personal: snacks
+2026-07-12T11:02:00+05:30,2026-07-12,Furniture transportation,100,🏠 Rent,,monthly: travel
+2026-07-12T18:19:00+05:30,2026-07-12,Bike to turf,45,🛵 Travel,,monthly: travel
+2026-07-12T18:38:00+05:30,2026-07-12,Energy drink,70,🍲 Food Order,,personal: misc
+2026-07-12T20:33:00+05:30,2026-07-12,Water,45,🍎 Groceries,,monthly: water
+2026-07-12T21:00:00+05:30,2026-07-12,Groceries,295,🍎 Groceries,,monthly: groceries
+2026-07-13T11:11:00+05:30,2026-07-13,Bike to work,73.47,🛵 Travel,,monthly: travel
+2026-07-13T18:07:00+05:30,2026-07-13,Bike to home,63.38,🛵 Travel,,monthly: travel
+2026-07-13T19:00:00+05:30,2026-07-13,Haircut,100,💇‍♂️ Haircut,,personal: grooming
+2026-07-14T10:21:00+05:30,2026-07-14,Groceries,204,🍎 Groceries,,monthly: groceries
+2026-07-14T15:38:00+05:30,2026-07-14,Football,279,⚽ Football,,personal: football
+2026-07-15T01:26:00+05:30,2026-07-15,Late night snacks,231,🍲 Food Order,,personal: snacks
+2026-07-15T11:26:00+05:30,2026-07-15,Bike to work,57.21,🛵 Travel,,monthly: travel
+2026-07-15T13:59:00+05:30,2026-07-15,Football,510,⚽ Football,,personal: football
+2026-07-15T15:06:00+05:30,2026-07-15,Football,279,⚽ Football,,personal: football
+2026-07-15T16:14:00+05:30,2026-07-15,Bike to home,56,🛵 Travel,,monthly: travel
+2026-07-15T17:50:00+05:30,2026-07-15,Momo,70,🍲 Food Order,,personal: food
+2026-07-16T11:05:00+05:30,2026-07-16,Keychain,604,🛍️ Shopping,,personal: misc
+2026-07-16T16:09:00+05:30,2026-07-16,Gym membership,7999,🎟️ Miscellaneous,,personal: fitness
+2026-07-16T16:09:10+05:30,2026-07-16,Groceries,154,🍎 Groceries,,monthly: groceries
+2026-07-17T13:24:00+05:30,2026-07-17,Furniture one time yearly cost,9124,🏠 Rent,,one-time: furniture
+2026-07-17T14:52:00+05:30,2026-07-17,Football,279,⚽ Football,,personal: football
+2026-07-17T19:14:00+05:30,2026-07-17,Groceries,250,🍎 Groceries,,monthly: groceries
+2026-07-18T13:21:00+05:30,2026-07-18,Icecream,260,💃 Outings,,personal: misc
+2026-07-19T14:38:00+05:30,2026-07-19,Groceries,57.5,🍎 Groceries,,monthly: groceries
+2026-07-19T20:15:00+05:30,2026-07-19,Day out with friends,1080,💃 Outings,,personal: misc
+2026-07-19T20:39:00+05:30,2026-07-19,Turf travel,98,🛵 Travel,,monthly: travel
+2026-07-20T15:12:00+05:30,2026-07-20,Laundry,190,🧺 Laundry,,monthly: household
+2026-07-20T15:12:10+05:30,2026-07-20,Furniture delivery,100,🏠 Rent,,monthly: travel
+2026-07-20T19:24:00+05:30,2026-07-20,Groceries,243,🍎 Groceries,,monthly: groceries
+2026-07-20T20:32:00+05:30,2026-07-20,Dinner,185,🍲 Food Order,,personal: food
+2026-07-20T21:07:00+05:30,2026-07-20,Jersey,1599,🛍️ Shopping,,personal: misc
+2026-07-20T21:38:00+05:30,2026-07-20,Jersey,900,🛍️ Shopping,,personal: misc
+2026-07-21T17:35:00+05:30,2026-07-21,Pant altering,100,🎟️ Miscellaneous,,personal: misc
+2026-07-21T17:36:00+05:30,2026-07-21,Banana,20,🍎 Groceries,,monthly: groceries
+2026-07-21T20:09:00+05:30,2026-07-21,Swish dinner,328,🍲 Food Order,,personal: food
+2026-07-21T23:12:00+05:30,2026-07-21,Icecream,100,💃 Outings,,personal: misc
+2026-07-22T10:37:00+05:30,2026-07-22,Football,279,⚽ Football,,personal: football
+2026-07-22T11:12:00+05:30,2026-07-22,Bike to work,69.78,🛵 Travel,,monthly: travel
 2026-07-22T13:13:00+05:30,2026-07-22,Amazon pay later bill,1617,Bills,,monthly: amazon pay later
 2026-07-22T11:12:00+05:30,2026-07-22,Bike to work,69.78,Travel,,monthly: travel
-2026-07-22T17:18:00+05:30,2026-07-22,Trip to home,59.75,Travel,,monthly: travel
-2026-07-24T11:28:00+05:30,2026-07-24,Bike to work,67,Travel,,monthly: travel
-2026-07-24T16:51:00+05:30,2026-07-24,Metro card recharge,500,Travel,,monthly: travel
-2026-07-24T22:35:00+05:30,2026-07-24,Dessert items,521,Personal,,personal: food
-2026-07-24T17:25:00+05:30,2026-07-24,Bike to home,60.3,Travel,,monthly: travel
-2026-07-26T14:43:00+05:30,2026-07-26,Football,279,Personal,,personal: football
-2026-07-26T17:13:00+05:30,2026-07-26,Japan jersey,800,Personal,,personal: misc
-2026-07-26T19:54:00+05:30,2026-07-26,Bike to turf,41,Travel,,monthly: travel
-2026-07-26T21:32:00+05:30,2026-07-26,Bike to home,40,Travel,,monthly: travel
-2026-07-27T11:09:00+05:30,2026-07-27,Turf to work,80,Travel,,monthly: travel
-2026-07-27T14:24:00+05:30,2026-07-27,Outing,675.71,Personal,,personal: misc
-2026-07-27T17:18:00+05:30,2026-07-27,Bike to home,56,Travel,,monthly: travel
-2026-07-27T20:07:00+05:30,2026-07-27,Momos,60,Personal,,personal: food
-2026-07-27T22:59:00+05:30,2026-07-27,Football,179,Personal,,personal: football
-2026-07-28T16:08:00+05:30,2026-07-28,Haircut,100,Personal,,personal: grooming
-2026-07-28T16:12:00+05:30,2026-07-28,Laundry,190,Household,,monthly: household
-2026-07-28T22:34:00+05:30,2026-07-28,Bike to home,55,Travel,,monthly: travel
-2026-07-29T11:07:00+05:30,2026-07-29,Turf to work,63,Travel,,monthly: travel
-2026-07-29T15:46:00+05:30,2026-07-29,Football,279,Personal,,personal: football
-2026-07-29T17:14:00+05:30,2026-07-29,Bike to home,56,Travel,,monthly: travel
-2026-07-30T21:12:00+05:30,2026-07-30,Groceries,619.5,Groceries,,monthly: groceries
+2026-07-22T17:18:00+05:30,2026-07-22,Trip to home,59.75,🛵 Travel,,monthly: travel
+2026-07-24T11:28:00+05:30,2026-07-24,Bike to work,67,🛵 Travel,,monthly: travel
+2026-07-24T16:51:00+05:30,2026-07-24,Metro card recharge,500,Bills,,monthly: travel
+2026-07-24T22:35:00+05:30,2026-07-24,Dessert items,521,🍲 Food Order,,personal: food
+2026-07-24T17:25:00+05:30,2026-07-24,Bike to home,60.3,🛵 Travel,,monthly: travel
+2026-07-26T14:43:00+05:30,2026-07-26,Football,279,⚽ Football,,personal: football
+2026-07-26T17:13:00+05:30,2026-07-26,Japan jersey,800,🛍️ Shopping,,personal: misc
+2026-07-26T19:54:00+05:30,2026-07-26,Bike to turf,41,🛵 Travel,,monthly: travel
+2026-07-26T21:32:00+05:30,2026-07-26,Bike to home,40,🛵 Travel,,monthly: travel
+2026-07-27T11:09:00+05:30,2026-07-27,Turf to work,80,🛵 Travel,,monthly: travel
+2026-07-27T14:24:00+05:30,2026-07-27,Outing,675.71,💃 Outings,,personal: misc
+2026-07-27T17:18:00+05:30,2026-07-27,Bike to home,56,🛵 Travel,,monthly: travel
+2026-07-27T20:07:00+05:30,2026-07-27,Momos,60,💃 Outings,,personal: food
+2026-07-27T22:59:00+05:30,2026-07-27,Football,179,⚽ Football,,personal: football
+2026-07-28T16:08:00+05:30,2026-07-28,Haircut,100,💇‍♂️ Haircut,,personal: grooming
+2026-07-28T16:12:00+05:30,2026-07-28,Laundry,190,🧺 Laundry,,monthly: household
+2026-07-28T22:34:00+05:30,2026-07-28,Bike to home,55,🛵 Travel,,monthly: travel
+2026-07-29T11:07:00+05:30,2026-07-29,Turf to work,63,🛵 Travel,,monthly: travel
+2026-07-29T15:46:00+05:30,2026-07-29,Football,279,⚽ Football,,personal: football
+2026-07-29T17:14:00+05:30,2026-07-29,Bike to home,56,🛵 Travel,,monthly: travel
+2026-07-30T21:12:00+05:30,2026-07-30,Groceries,619.5,🍎 Groceries,,monthly: groceries

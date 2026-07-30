@@ -241,6 +241,33 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     return true
   }
 
+  if (pathname === '/api/expenses' && method === 'PUT') {
+    const body = await readBody()
+    if (!body.timestamp || !body.category) { error('timestamp and category required'); return true }
+    const rows = readCsv(EXPENSES_PATH)
+    if (rows.length < 2) { error('no expenses', 404); return true }
+    const header = rows[0]
+    const iTimestamp = header.indexOf('timestamp')
+    const iItem = header.indexOf('item')
+    const iAmount = header.indexOf('amount_inr')
+    const iCategory = header.indexOf('category')
+    let found = false
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][iTimestamp] === body.timestamp &&
+          rows[i][iItem] === body.item &&
+          Number(rows[i][iAmount]) === Number(body.amount_inr)) {
+        rows[i][iCategory] = body.category
+        found = true
+        break
+      }
+    }
+    if (!found) { error('expense row not found', 404); return true }
+    writeCsv(EXPENSES_PATH, rows)
+    categoryCache = null
+    json({ ok: true })
+    return true
+  }
+
   // ── Category Map ──
   if (pathname === '/api/category-map' && method === 'GET') {
     if (!categoryCache) categoryCache = buildCategoryMap()

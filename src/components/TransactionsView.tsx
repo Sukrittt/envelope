@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { loadTransactions, type Transaction } from '../services/expenseTransactions'
-import { getBudgets } from '../services/api'
+import { getBudgets, updateExpenseCategory } from '../services/api'
+import { suggestCategory } from '../services/autoCategory'
 import { TransactionEntry } from './TransactionEntry'
 
 type PeriodKey = 'week' | 'month' | 'custom'
@@ -99,6 +100,11 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const [searchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
 
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const [editingSuggestedCat, setEditingSuggestedCat] = useState<string>('')
+  const [updating, setUpdating] = useState(false)
+  const [autoTagging, setAutoTagging] = useState(false)
+
   useEffect(() => {
     Promise.all([
       loadTransactions(),
@@ -128,10 +134,8 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const [budgetCategories, setBudgetCategories] = useState<string[]>([])
 
   const categories = useMemo(() => {
-    const fromTxns = new Set(transactions.map((t) => t.category).filter(Boolean))
-    for (const c of budgetCategories) fromTxns.add(c)
-    return [...fromTxns].sort()
-  }, [transactions, budgetCategories])
+    return [...budgetCategories].sort()
+  }, [budgetCategories])
 
   const latestDate = useMemo(() => {
     if (!transactions.length) return new Date()
@@ -234,6 +238,27 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     }
   }
 
+  async function autoTagMonth() {
+    if (autoTagging) return
+    setAutoTagging(true)
+    try {
+      const end = new Date(latestDate)
+      const start = new Date(end.getFullYear(), end.getMonth(), 1)
+      const monthRows = transactions.filter((t) => {
+        const d = new Date(t.date)
+        return d >= start && d <= end
+      })
+      for (const t of monthRows) {
+        const suggested = await suggestCategory(t.item, categories)
+        if (suggested && suggested !== t.category) {
+          await updateExpenseCategory(t.timestamp, t.item, t.amountInr, suggested)
+        }
+      }
+      await refreshTransactions()
+    } catch { }
+    setAutoTagging(false)
+  }
+
   function renderPortal() {
     const r = catTriggerRef.current?.getBoundingClientRect()
     if (!catOpen || !r) return null
@@ -300,6 +325,11 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
         <button type="button" className="action-button is-ghost" onClick={resetFilters}>
           Reset
         </button>
+
+        <button type="button" className="action-button" disabled={autoTagging} onClick={autoTagMonth}
+          title="Auto-categorise this month's transactions">
+          {autoTagging ? 'Tagging…' : '✨ Auto-tag'}
+        </button>
       </div>
 
       {renderPortal()}
@@ -323,13 +353,54 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
             }
             const t = item.txn
             const isIncome = INCOME_CATEGORIES.has(t.category)
+            const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`
+            const isEditing = editingKey === rowKey
             return (
               <div key={`t-${t.timestamp}-${i}`} className="txn-timeline-row">
                 <span className="txn-timeline-icon" title={t.category}>{getCategoryIcon(t.category)}</span>
-                <span className="txn-timeline-desc">
-                  <span className="txn-timeline-item">{t.item}</span>
-                  <span className="txn-timeline-category"> · {t.category}</span>
-                </span>
+                <span className="txn-timeline-item">{t.item}</span>
+                {isEditing ? (
+                  <span className="txn-timeline-cat-col">
+                    <select
+                      className="txn-cat-select"
+                      value={t.category}
+                      disabled={updating}
+                      onChange={async (e) => {
+                        const newCat = e.target.value
+                        if (newCat === t.category) { setEditingKey(null); return }
+                        setUpdating(true)
+                        try {
+                          await updateExpenseCategory(t.timestamp, t.item, t.amountInr, newCat)
+                          setEditingSuggestedCat('')
+                          await refreshTransactions()
+                        } catch { }
+                        setUpdating(false)
+                        setEditingKey(null)
+                      }}
+                      onBlur={() => { if (!updating) { setEditingKey(null); setEditingSuggestedCat('') } }}
+                      autoFocus
+                    >
+                      {editingSuggestedCat && editingSuggestedCat !== t.category && (
+                        <option value={editingSuggestedCat}>✨ {editingSuggestedCat}</option>
+                      )}
+                      {categories.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    {updating && <span className="txn-cat-saving">…</span>}
+                  </span>
+                ) : (
+                  <span
+                    className="txn-timeline-cat-col txn-timeline-cat-pill"
+                    onClick={async () => {
+                      setEditingKey(rowKey)
+                      const s = await suggestCategory(t.item, categories)
+                      setEditingSuggestedCat(s)
+                    }}
+                  >
+                    {t.category}
+                  </span>
+                )}
                 <span className={`txn-timeline-amount ${isIncome ? 'is-income' : 'is-expense'} ${hideAmounts ? 'amount-hidden' : ''}`}>
                   {hideAmounts ? '---' : `${isIncome ? '+' : '-'}${formatCurrency(t.amountInr)}`}
                 </span>
