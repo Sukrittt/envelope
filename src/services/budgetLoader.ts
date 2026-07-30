@@ -60,9 +60,6 @@ export function computeEnvelopes(
   for (const b of monthBudgets) {
     if (b.category !== '__income__') categorySet.add(b.category)
   }
-  for (const cat of monthSpending.keys()) {
-    categorySet.add(cat)
-  }
 
   const envelopes: Envelope[] = []
   let totalAssigned = 0

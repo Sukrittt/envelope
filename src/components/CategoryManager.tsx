@@ -147,9 +147,13 @@ export function CategoryManager({ currentMonth, onClose, onSaved, envelopes }: P
           <h4>Add Category</h4>
           <div className="category-manager-add-row">
             <input type="text" className="txn-entry-input" placeholder="Category name"
-              value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="New category name" />
+              value={newName} onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+              aria-label="New category name" />
             <input type="number" step="any" className="txn-entry-input txn-entry-amount" placeholder="Monthly budget"
-              value={newAmount} onChange={(e) => setNewAmount(e.target.value)} aria-label="Monthly budget amount" />
+              value={newAmount} onChange={(e) => setNewAmount(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+              aria-label="Monthly budget amount" />
             <button type="button" className="action-button" onClick={handleAdd}>Add</button>
           </div>
         </div>
