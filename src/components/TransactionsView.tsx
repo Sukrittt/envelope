@@ -97,8 +97,9 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const catTriggerRef = useRef<HTMLButtonElement>(null)
   const catMenuRef = useRef<HTMLDivElement>(null)
 
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
+  const categoryParam = searchParams.get('category')
 
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editingSuggestedCat, setEditingSuggestedCat] = useState<string>('')
@@ -130,6 +131,13 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     .catch((err) => setError(err.message))
     .finally(() => setLoading(false))
   }, [dateParam])
+
+  // Arriving from an envelope: adopt its category and match its per-month window
+  useEffect(() => {
+    if (!categoryParam) return
+    setSelectedCategory(categoryParam)
+    setPeriod('month')
+  }, [categoryParam])
 
   const [budgetCategories, setBudgetCategories] = useState<string[]>([])
 
@@ -218,9 +226,20 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const paged = grouped.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const totalSpend = useMemo(() => filtered.reduce((s, t) => s + t.amountInr, 0), [filtered])
 
+  // Keep the URL in step with manual filter changes so ?category= never goes stale
+  function applyCategory(category: string) {
+    setSelectedCategory(category)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (category) next.set('category', category)
+      else next.delete('category')
+      return next
+    }, { replace: true })
+  }
+
   function resetFilters() {
     setPeriod('week')
-    setSelectedCategory('')
+    applyCategory('')
     setSearch('')
     setPage(0)
   }
@@ -267,11 +286,11 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
         style={{ position: 'fixed', top: r.bottom + 4, left: r.left, display: 'grid', minWidth: 160 }}>
         <div className="category-menu-list">
           <button type="button" className={`action-button is-ghost category-option ${!selectedCategory ? 'is-selected' : ''}`}
-            onClick={() => { setSelectedCategory(''); setCatOpen(false) }}>All</button>
+            onClick={() => { applyCategory(''); setCatOpen(false) }}>All</button>
           {categories.map((o) => (
             <button type="button" key={o}
               className={`action-button is-ghost category-option ${selectedCategory === o ? 'is-selected' : ''}`}
-              onClick={() => { setSelectedCategory(o); setCatOpen(false) }}>{o}</button>
+              onClick={() => { applyCategory(o); setCatOpen(false) }}>{o}</button>
           ))}
         </div>
       </div>, document.body)

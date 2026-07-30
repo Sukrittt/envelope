@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import type { Envelope } from '../types/expense'
 
 interface Props {
@@ -11,6 +12,8 @@ function formatCurrency(value: number): string {
 }
 
 export function EnvelopeGrid({ envelopes, hideAmounts, onMoveMoney }: Props) {
+  const navigate = useNavigate()
+
   if (!envelopes.length) {
     return (
       <div className="envelope-grid-empty">
@@ -38,7 +41,14 @@ export function EnvelopeGrid({ envelopes, hideAmounts, onMoveMoney }: Props) {
           return (
             <tr key={e.category} className={`env-row ${isOverspent ? 'env-row-overspent' : ''}`}>
               <td className="env-cell env-cell-cat">
-                <span>{e.category}</span>
+                <button
+                  type="button"
+                  className="env-cat-link"
+                  onClick={() => navigate(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
+                  title={`View ${e.category} transactions`}
+                >
+                  {e.category}
+                </button>
                 <div className="env-bar-track">
                   <div
                     className={`env-bar-fill ${isOverspent ? 'env-bar-red' : pct > 85 ? 'env-bar-warn' : ''}`}
