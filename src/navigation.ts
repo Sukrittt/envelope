@@ -14,6 +14,7 @@ export const navGroups: NavGroup[] = [
     label: "Master Dashboard",
     items: [
       { label: "Expense", path: "/expense" },
+      { label: "Investments", path: "/investments" },
       { label: "Fitness", path: "/fitness" },
       { label: "Learnings", path: "/learnings" },
     ],

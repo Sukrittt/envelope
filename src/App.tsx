@@ -10,6 +10,7 @@ import { TransactionsPage } from "./pages/TransactionsPage";
 import { FitnessPage } from "./pages/FitnessPage";
 import { LearningsPage } from "./pages/LearningsPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { InvestmentsPage } from "./pages/InvestmentsPage";
 // import { ModuleSwitcher } from "./components/ModuleSwitcher";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
@@ -28,6 +29,10 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/learnings": {
     title: "Agent Learnings",
     subtitle: "What each department/agent is learning over time",
+  },
+  "/investments": {
+    title: "Investments",
+    subtitle: "Net worth, allocation, and holdings tracker",
   },
   "/settings": {
     title: "Settings",
@@ -65,7 +70,7 @@ function AppShell() {
     trackEvent("page_view", { path: pathname });
   }, [pathname]);
 
-  const isExpenseRoute = pathname.startsWith("/expense");
+  const isExpenseRoute = pathname.startsWith("/expense") || pathname.startsWith("/investments");
 
   return (
     <main
@@ -151,6 +156,7 @@ function AppShell() {
                 element={<TransactionsPage />}
               />
               <Route path="/expense" element={<ExpensePage />} />
+              <Route path="/investments" element={<InvestmentsPage />} />
               <Route path="/fitness" element={<FitnessPage />} />
               <Route path="/learnings" element={<LearningsPage />} />
               <Route

@@ -8,7 +8,7 @@ import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { CategoryManager } from '../components/CategoryManager'
 import { SubscriptionModal } from '../components/SubscriptionModal'
 import { SpendingInsights } from '../components/SpendingInsights'
-import { cancelSubscription, reactivateSubscription } from '../services/api'
+import { cancelSubscription, reactivateSubscription, addBudget, updateBudget } from '../services/api'
 import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
 import { loadExpensePanelContract } from '../services/expensePanelLoader'
 import type { EnvelopeState } from '../types/expense'
@@ -94,6 +94,8 @@ export function ExpensePage() {
   const [dailyDetailDate, setDailyDetailDate] = useState<string | null>(null)
   const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(null)
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null)
+  const [envelopeSearch, setEnvelopeSearch] = useState('')
+  const [envelopeSort, setEnvelopeSort] = useState<'overspent-first' | 'alphabetical' | 'by-assigned'>('overspent-first')
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [cancellingSub, setCancellingSub] = useState<string | null>(null)
   const [reactivatingSub, setReactivatingSub] = useState<string | null>(null)
@@ -127,6 +129,32 @@ export function ExpensePage() {
       return { ...prev, income: newIncome, readyToAssign: rta, isOverAssigned: rta < 0 }
     })
     localStorage.setItem('expense-income-override', String(newIncome))
+  }
+
+  function handleAssignFromRTA(category: string, amount: number) {
+    setEnvelopeState((prev) => {
+      if (!prev) return prev
+      const current = prev.envelopes.find((e) => e.category === category)
+      const prevAssigned = current?.assigned ?? 0
+      const newAssigned = prevAssigned + amount
+
+      const month = prev.month
+      if (current) {
+        updateBudget(month, category, { assigned: String(newAssigned) }).catch(() => {})
+      } else {
+        addBudget({ month, category, assigned: String(amount) }).catch(() => {})
+      }
+
+      const updated = prev.envelopes.map((e) => {
+        if (e.category === category) {
+          return { ...e, assigned: newAssigned, available: e.available + amount }
+        }
+        return e
+      })
+      const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
+      const rta = prev.income - totalAssigned
+      return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
+    })
   }
 
   const categoryMenuRef = useRef<HTMLDivElement | null>(null)
@@ -689,20 +717,45 @@ export function ExpensePage() {
         </article>
 
         <article className="mc-panel expense-envelope-panel">
-          <div className="mc-panel-header">
-            <div>
-              <h3>Envelopes</h3>
-              <p>Assigned · Spent · Available</p>
+          <div className="mc-panel-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3>Envelopes</h3>
+                <p>Assigned · Spent · Available</p>
+              </div>
+              <button type="button" className="env-manage-btn" onClick={() => setShowCategoryManager(true)}>
+                Manage
+              </button>
             </div>
-            <button type="button" className="env-manage-btn" onClick={() => setShowCategoryManager(true)}>
-              Manage
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="search"
+                className="search-input"
+                placeholder="Search categories…"
+                value={envelopeSearch}
+                onChange={(e) => setEnvelopeSearch(e.target.value)}
+                style={{ width: '200px', minHeight: '28px', fontSize: 'var(--fs-12)' }}
+              />
+              <select
+                value={envelopeSort}
+                onChange={(e) => setEnvelopeSort(e.target.value as typeof envelopeSort)}
+                style={{ minWidth: '150px', minHeight: '28px', fontSize: 'var(--fs-12)' }}
+              >
+                <option value="overspent-first">Overspent first</option>
+                <option value="alphabetical">Alphabetical</option>
+                <option value="by-assigned">By assigned amount</option>
+              </select>
+            </div>
           </div>
           {envelopeState && (
             <EnvelopeGrid
               envelopes={envelopeState.envelopes}
               hideAmounts={hideAmounts}
+              readyToAssign={envelopeState.readyToAssign}
+              searchQuery={envelopeSearch}
+              sortKey={envelopeSort}
               onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
+              onAssignFromRTA={handleAssignFromRTA}
             />
           )}
         </article>
@@ -996,10 +1049,23 @@ export function ExpensePage() {
         <MoveMoneyModal
           targetCategory={moveMoneyTarget}
           envelopes={envelopeState.envelopes}
+          readyToAssign={envelopeState.readyToAssign}
           onClose={() => setMoveMoneyTarget(null)}
           onTransfer={(from, to, amount) => {
             setEnvelopeState((prev) => {
               if (!prev) return prev
+              if (from === '__ready_to_assign__') {
+                const updated = prev.envelopes.map((e) => {
+                  if (e.category === to) return { ...e, assigned: e.assigned + amount, available: e.available + amount }
+                  return e
+                })
+                const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
+                const rta = prev.income - totalAssigned
+                const current = prev.envelopes.find((e) => e.category === to)
+                const newAssigned = (current?.assigned ?? 0) + amount
+                updateBudget(prev.month, to, { assigned: String(newAssigned) }).catch(() => {})
+                return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
+              }
               const updated = prev.envelopes.map((e) => {
                 if (e.category === from) return { ...e, assigned: e.assigned - amount, available: e.available - amount }
                 if (e.category === to) return { ...e, assigned: e.assigned + amount, available: e.available + amount }

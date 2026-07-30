@@ -8,6 +8,8 @@ const EXPENSES_PATH = resolve(PRODUCTIVITY, 'expenses.csv')
 const BUDGETS_PATH = resolve(PRODUCTIVITY, 'budgets.csv')
 // Subscriptions live under data/, not productivity/ — see prebuild in package.json
 const SUBSCRIPTIONS_PATH = resolve(import.meta.dirname, 'data', 'subscriptions.csv')
+const HOLDINGS_PATH = resolve(import.meta.dirname, 'data', 'holdings.csv')
+const HOLDING_EVENTS_PATH = resolve(import.meta.dirname, 'data', 'holding_events.csv')
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = []
@@ -360,6 +362,166 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     if (!found) { error('subscription not found', 404); return true }
     writeCsv(SUBSCRIPTIONS_PATH, rows)
     json({ ok: true })
+    return true
+  }
+
+  // ── Holdings (Investments) ──
+  if (pathname === '/api/holdings' && method === 'GET') {
+    const rows = readCsv(HOLDINGS_PATH)
+    if (!rows.length) { json({ headers: [], rows: [] }); return true }
+    const headers = rows[0]
+    const data = rows.slice(1).map(r => {
+      const obj: Record<string, string> = {}
+      headers.forEach((h, i) => { obj[h] = r[i] ?? '' })
+      return obj
+    })
+    json({ headers, rows: data })
+    return true
+  }
+
+  if (pathname === '/api/holdings' && method === 'POST') {
+    const body = await readBody()
+    if (!body.name || body.value === undefined) { error('name, value required'); return true }
+    const rows = readCsv(HOLDINGS_PATH)
+    if (!rows.length) rows.push(['name', 'type', 'value', 'updated_at'])
+    const header = rows[0]
+    const iName = header.indexOf('name')
+    if (rows.slice(1).some(r => r[iName]?.toLowerCase() === body.name.toLowerCase())) {
+      error('holding already exists', 409)
+      return true
+    }
+    const now = new Date()
+    rows.push(header.map(h => {
+      switch (h) {
+        case 'name': return body.name
+        case 'type': return body.type ?? ''
+        case 'value': return String(body.value)
+        case 'updated_at': return body.updated_at || now.toISOString()
+        default: return ''
+      }
+    }))
+    writeCsv(HOLDINGS_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  if (pathname === '/api/holdings' && method === 'PUT') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    const rows = readCsv(HOLDINGS_PATH)
+    if (rows.length < 2) { error('no holdings', 404); return true }
+    const header = rows[0]
+    const iName = header.indexOf('name')
+    const iType = header.indexOf('type')
+    const iValue = header.indexOf('value')
+    const iUpdated = header.indexOf('updated_at')
+    let found = false
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][iName] !== body.name) continue
+      if (body.new_name !== undefined) rows[i][iName] = body.new_name
+      if (body.type !== undefined) rows[i][iType] = body.type
+      if (body.value !== undefined) rows[i][iValue] = String(body.value)
+      if (body.value !== undefined || body.updated_at !== undefined) {
+        rows[i][iUpdated] = body.updated_at || new Date().toISOString()
+      }
+      found = true
+      break
+    }
+    if (!found) { error('holding not found', 404); return true }
+    writeCsv(HOLDINGS_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  if (pathname === '/api/holdings' && method === 'DELETE') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    const rows = readCsv(HOLDINGS_PATH)
+    if (rows.length < 2) { error('no holdings', 404); return true }
+    const header = rows[0]
+    const iName = header.indexOf('name')
+    const idx = rows.slice(1).findIndex(r => r[iName] === body.name)
+    if (idx === -1) { error('holding not found', 404); return true }
+    rows.splice(idx + 1, 1)
+    writeCsv(HOLDINGS_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  // ── Holding Events ──
+  if (pathname === '/api/holding-events' && method === 'GET') {
+    const rows = readCsv(HOLDING_EVENTS_PATH)
+    if (!rows.length) { json({ headers: [], rows: [] }); return true }
+    const headers = rows[0]
+    const data = rows.slice(1).map(r => {
+      const obj: Record<string, string> = {}
+      headers.forEach((h, i) => { obj[h] = r[i] ?? '' })
+      return obj
+    })
+    json({ headers, rows: data })
+    return true
+  }
+
+  // ── Holdings Actions (market update / contribution / withdrawal) ──
+  if (pathname === '/api/holdings/action' && method === 'POST') {
+    const body = await readBody()
+    if (!body.name || !body.action || body.amount === undefined) { error('name, action, amount required'); return true }
+
+    // Update holding value
+    const rows = readCsv(HOLDINGS_PATH)
+    if (rows.length < 2) { error('no holdings', 404); return true }
+    const header = rows[0]
+    const iName = header.indexOf('name')
+    const iValue = header.indexOf('value')
+    const iUpdated = header.indexOf('updated_at')
+    let found = false
+    let prevValue = 0
+    let newValue = 0
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][iName] !== body.name) continue
+      prevValue = Number(rows[i][iValue]) || 0
+      switch (body.action) {
+        case 'market_update': newValue = Math.max(0, Number(body.amount)); break
+        case 'contribution': newValue = prevValue + Number(body.amount); break
+        case 'withdrawal': newValue = Math.max(0, prevValue - Number(body.amount)); break
+        default: error('invalid action'); return true
+      }
+      rows[i][iValue] = String(newValue)
+      rows[i][iUpdated] = new Date().toISOString()
+      found = true
+      break
+    }
+    if (!found) { error('holding not found', 404); return true }
+    writeCsv(HOLDINGS_PATH, rows)
+
+    // Adjust income for contribution/withdrawal (affects Ready to Assign)
+    if ((body.action === 'contribution' || body.action === 'withdrawal') && body.month) {
+      const budgetRows = readCsv(BUDGETS_PATH)
+      if (budgetRows.length > 1) {
+        const bHeader = budgetRows[0]
+        const iBMonth = bHeader.indexOf('month')
+        const iBCategory = bHeader.indexOf('category')
+        const iBAssigned = bHeader.indexOf('assigned')
+        for (let i = 1; i < budgetRows.length; i++) {
+          if (budgetRows[i][iBMonth] === body.month && budgetRows[i][iBCategory] === '__income__') {
+            const currentIncome = Number(budgetRows[i][iBAssigned]) || 0
+            const delta = body.action === 'contribution' ? -Number(body.amount) : Number(body.amount)
+            budgetRows[i][iBAssigned] = String(Math.max(0, currentIncome + delta))
+            break
+          }
+        }
+        writeCsv(BUDGETS_PATH, budgetRows)
+      }
+    }
+
+    // Log event
+    let eventRows = readCsv(HOLDING_EVENTS_PATH)
+    if (!eventRows.length) eventRows.push(['holding_name', 'event_type', 'amount', 'previous_value', 'new_value', 'timestamp'])
+    const now = new Date().toISOString()
+    eventRows.push([body.name, body.action, String(body.amount), String(prevValue), String(newValue), now])
+    writeCsv(HOLDING_EVENTS_PATH, eventRows)
+
+    json({ ok: true, previousValue: prevValue, newValue })
     return true
   }
 
