@@ -2246,12 +2246,13 @@ input[type="date"]:hover {
   justify-content: space-between;
   gap: 24px;
   padding: 14px 20px;
-  border-radius: var(--radius-card);
+  border-top-left-radius: var(--radius-card);
+  border-top-right-radius: var(--radius-card);
   border: 1px solid var(--expense-border, var(--border));
   background: var(--expense-panel, var(--panel));
 }
 
-.rta-banner.rta-positive {
+/* .rta-banner.rta-positive {
   border-left: 4px solid var(--ok-fg, #5ee6a8);
 }
 
@@ -2261,7 +2262,7 @@ input[type="date"]:hover {
 
 .rta-banner.rta-negative {
   border-left: 4px solid var(--risk-fg, #ff8b9a);
-}
+} */
 
 .rta-main {
   display: flex;
@@ -2331,7 +2332,7 @@ input[type="date"]:hover {
 }
 
 .rollover-banner {
-  border-radius: var(--radius-card);
+  border-radius: 0;
   border: 1px solid var(--expense-border, var(--border));
   border-left: 4px solid var(--chart-2, #58b9ff);
   background: var(--expense-panel, var(--panel));
@@ -2724,7 +2725,7 @@ input[type="date"]:hover {
 }
 
 .env-row-cc {
-  background: rgba(88,130,255,.04);
+  background: rgba(88, 130, 255, 0.04);
 }
 
 .env-row-cc .env-cell-cat {
@@ -2756,7 +2757,7 @@ input[type="date"]:hover {
   font-size: var(--fs-10);
   font-weight: 500;
   color: var(--muted-2);
-  background: var(--panel-soft, rgba(0,0,0,.04));
+  background: var(--panel-soft, rgba(0, 0, 0, 0.04));
   padding: 0 4px;
   border-radius: 3px;
   text-transform: uppercase;
@@ -2766,7 +2767,7 @@ input[type="date"]:hover {
 }
 
 .env-cell-cc {
-  color: var(--accent, #5882FF);
+  color: var(--accent, #5882ff);
   font-weight: 500;
 }
 
@@ -4395,12 +4396,14 @@ summary:focus-visible,
   font-size: var(--fs-11);
   cursor: pointer;
   color: var(--muted-2);
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
   user-select: none;
 }
 
 .txn-entry-paymethod-opt:hover {
-  background: var(--hover-bg, rgba(0,0,0,.03));
+  background: var(--hover-bg, rgba(0, 0, 0, 0.03));
 }
 
 .txn-entry-paymethod-opt.is-active {
@@ -5215,7 +5218,7 @@ summary:focus-visible,
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  box-shadow: var(--sh-lg, 0 8px 24px rgba(0,0,0,.15));
+  box-shadow: var(--sh-lg, 0 8px 24px rgba(0, 0, 0, 0.15));
   padding: 3px;
   display: flex;
   flex-direction: column;
@@ -5235,7 +5238,7 @@ summary:focus-visible,
 }
 
 .inv-action-opt:hover {
-  background: var(--accent-bg, rgba(88,130,255,.08));
+  background: var(--accent-bg, rgba(88, 130, 255, 0.08));
 }
 
 .inv-action-icon {
@@ -5376,7 +5379,7 @@ summary:focus-visible,
 }
 
 .inv-event-row:hover {
-  background: var(--hover-bg, rgba(0,0,0,.02));
+  background: var(--hover-bg, rgba(0, 0, 0, 0.02));
 }
 
 .inv-event-time {
@@ -5393,7 +5396,7 @@ summary:focus-visible,
 }
 
 .inv-event-type--market_update {
-  color: var(--accent, #5882FF);
+  color: var(--accent, #5882ff);
 }
 
 .inv-event-type--contribution {
