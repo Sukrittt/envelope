@@ -1,18 +1,18 @@
-name
-🏠 Rent
-🚰 Water
-🔌 Electricity
-🧑‍🍳 Cook
-🚾 Bathroom Clean
-🪑 Furniture Rent
-🍎 Groceries
-🛵 Travel
-⚽ Football
-💇‍♂️ Haircut
-💃 Outings
-🛍️ Shopping
-🧺 Laundry
-🍲 Food Order
-🎟️ Miscellaneous
-💳 Bills
-💹 Investments
+name,group
+∂ Rent,🏠 Home
+🚰 Water,🏠 Home
+🔌 Electricity,🏠 Home
+🧑‍🍳 Cook,🏠 Home
+🚾 Bathroom Clean,🏠 Home
+🪑 Furniture Rent,🏠 Home
+🧺 Laundry,🏠 Home
+💳 Bills,🏠 Home
+🍎 Groceries,🥫 Food
+🍲 Food Order,🥫 Food
+🛵 Travel,🗺️ Travel
+⚽ Football,🎊 Entertainment
+💃 Outings,🎊 Entertainment
+🛍️ Shopping,🎊 Entertainment
+💇‍♂️ Haircut,🍀 Personal
+🎟️ Miscellaneous,🎊 Entertainment
+💹 Investments,💸 Investments

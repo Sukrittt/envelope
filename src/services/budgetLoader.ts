@@ -52,7 +52,8 @@ export function computeEnvelopes(
   budgets: BudgetRow[],
   expenses: Array<{ date: string; amountInr: number; category: string }>,
   currentMonth: string,
-  categories: string[],
+  categories: Array<{ name: string; group: string }>,
+  groups: string[],
 ): EnvelopeState {
   const monthBudgets = budgets.filter((b) => b.month === currentMonth)
   const prevMonthBudgets = budgets.filter((b) => b.month < currentMonth)
@@ -70,13 +71,16 @@ export function computeEnvelopes(
   const monthSpending = getMonthSpendingByCategory(expenses, currentMonth)
   const lastSpentByCat = getLastSpentByCategory(expenses)
 
+  const categoryGroup = new Map<string, string>()
+  for (const c of categories) categoryGroup.set(c.name, c.group ?? '')
+
   const budgetCategories = new Set(
     [...monthBudgets, ...prevMonthBudgets]
       .filter((b) => b.category !== '__income__')
       .map((b) => b.category),
   )
 
-  const allCategories = [...new Set([...categories, ...budgetCategories])]
+  const allCategories = [...new Set([...categories.map((c) => c.name), ...budgetCategories])]
 
   const envelopes: Envelope[] = []
   let totalAssigned = 0
@@ -113,6 +117,7 @@ export function computeEnvelopes(
 
     envelopes.push({
       category,
+      group: isCC ? '' : (categoryGroup.get(category) ?? ''),
       assigned,
       spent,
       available,
@@ -139,13 +144,15 @@ export function computeEnvelopes(
     readyToAssign,
     envelopes,
     isOverAssigned: readyToAssign < 0,
+    groups: groups.filter((g) => envelopes.some((e) => e.group === g)),
   }
 }
 
 export async function loadBudgetState(
   expenses: Array<{ date: string; amountInr: number; category: string }>,
   currentMonth: string,
-  categories: string[],
+  categories: Array<{ name: string; group: string }>,
+  groups: string[],
 ): Promise<EnvelopeState> {
   let budgets: BudgetRow[] = []
 
@@ -158,5 +165,5 @@ export async function loadBudgetState(
   } catch {
   }
 
-  return computeEnvelopes(budgets, expenses, currentMonth, categories)
+  return computeEnvelopes(budgets, expenses, currentMonth, categories, groups)
 }

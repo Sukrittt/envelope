@@ -1,6 +1,6 @@
 import type { ExpensePanelContract } from './expensePanelAdapter'
 import { computeEnvelopes } from './budgetLoader'
-import { getBudgets, getExpenses, getSubscriptions, getCategories } from './api'
+import { getBudgets, getExpenses, getSubscriptions, getCategories, getGroups } from './api'
 
 interface ExpenseRow {
   timestamp: string
@@ -24,11 +24,12 @@ interface SubscriptionRow {
 const ESSENTIAL_CATEGORIES = new Set(['Bills', 'Food', 'Travel', 'Personal care'])
 
 export async function loadExpensePanelContract(): Promise<ExpensePanelContract> {
-  const [apiExpenses, apiSubscriptions, budgetRows, categoryNames] = await Promise.all([
+  const [apiExpenses, apiSubscriptions, budgetRows, categoryRows, groupNames] = await Promise.all([
     getExpenses().catch(() => []),
     getSubscriptions().catch(() => []),
     getBudgets().catch(() => []),
-    getCategories().catch(() => [] as string[]),
+    getCategories().catch(() => []),
+    getGroups().catch(() => []),
   ])
 
   const expenses: ExpenseRow[] = apiExpenses.map((r) => ({
@@ -85,7 +86,7 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
     .sort((a, b) => a.date.localeCompare(b.date))
 
   // Alerts
-  const envelopeState = computeEnvelopes(budgets, expenses, currentMonth, categoryNames)
+  const envelopeState = computeEnvelopes(budgets, expenses, currentMonth, categoryRows, groupNames)
 
   const alerts: string[] = []
   if (envelopeState.isOverAssigned) {

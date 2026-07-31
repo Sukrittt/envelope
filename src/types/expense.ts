@@ -7,6 +7,7 @@ export interface BudgetRow {
 
 export interface Envelope {
   category: string
+  group?: string
   assigned: number
   spent: number
   available: number
@@ -25,4 +26,5 @@ export interface EnvelopeState {
   readyToAssign: number
   envelopes: Envelope[]
   isOverAssigned: boolean
+  groups: string[]
 }

@@ -301,7 +301,8 @@ export function ExpensePage() {
 
     const budgets: BudgetRow[] = (await getBudgets().catch(() => []))
       .map((r) => ({ month: r.month, category: r.category, assigned: Number(r.assigned), rolledOver: Number(r.rolled_over) }))
-    const categories = await getCategories().catch(() => [] as string[])
+    const categories = await getCategories().catch(() => [])
+    const categoryNames = categories.map((c) => c.name)
 
     const lastMonthRows = budgets.filter((b) => b.month === lastMonthKey && b.category !== '__income__')
     let totalOverspent = 0
@@ -315,7 +316,7 @@ export function ExpensePage() {
     const effectiveIncome = Math.max(0, income - totalOverspent)
     await addBudget({ month, category: '__income__', assigned: String(effectiveIncome) }).catch(() => {})
 
-    const allCategoryNames = [...new Set([...categories, ...lastMonthRows.map((r) => r.category)])]
+    const allCategoryNames = [...new Set([...categoryNames, ...lastMonthRows.map((r) => r.category)])]
     for (const cat of allCategoryNames) {
       const lastRow = lastMonthRows.find((r) => r.category === cat)
       const assigned = copyAssigned && lastRow ? lastRow.assigned : 0
@@ -911,7 +912,7 @@ export function ExpensePage() {
               <input
                 type="search"
                 className="search-input"
-                placeholder="Search categories…"
+                placeholder="Search categories or groups…"
                 value={envelopeSearch}
                 onChange={(e) => setEnvelopeSearch(e.target.value)}
                 style={{ width: '200px', minHeight: '28px', fontSize: 'var(--fs-12)' }}
@@ -930,6 +931,7 @@ export function ExpensePage() {
           {envelopeState && (
             <EnvelopeGrid
               envelopes={envelopeState.envelopes}
+              groups={envelopeState.groups}
               hideAmounts={hideAmounts}
               readyToAssign={envelopeState.readyToAssign}
               searchQuery={envelopeSearch}

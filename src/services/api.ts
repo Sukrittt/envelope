@@ -57,26 +57,31 @@ export async function deleteBudget(month: string, category: string): Promise<voi
   if (!resp.ok) throw new Error(`Failed to delete budget: ${resp.status}`)
 }
 
-export async function getCategories(): Promise<string[]> {
+export interface CategoryRow {
+  name: string
+  group: string
+}
+
+export async function getCategories(): Promise<CategoryRow[]> {
   const resp = await fetch('/api/categories')
   if (!resp.ok) throw new Error(`Failed to load categories: ${resp.status}`)
   return resp.json()
 }
 
-export async function addCategory(name: string): Promise<void> {
+export async function addCategory(name: string, group = ''): Promise<void> {
   const resp = await fetch('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, group }),
   })
   if (!resp.ok) throw new Error(`Failed to add category: ${resp.status}`)
 }
 
-export async function updateCategory(name: string, newName: string): Promise<void> {
+export async function updateCategory(name: string, updates: { newName?: string; group?: string }): Promise<void> {
   const resp = await fetch('/api/categories', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, newName }),
+    body: JSON.stringify({ name, ...updates }),
   })
   if (!resp.ok) throw new Error(`Failed to update category: ${resp.status}`)
 }
@@ -88,6 +93,48 @@ export async function deleteCategory(name: string): Promise<void> {
     body: JSON.stringify({ name }),
   })
   if (!resp.ok) throw new Error(`Failed to delete category: ${resp.status}`)
+}
+
+export async function reorderCategory(name: string, direction: 'up' | 'down'): Promise<void> {
+  const resp = await fetch('/api/categories/reorder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, direction }),
+  })
+  if (!resp.ok) throw new Error(`Failed to reorder category: ${resp.status}`)
+}
+
+export async function getGroups(): Promise<string[]> {
+  const resp = await fetch('/api/groups')
+  if (!resp.ok) throw new Error(`Failed to load groups: ${resp.status}`)
+  return resp.json()
+}
+
+export async function addGroup(name: string): Promise<void> {
+  const resp = await fetch('/api/groups', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!resp.ok) throw new Error(`Failed to add group: ${resp.status}`)
+}
+
+export async function updateGroup(name: string, newName: string): Promise<void> {
+  const resp = await fetch('/api/groups', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, newName }),
+  })
+  if (!resp.ok) throw new Error(`Failed to update group: ${resp.status}`)
+}
+
+export async function deleteGroup(name: string): Promise<void> {
+  const resp = await fetch('/api/groups', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!resp.ok) throw new Error(`Failed to delete group: ${resp.status}`)
 }
 
 export async function getExpenses(): Promise<ExpenseRow[]> {

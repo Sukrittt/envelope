@@ -7,6 +7,7 @@ const PRODUCTIVITY = resolve(import.meta.dirname, 'productivity')
 const EXPENSES_PATH = resolve(PRODUCTIVITY, 'expenses.csv')
 const BUDGETS_PATH = resolve(PRODUCTIVITY, 'budgets.csv')
 const CATEGORIES_PATH = resolve(PRODUCTIVITY, 'categories.csv')
+const GROUPS_PATH = resolve(PRODUCTIVITY, 'groups.csv')
 // Subscriptions live under data/, not productivity/ — see prebuild in package.json
 const SUBSCRIPTIONS_PATH = resolve(import.meta.dirname, 'data', 'subscriptions.csv')
 const HOLDINGS_PATH = resolve(import.meta.dirname, 'data', 'holdings.csv')
@@ -207,7 +208,10 @@ async function handleApi(req: any, res: any): Promise<boolean> {
   // ── Categories ──
   if (pathname === '/api/categories' && method === 'GET') {
     const rows = readCsv(CATEGORIES_PATH).filter(r => r.length > 0)
-    json(rows.slice(1).map(r => r[0]).filter(Boolean))
+    const header = rows[0]
+    const iName = header.indexOf('name')
+    const iGroup = header.indexOf('group')
+    json(rows.slice(1).map(r => ({ name: r[iName] ?? '', group: iGroup >= 0 ? (r[iGroup] ?? '') : '' })).filter(c => c.name))
     return true
   }
 
@@ -215,8 +219,9 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
     const rows = readCsv(CATEGORIES_PATH)
-    if (rows.length === 0) rows.push(['name'])
-    rows.push([body.name])
+    if (rows.length === 0) rows.push(['name', 'group'])
+    if (rows[0].indexOf('group') < 0) rows[0].push('group')
+    rows.push([body.name, body.group ?? ''])
     writeCsv(CATEGORIES_PATH, rows)
     json({ ok: true })
     return true
@@ -228,7 +233,36 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     const rows = readCsv(CATEGORIES_PATH)
     const idx = rows.findIndex(r => r[0] === body.name)
     if (idx < 1) { error('category not found', 404); return true }
-    if (body.newName) rows[idx][0] = body.newName
+    if (body.newName && body.newName !== body.name) {
+      rows[idx][0] = body.newName
+      const budgets = readCsv(BUDGETS_PATH)
+      if (budgets.length > 1) {
+        const ci = budgets[0].indexOf('category')
+        if (ci >= 0) {
+          for (let i = 1; i < budgets.length; i++) {
+            if (budgets[i][ci] === body.name) budgets[i][ci] = body.newName
+          }
+          writeCsv(BUDGETS_PATH, budgets)
+        }
+      }
+      const expenses = readCsv(EXPENSES_PATH)
+      if (expenses.length > 1) {
+        const ci = expenses[0].indexOf('category')
+        if (ci >= 0) {
+          let changed = false
+          for (let i = 1; i < expenses.length; i++) {
+            if (expenses[i][ci] === body.name) { expenses[i][ci] = body.newName; changed = true }
+          }
+          if (changed) writeCsv(EXPENSES_PATH, expenses)
+        }
+      }
+    }
+    if (body.group !== undefined) {
+      if (rows[0].indexOf('group') < 0) rows[0].push('group')
+      const gi = rows[0].indexOf('group')
+      while (rows[idx].length <= gi) rows[idx].push('')
+      rows[idx][gi] = body.group
+    }
     writeCsv(CATEGORIES_PATH, rows)
     json({ ok: true })
     return true
@@ -242,6 +276,91 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     rows = [rows[0], ...rows.slice(1).filter(r => r[0] !== body.name)]
     if (rows.length === before) { error('category not found', 404); return true }
     writeCsv(CATEGORIES_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  if (pathname === '/api/categories/reorder' && method === 'POST') {
+    const body = await readBody()
+    if (!body.name || !body.direction) { error('name, direction required'); return true }
+    const rows = readCsv(CATEGORIES_PATH)
+    const idx = rows.findIndex(r => r[0] === body.name)
+    if (idx < 1) { error('category not found', 404); return true }
+    const gi = rows[0].indexOf('group')
+    const group = gi >= 0 ? (rows[idx][gi] ?? '') : ''
+    const step = body.direction === 'up' ? -1 : 1
+    let target = idx + step
+    while (target >= 1 && target < rows.length) {
+      const tGroup = gi >= 0 ? (rows[target][gi] ?? '') : ''
+      if (tGroup === group) break
+      target += step
+    }
+    if (target < 1 || target >= rows.length) { error('no adjacent category to swap', 400); return true }
+    const tmp = rows[idx]
+    rows[idx] = rows[target]
+    rows[target] = tmp
+    writeCsv(CATEGORIES_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  // ── Groups ──
+  if (pathname === '/api/groups' && method === 'GET') {
+    const rows = readCsv(GROUPS_PATH).filter(r => r.length > 0)
+    json(rows.slice(1).map(r => r[0]).filter(Boolean))
+    return true
+  }
+
+  if (pathname === '/api/groups' && method === 'POST') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    const rows = readCsv(GROUPS_PATH)
+    if (rows.length === 0) rows.push(['name'])
+    if (rows.some(r => r[0] === body.name)) { error('group already exists', 409); return true }
+    rows.push([body.name])
+    writeCsv(GROUPS_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
+  if (pathname === '/api/groups' && method === 'PUT') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    const rows = readCsv(GROUPS_PATH)
+    const idx = rows.findIndex(r => r[0] === body.name)
+    if (idx < 1) { error('group not found', 404); return true }
+    if (body.newName) {
+      rows[idx][0] = body.newName
+      writeCsv(GROUPS_PATH, rows)
+      const cats = readCsv(CATEGORIES_PATH)
+      if (cats.length && cats[0].indexOf('group') >= 0) {
+        const gi = cats[0].indexOf('group')
+        for (let i = 1; i < cats.length; i++) {
+          if ((cats[i][gi] ?? '') === body.name) cats[i][gi] = body.newName
+        }
+        writeCsv(CATEGORIES_PATH, cats)
+      }
+    }
+    json({ ok: true })
+    return true
+  }
+
+  if (pathname === '/api/groups' && method === 'DELETE') {
+    const body = await readBody()
+    if (!body.name) { error('name required'); return true }
+    let rows = readCsv(GROUPS_PATH)
+    const before = rows.length
+    rows = [rows[0], ...rows.slice(1).filter(r => r[0] !== body.name)]
+    if (rows.length === before) { error('group not found', 404); return true }
+    writeCsv(GROUPS_PATH, rows)
+    const cats = readCsv(CATEGORIES_PATH)
+    if (cats.length && cats[0].indexOf('group') >= 0) {
+      const gi = cats[0].indexOf('group')
+      for (let i = 1; i < cats.length; i++) {
+        if ((cats[i][gi] ?? '') === body.name) cats[i][gi] = ''
+      }
+      writeCsv(CATEGORIES_PATH, cats)
+    }
     json({ ok: true })
     return true
   }
