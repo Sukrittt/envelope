@@ -1254,7 +1254,7 @@ input[type="date"]:hover {
 }
 
 .spark-bars--expanded .spark-bars-inner {
-  min-height: clamp(220px, 34vh, 320px);
+  min-height: clamp(320px, 46vh, 460px);
 }
 
 .spark-bar-wrap.is-clickable {
@@ -1770,7 +1770,7 @@ input[type="date"]:hover {
 
 .expense-grid-xman {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -1779,9 +1779,10 @@ input[type="date"]:hover {
   padding: 16px;
 }
 
+/* Trend and envelopes each get their own full-width row; insights and
+   subscriptions share the row below them. */
 .expense-trend-panel {
-  grid-column: 1;
-  grid-row: 1 / span 2;
+  grid-column: 1 / -1;
   grid-template-rows: auto 1fr;
 }
 
@@ -1795,9 +1796,8 @@ input[type="date"]:hover {
 }
 
 .expense-envelope-panel {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  max-height: 520px;
+  grid-column: 1 / -1;
+  max-height: 720px;
   overflow-y: auto;
   align-content: start;
 }
@@ -1821,7 +1821,6 @@ input[type="date"]:hover {
 
 .expense-subscriptions-panel {
   grid-column: 2;
-  grid-row: 3;
 }
 
 .expense-subscriptions-panel.mc-panel {
@@ -1830,7 +1829,6 @@ input[type="date"]:hover {
 
 .expense-insights-panel {
   grid-column: 1;
-  grid-row: 3;
   display: flex;
   flex-direction: column;
 }
@@ -2506,7 +2504,12 @@ input[type="date"]:hover {
 
 .env-th-num {
   text-align: right;
-  width: 100px;
+  width: 90px;
+}
+
+.env-th-last {
+  text-align: right;
+  width: 90px;
 }
 
 .env-th-action {
@@ -2593,6 +2596,17 @@ input[type="date"]:hover {
 .env-cell-avail {
   color: var(--expense-text);
   font-weight: 700;
+}
+
+.env-cell-muted {
+  color: var(--expense-muted);
+  font-weight: 400;
+}
+
+.env-cell-last {
+  color: var(--expense-muted);
+  font-size: var(--fs-12);
+  white-space: nowrap;
 }
 
 .env-cell-negative {
@@ -2754,13 +2768,6 @@ input[type="date"]:hover {
 .env-cell-cc {
   color: var(--accent, #5882FF);
   font-weight: 500;
-}
-
-.env-cc-label {
-  font-size: var(--fs-10);
-  color: var(--muted-3, rgba(255,255,255,.3));
-  font-weight: 400;
-  pointer-events: none;
 }
 
 .env-menu-item-danger {

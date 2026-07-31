@@ -17,6 +17,26 @@ function formatCurrency(value: number): string {
   return `₹${Math.round(value).toLocaleString('en-IN')}`
 }
 
+function usedPct(e: Envelope): number {
+  if (e.assigned > 0) return Math.round((e.spent / e.assigned) * 100)
+  return e.spent > 0 ? Infinity : 0
+}
+
+function lastSpentLabel(iso: string | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+  if (iso === todayStr) return 'Today'
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (iso === yesterday.toISOString().slice(0, 10)) return 'Yesterday'
+  const days = Math.round((today.getTime() - d.getTime()) / 86400000)
+  if (days >= 1 && days <= 31) return `${days}d ago`
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
 export function EnvelopeGrid({ envelopes, hideAmounts, readyToAssign, searchQuery, sortKey, onMoveMoney, onAssignFromRTA, onPayCreditCard }: Props) {
   const navigate = useNavigate()
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
@@ -75,7 +95,9 @@ export function EnvelopeGrid({ envelopes, hideAmounts, readyToAssign, searchQuer
           <th className="env-th env-th-cat">Category</th>
           <th className="env-th env-th-num">Assigned</th>
           <th className="env-th env-th-num">Spent</th>
+          <th className="env-th env-th-num">Used</th>
           <th className="env-th env-th-num">Available</th>
+          <th className="env-th env-th-last">Last spent</th>
           <th className="env-th env-th-action" />
         </tr>
       </thead>
@@ -124,17 +146,20 @@ export function EnvelopeGrid({ envelopes, hideAmounts, readyToAssign, searchQuer
                   </div>
                 )}
               </td>
-              <td className="env-cell env-cell-num env-cell-assigned">
-                {isCC ? <span className="env-cc-label">Set aside · </span> : null}
+              <td className="env-cell env-cell-num env-cell-assigned" title={isCC ? 'Set aside' : undefined}>
                 {hideAmounts ? '---' : formatCurrency(e.assigned)}
               </td>
-              <td className="env-cell env-cell-num env-cell-spent">
-                {isCC ? <span className="env-cc-label">Paid · </span> : null}
+              <td className="env-cell env-cell-num env-cell-spent" title={isCC ? 'Paid' : undefined}>
                 {hideAmounts ? '---' : formatCurrency(e.spent)}
               </td>
-              <td className={`env-cell env-cell-num env-cell-avail ${isCC ? 'env-cell-cc' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : ''}`}>
-                {isCC ? <span className="env-cc-label">Owed · </span> : null}
+              <td className={`env-cell env-cell-num ${isCC ? 'env-cell-muted' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : 'env-cell-muted'}`}>
+                {isCC ? '—' : usedPct(e) === Infinity ? '∞' : `${usedPct(e)}%`}
+              </td>
+              <td className={`env-cell env-cell-num env-cell-avail ${isCC ? 'env-cell-cc' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : ''}`} title={isCC ? 'Owed' : undefined}>
                 {hideAmounts ? '---' : formatCurrency(e.available)}
+              </td>
+              <td className="env-cell env-cell-num env-cell-last">
+                {lastSpentLabel(e.lastSpentDate)}
               </td>
               <td className="env-cell env-cell-action">
                 <div className="env-action-wrap">

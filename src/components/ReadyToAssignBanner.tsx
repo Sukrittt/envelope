@@ -12,7 +12,8 @@ interface Props {
 }
 
 function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString('en-IN')}`
+  const rounded = Math.round(value)
+  return `₹${(rounded === 0 ? 0 : rounded).toLocaleString('en-IN')}`
 }
 
 export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOverAssigned, onIncomeChange, sparkData, overspentCount, totalEnvelopes }: Props) {

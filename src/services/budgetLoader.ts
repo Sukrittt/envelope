@@ -36,6 +36,18 @@ function getMonthSpendingByCategory(
   return map
 }
 
+function getLastSpentByCategory(
+  expenses: Array<{ date: string; amountInr: number; category: string }>,
+): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const e of expenses) {
+    if (!e.date) continue
+    const current = map.get(e.category)
+    if (!current || e.date > current) map.set(e.category, e.date)
+  }
+  return map
+}
+
 export function computeEnvelopes(
   budgets: BudgetRow[],
   expenses: Array<{ date: string; amountInr: number; category: string }>,
@@ -56,6 +68,7 @@ export function computeEnvelopes(
   const income = incomeRow?.assigned ?? 0
 
   const monthSpending = getMonthSpendingByCategory(expenses, currentMonth)
+  const lastSpentByCat = getLastSpentByCategory(expenses)
 
   const budgetCategories = new Set(
     [...monthBudgets, ...prevMonthBudgets]
@@ -107,6 +120,7 @@ export function computeEnvelopes(
       isOverspent: available < 0,
       spentPct: assigned > 0 ? Math.min(100, (spent / assigned) * 100) : spent > 0 ? 100 : 0,
       isCreditCardPayment: isCC,
+      lastSpentDate: lastSpentByCat.get(category),
     })
   }
 
@@ -115,7 +129,7 @@ export function computeEnvelopes(
     return a.category.localeCompare(b.category)
   })
 
-  const readyToAssign = Math.round(income - totalAssigned)
+  const readyToAssign = Math.round(income - totalAssigned) || 0
 
   return {
     month: currentMonth,

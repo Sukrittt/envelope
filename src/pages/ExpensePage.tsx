@@ -130,14 +130,23 @@ export function ExpensePage() {
     setReactivatingSub(null)
   }
 
-  function handleIncomeChange(newIncome: number) {
+  async function handleIncomeChange(newIncome: number) {
+    const month = envelopeState?.month
+    const income = Math.round(newIncome) || 0
+    if (month) {
+      try {
+        await updateBudget(month, '__income__', { assigned: String(income) })
+      } catch {
+        await addBudget({ month, category: '__income__', assigned: String(income) })
+      }
+    }
+    localStorage.removeItem('expense-income-override')
     setEnvelopeState((prev) => {
       if (!prev) return prev
       const totalAssigned = prev.envelopes.reduce((s, e) => s + e.assigned, 0)
-      const rta = newIncome - totalAssigned
-      return { ...prev, income: newIncome, readyToAssign: rta, isOverAssigned: rta < 0 }
+      const rta = Math.round(income - totalAssigned) || 0
+      return { ...prev, income, readyToAssign: rta, isOverAssigned: rta < 0 }
     })
-    localStorage.setItem('expense-income-override', String(newIncome))
   }
 
   function handleAssignFromRTA(category: string, amount: number) {
@@ -161,7 +170,7 @@ export function ExpensePage() {
         return e
       })
       const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
-      const rta = Math.round(prev.income - totalAssigned)
+      const rta = Math.round(prev.income - totalAssigned) || 0
       return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
     })
   }
@@ -232,6 +241,22 @@ export function ExpensePage() {
       setEnvelopeState(data.envelopeState)
     })
   }, [])
+
+  useEffect(() => {
+    if (!panel) return
+    const override = localStorage.getItem('expense-income-override')
+    if (override === null) return
+    const value = Math.round(Number(override)) || 0
+    const month = panel.month
+    ;(async () => {
+      try {
+        await updateBudget(month, '__income__', { assigned: String(value) })
+      } catch {
+        await addBudget({ month, category: '__income__', assigned: String(value) })
+      }
+      localStorage.removeItem('expense-income-override')
+    })()
+  }, [panel])
 
   useEffect(() => {
     if (!panel) return
@@ -1227,7 +1252,7 @@ export function ExpensePage() {
                   return e
                 })
                 const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
-                const rta = Math.round(prev.income - totalAssigned)
+                const rta = Math.round(prev.income - totalAssigned) || 0
                 const current = prev.envelopes.find((e) => e.category === to)
                 const newAssigned = (current?.assigned ?? 0) + amount
                 updateBudget(prev.month, to, { assigned: String(newAssigned) }).catch(() => {})
@@ -1239,7 +1264,7 @@ export function ExpensePage() {
                 return e
               })
               const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
-              const rta = Math.round(prev.income - totalAssigned)
+              const rta = Math.round(prev.income - totalAssigned) || 0
               return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
             })
             setMoveMoneyTarget(null)
