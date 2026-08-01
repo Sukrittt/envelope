@@ -8,7 +8,7 @@ interface Props {
   hideAmounts: boolean
   readyToAssign: number
   searchQuery: string
-  sortKey: 'overspent-first' | 'alphabetical' | 'by-assigned'
+  sortKey: 'custom' | 'overspent-first' | 'alphabetical' | 'by-assigned'
   onMoveMoney: (category: string) => void
   onAssignFromRTA: (category: string, amount: number) => void
   onPayCreditCard?: () => void
@@ -41,6 +41,7 @@ function lastSpentLabel(iso: string | undefined): string {
 }
 
 function compareEnvelopes(a: Envelope, b: Envelope, sortKey: Props['sortKey']): number {
+  if (sortKey === 'custom') return 0
   if (sortKey === 'overspent-first') {
     if (a.isOverspent !== b.isOverspent) return a.isOverspent ? -1 : 1
     return a.available - b.available
@@ -164,14 +165,20 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
     return { assigned, spent, available }
   }
 
-  function renderRow(e: Envelope) {
+  function groupUsed(totals: { assigned: number; spent: number }): string {
+    if (totals.assigned > 0) return `${Math.round((totals.spent / totals.assigned) * 100)}%`
+    return totals.spent > 0 ? '∞' : '—'
+  }
+
+  function renderRow(e: Envelope, nested: boolean) {
     const isCC = e.isCreditCardPayment
     const isOverspent = e.isOverspent
     const hasBalance = e.available > 0
     const pct = Math.min(100, e.spentPct)
     const isMenuOpen = menuCategory === e.category
+    const showDash = !isCC && e.assigned === 0 && e.spent === 0
     return (
-      <tr key={e.category} className={`env-row ${isCC ? 'env-row-cc' : ''} ${isOverspent ? 'env-row-overspent' : ''} ${!isOverspent && !e.assigned && !e.spent && !e.available ? 'env-row-inactive' : ''}`}>
+      <tr key={e.category} className={`env-row ${nested ? 'env-row-nested' : ''} ${isCC ? 'env-row-cc' : ''} ${isOverspent ? 'env-row-overspent' : ''} ${!isOverspent && !e.assigned && !e.spent && !e.available ? 'env-row-inactive' : ''}`}>
         <td className="env-cell env-cell-cat">
           {isCC ? (
             <span className="env-cat-cc-label">
@@ -204,8 +211,8 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
         <td className="env-cell env-cell-num env-cell-spent" title={isCC ? 'Paid' : undefined}>
           {hideAmounts ? '---' : formatCurrency(e.spent)}
         </td>
-        <td className={`env-cell env-cell-num ${isCC ? 'env-cell-muted' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : 'env-cell-muted'}`}>
-          {isCC ? '—' : usedPct(e) === Infinity ? '∞' : `${usedPct(e)}%`}
+        <td className={`env-cell env-cell-num ${isCC ? 'env-cell-muted' : showDash ? 'env-cell-muted' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : 'env-cell-muted'}`}>
+          {isCC || showDash ? '—' : usedPct(e) === Infinity ? '∞' : `${usedPct(e)}%`}
         </td>
         <td className={`env-cell env-cell-num env-cell-avail ${isCC ? 'env-cell-cc' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : ''}`} title={isCC ? 'Owed' : undefined}>
           {hideAmounts ? '---' : formatCurrency(e.available)}
@@ -288,29 +295,32 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
       </thead>
       <tbody>
         {visibleGroups.map((group) => {
-          const sortedItems = [...group.items].sort((a, b) => compareEnvelopes(a, b, sortKey))
+          const sortedItems = sortKey === 'custom' ? group.items : [...group.items].sort((a, b) => compareEnvelopes(a, b, sortKey))
           const isCollapsed = !isSearching && collapsed.has(group.label)
           const totals = groupTotals(group.items)
           const availableClass = totals.available < 0 ? 'env-cell-negative' : totals.available > 0 ? 'env-cell-positive' : 'env-cell-muted'
           return (
             <Fragment key={group.label}>
               <tr className={`env-group-row ${isCollapsed ? 'env-group-collapsed' : ''}`} onClick={() => toggleGroup(group.label)}>
-                <td colSpan={7} className="env-group-cell">
+                <td className="env-group-cell env-group-cell-cat">
                   <span className="env-group-toggle">{isCollapsed ? '▸' : '▾'}</span>
                   <span className="env-group-name">{group.label}</span>
                   <span className="env-group-count">{group.items.length} {group.items.length === 1 ? 'category' : 'categories'}</span>
-                  <span className="env-group-totals">
-                    <span className="env-group-total env-cell-assigned">{hideAmounts ? '---' : formatCurrency(totals.assigned)}</span>
-                    <span className="env-group-total env-cell-spent">{hideAmounts ? '---' : formatCurrency(totals.spent)}</span>
-                    <span className={`env-group-total env-cell-avail ${availableClass}`}>{hideAmounts ? '---' : formatCurrency(totals.available)}</span>
-                  </span>
                 </td>
+                <td className="env-group-cell env-group-num env-cell-assigned">{hideAmounts ? '---' : formatCurrency(totals.assigned)}</td>
+                <td className="env-group-cell env-group-num env-cell-spent">{hideAmounts ? '---' : formatCurrency(totals.spent)}</td>
+                <td className={`env-group-cell env-group-num ${totals.assigned > 0 ? (totals.spent > totals.assigned ? 'env-cell-negative' : 'env-cell-positive') : 'env-cell-muted'}`}>
+                  {groupUsed(totals)}
+                </td>
+                <td className={`env-group-cell env-group-num env-cell-avail ${availableClass}`}>{hideAmounts ? '---' : formatCurrency(totals.available)}</td>
+                <td className="env-group-cell env-group-num env-cell-last">—</td>
+                <td className="env-group-cell env-group-action" />
               </tr>
-              {!isCollapsed && sortedItems.map(renderRow)}
+              {!isCollapsed && sortedItems.map((e) => renderRow(e, true))}
             </Fragment>
           )
         })}
-        {ccEnvelope && renderRow(ccEnvelope)}
+        {ccEnvelope && renderRow(ccEnvelope, false)}
       </tbody>
     </table>
   )

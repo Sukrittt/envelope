@@ -96,7 +96,7 @@ export function ExpensePage() {
   const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(null)
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null)
   const [envelopeSearch, setEnvelopeSearch] = useState('')
-  const [envelopeSort, setEnvelopeSort] = useState<'overspent-first' | 'alphabetical' | 'by-assigned'>('overspent-first')
+  const [envelopeSort, setEnvelopeSort] = useState<'custom' | 'overspent-first' | 'alphabetical' | 'by-assigned'>('custom')
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false)
   const [showRolloverBanner, setShowRolloverBanner] = useState(false)
@@ -922,6 +922,7 @@ export function ExpensePage() {
                 onChange={(e) => setEnvelopeSort(e.target.value as typeof envelopeSort)}
                 style={{ minWidth: '150px', minHeight: '28px', fontSize: 'var(--fs-12)' }}
               >
+                <option value="custom">Custom order</option>
                 <option value="overspent-first">Overspent first</option>
                 <option value="alphabetical">Alphabetical</option>
                 <option value="by-assigned">By assigned amount</option>

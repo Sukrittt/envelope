@@ -104,6 +104,15 @@ export async function reorderCategory(name: string, direction: 'up' | 'down'): P
   if (!resp.ok) throw new Error(`Failed to reorder category: ${resp.status}`)
 }
 
+export async function moveCategory(name: string, toIndex: number): Promise<void> {
+  const resp = await fetch('/api/categories/move', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, toIndex }),
+  })
+  if (!resp.ok) throw new Error(`Failed to move category: ${resp.status}`)
+}
+
 export async function getGroups(): Promise<string[]> {
   const resp = await fetch('/api/groups')
   if (!resp.ok) throw new Error(`Failed to load groups: ${resp.status}`)

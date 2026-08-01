@@ -129,11 +129,6 @@ export function computeEnvelopes(
     })
   }
 
-  envelopes.sort((a, b) => {
-    if (a.isOverspent !== b.isOverspent) return a.isOverspent ? -1 : 1
-    return a.category.localeCompare(b.category)
-  })
-
   const readyToAssign = Math.round(income - totalAssigned) || 0
 
   return {

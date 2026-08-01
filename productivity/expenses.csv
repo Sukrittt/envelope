@@ -439,10 +439,10 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-02T15:46:00+05:30,2026-07-02,Groceries,467,🍎 Groceries,,manual-chat
 2026-07-02T19:00:00+05:30,2026-07-02,Milk,30,🍲 Food Order,,manual-chat
 2026-07-03T08:40:00+05:30,2026-07-03,Wifi 15gb,59,🎟️ Miscellaneous,,manual-chat
-2026-07-04T09:56:00+05:30,2026-07-04,Rent,20580,∂ Rent,,manual-chat
+2026-07-04T09:56:00+05:30,2026-07-04,Rent,20580,🏠 Rent,,manual-chat
 2026-07-04T09:56:10+05:30,2026-07-04,Chainsmokers Concert,4000,💃 Outings,,manual-chat
 2026-07-04T17:02:00+05:30,2026-07-04,Hand shower,1396,🛍️ Shopping,,manual-chat
-2026-07-04T20:20:10+05:30,2026-07-04,New flat Deposit + expenses,27200,∂ Rent,,manual-chat
+2026-07-04T20:20:10+05:30,2026-07-04,New flat Deposit + expenses,27200,🏠 Rent,,manual-chat
 2026-07-05T13:44:00+05:30,2026-07-05,Travel,232,🛵 Travel,,manual-chat
 2026-07-05T18:12:00+05:30,2026-07-05,Travel,221,🛵 Travel,,manual-chat
 2026-07-06T10:34:00+05:30,2026-07-06,Room Furniture,16868,🛍️ Shopping,,manual-chat
@@ -482,7 +482,7 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-11T21:46:00+05:30,2026-07-11,Shampoo conditioner & other stuff,953,🛍️ Shopping,,monthly: household
 2026-07-11T22:28:00+05:30,2026-07-11,Football,279,⚽ Football,,personal: football
 2026-07-12T02:20:00+05:30,2026-07-12,Late night snacks,399,🍲 Food Order,,personal: snacks
-2026-07-12T11:02:00+05:30,2026-07-12,Furniture transportation,100,∂ Rent,,monthly: travel
+2026-07-12T11:02:00+05:30,2026-07-12,Furniture transportation,100,🏠 Rent,,monthly: travel
 2026-07-12T18:19:00+05:30,2026-07-12,Bike to turf,45,🛵 Travel,,monthly: travel
 2026-07-12T18:38:00+05:30,2026-07-12,Energy drink,70,🍲 Food Order,,personal: misc
 2026-07-12T20:33:00+05:30,2026-07-12,Water,45,🍎 Groceries,,monthly: water
@@ -501,7 +501,7 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-16T11:05:00+05:30,2026-07-16,Keychain,604,🛍️ Shopping,,personal: misc
 2026-07-16T16:09:00+05:30,2026-07-16,Gym membership,7999,🎟️ Miscellaneous,,personal: fitness
 2026-07-16T16:09:10+05:30,2026-07-16,Groceries,154,🍎 Groceries,,monthly: groceries
-2026-07-17T13:24:00+05:30,2026-07-17,Furniture one time yearly cost,9124,∂ Rent,,one-time: furniture
+2026-07-17T13:24:00+05:30,2026-07-17,Furniture one time yearly cost,9124,🏠 Rent,,one-time: furniture
 2026-07-17T14:52:00+05:30,2026-07-17,Football,279,⚽ Football,,personal: football
 2026-07-17T19:14:00+05:30,2026-07-17,Groceries,250,🍎 Groceries,,monthly: groceries
 2026-07-18T13:21:00+05:30,2026-07-18,Icecream,260,💃 Outings,,personal: misc
@@ -509,7 +509,7 @@ timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_
 2026-07-19T20:15:00+05:30,2026-07-19,Day out with friends,1080,💃 Outings,,personal: misc
 2026-07-19T20:39:00+05:30,2026-07-19,Turf travel,98,🛵 Travel,,monthly: travel
 2026-07-20T15:12:00+05:30,2026-07-20,Laundry,190,🧺 Laundry,,monthly: household
-2026-07-20T15:12:10+05:30,2026-07-20,Furniture delivery,100,∂ Rent,,monthly: travel
+2026-07-20T15:12:10+05:30,2026-07-20,Furniture delivery,100,🏠 Rent,,monthly: travel
 2026-07-20T19:24:00+05:30,2026-07-20,Groceries,243,🍎 Groceries,,monthly: groceries
 2026-07-20T20:32:00+05:30,2026-07-20,Dinner,185,🍲 Food Order,,personal: food
 2026-07-20T21:07:00+05:30,2026-07-20,Jersey,1599,🛍️ Shopping,,personal: misc

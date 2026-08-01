@@ -1,5 +1,5 @@
 name,group
-∂ Rent,🏠 Home
+🏠 Rent,🏠 Home
 🚰 Water,🏠 Home
 🔌 Electricity,🏠 Home
 🧑‍🍳 Cook,🏠 Home
@@ -12,7 +12,7 @@ name,group
 🛵 Travel,🗺️ Travel
 ⚽ Football,🎊 Entertainment
 💃 Outings,🎊 Entertainment
-🛍️ Shopping,🎊 Entertainment
+🛍️ Shopping,🍀 Personal
 💇‍♂️ Haircut,🍀 Personal
 🎟️ Miscellaneous,🎊 Entertainment
 💹 Investments,💸 Investments

@@ -304,6 +304,30 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     return true
   }
 
+  if (pathname === '/api/categories/move' && method === 'POST') {
+    const body = await readBody()
+    if (!body.name || typeof body.toIndex !== 'number') { error('name, toIndex required'); return true }
+    const rows = readCsv(CATEGORIES_PATH)
+    const idx = rows.findIndex(r => r[0] === body.name)
+    if (idx < 1) { error('category not found', 404); return true }
+    const gi = rows[0].indexOf('group')
+    const group = gi >= 0 ? (rows[idx][gi] ?? '') : ''
+    const groupIndexes: number[] = []
+    for (let i = 1; i < rows.length; i++) {
+      if ((gi >= 0 ? (rows[i][gi] ?? '') : '') === group) groupIndexes.push(i)
+    }
+    const fromPos = groupIndexes.indexOf(idx)
+    if (fromPos < 0) { error('category group not found', 404); return true }
+    if (body.toIndex < 0 || body.toIndex >= groupIndexes.length) { error('toIndex out of range', 400); return true }
+    const rest = groupIndexes.filter(i => i !== idx)
+    rest.splice(body.toIndex, 0, idx)
+    const block = rest.map(i => rows[i])
+    groupIndexes.forEach((pos, k) => { rows[pos] = block[k] })
+    writeCsv(CATEGORIES_PATH, rows)
+    json({ ok: true })
+    return true
+  }
+
   // ── Groups ──
   if (pathname === '/api/groups' && method === 'GET') {
     const rows = readCsv(GROUPS_PATH).filter(r => r.length > 0)

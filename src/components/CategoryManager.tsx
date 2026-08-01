@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getCategories, getGroups, addCategory, updateCategory, deleteCategory, reorderCategory, addGroup, updateGroup, deleteGroup } from '../services/api'
+import { getCategories, getGroups, addCategory, updateCategory, deleteCategory, moveCategory, addGroup, updateGroup, deleteGroup } from '../services/api'
 import type { Envelope } from '../types/expense'
 import type { CategoryRow } from '../services/api'
 
@@ -29,6 +29,17 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
   const [newGroupName, setNewGroupName] = useState('')
   const [addingCategory, setAddingCategory] = useState(false)
   const [addingGroup, setAddingGroup] = useState(false)
+  const [openGroupMenu, setOpenGroupMenu] = useState<string | null>(null)
+  const [dragCategory, setDragCategory] = useState<string | null>(null)
+  const [dragOverCategory, setDragOverCategory] = useState<string | null>(null)
+
+  function groupIcon(name: string): string {
+    const chars = Array.from(name)
+    let end = 0
+    while (end < chars.length && chars[end].codePointAt(0)! > 0x2fff) end++
+    if (end > 0) return chars.slice(0, end).join('')
+    return '◍'
+  }
 
   async function load() {
     const [cats, grps] = await Promise.all([getCategories(), getGroups()])
@@ -45,6 +56,15 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
       })
       .catch((err) => { setError(err.message); setLoading(false) })
   }, [])
+
+  useEffect(() => {
+    if (!openGroupMenu) return
+    function handleClick() {
+      setOpenGroupMenu(null)
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [openGroupMenu])
 
   function isOverspent(category: string): boolean {
     if (!envelopes) return false
@@ -112,14 +132,25 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
     }
   }
 
-  async function handleReorder(category: string, direction: 'up' | 'down') {
+  async function handleMoveCategory(category: string, toIndex: number) {
     setError('')
     try {
-      await reorderCategory(category, direction)
+      await moveCategory(category, toIndex)
       await load()
+      onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reorder')
     }
+  }
+
+  function handleDrop(src: string, dst: string, items: CategoryRow[]) {
+    if (!src || src === dst) return
+    const srcIndex = items.findIndex((x) => x.name === src)
+    const dstIndex = items.findIndex((x) => x.name === dst)
+    if (srcIndex < 0 || dstIndex < 0) return
+    const reordered = items.map((x) => x.name).filter((n) => n !== src)
+    reordered.splice(dstIndex, 0, src)
+    handleMoveCategory(src, reordered.indexOf(src))
   }
 
   async function handleAddGroup() {
@@ -229,12 +260,23 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
                       </span>
                     </div>
                   )}
-                  {group.items.map((cat, i) => {
+                  {group.items.map((cat) => {
                     const overspent = isOverspent(cat.name)
-                    const first = i === 0
-                    const last = i === group.items.length - 1
                     return (
-                      <div key={cat.name} className={`category-manager-row ${overspent ? 'cm-row-overspent' : ''}`}>
+                      <div
+                        key={cat.name}
+                        className={`category-manager-row ${overspent ? 'cm-row-overspent' : ''} ${dragCategory === cat.name ? 'cm-row-dragging' : ''} ${dragOverCategory === cat.name ? 'cm-row-drop-target' : ''}`}
+                        onDragOver={(e) => { if (dragCategory) { e.preventDefault(); setDragOverCategory(cat.name) } }}
+                        onDragLeave={() => setDragOverCategory((prev) => prev === cat.name ? null : prev)}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          setDragOverCategory(null)
+                          if (dragCategory) {
+                            handleDrop(dragCategory, cat.name, group.items)
+                            setDragCategory(null)
+                          }
+                        }}
+                      >
                         {editing === cat.name ? (
                           <>
                             <input type="text" className="txn-entry-input" value={editName}
@@ -252,28 +294,42 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
                           </div>
                         ) : (
                           <>
+                            <span className="cm-drag-handle" draggable title="Drag to reorder"
+                              onDragStart={(e) => {
+                                setDragCategory(cat.name)
+                                setDragOverCategory(cat.name)
+                                e.dataTransfer.effectAllowed = 'move'
+                                e.dataTransfer.setData('text/plain', cat.name)
+                              }}
+                              onDragEnd={() => { setDragCategory(null); setDragOverCategory(null) }}>
+                              ⋮⋮
+                            </span>
                             <span className={`cm-indicator ${overspent ? 'cm-indicator-overspent' : ''}`} />
                             <span className="category-manager-name">{cat.name}</span>
-                            <select
-                              className="cm-group-select"
-                              value={cat.group || ''}
-                              onChange={(e) => handleSetGroup(cat.name, e.target.value)}
-                              aria-label={`Group for ${cat.name}`}
-                              title="Move to group"
-                            >
-                              <option value="">Other</option>
-                              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-                            </select>
-                            <button type="button" className="cm-icon-btn" title="Move up"
-                              disabled={first}
-                              onClick={() => handleReorder(cat.name, 'up')}>
-                              ↑
-                            </button>
-                            <button type="button" className="cm-icon-btn" title="Move down"
-                              disabled={last}
-                              onClick={() => handleReorder(cat.name, 'down')}>
-                              ↓
-                            </button>
+                            <div className="cm-group-btn-wrap">
+                              <button
+                                type="button"
+                                className={`cm-group-btn ${openGroupMenu === cat.name ? 'is-open' : ''}`}
+                                title="Move to group"
+                                onClick={(e) => { e.stopPropagation(); setOpenGroupMenu(openGroupMenu === cat.name ? null : cat.name) }}
+                              >
+                                {groupIcon(cat.group)}<span className="cm-group-btn-caret">▾</span>
+                              </button>
+                              {openGroupMenu === cat.name && (
+                                <div className="cm-group-menu" onClick={(e) => e.stopPropagation()}>
+                                  <button type="button" className={`cm-group-option ${!cat.group ? 'is-selected' : ''}`}
+                                    onClick={() => { setOpenGroupMenu(null); handleSetGroup(cat.name, '') }}>
+                                    ◍ Other
+                                  </button>
+                                  {groups.map((g) => (
+                                    <button key={g} type="button" className={`cm-group-option ${cat.group === g ? 'is-selected' : ''}`}
+                                      onClick={() => { setOpenGroupMenu(null); handleSetGroup(cat.name, g) }}>
+                                      {groupIcon(g)} {g}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <button type="button" className="cm-icon-btn" title="Edit"
                               onClick={() => { setEditing(cat.name); setEditName(cat.name) }}>
                               ✏️
@@ -297,30 +353,36 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
           )}
         </div>
 
-        <div className="category-manager-add">
-          <h4>Add Category</h4>
-          <div className="category-manager-add-row">
-            <input type="text" className="txn-entry-input" placeholder="Category name"
-              value={newName} onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-              aria-label="New category name" disabled={addingCategory} />
-            <select className="cm-group-select" value={newGroup}
-              onChange={(e) => setNewGroup(e.target.value)} aria-label="Group for new category" disabled={addingCategory}>
-              <option value="">Other</option>
-              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-            <button type="button" className="action-button" onClick={handleAdd} disabled={addingCategory}>Add</button>
+        <div className="cm-create-flow">
+          <div className="category-manager-add">
+            <h4>Add Group</h4>
+            <div className="category-manager-add-row">
+              <input type="text" className="txn-entry-input" placeholder="Group name"
+                value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddGroup() }}
+                aria-label="New group name" disabled={addingGroup} />
+              <button type="button" className="action-button" onClick={handleAddGroup} disabled={addingGroup}>Add</button>
+            </div>
           </div>
-        </div>
 
-        <div className="category-manager-add">
-          <h4>Add Group</h4>
-          <div className="category-manager-add-row">
-            <input type="text" className="txn-entry-input" placeholder="Group name"
-              value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAddGroup() }}
-              aria-label="New group name" disabled={addingGroup} />
-            <button type="button" className="action-button" onClick={handleAddGroup} disabled={addingGroup}>Add</button>
+          <div className="cm-create-connector" aria-hidden="true">
+            <span>Categories belong to a group</span>
+          </div>
+
+          <div className="category-manager-add">
+            <h4>Add Category</h4>
+            <div className="category-manager-add-row">
+              <input type="text" className="txn-entry-input" placeholder="Category name"
+                value={newName} onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+                aria-label="New category name" disabled={addingCategory} />
+              <select className="cm-group-select" value={newGroup}
+                onChange={(e) => setNewGroup(e.target.value)} aria-label="Group for new category" disabled={addingCategory}>
+                <option value="">Other</option>
+                {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <button type="button" className="action-button" onClick={handleAdd} disabled={addingCategory}>Add</button>
+            </div>
           </div>
         </div>
       </div>
