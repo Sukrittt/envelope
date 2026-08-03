@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Github } from "lucide-react";
 import "./App.css";
 import { DashboardProvider } from "./context/DashboardProvider";
 import { useDashboard } from "./context/useDashboard";
 import { trackEvent } from "./lib/telemetry";
+import { clearAccess } from "./services/accessMode";
 import { ExpensePage } from "./pages/ExpensePage";
 import { TransactionsPage } from "./pages/TransactionsPage";
 import { FitnessPage } from "./pages/FitnessPage";
 import { LearningsPage } from "./pages/LearningsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { InvestmentsPage } from "./pages/InvestmentsPage";
+import { AuthGate } from "./components/AuthGate";
 // import { ModuleSwitcher } from "./components/ModuleSwitcher";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
@@ -135,7 +137,7 @@ function AppShell() {
           {loading ? (
             <section className="state-panel mc-panel" aria-live="polite">
               <h2>Loading dashboard…</h2>
-              <p>Fetching latest mission-control data.</p>
+              <p>Fetching latest YNAB Replacement data.</p>
             </section>
           ) : error ? (
             <section className="state-panel mc-panel" aria-live="assertive">
@@ -167,12 +169,43 @@ function AppShell() {
                     onThemeChange={setTheme}
                     density={density}
                     onDensityChange={setDensity}
+                    onLogout={clearAccess}
                   />
                 }
               />
               <Route path="*" element={<Navigate to="/expense" replace />} />
             </Routes>
           )}
+
+          <footer className="app-footer">
+            <span>Built by</span>
+            <a
+              href="https://github.com/sukrittt"
+              target="_blank"
+              rel="noreferrer"
+              className="app-footer-link"
+            >
+              <Github size={14} aria-hidden="true" />
+              <span>sukrittt</span>
+            </a>
+            <span>and</span>
+            <a
+              href="https://github.com/anthropics/claude-code"
+              target="_blank"
+              rel="noreferrer"
+              className="app-footer-link"
+            >
+              <img
+                className="app-footer-claude"
+                src="/claude_code.webp"
+                alt=""
+                width={14}
+                height={14}
+                aria-hidden="true"
+              />
+              <span>claude-code</span>
+            </a>
+          </footer>
         </section>
       </div>
     </main>
@@ -182,7 +215,9 @@ function AppShell() {
 function App() {
   return (
     <DashboardProvider>
-      <AppShell />
+      <AuthGate>
+        <AppShell />
+      </AuthGate>
     </DashboardProvider>
   );
 }

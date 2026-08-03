@@ -1,0 +1,6 @@
+timestamp,service,amount_inr,billing_cycle,next_due_date,status,renewal_or_end_month,notes
+2026-07-01T00:00:00+05:30,Music Stream,99,monthly,2026-08-15,active,,
+2026-07-01T00:00:00+05:30,Video Stream,199,monthly,2026-08-06,active,,
+2026-07-01T00:00:00+05:30,Cloud Storage,1499,yearly,2026-09-01,active,September 2026,
+2026-07-01T00:00:00+05:30,News App,399,monthly,2026-08-20,active,,
+2026-07-01T00:00:00+05:30,AI Assistant,999,monthly,,cancelled,July 2026,Trial ended

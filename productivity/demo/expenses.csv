@@ -1,0 +1,59 @@
+timestamp,date,item,amount_inr,category,notes,source,amount,description,payment_method
+2026-07-01T09:15:00+05:30,2026-07-01,Rent,32000,🏠 Rent,,manual-chat,,,bank
+2026-07-01T10:30:00+05:30,2026-07-01,Groceries,1240,🍎 Groceries,,manual-chat,,,upi
+2026-07-02T08:45:00+05:30,2026-07-02,Metro card recharge,500,🛵 Travel,,manual-chat,,,upi
+2026-07-02T19:20:00+05:30,2026-07-02,Ola ride,240,🛵 Travel,,manual-chat,,,upi
+2026-07-02T21:05:00+05:30,2026-07-02,Zomato dinner,420,🍲 Food Order,,manual-chat,,,credit_card
+2026-07-03T11:00:00+05:30,2026-07-03,Electricity bill,1850,🔌 Electricity,,manual-chat,,,bank
+2026-07-03T12:10:00+05:30,2026-07-03,Water bill,640,🚰 Water,,manual-chat,,,bank
+2026-07-03T18:30:00+05:30,2026-07-03,Cricket kit,1299,⚽ Football,,manual-chat,,,credit_card
+2026-07-04T16:45:00+05:30,2026-07-04,Movie night,500,🎟️ Miscellaneous,,manual-chat,,,credit_card
+2026-07-04T10:15:00+05:30,2026-07-04,Groceries,980,🍎 Groceries,,manual-chat,,,upi
+2026-07-05T12:00:00+05:30,2026-07-05,Salon visit,300,💇‍♂️ Haircut,,manual-chat,,,bank
+2026-07-05T15:20:00+05:30,2026-07-05,Laundry,380,🧺 Laundry,,manual-chat,,,upi
+2026-07-06T09:00:00+05:30,2026-07-06,Music Stream,99,📺 Subscriptions,,manual-chat,,,credit_card
+2026-07-06T13:40:00+05:30,2026-07-06,Swiggy lunch,310,🍲 Food Order,,manual-chat,,,credit_card
+2026-07-07T18:30:00+05:30,2026-07-07,Football turf,1500,⚽ Football,,manual-chat,,,upi
+2026-07-07T20:10:00+05:30,2026-07-07,Petrol,800,🛵 Travel,,manual-chat,,,bank
+2026-07-08T10:20:00+05:30,2026-07-08,Groceries,760,🍎 Groceries,,manual-chat,,,upi
+2026-07-08T21:00:00+05:30,2026-07-08,Dinner out with friends,1450,💃 Outings,,manual-chat,,,credit_card
+2026-07-09T09:30:00+05:30,2026-07-09,Phone recharge,349,💳 Bills,,manual-chat,,,upi
+2026-07-09T17:45:00+05:30,2026-07-09,Amazon order,2150,🛍️ Shopping,,manual-chat,,,credit_card
+2026-07-10T13:15:00+05:30,2026-07-10,Food order,265,🍲 Food Order,,manual-chat,,,credit_card
+2026-07-10T18:40:00+05:30,2026-07-10,Football match fee,600,⚽ Football,,manual-chat,,,upi
+2026-07-11T08:50:00+05:30,2026-07-11,Weekend trip cab,1100,🛵 Travel,,manual-chat,,,upi
+2026-07-11T19:30:00+05:30,2026-07-11,Street food,350,🎟️ Miscellaneous,,manual-chat,,,upi
+2026-07-12T10:40:00+05:30,2026-07-12,Groceries,1340,🍎 Groceries,,manual-chat,,,bank
+2026-07-12T11:15:00+05:30,2026-07-12,Cook,3000,🧑‍🍳 Cook,,manual-chat,,,bank
+2026-07-13T09:00:00+05:30,2026-07-13,Gym supplements,1200,🎟️ Miscellaneous,,manual-chat,,,credit_card
+2026-07-13T16:30:00+05:30,2026-07-13,Clothes,3200,🛍️ Shopping,,manual-chat,,,credit_card
+2026-07-14T19:00:00+05:30,2026-07-14,Ola ride,190,🛵 Travel,,manual-chat,,,upi
+2026-07-14T21:10:00+05:30,2026-07-14,Food order,340,🍲 Food Order,,manual-chat,,,credit_card
+2026-07-15T09:00:00+05:30,2026-07-15,Video Stream,199,📺 Subscriptions,,manual-chat,,,credit_card
+2026-07-15T10:30:00+05:30,2026-07-15,Groceries,620,🍎 Groceries,,manual-chat,,,upi
+2026-07-16T18:30:00+05:30,2026-07-16,Football turf,1200,⚽ Football,,manual-chat,,,upi
+2026-07-16T12:00:00+05:30,2026-07-16,Internet bill,1099,💳 Bills,,manual-chat,,,bank
+2026-07-17T20:00:00+05:30,2026-07-17,Bowling night,900,💃 Outings,,manual-chat,,,credit_card
+2026-07-17T11:20:00+05:30,2026-07-17,Kitchen supplies,1500,🧑‍🍳 Cook,,manual-chat,,,bank
+2026-07-18T14:30:00+05:30,2026-07-18,Movie ticket,450,🎟️ Miscellaneous,,manual-chat,,,credit_card
+2026-07-18T10:10:00+05:30,2026-07-18,Groceries,880,🍎 Groceries,,manual-chat,,,upi
+2026-07-19T09:30:00+05:30,2026-07-19,Furniture Rent,1200,🪑 Furniture Rent,,manual-chat,,,bank
+2026-07-19T15:00:00+05:30,2026-07-19,Laundry,380,🧺 Laundry,,manual-chat,,,upi
+2026-07-20T13:00:00+05:30,2026-07-20,Food order,290,🍲 Food Order,,manual-chat,,,credit_card
+2026-07-20T17:40:00+05:30,2026-07-20,Amazon order,1599,🛍️ Shopping,,manual-chat,,,credit_card
+2026-07-21T18:45:00+05:30,2026-07-21,Football match,700,⚽ Football,,manual-chat,,,upi
+2026-07-21T20:30:00+05:30,2026-07-21,Petrol,750,🛵 Travel,,manual-chat,,,bank
+2026-07-22T12:00:00+05:30,2026-07-22,Haircut,300,💇‍♂️ Haircut,,manual-chat,,,bank
+2026-07-22T10:15:00+05:30,2026-07-22,Groceries,1120,🍎 Groceries,,manual-chat,,,upi
+2026-07-23T21:15:00+05:30,2026-07-23,Dinner,1300,💃 Outings,,manual-chat,,,credit_card
+2026-07-24T11:00:00+05:30,2026-07-24,Electricity bill,2100,🔌 Electricity,,manual-chat,,,bank
+2026-07-25T09:00:00+05:30,2026-07-25,Cloud Storage,1499,📺 Subscriptions,,manual-chat,,,credit_card
+2026-07-26T10:30:00+05:30,2026-07-26,Groceries,760,🍎 Groceries,,manual-chat,,,upi
+2026-07-27T13:20:00+05:30,2026-07-27,Food order,350,🍲 Food Order,,manual-chat,,,credit_card
+2026-07-28T16:40:00+05:30,2026-07-28,Shopping,980,🛍️ Shopping,,manual-chat,,,credit_card
+2026-07-29T18:30:00+05:30,2026-07-29,Football turf,1300,⚽ Football,,manual-chat,,,upi
+2026-07-30T12:10:00+05:30,2026-07-30,Water bill,300,🚰 Water,,manual-chat,,,bank
+2026-07-31T19:45:00+05:30,2026-07-31,Miscellaneous,500,🎟️ Miscellaneous,,manual-chat,,,upi
+2026-08-01T09:15:00+05:30,2026-08-01,Rent,32000,🏠 Rent,,manual-chat,,,bank
+2026-08-02T10:30:00+05:30,2026-08-02,Groceries,1450,🍎 Groceries,,manual-chat,,,upi
+2026-08-03T13:40:00+05:30,2026-08-03,Food order,380,🍲 Food Order,,manual-chat,,,credit_card

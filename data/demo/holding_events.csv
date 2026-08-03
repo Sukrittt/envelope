@@ -1,0 +1,5 @@
+holding_name,event_type,amount,previous_value,new_value,timestamp
+Index Fund,contribution,50000,190000,240000,2026-08-03T12:00:00.000Z
+Index Fund,market_update,4000,236000,240000,2026-08-03T12:00:00.000Z
+Emergency Fund,contribution,20000,30000,50000,2026-08-03T12:00:00.000Z
+Crypto,market_update,1500,11000,12500,2026-08-03T12:00:00.000Z

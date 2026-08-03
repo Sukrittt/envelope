@@ -14,6 +14,10 @@ const SUBSCRIPTIONS_PATH = resolve(import.meta.dirname, 'data', 'subscriptions.c
 const HOLDINGS_PATH = resolve(import.meta.dirname, 'data', 'holdings.csv')
 const HOLDING_EVENTS_PATH = resolve(import.meta.dirname, 'data', 'holding_events.csv')
 
+// Guest (demo) mode reads from these self-contained files instead of the real CSVs.
+const GUEST_BASE = resolve(PRODUCTIVITY, 'demo')
+const GUEST_DATA_BASE = resolve(import.meta.dirname, 'data', 'demo')
+
 function parseCsv(text: string): string[][] {
   const rows: string[][] = []
   let row: string[] = []
@@ -59,9 +63,10 @@ function writeCsv(path: string, rows: string[][]): void {
 }
 
 let categoryCache: { words: Record<string, string>; updatedAt: string } | null = null
+let categoryCacheGuest = false
 
-function buildCategoryMap(): { words: Record<string, string>; updatedAt: string } {
-  const rows = readCsv(EXPENSES_PATH)
+function buildCategoryMap(expensesPath: string): { words: Record<string, string>; updatedAt: string } {
+  const rows = readCsv(expensesPath)
   if (rows.length < 2) return { words: {}, updatedAt: new Date().toISOString() }
   const header = rows[0]
   const iItem = header.indexOf('item')
@@ -115,6 +120,18 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   const url = new URL(req.url ?? '', 'http://localhost')
   const pathname = url.pathname
   const method = req.method ?? 'GET'
+  const guest = url.searchParams.get('mode') === 'guest'
+
+  // Guest (demo) mode reads from the bundled demo CSVs; real mode uses the live ones.
+  const paths = {
+    expenses: guest ? resolve(GUEST_BASE, 'expenses.csv') : EXPENSES_PATH,
+    budgets: guest ? resolve(GUEST_BASE, 'budgets.csv') : BUDGETS_PATH,
+    categories: guest ? resolve(GUEST_BASE, 'categories.csv') : CATEGORIES_PATH,
+    groups: guest ? resolve(GUEST_BASE, 'groups.csv') : GROUPS_PATH,
+    subscriptions: guest ? resolve(GUEST_DATA_BASE, 'subscriptions.csv') : SUBSCRIPTIONS_PATH,
+    holdings: guest ? resolve(GUEST_DATA_BASE, 'holdings.csv') : HOLDINGS_PATH,
+    holdingEvents: guest ? resolve(GUEST_DATA_BASE, 'holding_events.csv') : HOLDING_EVENTS_PATH,
+  }
 
   if (!pathname.startsWith('/api/')) return false
 
@@ -140,9 +157,15 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
     res.end(JSON.stringify({ error: msg }))
   }
 
+  // Guest mode is read-only: reject every non-GET to keep the real CSVs untouched.
+  if (guest && method !== 'GET') {
+    error('read-only in guest mode', 403)
+    return true
+  }
+
   // ── Budgets ──
   if (pathname === '/api/budgets' && method === 'GET') {
-    const rows = readCsv(BUDGETS_PATH)
+    const rows = readCsv(paths.budgets)
     if (!rows.length) { json({ headers: [], rows: [] }); return true }
     const headers = rows[0]
     const data = rows.slice(1).map(r => {
@@ -157,10 +180,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/budgets' && method === 'POST') {
     const body = await readBody()
     if (!body.month || !body.category || body.assigned === undefined) { error('month, category, assigned required'); return true }
-    const rows = readCsv(BUDGETS_PATH)
+    const rows = readCsv(paths.budgets)
     if (!rows.length) rows.push(['month', 'category', 'assigned', 'rolled_over'])
     rows.push([body.month, body.category, String(body.assigned), String(body.rolled_over ?? 0)])
-    writeCsv(BUDGETS_PATH, rows)
+    writeCsv(paths.budgets, rows)
     json({ ok: true })
     return true
   }
@@ -168,7 +191,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/budgets' && method === 'PUT') {
     const body = await readBody()
     if (!body.month || !body.category) { error('month, category required'); return true }
-    const rows = readCsv(BUDGETS_PATH)
+    const rows = readCsv(paths.budgets)
     if (rows.length < 2) { error('no budgets', 404); return true }
     const header = rows[0]
     const iMonth = header.indexOf('month')
@@ -186,7 +209,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       }
     }
     if (!found) { error('budget row not found', 404); return true }
-    writeCsv(BUDGETS_PATH, rows)
+    writeCsv(paths.budgets, rows)
     json({ ok: true })
     return true
   }
@@ -194,21 +217,21 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/budgets' && method === 'DELETE') {
     const body = await readBody()
     if (!body.month || !body.category) { error('month, category required'); return true }
-    const rows = readCsv(BUDGETS_PATH)
+    const rows = readCsv(paths.budgets)
     if (rows.length < 2) { error('no budgets', 404); return true }
     const header = rows[0]
     const iMonth = header.indexOf('month')
     const iCategory = header.indexOf('category')
     const filtered = [rows[0], ...rows.slice(1).filter(r => !(r[iMonth] === body.month && r[iCategory] === body.category))]
     if (filtered.length === rows.length) { error('budget row not found', 404); return true }
-    writeCsv(BUDGETS_PATH, filtered)
+    writeCsv(paths.budgets, filtered)
     json({ ok: true })
     return true
   }
 
   // ── Categories ──
   if (pathname === '/api/categories' && method === 'GET') {
-    const rows = readCsv(CATEGORIES_PATH).filter(r => r.length > 0)
+    const rows = readCsv(paths.categories).filter(r => r.length > 0)
     const header = rows[0]
     const iName = header.indexOf('name')
     const iGroup = header.indexOf('group')
@@ -219,11 +242,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/categories' && method === 'POST') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    const rows = readCsv(CATEGORIES_PATH)
+    const rows = readCsv(paths.categories)
     if (rows.length === 0) rows.push(['name', 'group'])
     if (rows[0].indexOf('group') < 0) rows[0].push('group')
     rows.push([body.name, body.group ?? ''])
-    writeCsv(CATEGORIES_PATH, rows)
+    writeCsv(paths.categories, rows)
     json({ ok: true })
     return true
   }
@@ -231,22 +254,22 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/categories' && method === 'PUT') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    const rows = readCsv(CATEGORIES_PATH)
+    const rows = readCsv(paths.categories)
     const idx = rows.findIndex(r => r[0] === body.name)
     if (idx < 1) { error('category not found', 404); return true }
     if (body.newName && body.newName !== body.name) {
       rows[idx][0] = body.newName
-      const budgets = readCsv(BUDGETS_PATH)
+      const budgets = readCsv(paths.budgets)
       if (budgets.length > 1) {
         const ci = budgets[0].indexOf('category')
         if (ci >= 0) {
           for (let i = 1; i < budgets.length; i++) {
             if (budgets[i][ci] === body.name) budgets[i][ci] = body.newName
           }
-          writeCsv(BUDGETS_PATH, budgets)
+          writeCsv(paths.budgets, budgets)
         }
       }
-      const expenses = readCsv(EXPENSES_PATH)
+      const expenses = readCsv(paths.expenses)
       if (expenses.length > 1) {
         const ci = expenses[0].indexOf('category')
         if (ci >= 0) {
@@ -254,7 +277,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
           for (let i = 1; i < expenses.length; i++) {
             if (expenses[i][ci] === body.name) { expenses[i][ci] = body.newName; changed = true }
           }
-          if (changed) writeCsv(EXPENSES_PATH, expenses)
+          if (changed) writeCsv(paths.expenses, expenses)
         }
       }
     }
@@ -264,7 +287,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       while (rows[idx].length <= gi) rows[idx].push('')
       rows[idx][gi] = body.group
     }
-    writeCsv(CATEGORIES_PATH, rows)
+    writeCsv(paths.categories, rows)
     json({ ok: true })
     return true
   }
@@ -272,11 +295,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/categories' && method === 'DELETE') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    let rows = readCsv(CATEGORIES_PATH)
+    let rows = readCsv(paths.categories)
     const before = rows.length
     rows = [rows[0], ...rows.slice(1).filter(r => r[0] !== body.name)]
     if (rows.length === before) { error('category not found', 404); return true }
-    writeCsv(CATEGORIES_PATH, rows)
+    writeCsv(paths.categories, rows)
     json({ ok: true })
     return true
   }
@@ -284,7 +307,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/categories/reorder' && method === 'POST') {
     const body = await readBody()
     if (!body.name || !body.direction) { error('name, direction required'); return true }
-    const rows = readCsv(CATEGORIES_PATH)
+    const rows = readCsv(paths.categories)
     const idx = rows.findIndex(r => r[0] === body.name)
     if (idx < 1) { error('category not found', 404); return true }
     const gi = rows[0].indexOf('group')
@@ -300,7 +323,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
     const tmp = rows[idx]
     rows[idx] = rows[target]
     rows[target] = tmp
-    writeCsv(CATEGORIES_PATH, rows)
+    writeCsv(paths.categories, rows)
     json({ ok: true })
     return true
   }
@@ -308,7 +331,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/categories/move' && method === 'POST') {
     const body = await readBody()
     if (!body.name || typeof body.toIndex !== 'number') { error('name, toIndex required'); return true }
-    const rows = readCsv(CATEGORIES_PATH)
+    const rows = readCsv(paths.categories)
     const idx = rows.findIndex(r => r[0] === body.name)
     if (idx < 1) { error('category not found', 404); return true }
     const gi = rows[0].indexOf('group')
@@ -324,14 +347,14 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
     rest.splice(body.toIndex, 0, idx)
     const block = rest.map(i => rows[i])
     groupIndexes.forEach((pos, k) => { rows[pos] = block[k] })
-    writeCsv(CATEGORIES_PATH, rows)
+    writeCsv(paths.categories, rows)
     json({ ok: true })
     return true
   }
 
   // ── Groups ──
   if (pathname === '/api/groups' && method === 'GET') {
-    const rows = readCsv(GROUPS_PATH).filter(r => r.length > 0)
+    const rows = readCsv(paths.groups).filter(r => r.length > 0)
     json(rows.slice(1).map(r => r[0]).filter(Boolean))
     return true
   }
@@ -339,11 +362,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/groups' && method === 'POST') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    const rows = readCsv(GROUPS_PATH)
+    const rows = readCsv(paths.groups)
     if (rows.length === 0) rows.push(['name'])
     if (rows.some(r => r[0] === body.name)) { error('group already exists', 409); return true }
     rows.push([body.name])
-    writeCsv(GROUPS_PATH, rows)
+    writeCsv(paths.groups, rows)
     json({ ok: true })
     return true
   }
@@ -351,19 +374,19 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/groups' && method === 'PUT') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    const rows = readCsv(GROUPS_PATH)
+    const rows = readCsv(paths.groups)
     const idx = rows.findIndex(r => r[0] === body.name)
     if (idx < 1) { error('group not found', 404); return true }
     if (body.newName) {
       rows[idx][0] = body.newName
-      writeCsv(GROUPS_PATH, rows)
-      const cats = readCsv(CATEGORIES_PATH)
+      writeCsv(paths.groups, rows)
+      const cats = readCsv(paths.categories)
       if (cats.length && cats[0].indexOf('group') >= 0) {
         const gi = cats[0].indexOf('group')
         for (let i = 1; i < cats.length; i++) {
           if ((cats[i][gi] ?? '') === body.name) cats[i][gi] = body.newName
         }
-        writeCsv(CATEGORIES_PATH, cats)
+        writeCsv(paths.categories, cats)
       }
     }
     json({ ok: true })
@@ -373,18 +396,18 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/groups' && method === 'DELETE') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    let rows = readCsv(GROUPS_PATH)
+    let rows = readCsv(paths.groups)
     const before = rows.length
     rows = [rows[0], ...rows.slice(1).filter(r => r[0] !== body.name)]
     if (rows.length === before) { error('group not found', 404); return true }
-    writeCsv(GROUPS_PATH, rows)
-    const cats = readCsv(CATEGORIES_PATH)
+    writeCsv(paths.groups, rows)
+    const cats = readCsv(paths.categories)
     if (cats.length && cats[0].indexOf('group') >= 0) {
       const gi = cats[0].indexOf('group')
       for (let i = 1; i < cats.length; i++) {
         if ((cats[i][gi] ?? '') === body.name) cats[i][gi] = ''
       }
-      writeCsv(CATEGORIES_PATH, cats)
+      writeCsv(paths.categories, cats)
     }
     json({ ok: true })
     return true
@@ -392,7 +415,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
 
   // ── Expenses ──
   if (pathname === '/api/expenses' && method === 'GET') {
-    const rows = readCsv(EXPENSES_PATH)
+    const rows = readCsv(paths.expenses)
     if (!rows.length) { json({ headers: [], rows: [] }); return true }
     const headers = rows[0]
     const data = rows.slice(1).map(r => {
@@ -411,7 +434,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
     const date = body.date || now.toISOString().slice(0, 10)
     const timestamp = body.timestamp || `${date}T${now.toTimeString().slice(0, 8)}+05:30`
     const paymentMethod = body.payment_method ?? 'bank'
-    const rows = readCsv(EXPENSES_PATH)
+    const rows = readCsv(paths.expenses)
     if (!rows.length) rows.push(['timestamp', 'date', 'item', 'amount_inr', 'category', 'notes', 'source', 'amount', 'description', 'payment_method'])
     const header = rows[0]
     const row: string[] = header.map(h => {
@@ -428,7 +451,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       }
     })
     rows.push(row)
-    writeCsv(EXPENSES_PATH, rows)
+    writeCsv(paths.expenses, rows)
     categoryCache = null
 
     // Auto-transfer to Credit Card envelope for CC purchases
@@ -436,7 +459,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       const amountNum = Number(body.amount_inr)
       if (!Number.isNaN(amountNum) && amountNum > 0) {
         const month = date.slice(0, 7)
-        const budgetRows = readCsv(BUDGETS_PATH)
+        const budgetRows = readCsv(paths.budgets)
         if (!budgetRows.length) budgetRows.push(['month', 'category', 'assigned', 'rolled_over'])
         const bHeader = budgetRows[0]
         const iMonth = bHeader.indexOf('month')
@@ -454,7 +477,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
         if (!found) {
           budgetRows.push([month, '__credit_card__', String(amountNum), '0'])
         }
-        writeCsv(BUDGETS_PATH, budgetRows)
+        writeCsv(paths.budgets, budgetRows)
       }
     }
 
@@ -465,7 +488,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/expenses' && method === 'PUT') {
     const body = await readBody()
     if (!body.timestamp || !body.category) { error('timestamp and category required'); return true }
-    const rows = readCsv(EXPENSES_PATH)
+    const rows = readCsv(paths.expenses)
     if (rows.length < 2) { error('no expenses', 404); return true }
     const header = rows[0]
     const iTimestamp = header.indexOf('timestamp')
@@ -483,7 +506,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       }
     }
     if (!found) { error('expense row not found', 404); return true }
-    writeCsv(EXPENSES_PATH, rows)
+    writeCsv(paths.expenses, rows)
     categoryCache = null
     json({ ok: true })
     return true
@@ -491,14 +514,17 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
 
   // ── Category Map ──
   if (pathname === '/api/category-map' && method === 'GET') {
-    if (!categoryCache) categoryCache = buildCategoryMap()
+    if (!categoryCache || categoryCacheGuest !== guest) {
+      categoryCache = buildCategoryMap(paths.expenses)
+      categoryCacheGuest = guest
+    }
     json(categoryCache)
     return true
   }
 
   // ── Subscriptions ──
   if (pathname === '/api/subscriptions' && method === 'GET') {
-    const rows = readCsv(SUBSCRIPTIONS_PATH)
+    const rows = readCsv(paths.subscriptions)
     if (!rows.length) { json({ headers: [], rows: [] }); return true }
     const headers = rows[0]
     const data = rows.slice(1).map(r => {
@@ -513,7 +539,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/subscriptions' && method === 'POST') {
     const body = await readBody()
     if (!body.service || !body.amount_inr) { error('service, amount_inr required'); return true }
-    const rows = readCsv(SUBSCRIPTIONS_PATH)
+    const rows = readCsv(paths.subscriptions)
     if (!rows.length) rows.push(['timestamp', 'service', 'amount_inr', 'billing_cycle', 'next_due_date', 'status', 'renewal_or_end_month', 'notes'])
     const header = rows[0]
     const iService = header.indexOf('service')
@@ -535,7 +561,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
         default: return ''
       }
     }))
-    writeCsv(SUBSCRIPTIONS_PATH, rows)
+    writeCsv(paths.subscriptions, rows)
     json({ ok: true })
     return true
   }
@@ -543,7 +569,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/subscriptions' && method === 'PUT') {
     const body = await readBody()
     if (!body.service) { error('service required'); return true }
-    const rows = readCsv(SUBSCRIPTIONS_PATH)
+    const rows = readCsv(paths.subscriptions)
     if (rows.length < 2) { error('no subscriptions', 404); return true }
     const header = rows[0]
     const iService = header.indexOf('service')
@@ -577,14 +603,14 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       break
     }
     if (!found) { error('subscription not found', 404); return true }
-    writeCsv(SUBSCRIPTIONS_PATH, rows)
+    writeCsv(paths.subscriptions, rows)
     json({ ok: true })
     return true
   }
 
   // ── Holdings (Investments) ──
   if (pathname === '/api/holdings' && method === 'GET') {
-    const rows = readCsv(HOLDINGS_PATH)
+    const rows = readCsv(paths.holdings)
     if (!rows.length) { json({ headers: [], rows: [] }); return true }
     const headers = rows[0]
     const data = rows.slice(1).map(r => {
@@ -599,7 +625,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/holdings' && method === 'POST') {
     const body = await readBody()
     if (!body.name || body.value === undefined) { error('name, value required'); return true }
-    const rows = readCsv(HOLDINGS_PATH)
+    const rows = readCsv(paths.holdings)
     if (!rows.length) rows.push(['name', 'type', 'value', 'updated_at'])
     const header = rows[0]
     const iName = header.indexOf('name')
@@ -617,7 +643,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
         default: return ''
       }
     }))
-    writeCsv(HOLDINGS_PATH, rows)
+    writeCsv(paths.holdings, rows)
     json({ ok: true })
     return true
   }
@@ -625,7 +651,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/holdings' && method === 'PUT') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    const rows = readCsv(HOLDINGS_PATH)
+    const rows = readCsv(paths.holdings)
     if (rows.length < 2) { error('no holdings', 404); return true }
     const header = rows[0]
     const iName = header.indexOf('name')
@@ -645,7 +671,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       break
     }
     if (!found) { error('holding not found', 404); return true }
-    writeCsv(HOLDINGS_PATH, rows)
+    writeCsv(paths.holdings, rows)
     json({ ok: true })
     return true
   }
@@ -653,21 +679,21 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
   if (pathname === '/api/holdings' && method === 'DELETE') {
     const body = await readBody()
     if (!body.name) { error('name required'); return true }
-    const rows = readCsv(HOLDINGS_PATH)
+    const rows = readCsv(paths.holdings)
     if (rows.length < 2) { error('no holdings', 404); return true }
     const header = rows[0]
     const iName = header.indexOf('name')
     const idx = rows.slice(1).findIndex(r => r[iName] === body.name)
     if (idx === -1) { error('holding not found', 404); return true }
     rows.splice(idx + 1, 1)
-    writeCsv(HOLDINGS_PATH, rows)
+    writeCsv(paths.holdings, rows)
     json({ ok: true })
     return true
   }
 
   // ── Holding Events ──
   if (pathname === '/api/holding-events' && method === 'GET') {
-    const rows = readCsv(HOLDING_EVENTS_PATH)
+    const rows = readCsv(paths.holdingEvents)
     if (!rows.length) { json({ headers: [], rows: [] }); return true }
     const headers = rows[0]
     const data = rows.slice(1).map(r => {
@@ -685,7 +711,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
     if (!body.name || !body.action || body.amount === undefined) { error('name, action, amount required'); return true }
 
     // Update holding value
-    const rows = readCsv(HOLDINGS_PATH)
+    const rows = readCsv(paths.holdings)
     if (rows.length < 2) { error('no holdings', 404); return true }
     const header = rows[0]
     const iName = header.indexOf('name')
@@ -709,11 +735,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
       break
     }
     if (!found) { error('holding not found', 404); return true }
-    writeCsv(HOLDINGS_PATH, rows)
+    writeCsv(paths.holdings, rows)
 
     // Adjust income for contribution/withdrawal (affects Ready to Assign)
     if ((body.action === 'contribution' || body.action === 'withdrawal') && body.month) {
-      const budgetRows = readCsv(BUDGETS_PATH)
+      const budgetRows = readCsv(paths.budgets)
       if (budgetRows.length > 1) {
         const bHeader = budgetRows[0]
         const iBMonth = bHeader.indexOf('month')
@@ -727,16 +753,16 @@ async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boo
             break
           }
         }
-        writeCsv(BUDGETS_PATH, budgetRows)
+        writeCsv(paths.budgets, budgetRows)
       }
     }
 
     // Log event
-    const eventRows = readCsv(HOLDING_EVENTS_PATH)
+    const eventRows = readCsv(paths.holdingEvents)
     if (!eventRows.length) eventRows.push(['holding_name', 'event_type', 'amount', 'previous_value', 'new_value', 'timestamp'])
     const now = new Date().toISOString()
     eventRows.push([body.name, body.action, String(body.amount), String(prevValue), String(newValue), now])
-    writeCsv(HOLDING_EVENTS_PATH, eventRows)
+    writeCsv(paths.holdingEvents, eventRows)
 
     json({ ok: true, previousValue: prevValue, newValue })
     return true

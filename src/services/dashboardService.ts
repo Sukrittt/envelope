@@ -1,4 +1,5 @@
 import mockData from '../data/mockData.json'
+import { isGuest } from './accessMode'
 import type {
   ActivityItem,
   DashboardData,
@@ -250,14 +251,14 @@ function normalizeDashboardData(value: unknown): DashboardData {
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  if (!API_BASE) {
+  if (isGuest() || !API_BASE) {
     return normalizeDashboardData(mockData)
   }
 
   const response = await fetch(`${API_BASE}/mission-control/dashboard`)
 
   if (!response.ok) {
-    throw new Error('Failed to fetch mission control dashboard data')
+    throw new Error('Failed to load dashboard data')
   }
 
   const payload: unknown = await response.json()

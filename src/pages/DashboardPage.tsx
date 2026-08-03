@@ -51,7 +51,7 @@ export function DashboardPage() {
     <>
       <section className="headline" aria-label="Dashboard date and overall status">
         <div>
-          <h1>Mission Control Overview</h1>
+          <h1>YNAB Replacement Overview</h1>
           <p className="muted">{data.dateLabel}</p>
         </div>
         <StatusChip label={`Overall Health: ${statusLabel[data.overallHealth]}`} tone={data.overallHealth} />

@@ -1,3 +1,5 @@
+import { apiUrl } from './api'
+
 export interface Transaction {
   timestamp: string
   date: string
@@ -9,7 +11,7 @@ export interface Transaction {
 }
 
 export async function loadTransactions(): Promise<Transaction[]> {
-  const resp = await fetch('/api/expenses')
+  const resp = await fetch(apiUrl('/api/expenses'))
   if (!resp.ok) throw new Error(`Failed to load expenses: ${resp.status}`)
   const data = await resp.json()
   if (!data.rows || !Array.isArray(data.rows)) return []

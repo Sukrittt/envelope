@@ -1,11 +1,15 @@
+import { useAccessMode } from '../services/accessMode'
+
 interface SettingsPageProps {
   theme: 'light' | 'dark'
   onThemeChange: (theme: 'light' | 'dark') => void
   density: 'comfortable' | 'compact'
   onDensityChange: (density: 'comfortable' | 'compact') => void
+  onLogout: () => void
 }
 
-export function SettingsPage({ theme, onThemeChange, density, onDensityChange }: SettingsPageProps) {
+export function SettingsPage({ theme, onThemeChange, density, onDensityChange, onLogout }: SettingsPageProps) {
+  const access = useAccessMode()
   return (
     <section className="mc-content-grid">
       <article className="mc-panel">
@@ -73,6 +77,20 @@ export function SettingsPage({ theme, onThemeChange, density, onDensityChange }:
             </div>
             <div className="setting-controls">
               <button className="action-button">Manual refresh trigger</button>
+            </div>
+          </section>
+
+          <section className="mc-setting-card">
+            <div className="setting-header">
+              <h3>Session</h3>
+              <p className="muted">
+                {access === 'real' ? 'Signed in — real data' : 'Guest mode — demo data'}
+              </p>
+            </div>
+            <div className="setting-controls">
+              <button type="button" className="action-button" onClick={onLogout}>
+                {access === 'real' ? 'Log out' : 'Exit guest mode'}
+              </button>
             </div>
           </section>
         </div>

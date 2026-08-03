@@ -1569,14 +1569,10 @@ input[type="date"]:hover {
   flex-shrink: 0;
 }
 
-.expense-sidebar-brand {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--expense-text);
-  padding: 0 8px 12px;
-  letter-spacing: -0.01em;
-  border-bottom: 1px solid var(--expense-border);
+.expense-sidebar-brand-wrap {
   margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--expense-border);
 }
 
 .expense-sidebar-summary {
@@ -1634,6 +1630,7 @@ input[type="date"]:hover {
   text-align: left;
   width: 100%;
   border-radius: var(--radius-control);
+  text-decoration: none;
   transition:
     background 0.15s,
     color 0.15s;
@@ -1647,7 +1644,6 @@ input[type="date"]:hover {
 .expense-sidebar-link.is-active {
   background: var(--accent-soft);
   color: var(--expense-text);
-  border-left: 2px solid var(--accent-strong);
 }
 
 .expense-sidebar-link-icon {
@@ -5808,4 +5804,242 @@ summary:focus-visible,
   text-align: right;
   color: var(--muted-2);
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Auth Gate ──
+   The gate renders the (guest/demo) app blurred behind a lock dialog. The overlay
+   defines the theme tokens itself so the dialog matches the app's dark aesthetic
+   without depending on the scoped .mc-page.theme-* variables. */
+.auth-gate-overlay {
+  --bg: #0b0d12;
+  --bg-grad-a: #0f131a;
+  --bg-grad-b: #0a0c11;
+  --panel: #12161f;
+  --panel-soft: #171c26;
+  --border: rgba(255, 255, 255, 0.1);
+  --divider-soft: rgba(255, 255, 255, 0.08);
+  --text: #edf1f8;
+  --muted: #b4bfd3;
+  --muted-2: #8f9bb0;
+  --accent: #9ea7b6;
+  --accent-strong: #c0c7d3;
+  --accent-soft: rgba(158, 167, 182, 0.16);
+  --risk-fg: #ff8b9a;
+  --risk-bg: #4a1f2a;
+
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  background: rgba(4, 6, 9, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-family: var(--font-stack);
+  color: var(--text);
+}
+
+.auth-dialog {
+  width: 100%;
+  max-width: 400px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-6);
+  display: grid;
+  gap: var(--sp-4);
+  box-shadow: var(--shadow-2);
+}
+
+.auth-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.auth-heading-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.auth-title {
+  font-size: var(--fs-22);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.012em;
+  margin: 0;
+}
+
+.auth-subtitle {
+  font-size: var(--fs-14);
+  line-height: var(--lh-body);
+  color: var(--muted);
+  margin: 0;
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+.auth-password-wrap {
+  position: relative;
+}
+
+.auth-password {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--panel-soft);
+  color: var(--text);
+  padding: 0 var(--sp-3);
+  padding-right: 36px;
+  font-size: var(--fs-14);
+  font-family: var(--font-stack);
+}
+
+.auth-password::placeholder {
+  color: var(--muted-2);
+}
+
+.auth-password:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent-strong) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted-2);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+}
+
+.auth-password-toggle:hover {
+  color: var(--accent-strong);
+}
+
+.auth-password-toggle:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent-strong) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.auth-error {
+  font-size: var(--fs-13);
+  color: var(--risk-fg);
+  background: var(--risk-bg);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.auth-unlock {
+  min-height: 38px;
+  cursor: pointer;
+  background: var(--accent-soft);
+  border-color: color-mix(in oklab, var(--accent-strong) 42%, var(--border));
+}
+
+.auth-divider {
+  height: 1px;
+  background: var(--divider-soft);
+  margin-top: var(--sp-2);
+}
+
+.auth-guest {
+  background: transparent;
+  border: none;
+  color: var(--muted-2);
+  font-size: var(--fs-13);
+  cursor: pointer;
+  padding: var(--sp-2) 0;
+  text-align: center;
+  width: fit-content;
+  justify-self: center;
+}
+
+.auth-guest:hover {
+  color: var(--accent-strong);
+}
+
+.auth-dialog.is-error {
+  animation: auth-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.auth-dialog.is-error .auth-password {
+  border-color: color-mix(in oklab, var(--risk-fg) 70%, transparent);
+}
+
+.auth-dialog.is-error .auth-password:focus-visible {
+  outline-color: color-mix(in oklab, var(--risk-fg) 70%, transparent);
+}
+
+@keyframes auth-shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ── App Footer ── */
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  justify-content: center;
+  padding: var(--sp-5) var(--sp-4) var(--sp-6);
+  color: var(--muted-2);
+  font-size: var(--fs-12);
+}
+
+.app-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: var(--fw-medium);
+}
+
+.app-footer-link:hover {
+  color: var(--accent-strong);
+}
+
+.app-footer-claude {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 3px;
 }
