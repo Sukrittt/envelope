@@ -1,174 +1,46 @@
 {
   "meta": {
-    "generatedAt": "2026-07-30T15:42:16.525Z",
-    "month": "2026-07",
+    "generatedAt": "2026-08-03T21:17:13.384Z",
+    "month": "2026-08",
     "monthlySpendCapInr": 45000,
     "dailySoftCapInr": 1500
   },
   "totals": {
-    "monthSpendInr": 124741.98,
-    "essentialSpendInr": 55120.27,
-    "discretionarySpendInr": 69621.71,
+    "monthSpendInr": 1180,
+    "essentialSpendInr": 371,
+    "discretionarySpendInr": 809,
     "duesReceivableInr": 1537.46
   },
   "topCategories": [
     {
-      "category": "Bills",
-      "amountInr": 50330
-    },
-    {
-      "category": "Shopping",
-      "amountInr": 33331
-    },
-    {
       "category": "Personal",
-      "amountInr": 28226.71
-    },
-    {
-      "category": "Entertainment",
-      "amountInr": 4000
+      "amountInr": 603
     },
     {
       "category": "Travel",
-      "amountInr": 3105.27
+      "amountInr": 371
     },
     {
       "category": "Groceries",
-      "amountInr": 2176
-    },
-    {
-      "category": "Food",
-      "amountInr": 1685
-    },
-    {
-      "category": "Household",
-      "amountInr": 1333
-    },
-    {
-      "category": "Football",
-      "amountInr": 510
-    },
-    {
-      "category": "Water",
-      "amountInr": 45
+      "amountInr": 206
     }
   ],
   "dailySpend": [
     {
-      "date": "2026-07-01",
-      "amountInr": 2646
+      "date": "2026-08-01",
+      "amountInr": 45
     },
     {
-      "date": "2026-07-02",
-      "amountInr": 6212
+      "date": "2026-08-02",
+      "amountInr": 70
     },
     {
-      "date": "2026-07-03",
-      "amountInr": 59
-    },
-    {
-      "date": "2026-07-04",
-      "amountInr": 53176
-    },
-    {
-      "date": "2026-07-05",
-      "amountInr": 453
-    },
-    {
-      "date": "2026-07-06",
-      "amountInr": 20235.14
-    },
-    {
-      "date": "2026-07-07",
-      "amountInr": 2575
-    },
-    {
-      "date": "2026-07-08",
-      "amountInr": 2883
-    },
-    {
-      "date": "2026-07-09",
-      "amountInr": 1135
-    },
-    {
-      "date": "2026-07-10",
-      "amountInr": 567.46
-    },
-    {
-      "date": "2026-07-11",
-      "amountInr": 1436
-    },
-    {
-      "date": "2026-07-12",
-      "amountInr": 954
-    },
-    {
-      "date": "2026-07-13",
-      "amountInr": 236.85
-    },
-    {
-      "date": "2026-07-14",
-      "amountInr": 483
-    },
-    {
-      "date": "2026-07-15",
-      "amountInr": 1203.21
-    },
-    {
-      "date": "2026-07-16",
-      "amountInr": 8757
-    },
-    {
-      "date": "2026-07-17",
-      "amountInr": 9653
-    },
-    {
-      "date": "2026-07-18",
-      "amountInr": 260
-    },
-    {
-      "date": "2026-07-19",
-      "amountInr": 1235.5
-    },
-    {
-      "date": "2026-07-20",
-      "amountInr": 3217
-    },
-    {
-      "date": "2026-07-21",
-      "amountInr": 548
-    },
-    {
-      "date": "2026-07-22",
-      "amountInr": 2095.31
-    },
-    {
-      "date": "2026-07-24",
-      "amountInr": 1148.3
-    },
-    {
-      "date": "2026-07-26",
-      "amountInr": 1160
-    },
-    {
-      "date": "2026-07-27",
-      "amountInr": 1050.71
-    },
-    {
-      "date": "2026-07-28",
-      "amountInr": 345
-    },
-    {
-      "date": "2026-07-29",
-      "amountInr": 398
-    },
-    {
-      "date": "2026-07-30",
-      "amountInr": 619.5
+      "date": "2026-08-03",
+      "amountInr": 1065
     }
   ],
   "alerts": [
-    "Spend cap breached; pause discretionary purchases and recover dues."
+    "Discretionary share above 60%; trigger cooling rule for non-essential purchases this week."
   ],
   "deepLinks": [
     {

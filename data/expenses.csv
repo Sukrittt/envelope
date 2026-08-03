@@ -543,3 +543,12 @@ timestamp,date,item,amount_inr,category,notes,source
 2026-07-29T15:46:00+05:30,2026-07-29,Football,279,Personal,,personal: football
 2026-07-29T17:14:00+05:30,2026-07-29,Bike to home,56,Travel,,monthly: travel
 2026-07-30T21:12:00+05:30,2026-07-30,Groceries,619.5,Groceries,,monthly: groceries
+2026-07-31T17:24:00+05:30,2026-07-31,Football,279,Personal,,personal: football
+2026-07-31T22:31:00+05:30,2026-07-31,Bike to home,54,Travel,,monthly: travel
+2026-08-01T19:35:00+05:30,2026-08-01,Bike to home,45,Travel,,monthly: travel
+2026-08-02T20:04:00+05:30,2026-08-02,Chicken momo,70,Personal,,personal: food
+2026-08-03T11:12:00+05:30,2026-08-03,Bike to work,85,Travel,,monthly: travel
+2026-08-03T17:47:00+05:30,2026-08-03,Bike to home,55,Travel,,monthly: travel
+2026-08-03T18:56:00+05:30,2026-08-03,Travel,186,Travel,,monthly: travel
+2026-08-03T22:41:00+05:30,2026-08-03,Outing,533,Personal,,personal: misc
+2026-08-03T22:46:00+05:30,2026-08-03,Groceries,206,Groceries,,monthly: groceries
