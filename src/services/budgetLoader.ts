@@ -158,6 +158,7 @@ export async function loadBudgetState(
       budgets = parseBudgetCSV(text)
     }
   } catch {
+    // No budgets CSV available — fall through with an empty budget list
   }
 
   return computeEnvelopes(budgets, expenses, currentMonth, categories, groups)

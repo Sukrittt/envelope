@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 
 const PRODUCTIVITY = resolve(import.meta.dirname, 'productivity')
 const EXPENSES_PATH = resolve(PRODUCTIVITY, 'expenses.csv')
@@ -110,7 +111,7 @@ export default defineConfig({
   }],
 })
 
-async function handleApi(req: any, res: any): Promise<boolean> {
+async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const url = new URL(req.url ?? '', 'http://localhost')
   const pathname = url.pathname
   const method = req.method ?? 'GET'
@@ -731,7 +732,7 @@ async function handleApi(req: any, res: any): Promise<boolean> {
     }
 
     // Log event
-    let eventRows = readCsv(HOLDING_EVENTS_PATH)
+    const eventRows = readCsv(HOLDING_EVENTS_PATH)
     if (!eventRows.length) eventRows.push(['holding_name', 'event_type', 'amount', 'previous_value', 'new_value', 'timestamp'])
     const now = new Date().toISOString()
     eventRows.push([body.name, body.action, String(body.amount), String(prevValue), String(newValue), now])

@@ -10,13 +10,14 @@ import { SubscriptionModal } from '../components/SubscriptionModal'
 import { SpendingInsights } from '../components/SpendingInsights'
 import { cancelSubscription, reactivateSubscription, addBudget, updateBudget, getBudgets, getCategories, addExpense } from '../services/api'
 import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
-import { loadExpensePanelContract } from '../services/expensePanelLoader'
+import { loadExpensePanelContract, loadEnvelopeStateForMonth } from '../services/expensePanelLoader'
 import { MonthRolloverBanner } from '../components/MonthRolloverBanner'
-import type { BudgetRow, EnvelopeState } from '../types/expense'
+import type { BudgetRow, Envelope, EnvelopeState } from '../types/expense'
 
 type PeriodKey = '7d' | '30d' | 'mtd' | 'custom'
 type TrendView = 'daily' | 'weekly' | 'monthly'
 type DrillFilter = { start: string; end: string; parentView: TrendView } | null
+type ActiveSubscription = ExpensePanelData['subscriptions']['active'][number]
 
 function formatLastUpdated(value: string): string {
   const date = new Date(value)
@@ -94,6 +95,8 @@ export function ExpensePage() {
   })
   const [dailyDetailDate, setDailyDetailDate] = useState<string | null>(null)
   const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(null)
+  const [insightMonth, setInsightMonth] = useState<string | null>(null)
+  const [insightEnvelopes, setInsightEnvelopes] = useState<Envelope[] | null>(null)
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null)
   const [envelopeSearch, setEnvelopeSearch] = useState('')
   const [envelopeSort, setEnvelopeSort] = useState<'custom' | 'overspent-first' | 'alphabetical' | 'by-assigned'>('custom')
@@ -128,6 +131,22 @@ export function ExpensePage() {
     }
     setCancellingSub(null)
     setReactivatingSub(null)
+  }
+
+  async function handleInsightNavigate(delta: number) {
+    const base = insightMonth ?? panel?.month ?? new Date().toISOString().slice(0, 7)
+    const d = new Date(`${base}-01`)
+    d.setMonth(d.getMonth() + delta)
+    const target = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const current = envelopeState?.month ?? new Date().toISOString().slice(0, 7)
+    if (target > current) return
+    setInsightMonth(target)
+    try {
+      const st = await loadEnvelopeStateForMonth(target)
+      setInsightEnvelopes(st.envelopes)
+    } catch {
+      setInsightEnvelopes(null)
+    }
   }
 
   async function handleIncomeChange(newIncome: number) {
@@ -175,6 +194,28 @@ export function ExpensePage() {
     })
   }
 
+  function handleSetAssigned(category: string, amount: number) {
+    setEnvelopeState((prev) => {
+      if (!prev) return prev
+      const assigned = Math.round(amount) || 0
+      const updated = prev.envelopes.map((e) => {
+        if (e.category !== category) return e
+        const available = assigned + e.rolledOver - e.spent
+        return {
+          ...e,
+          assigned,
+          available,
+          isOverspent: available < 0,
+          spentPct: assigned > 0 ? Math.min(100, (e.spent / assigned) * 100) : e.spent > 0 ? 100 : 0,
+        }
+      })
+      const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0)
+      const rta = Math.round(prev.income - totalAssigned) || 0
+      updateBudget(prev.month, category, { assigned: String(assigned) }).catch(() => {})
+      return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
+    })
+  }
+
   function handleBulkReturnToRTA() {
     if (!envelopeState) return
     const positive = envelopeState.envelopes.filter((e) => e.available > 0)
@@ -203,7 +244,9 @@ export function ExpensePage() {
         const logs = JSON.parse(localStorage.getItem('budget-transfer-log') || '[]')
         logs.push(log)
         localStorage.setItem('budget-transfer-log', JSON.stringify(logs))
-      } catch {}
+      } catch {
+        // Transfer log is diagnostic only — a write failure shouldn't block the return
+      }
       return { ...prev, envelopes: updated, totalAssigned, readyToAssign: rta, isOverAssigned: rta < 0 }
     })
     setShowBulkReturnConfirm(false)
@@ -939,15 +982,18 @@ export function ExpensePage() {
               sortKey={envelopeSort}
               onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
               onAssignFromRTA={handleAssignFromRTA}
+              onSetAssigned={handleSetAssigned}
               onPayCreditCard={handlePayCreditCard}
             />
           )}
         </article>
 
         <SpendingInsights
-          envelopes={envelopeState?.envelopes ?? []}
+          envelopes={insightEnvelopes ?? envelopeState?.envelopes ?? []}
           expenseRows={panel.expenseRows}
-          month={panel.month}
+          month={insightMonth ?? panel.month}
+          canGoNext={(insightMonth ?? envelopeState?.month ?? new Date().toISOString().slice(0, 7)) < (envelopeState?.month ?? new Date().toISOString().slice(0, 7))}
+          onNavigate={handleInsightNavigate}
         />
 
         <article className="mc-panel expense-subscriptions-panel">
@@ -958,8 +1004,7 @@ export function ExpensePage() {
             </button>
           </div>
           {(() => {
-            const p = panel!
-            function monthlyEq(sub: typeof p.subscriptions.active[0]): number {
+            function monthlyEq(sub: ActiveSubscription): number {
               if (/yearly|annual/i.test(sub.billingCycle)) return sub.amountInr / 12
               if (/quarterly/i.test(sub.billingCycle)) return sub.amountInr / 3
               if (/weekly/i.test(sub.billingCycle)) return sub.amountInr * 4.33
@@ -985,7 +1030,7 @@ export function ExpensePage() {
               return d.toISOString().slice(0, 10)
             }
 
-            function getEffectiveDueDate(sub: typeof p.subscriptions.active[0]): string {
+            function getEffectiveDueDate(sub: ActiveSubscription): string {
               if (sub.nextDueDate) {
                 let d = new Date(sub.nextDueDate)
                 if (Number.isNaN(d.getTime())) return ''
@@ -1020,21 +1065,21 @@ export function ExpensePage() {
 
             function daysUntil(dateStr: string): string {
               if (!dateStr) return ''
-              const diff = Math.round((new Date(dateStr).getTime() - Date.now()) / 86400000)
+              const diff = Math.round((new Date(dateStr).getTime() - new Date().getTime()) / 86400000)
               if (diff < 0) return ''
               if (diff === 0) return 'renews today'
               if (diff === 1) return 'renews tomorrow'
               return `renews in ${diff}d`
             }
 
-            function renewalDays(sub: typeof p.subscriptions.active[0]): number {
+            function renewalDays(sub: ActiveSubscription): number {
               if (/one-time/i.test(sub.billingCycle)) return Infinity
               const due = getEffectiveDueDate(sub)
               if (!due) return Infinity
-              return Math.round((new Date(due).getTime() - Date.now()) / 86400000)
+              return Math.round((new Date(due).getTime() - new Date().getTime()) / 86400000)
             }
 
-            function renewalText(sub: typeof p.subscriptions.active[0]): string {
+            function renewalText(sub: ActiveSubscription): string {
               return daysUntil(getEffectiveDueDate(sub))
             }
 

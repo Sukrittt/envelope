@@ -69,8 +69,8 @@ export function InvestmentsPage() {
 
   const month = useMemo(() => new Date().toISOString().slice(0, 7), [])
 
+  // `loading` starts true, so the initial mount is covered; later refreshes update in place.
   async function load() {
-    setLoading(true)
     try {
       const [holdingRows, eventRows] = await Promise.all([
         getHoldings(),
@@ -96,7 +96,35 @@ export function InvestmentsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    // Fetches are awaited before any setState runs, keeping the initial load
+    // asynchronous and avoiding the sync-setState-in-effect cascade.
+    void (async () => {
+      try {
+        const [holdingRows, eventRows] = await Promise.all([
+          getHoldings(),
+          getHoldingEvents(),
+        ])
+        setHoldings(holdingRows.map(r => ({
+          name: r.name,
+          type: r.type,
+          value: Number(r.value) || 0,
+          updatedAt: r.updated_at,
+        })))
+        setEvents(eventRows.map(r => ({
+          holdingName: r.holding_name,
+          eventType: r.event_type,
+          amount: Number(r.amount) || 0,
+          previousValue: Number(r.previous_value) || 0,
+          newValue: Number(r.new_value) || 0,
+          timestamp: r.timestamp,
+        })))
+      } catch (e) {
+        setError(String(e))
+      }
+      setLoading(false)
+    })()
+  }, [])
 
   const netWorth = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings])
 
@@ -109,8 +137,8 @@ export function InvestmentsPage() {
       setAddType('')
       setAddValue('')
       await load()
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -120,8 +148,8 @@ export function InvestmentsPage() {
       setActiveAction(null)
       await deleteHolding(name)
       await load()
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -141,8 +169,8 @@ export function InvestmentsPage() {
       setActiveAction(null)
       setActionAmount('')
       await load()
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     }
     setActionLoading(false)
   }

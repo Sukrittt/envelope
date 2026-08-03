@@ -18,8 +18,10 @@ export function invalidateCategoryCache() {
   lastFetch = 0
 }
 
+// Variation selectors (FE00-FE0F) are matched separately from the emoji ranges:
+// inside one character class they read as combining marks on the preceding range.
 const EMOJI_RE =
-  /[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/gu
+  /[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]/gu
 
 function stripEmoji(s: string): string {
   return s.replace(EMOJI_RE, '').trim().toLowerCase()

@@ -7,6 +7,8 @@ interface Props {
   envelopes: Envelope[]
   expenseRows: Array<{ date: string; amountInr: number; category: string }>
   month: string
+  canGoNext: boolean
+  onNavigate: (delta: number) => void
 }
 
 function fmt(n: number): string {
@@ -141,7 +143,13 @@ function firstDayOffset(month: string): number {
   return day === 0 ? 6 : day - 1
 }
 
-export function SpendingInsights({ envelopes, expenseRows, month }: Props) {
+function monthLabel(month: string): string {
+  const d = new Date(`${month}-01`)
+  if (Number.isNaN(d.getTime())) return month
+  return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+}
+
+export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onNavigate }: Props) {
   const [tooltip, setTooltip] = useState<{ day: number; date: string; total: number; topCat: string; x: number; y: number } | null>(null)
   const navigate = useNavigate()
 
@@ -158,6 +166,11 @@ export function SpendingInsights({ envelopes, expenseRows, month }: Props) {
     <article className="mc-panel expense-insights-panel">
       <div className="mc-panel-header">
         <h3>Insights</h3>
+        <div className="si-month-nav">
+          <button type="button" className="si-month-btn" onClick={() => onNavigate(-1)} aria-label="Previous month">‹</button>
+          <span className="si-month-label">{monthLabel(month)}</span>
+          <button type="button" className="si-month-btn" onClick={() => onNavigate(1)} disabled={!canGoNext} aria-label="Next month">›</button>
+        </div>
       </div>
 
       <div className="si-review">

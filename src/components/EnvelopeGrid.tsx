@@ -11,6 +11,7 @@ interface Props {
   sortKey: 'custom' | 'overspent-first' | 'alphabetical' | 'by-assigned'
   onMoveMoney: (category: string) => void
   onAssignFromRTA: (category: string, amount: number) => void
+  onSetAssigned: (category: string, amount: number) => void
   onPayCreditCard?: () => void
 }
 
@@ -50,14 +51,17 @@ function compareEnvelopes(a: Envelope, b: Envelope, sortKey: Props['sortKey']): 
   return b.assigned - a.assigned
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, searchQuery, sortKey, onMoveMoney, onAssignFromRTA, onPayCreditCard }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, searchQuery, sortKey, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
   const [menuAssignCategory, setMenuAssignCategory] = useState<string | null>(null)
   const [menuAssignValue, setMenuAssignValue] = useState('')
+  const [menuEditCategory, setMenuEditCategory] = useState<string | null>(null)
+  const [menuEditValue, setMenuEditValue] = useState('')
   const menuRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const editInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (!menuCategory) return
@@ -66,6 +70,8 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
         setMenuCategory(null)
         setMenuAssignCategory(null)
         setMenuAssignValue('')
+        setMenuEditCategory(null)
+        setMenuEditValue('')
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -78,10 +84,18 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
     }
   }, [menuAssignCategory])
 
+  useEffect(() => {
+    if (menuEditCategory && editInputRef.current) {
+      editInputRef.current.focus()
+    }
+  }, [menuEditCategory])
+
   function closeMenu() {
     setMenuCategory(null)
     setMenuAssignCategory(null)
     setMenuAssignValue('')
+    setMenuEditCategory(null)
+    setMenuEditValue('')
   }
 
   function openMenu(category: string) {
@@ -90,7 +104,16 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
       setMenuCategory(category)
       setMenuAssignCategory(null)
       setMenuAssignValue('')
+      setMenuEditCategory(null)
+      setMenuEditValue('')
     }
+  }
+
+  function openEditAssigned(category: string, current: number) {
+    setMenuAssignCategory(null)
+    setMenuAssignValue('')
+    setMenuEditCategory(category)
+    setMenuEditValue(String(current))
   }
 
   function handleAssignKeyDown(e: React.KeyboardEvent) {
@@ -104,6 +127,20 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
     if (e.key === 'Escape') {
       setMenuAssignCategory(null)
       setMenuAssignValue('')
+    }
+  }
+
+  function handleEditKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') {
+      const amount = Number(menuEditValue)
+      if (menuEditCategory && menuEditValue.trim() !== '' && amount >= 0) {
+        onSetAssigned(menuEditCategory, amount)
+      }
+      closeMenu()
+    }
+    if (e.key === 'Escape') {
+      setMenuEditCategory(null)
+      setMenuEditValue('')
     }
   }
 
@@ -227,13 +264,31 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
             </button>
             {isMenuOpen && (
               <div className="env-menu" ref={menuRef}>
-                {menuAssignCategory !== e.category ? (
+                {menuEditCategory === e.category ? (
+                  <div className="env-menu-assign">
+                    <span className="env-menu-assign-label">Set ₹</span>
+                    <input
+                      ref={editInputRef}
+                      type="number"
+                      className="env-menu-assign-input"
+                      value={menuEditValue}
+                      onChange={(e) => setMenuEditValue(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      min={0}
+                      step={1}
+                      placeholder="amount"
+                    />
+                  </div>
+                ) : menuAssignCategory !== e.category ? (
                   <>
                     <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
                       Move money between envelopes
                     </button>
                     <button type="button" className="env-menu-item" onClick={() => { setMenuAssignCategory(e.category); setMenuAssignValue('') }}>
                       Assign from Ready to Assign
+                    </button>
+                    <button type="button" className="env-menu-item" onClick={() => openEditAssigned(e.category, e.assigned)}>
+                      Edit assigned amount
                     </button>
                     {isCC && e.available > 0 && (
                       <>

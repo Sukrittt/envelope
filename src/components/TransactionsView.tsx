@@ -110,6 +110,7 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const [editingSuggestedCat, setEditingSuggestedCat] = useState<string>('')
   const [updating, setUpdating] = useState(false)
   const [autoTagging, setAutoTagging] = useState(false)
+  const [budgetCategories, setBudgetCategories] = useState<string[]>([])
 
   useEffect(() => {
     Promise.all([
@@ -143,8 +144,6 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
     setSelectedCategory(categoryParam)
     setPeriod('month')
   }, [categoryParam])
-
-  const [budgetCategories, setBudgetCategories] = useState<string[]>([])
 
   const categories = useMemo(() => {
     return [...budgetCategories].sort()
@@ -279,7 +278,9 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
         }
       }
       await refreshTransactions()
-    } catch { }
+    } catch {
+      // Auto-tagging is best-effort; leave the existing categories in place
+    }
     setAutoTagging(false)
   }
 
@@ -408,7 +409,9 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
                           await updateExpenseCategory(t.timestamp, t.item, t.amountInr, newCat)
                           setEditingSuggestedCat('')
                           await refreshTransactions()
-                        } catch { }
+                        } catch {
+                          // Keep the row as-is if the category update fails
+                        }
                         setUpdating(false)
                         setEditingKey(null)
                       }}

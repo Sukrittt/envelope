@@ -1833,6 +1833,48 @@ input[type="date"]:hover {
   flex-direction: column;
 }
 
+.si-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.si-month-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: var(--fs-13);
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.si-month-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--hover);
+  border-color: var(--divider);
+}
+
+.si-month-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.si-month-label {
+  font-size: var(--fs-11);
+  color: var(--muted);
+  min-width: 74px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 /* ── Spending Insights ──────────────────────────────────── */
 
 .si-review {
@@ -2721,7 +2763,7 @@ input[type="date"]:hover {
   color: var(--risk-fg, #ff8b9a);
 }
 
-.env-row-inactive .env-cell {
+.env-row-inactive .env-cell:not(.env-cell-action) {
   opacity: 0.4;
 }
 

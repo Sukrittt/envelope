@@ -59,7 +59,7 @@ export function SparkLine({
     mn = Math.floor(mn - 1)
     mx = Math.ceil(mx + 1)
     return { min: mn, range: mx - mn }
-  }, [values, targetValue])
+  }, [values, targetValue, projectionData])
 
   const points = useMemo(() => {
     if (!data.length) return []

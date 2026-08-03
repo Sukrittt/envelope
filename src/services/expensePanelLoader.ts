@@ -1,6 +1,7 @@
 import type { ExpensePanelContract } from './expensePanelAdapter'
 import { computeEnvelopes } from './budgetLoader'
 import { getBudgets, getExpenses, getSubscriptions, getCategories, getGroups } from './api'
+import type { EnvelopeState } from '../types/expense'
 
 interface ExpenseRow {
   timestamp: string
@@ -22,6 +23,27 @@ interface SubscriptionRow {
 }
 
 const ESSENTIAL_CATEGORIES = new Set(['Bills', 'Food', 'Travel', 'Personal care'])
+
+export async function loadEnvelopeStateForMonth(month: string): Promise<EnvelopeState> {
+  const [budgetRows, expenseRows, categoryRows, groupNames] = await Promise.all([
+    getBudgets().catch(() => []),
+    getExpenses().catch(() => []),
+    getCategories().catch(() => []),
+    getGroups().catch(() => []),
+  ])
+  const budgets = budgetRows.map((r) => ({
+    month: r.month,
+    category: r.category,
+    assigned: Number(r.assigned) || 0,
+    rolledOver: Number(r.rolled_over) || 0,
+  }))
+  const expenses = expenseRows.map((r) => ({
+    date: r.date,
+    amountInr: Number(r.amount_inr) || 0,
+    category: r.category,
+  }))
+  return computeEnvelopes(budgets, expenses, month, categoryRows, groupNames)
+}
 
 export async function loadExpensePanelContract(): Promise<ExpensePanelContract> {
   const [apiExpenses, apiSubscriptions, budgetRows, categoryRows, groupNames] = await Promise.all([
