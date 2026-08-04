@@ -5,16 +5,14 @@ import { SUBSCRIPTION_HEADERS, toRow } from '@/lib/models'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const coll = await getCollection('subscriptions', scope)
   const docs = await coll.find({}).toArray()
   return json({ headers: SUBSCRIPTION_HEADERS, rows: docs.map((d) => toRow(SUBSCRIPTION_HEADERS, d)) })
 }
 
 export async function POST(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const guard = guestWriteGuard(scope, 'POST')
   if (guard) return guard
 
@@ -44,8 +42,7 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const guard = guestWriteGuard(scope, 'PUT')
   if (guard) return guard
 

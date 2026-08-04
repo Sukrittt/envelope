@@ -4,8 +4,7 @@ import { getScope, guestWriteGuard } from '@/lib/access'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const guard = guestWriteGuard(scope, 'POST')
   if (guard) return guard
 

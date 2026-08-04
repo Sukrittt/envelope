@@ -1,8 +1,29 @@
 import { isGuest } from './accessMode'
 
-export function apiUrl(path: string): string {
-  const delim = path.includes('?') ? '&' : '?'
-  return isGuest() ? `${path}${delim}mode=guest` : path
+/**
+ * The dashboard unlock password, reused as the API Bearer token. It is already
+ * bundled client-side (the AuthGate needs it for comparison), so we can read it
+ * here and attach it to every API call made in real mode. Guests send no token
+ * and get read-only demo data from the server.
+ */
+const AUTH_TOKEN = process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD as string | undefined
+
+/** Authorization header for real-mode requests; guests send none. */
+function authHeaders(): Record<string, string> {
+  if (isGuest() || !AUTH_TOKEN) return {}
+  return { Authorization: `Bearer ${AUTH_TOKEN}` }
+}
+
+/**
+ * fetch wrapper that attaches the real-mode Bearer token. The server derives
+ * real-vs-guest scope from this header, so the old `?mode=guest` query param is
+ * no longer used.
+ */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(path, {
+    ...init,
+    headers: { ...authHeaders(), ...(init?.headers ?? {}) },
+  })
 }
 
 export interface BudgetRow {
@@ -31,14 +52,14 @@ interface CsvResponse<T> {
 }
 
 export async function getBudgets(): Promise<BudgetRow[]> {
-  const resp = await fetch(apiUrl('/api/budgets'))
+  const resp = await apiFetch('/api/budgets')
   if (!resp.ok) throw new Error(`Failed to load budgets: ${resp.status}`)
   const data: CsvResponse<BudgetRow> = await resp.json()
   return data.rows
 }
 
 export async function addBudget(row: Omit<BudgetRow, 'rolled_over'> & { rolled_over?: string }): Promise<void> {
-  const resp = await fetch(apiUrl('/api/budgets'), {
+  const resp = await apiFetch('/api/budgets', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...row, rolled_over: row.rolled_over ?? '0' }),
@@ -47,7 +68,7 @@ export async function addBudget(row: Omit<BudgetRow, 'rolled_over'> & { rolled_o
 }
 
 export async function updateBudget(month: string, category: string, updates: Partial<BudgetRow & { newCategory?: string }>): Promise<void> {
-  const resp = await fetch(apiUrl('/api/budgets'), {
+  const resp = await apiFetch('/api/budgets', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ month, category, ...updates }),
@@ -56,7 +77,7 @@ export async function updateBudget(month: string, category: string, updates: Par
 }
 
 export async function deleteBudget(month: string, category: string): Promise<void> {
-  const resp = await fetch(apiUrl('/api/budgets'), {
+  const resp = await apiFetch('/api/budgets', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ month, category }),
@@ -70,13 +91,13 @@ export interface CategoryRow {
 }
 
 export async function getCategories(): Promise<CategoryRow[]> {
-  const resp = await fetch(apiUrl('/api/categories'))
+  const resp = await apiFetch('/api/categories')
   if (!resp.ok) throw new Error(`Failed to load categories: ${resp.status}`)
   return resp.json()
 }
 
 export async function addCategory(name: string, group = ''): Promise<void> {
-  const resp = await fetch(apiUrl('/api/categories'), {
+  const resp = await apiFetch('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, group }),
@@ -85,7 +106,7 @@ export async function addCategory(name: string, group = ''): Promise<void> {
 }
 
 export async function updateCategory(name: string, updates: { newName?: string; group?: string }): Promise<void> {
-  const resp = await fetch(apiUrl('/api/categories'), {
+  const resp = await apiFetch('/api/categories', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, ...updates }),
@@ -94,7 +115,7 @@ export async function updateCategory(name: string, updates: { newName?: string; 
 }
 
 export async function deleteCategory(name: string): Promise<void> {
-  const resp = await fetch(apiUrl('/api/categories'), {
+  const resp = await apiFetch('/api/categories', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
@@ -103,7 +124,7 @@ export async function deleteCategory(name: string): Promise<void> {
 }
 
 export async function reorderCategory(name: string, direction: 'up' | 'down'): Promise<void> {
-  const resp = await fetch(apiUrl('/api/categories/reorder'), {
+  const resp = await apiFetch('/api/categories/reorder', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, direction }),
@@ -112,7 +133,7 @@ export async function reorderCategory(name: string, direction: 'up' | 'down'): P
 }
 
 export async function moveCategory(name: string, toIndex: number): Promise<void> {
-  const resp = await fetch(apiUrl('/api/categories/move'), {
+  const resp = await apiFetch('/api/categories/move', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, toIndex }),
@@ -121,13 +142,13 @@ export async function moveCategory(name: string, toIndex: number): Promise<void>
 }
 
 export async function getGroups(): Promise<string[]> {
-  const resp = await fetch(apiUrl('/api/groups'))
+  const resp = await apiFetch('/api/groups')
   if (!resp.ok) throw new Error(`Failed to load groups: ${resp.status}`)
   return resp.json()
 }
 
 export async function addGroup(name: string): Promise<void> {
-  const resp = await fetch(apiUrl('/api/groups'), {
+  const resp = await apiFetch('/api/groups', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
@@ -136,7 +157,7 @@ export async function addGroup(name: string): Promise<void> {
 }
 
 export async function updateGroup(name: string, newName: string): Promise<void> {
-  const resp = await fetch(apiUrl('/api/groups'), {
+  const resp = await apiFetch('/api/groups', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, newName }),
@@ -145,7 +166,7 @@ export async function updateGroup(name: string, newName: string): Promise<void> 
 }
 
 export async function deleteGroup(name: string): Promise<void> {
-  const resp = await fetch(apiUrl('/api/groups'), {
+  const resp = await apiFetch('/api/groups', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
@@ -154,7 +175,7 @@ export async function deleteGroup(name: string): Promise<void> {
 }
 
 export async function getExpenses(): Promise<ExpenseRow[]> {
-  const resp = await fetch(apiUrl('/api/expenses'))
+  const resp = await apiFetch('/api/expenses')
   if (!resp.ok) throw new Error(`Failed to load expenses: ${resp.status}`)
   const data: CsvResponse<ExpenseRow> = await resp.json()
   return data.rows
@@ -168,7 +189,7 @@ export async function addExpense(row: {
   notes?: string
   payment_method?: string
 }): Promise<void> {
-  const resp = await fetch(apiUrl('/api/expenses'), {
+  const resp = await apiFetch('/api/expenses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(row),
@@ -182,7 +203,7 @@ export interface CategoryMap {
 }
 
 export async function getCategoryMap(): Promise<CategoryMap> {
-  const resp = await fetch(apiUrl('/api/category-map'))
+  const resp = await apiFetch('/api/category-map')
   if (!resp.ok) throw new Error(`Failed to load category map: ${resp.status}`)
   return resp.json()
 }
@@ -193,7 +214,7 @@ export async function updateExpenseCategory(
   amountInr: number,
   category: string,
 ): Promise<void> {
-  const resp = await fetch(apiUrl('/api/expenses'), {
+  const resp = await apiFetch('/api/expenses', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ timestamp, item, amount_inr: String(amountInr), category }),
@@ -213,7 +234,7 @@ export interface SubscriptionRow {
 }
 
 export async function getSubscriptions(): Promise<SubscriptionRow[]> {
-  const resp = await fetch(apiUrl('/api/subscriptions'))
+  const resp = await apiFetch('/api/subscriptions')
   if (!resp.ok) throw new Error(`Failed to load subscriptions: ${resp.status}`)
   const data: CsvResponse<SubscriptionRow> = await resp.json()
   return data.rows
@@ -230,7 +251,7 @@ export async function updateSubscription(
     status?: string
   },
 ): Promise<void> {
-  const resp = await fetch(apiUrl('/api/subscriptions'), {
+  const resp = await apiFetch('/api/subscriptions', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ service, ...updates }),
@@ -256,7 +277,7 @@ export async function addSubscription(row: {
   next_due_date?: string
   notes?: string
 }): Promise<void> {
-  const resp = await fetch(apiUrl('/api/subscriptions'), {
+  const resp = await apiFetch('/api/subscriptions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(row),
@@ -275,14 +296,14 @@ export interface HoldingRow {
 }
 
 export async function getHoldings(): Promise<HoldingRow[]> {
-  const resp = await fetch(apiUrl('/api/holdings'))
+  const resp = await apiFetch('/api/holdings')
   if (!resp.ok) throw new Error(`Failed to load holdings: ${resp.status}`)
   const data: CsvResponse<HoldingRow> = await resp.json()
   return data.rows
 }
 
 export async function addHolding(row: { name: string; type: string; value: string }): Promise<void> {
-  const resp = await fetch(apiUrl('/api/holdings'), {
+  const resp = await apiFetch('/api/holdings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(row),
@@ -297,7 +318,7 @@ export async function updateHolding(
   name: string,
   updates: { new_name?: string; type?: string; value?: string; updated_at?: string },
 ): Promise<void> {
-  const resp = await fetch(apiUrl('/api/holdings'), {
+  const resp = await apiFetch('/api/holdings', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, ...updates }),
@@ -318,7 +339,7 @@ export interface HoldingEventRow {
 }
 
 export async function getHoldingEvents(): Promise<HoldingEventRow[]> {
-  const resp = await fetch(apiUrl('/api/holding-events'))
+  const resp = await apiFetch('/api/holding-events')
   if (!resp.ok) throw new Error(`Failed to load holding events: ${resp.status}`)
   const data: CsvResponse<HoldingEventRow> = await resp.json()
   return data.rows
@@ -330,7 +351,7 @@ export async function performHoldingAction(params: {
   amount: number
   month: string
 }): Promise<{ previousValue: number; newValue: number }> {
-  const resp = await fetch(apiUrl('/api/holdings/action'), {
+  const resp = await apiFetch('/api/holdings/action', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -343,7 +364,7 @@ export async function performHoldingAction(params: {
 }
 
 export async function deleteHolding(name: string): Promise<void> {
-  const resp = await fetch(apiUrl('/api/holdings'), {
+  const resp = await apiFetch('/api/holdings', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),

@@ -31,9 +31,10 @@ function shuffleArray<T>(array: T[]): T[] {
 
 interface Props {
   className?: string
+  style?: React.CSSProperties
 }
 
-export function LoadingCaption({ className = '' }: Props) {
+export function LoadingCaption({ className = '', style }: Props) {
   const [phraseIndex, setPhraseIndex] = useState(0)
   const [shuffledPhrases] = useState(() => shuffleArray(PHRASES))
 
@@ -45,7 +46,7 @@ export function LoadingCaption({ className = '' }: Props) {
   }, [shuffledPhrases.length])
 
   return (
-    <div className={`loading-caption ${className}`}>
+    <div className={`loading-caption ${className}`} style={style}>
       <span className="loading-caption-text">{shuffledPhrases[phraseIndex]}</span>
     </div>
   )

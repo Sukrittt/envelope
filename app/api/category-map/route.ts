@@ -8,8 +8,7 @@ let cache: CategoryMap | null = null
 let cacheGuest: boolean | null = null
 
 export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const guest = scope === 'guest'
 
   if (!cache || cacheGuest !== guest) {

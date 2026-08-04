@@ -4,8 +4,7 @@ import { getScope, guestWriteGuard } from '@/lib/access'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const coll = await getCollection('categories', scope)
   const docs = await coll.find({}).sort({ order: 1 }).toArray()
   return json(
@@ -16,8 +15,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const guard = guestWriteGuard(scope, 'POST')
   if (guard) return guard
 
@@ -32,8 +30,7 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const guard = guestWriteGuard(scope, 'PUT')
   if (guard) return guard
 
@@ -65,8 +62,7 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const url = new URL(req.url)
-  const scope = getScope(url)
+  const scope = getScope(req)
   const guard = guestWriteGuard(scope, 'DELETE')
   if (guard) return guard
 
