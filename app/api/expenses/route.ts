@@ -93,3 +93,53 @@ export async function PUT(req: Request) {
   await coll.updateOne({ _id: found._id }, { $set: { category: String(body.category) } })
   return json({ ok: true })
 }
+
+export async function DELETE(req: Request) {
+  const scope = getScope(req)
+  const guard = guestWriteGuard(scope, 'DELETE')
+  if (guard) return guard
+
+  const body = await readBody(req)
+  if (!body.timestamp || !body.item || body.amount_inr === undefined) {
+    return error('timestamp, item, amount_inr required')
+  }
+
+  // Locate the row with the same (timestamp, item, amount) triple the PUT uses,
+  // so a delete removes the exact expense rather than a lookalike.
+  const coll = await getCollection('expenses', scope)
+  const candidates = await coll
+    .find({ timestamp: String(body.timestamp), item: String(body.item) })
+    .sort({ _id: 1 })
+    .toArray()
+
+  let found: (typeof candidates)[number] | null = null
+  for (const c of candidates) {
+    if (Number(c.amount_inr) === Number(body.amount_inr)) {
+      found = c
+      break
+    }
+  }
+  if (!found) return error('expense row not found', 404)
+
+  const paymentMethod = String(found.payment_method ?? '')
+  await coll.deleteOne({ _id: found._id })
+
+  // Reverse the Credit Card envelope bump that POST applied for CC purchases.
+  if (paymentMethod === 'credit_card') {
+    const amountNum = Number(found.amount_inr)
+    const month = String(found.date ?? '').slice(0, 7)
+    if (!Number.isNaN(amountNum) && amountNum > 0 && month) {
+      const budgetColl = await getCollection('budgets', scope)
+      const existing = await budgetColl.findOne({ month, category: '__credit_card__' })
+      if (existing) {
+        const current = Number(existing.assigned) || 0
+        await budgetColl.updateOne(
+          { _id: existing._id },
+          { $set: { assigned: String(Math.max(0, current - amountNum)) } },
+        )
+      }
+    }
+  }
+
+  return json({ ok: true })
+}

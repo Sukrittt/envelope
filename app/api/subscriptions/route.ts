@@ -74,3 +74,20 @@ export async function PUT(req: Request) {
   await coll.updateOne({ service: String(body.service) }, { $set: update })
   return json({ ok: true })
 }
+
+export async function DELETE(req: Request) {
+  const scope = getScope(req)
+  const guard = guestWriteGuard(scope, 'DELETE')
+  if (guard) return guard
+
+  const body = await readBody(req)
+  if (!body.service) return error('service required')
+
+  // Case-insensitive match, consistent with the POST duplicate check.
+  const coll = await getCollection('subscriptions', scope)
+  const result = await coll.deleteOne({
+    service: { $regex: new RegExp(`^${escapeRegExp(String(body.service))}$`, 'i') },
+  })
+  if (result.deletedCount === 0) return error('subscription not found', 404)
+  return json({ ok: true })
+}

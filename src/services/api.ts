@@ -222,6 +222,22 @@ export async function updateExpenseCategory(
   if (!resp.ok) throw new Error(`Failed to update expense: ${resp.status}`)
 }
 
+export async function deleteExpense(
+  timestamp: string,
+  item: string,
+  amountInr: number,
+): Promise<void> {
+  const resp = await apiFetch('/api/expenses', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ timestamp, item, amount_inr: String(amountInr) }),
+  })
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}))
+    throw new Error(detail.error ?? `Failed to delete expense: ${resp.status}`)
+  }
+}
+
 export interface SubscriptionRow {
   timestamp: string
   service: string
@@ -285,6 +301,18 @@ export async function addSubscription(row: {
   if (!resp.ok) {
     const detail = await resp.json().catch(() => ({}))
     throw new Error(detail.error ?? `Failed to add subscription: ${resp.status}`)
+  }
+}
+
+export async function deleteSubscription(service: string): Promise<void> {
+  const resp = await apiFetch('/api/subscriptions', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ service }),
+  })
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}))
+    throw new Error(detail.error ?? `Failed to delete subscription: ${resp.status}`)
   }
 }
 

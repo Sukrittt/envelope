@@ -35,3 +35,10 @@ dist-ssr
 # Vercel
 .vercel
 .vercelignore
+
+# Personal data — never commit (source CSVs stay local; seed MongoDB via npm run db:migrate)
+# Demo/sample CSVs in productivity/demo/ and data/demo/ are intentionally kept committed.
+productivity/*.csv
+productivity/fitness/*.csv
+data/*.csv
+public/productivity/*.csv

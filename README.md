@@ -1,6 +1,6 @@
-# YNAB Replacement
+# Mission Control
 
-React + Vite + TypeScript personal finance dashboard — a self-hosted, CSV-backed alternative to YNAB. Track budgets, expenses, subscriptions, and investments, with a password-gated guest mode so visitors can explore on sample data.
+A self-hosted personal finance dashboard — a YNAB-style alternative for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with a password-gated guest mode so visitors can explore on sample data.
 
 ## Highlights
 
@@ -15,54 +15,85 @@ React + Vite + TypeScript personal finance dashboard — a self-hosted, CSV-back
 
 ## Stack
 
-- React 19, TypeScript, Vite
-- `react-router-dom` v7 for routing
-- `lucide-react` for icons
-- No separate backend — a CSV-backed JSON API middleware lives in `vite.config.ts`
+- [Next.js 15](https://nextjs.org/) (App Router), React 19, TypeScript
+- [MongoDB](https://www.mongodb.com/) via the official `mongodb` driver (Atlas or local)
+- [lucide-react](https://lucide.dev/) for icons
 
 ## How data is stored
 
-There is no database. A Vite dev/preview-server middleware (the `csv-api` plugin in `vite.config.ts`) serves `/api/*` endpoints that read and write CSV files:
+Data lives in MongoDB. The API route handlers under `app/api/` read and write these collections:
 
-- `productivity/expenses.csv`, `budgets.csv`, `categories.csv`, `groups.csv` — expenses and budgeting
-- `data/subscriptions.csv`, `holdings.csv`, `holding_events.csv` — subscriptions and investments
-- `productivity/fitness/` — fitness module data
-- `productivity/demo/` and `data/demo/` — sample datasets used in guest mode
+| Domain | Collections |
+| --- | --- |
+| Expenses & budgeting | `expenses`, `budgets`, `categories`, `groups` |
+| Subscriptions | `subscriptions` |
+| Investments | `holdings`, `holding_events` |
+| Guest demo (read-only) | `demo_expenses`, `demo_budgets`, `demo_categories`, `demo_groups`, `demo_subscriptions`, `demo_holdings`, `demo_holding_events` |
 
-The `prebuild` script copies the CSVs into `public/productivity/` so they ship with a static build.
+The database is seeded from local CSV files (see [Data migration](#data-migration)). The real-data CSVs are **gitignored** — they hold personal financial data and are never committed; only the sample `demo/` CSVs ship with the repo.
+
+## Authentication & guest mode
+
+The app is wrapped in an `AuthGate`. When `NEXT_PUBLIC_DASHBOARD_PASSWORD` is set, the app starts locked behind a password dialog; visitors can also choose **Continue as guest**.
+
+- **Real mode** — unlocked with the password. Every API call sends it as a `Authorization: Bearer <password>` header, which the server verifies (constant-time) to grant read-write access to the real collections.
+- **Guest mode** — no token. Read-only access to the `demo_*` collections; every non-GET request returns `403`.
+- If no password is configured, the gate auto-unlocks and the API treats all requests as real mode — convenient for local-only use.
+- The chosen mode persists in `localStorage` (`mc-access`) for 30 days. Use **Log out** / **Exit guest mode** in the sidebar or Settings to clear it.
+
+## API
+
+Route handlers are the CSV-era `/api/*` endpoints, now backed by MongoDB. Each request resolves `real` vs `guest` scope from its Bearer token.
+
+| Endpoint | Methods | Purpose |
+| --- | --- | --- |
+| `/api/expenses` | GET, POST, PUT | Transaction log; PUT also recategorizes |
+| `/api/budgets` | GET, POST, PUT, DELETE | Monthly envelope budgets |
+| `/api/categories` | GET, POST, PUT, DELETE | Envelope categories |
+| `/api/categories/reorder` | POST | Move a category up/down |
+| `/api/categories/move` | POST | Drag a category to an index |
+| `/api/category-map` | GET | Keyword → category suggestions |
+| `/api/groups` | GET, POST, PUT, DELETE | Category groups |
+| `/api/subscriptions` | GET, POST, PUT | Subscriptions |
+| `/api/holdings` | GET, POST, PUT, DELETE | Investment holdings |
+| `/api/holdings/action` | POST | Contribution / withdrawal |
+| `/api/holding-events` | GET | Holding event log |
 
 ## Routes
 
 | Route | Page |
 | --- | --- |
+| `/` | Redirects to `/expense` |
 | `/expense` | Budget dashboard |
 | `/expense/transactions` | Transaction log |
 | `/investments` | Investments / net worth |
-| `/fitness` | Fitness dashboard |
+| `/fitness` | Fitness dashboard (bundled sample data) |
 | `/learnings` | Agent learnings |
 | `/settings` | Appearance, density, session |
-
-Unknown routes redirect to `/expense`.
-
-## Guest mode & authentication
-
-`AuthGate` wraps the app. When `VITE_DASHBOARD_PASSWORD` is set, the app starts locked behind a password dialog; visitors can also choose **Continue as guest**.
-
-- **Real mode** — unlocked with the password; reads and writes the live CSVs.
-- **Guest mode** — read-only; every non-GET `/api/*` request is rejected with 403, and data is served from the demo CSVs (`?mode=guest`).
-- The chosen mode persists in `localStorage` (`mc-access`) for 30 days. Use **Log out** / **Exit guest mode** in the sidebar or Settings to clear it.
 
 ## Environment variables
 
 | Variable | Purpose |
 | --- | --- |
-| `VITE_DASHBOARD_PASSWORD` | Optional. When set, the app requires a password to enter real mode. |
-| `VITE_API_BASE_URL` | Legacy optional backend for the master dashboard (`dashboardService`); the current routes do not use it and fall back to `src/data/mockData.json`. |
+| `MONGODB_URI` | Required. MongoDB connection string (Atlas or local). |
+| `NEXT_PUBLIC_DASHBOARD_PASSWORD` | Optional. Password for real mode + API Bearer token. Empty = open. |
+
+## Data migration
+
+The database is seeded from local CSV files by a one-off script. This reads the real data in `productivity/` and `data/` (kept out of git) plus the committed sample data in `productivity/demo/` and `data/demo/`, and upserts each row into MongoDB:
+
+```bash
+npm run db:migrate   # requires MONGODB_URI in .env.local or the environment
+```
+
+Collections keyed by a natural field (`budgets`, `categories`, `groups`, `subscriptions`, `holdings`) upsert in place; append-only logs (`expenses`, `holding_events`) are cleared and re-inserted.
 
 ## Local development
 
 ```bash
+cp .env.example .env.local   # set MONGODB_URI (and a password if you want the gate)
 npm install
+npm run db:migrate           # seed MongoDB from your local CSVs
 npm run dev
 ```
 
@@ -70,19 +101,17 @@ npm run dev
 
 ```bash
 npm run lint
-npm run build
+npm run build                # type-checks; lint is deferred (see eslint.config.mjs)
 ```
 
 ## Deploy
 
-Static Vite build:
+Deploy to Vercel. `vercel.json` pins the framework preset to `nextjs`, so the Next.js build output (`.next`) is used automatically.
 
-- Build command: `npm run build`
-- Output directory: `dist`
-- Set `VITE_DASHBOARD_PASSWORD` if you want the gate locked in production.
-
-Note: the CSV API is served by the Vite dev/preview-server middleware, so a fully static host needs that middleware (or a serverless equivalent) for `/api/*` calls to work.
+- Set `MONGODB_URI` in the project's environment variables.
+- Set `NEXT_PUBLIC_DASHBOARD_PASSWORD` if you want the gate locked in production.
 
 ## Scripts
 
-- `npm run sync:expenses` — runs `scripts/sync_expenses.mjs` to sync the expense CSVs.
+- `npm run db:migrate` — seed MongoDB from local CSVs (`scripts/migrate-to-mongo.mjs`)
+- `npm run sync:expenses` — sync the expense CSVs (`scripts/sync_expenses.mjs`)
