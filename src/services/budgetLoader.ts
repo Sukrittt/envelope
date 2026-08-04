@@ -1,29 +1,5 @@
 import type { BudgetRow, Envelope, EnvelopeState } from '../types/expense'
 
-function parseBudgetCSV(text: string): BudgetRow[] {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const header = lines[0].split(',')
-  const iMonth = header.indexOf('month')
-  const iCategory = header.indexOf('category')
-  const iAssigned = header.indexOf('assigned')
-  const iRolledOver = header.indexOf('rolled_over')
-
-  const rows: BudgetRow[] = []
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',')
-    const assigned = Number(cols[iAssigned])
-    if (Number.isNaN(assigned)) continue
-    rows.push({
-      month: cols[iMonth] ?? '',
-      category: cols[iCategory] ?? '',
-      assigned,
-      rolledOver: Number(cols[iRolledOver]) || 0,
-    })
-  }
-  return rows
-}
-
 function getMonthSpendingByCategory(
   expenses: Array<{ date: string; amountInr: number; category: string }>,
   month: string,
@@ -141,25 +117,4 @@ export function computeEnvelopes(
     isOverAssigned: readyToAssign < 0,
     groups: groups.filter((g) => envelopes.some((e) => e.group === g)),
   }
-}
-
-export async function loadBudgetState(
-  expenses: Array<{ date: string; amountInr: number; category: string }>,
-  currentMonth: string,
-  categories: Array<{ name: string; group: string }>,
-  groups: string[],
-): Promise<EnvelopeState> {
-  let budgets: BudgetRow[] = []
-
-  try {
-    const resp = await fetch('/productivity/budgets.csv')
-    if (resp.ok) {
-      const text = await resp.text()
-      budgets = parseBudgetCSV(text)
-    }
-  } catch {
-    // No budgets CSV available — fall through with an empty budget list
-  }
-
-  return computeEnvelopes(budgets, expenses, currentMonth, categories, groups)
 }

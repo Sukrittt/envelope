@@ -4,31 +4,30 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "prebuild": "cp -r productivity/expenses.csv public/productivity/expenses.csv && cp productivity/budgets.csv public/productivity/budgets.csv && cp productivity/categories.csv public/productivity/categories.csv && cp productivity/groups.csv public/productivity/groups.csv && cp data/subscriptions.csv public/productivity/subscriptions.csv && cp data/holdings.csv public/productivity/holdings.csv && cp data/holding_events.csv public/productivity/holding_events.csv",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:migrate": "node scripts/migrate-to-mongo.mjs",
     "sync:expenses": "node scripts/sync_expenses.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.577.0",
+    "mongodb": "^6.21.0",
+    "next": "^15.5.22",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.1"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.0",
     "eslint": "^9.39.4",
+    "eslint-config-next": "^15.5.22",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.0"
+    "typescript-eslint": "^8.56.1"
   }
 }

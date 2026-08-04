@@ -1,0 +1,21 @@
+import { json, getCollection } from '@/lib/http'
+import { getScope } from '@/lib/access'
+import { buildCategoryMap, type CategoryMap } from '@/lib/categoryMap'
+
+export const dynamic = 'force-dynamic'
+
+let cache: CategoryMap | null = null
+let cacheGuest: boolean | null = null
+
+export async function GET(req: Request) {
+  const url = new URL(req.url)
+  const scope = getScope(url)
+  const guest = scope === 'guest'
+
+  if (!cache || cacheGuest !== guest) {
+    const coll = await getCollection('expenses', scope)
+    cache = await buildCategoryMap(coll)
+    cacheGuest = guest
+  }
+  return json(cache)
+}

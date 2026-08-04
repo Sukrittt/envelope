@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import type { Envelope } from '../types/expense'
 
 interface Props {
@@ -151,7 +151,7 @@ function monthLabel(month: string): string {
 
 export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onNavigate }: Props) {
   const [tooltip, setTooltip] = useState<{ day: number; date: string; total: number; topCat: string; x: number; y: number } | null>(null)
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const review = useMemo(() => buildReview(envelopes), [envelopes])
   const heatmap = useMemo(() => buildHeatmap(expenseRows, month), [expenseRows, month])
@@ -159,7 +159,7 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
 
   function handleCellClick(e: React.MouseEvent) {
     const date = (e.currentTarget as HTMLElement).getAttribute('data-date')
-    if (date) navigate(`/expense/transactions?date=${date}`)
+    if (date) router.push(`/expense/transactions?date=${date}`)
   }
 
   return (

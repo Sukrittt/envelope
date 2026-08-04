@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { loadTransactions, type Transaction } from '../services/expenseTransactions'
 import { getBudgets, updateExpenseCategory } from '../services/api'
 import { suggestCategory } from '../services/autoCategory'
@@ -102,7 +102,8 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   const catTriggerRef = useRef<HTMLButtonElement>(null)
   const catMenuRef = useRef<HTMLDivElement>(null)
 
-  const [searchParams, setSearchParams] = useSearchParams()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const dateParam = searchParams.get('date')
   const categoryParam = searchParams.get('category')
 
@@ -233,12 +234,11 @@ export function TransactionsView({ hideAmounts = false }: { hideAmounts?: boolea
   // Keep the URL in step with manual filter changes so ?category= never goes stale
   function applyCategory(category: string) {
     setSelectedCategory(category)
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (category) next.set('category', category)
-      else next.delete('category')
-      return next
-    }, { replace: true })
+    const next = new URLSearchParams(searchParams.toString())
+    if (category) next.set('category', category)
+    else next.delete('category')
+    const qs = next.toString()
+    router.replace(`/expense/transactions${qs ? `?${qs}` : ''}`)
   }
 
   function resetFilters() {

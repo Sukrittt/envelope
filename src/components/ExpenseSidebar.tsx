@@ -1,4 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { clearAccess, useAccessMode } from "../services/accessMode";
 
 interface Props {
@@ -29,7 +30,7 @@ export function ExpenseSidebar({
   income,
   totalSpent,
 }: Props) {
-  const { pathname } = useLocation();
+  const pathname = usePathname();
   const access = useAccessMode();
   const isBudget = pathname.startsWith("/expense");
   const isInvestments = pathname === "/investments";
@@ -61,14 +62,14 @@ export function ExpenseSidebar({
       <div>
         <div className="expense-sidebar-group-label">Views</div>
         <Link
-          to="/expense"
+          href="/expense"
           className={`expense-sidebar-link ${isBudget && pathname === "/expense" ? "is-active" : ""}`}
         >
           <span className="expense-sidebar-link-icon">◈</span>
           Dashboard
         </Link>
         <Link
-          to="/expense/transactions"
+          href="/expense/transactions"
           className={`expense-sidebar-link ${pathname === "/expense/transactions" ? "is-active" : ""}`}
         >
           <span className="expense-sidebar-link-icon">↕</span>
@@ -79,7 +80,7 @@ export function ExpenseSidebar({
       <div>
         <div className="expense-sidebar-group-label">Finance</div>
         <Link
-          to="/investments"
+          href="/investments"
           className={`expense-sidebar-link ${isInvestments ? "is-active" : ""}`}
         >
           <span className="expense-sidebar-link-icon">◆</span>

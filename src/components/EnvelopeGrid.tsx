@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import type { Envelope } from '../types/expense'
 
 interface Props {
@@ -52,7 +52,7 @@ function compareEnvelopes(a: Envelope, b: Envelope, sortKey: Props['sortKey']): 
 }
 
 export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, searchQuery, sortKey, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
-  const navigate = useNavigate()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
   const [menuAssignCategory, setMenuAssignCategory] = useState<string | null>(null)
@@ -227,7 +227,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
             <button
               type="button"
               className="env-cat-link"
-              onClick={() => navigate(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
+              onClick={() => router.push(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
               title={`View ${e.category} transactions`}
             >
               {e.category}

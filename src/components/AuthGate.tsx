@@ -11,7 +11,7 @@ import { Radar, Eye, EyeOff } from 'lucide-react'
 import { accessMode, persistAccess, readPersistedAccess } from '../services/accessMode'
 import { useDashboard } from '../context/useDashboard'
 
-const DASHBOARD_PASSWORD = import.meta.env.VITE_DASHBOARD_PASSWORD as string | undefined
+const DASHBOARD_PASSWORD = process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD as string | undefined
 
 type GateStatus = 'locked' | 'guest' | 'real'
 

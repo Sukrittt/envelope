@@ -8,6 +8,14 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.next
+out
+
+# Env files (never commit secrets)
+.env
+.env.local
+.env*.local
+
 dist
 dist-ssr
 *.local
@@ -22,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Vercel
+.vercel
+.vercelignore
