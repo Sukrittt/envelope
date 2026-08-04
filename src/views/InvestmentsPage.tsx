@@ -182,15 +182,159 @@ export function InvestmentsPage() {
 
   if (loading) {
     return (
-      <section className="expense-view">
+      <section className="expense-view" aria-busy="true" aria-live="polite">
         <div className="expense-layout">
-          <ExpenseSidebar />
+          {/* ── Sidebar skeleton ── */}
+          <nav className="expense-sidebar">
+            <div className="expense-sidebar-summary">
+              <span
+                className="expense-skeleton expense-skeleton-line"
+                style={{ width: "50%", height: "10px" }}
+              />
+              <div className="ess-row">
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "35%", height: "10px" }}
+                />
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "40%", height: "10px" }}
+                />
+              </div>
+              <div className="ess-row">
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "30%", height: "10px" }}
+                />
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "45%", height: "10px" }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="expense-sidebar-group-label">Views</div>
+              <div className="expense-sidebar-link">
+                <span className="expense-sidebar-link-icon">◈</span>
+                Dashboard
+              </div>
+              <div className="expense-sidebar-link">
+                <span className="expense-sidebar-link-icon">↕</span>
+                Transactions
+              </div>
+            </div>
+            <div>
+              <div className="expense-sidebar-group-label">Finance</div>
+              <div className="expense-sidebar-link is-active">
+                <span className="expense-sidebar-link-icon">◆</span>
+                Investments
+              </div>
+            </div>
+          </nav>
+
+          {/* ── Main content skeleton ── */}
           <div className="expense-main">
             <div className="expense-tab-content">
-              <div className="mc-panel">
-                <div className="mc-panel-header"><h3>Investments</h3></div>
-                <div className="txn-timeline-loading">Loading…</div>
+              {/* Header skeleton */}
+              <div className="mc-panel-header" style={{ padding: 'var(--sp-4) var(--sp-3)', margin: 0, borderBottom: '1px solid var(--divider-soft)' }}>
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "120px", height: "18px" }}
+                />
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "60px", height: "28px", borderRadius: "6px" }}
+                />
               </div>
+
+              {/* Net Worth section skeleton */}
+              <div className="inv-net-worth" aria-hidden="true">
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "80px", height: "12px" }}
+                />
+                <span
+                  className="expense-skeleton expense-skeleton-line"
+                  style={{ width: "140px", height: "32px" }}
+                />
+              </div>
+
+              {/* Allocation bar skeleton */}
+              <div className="inv-allocation" aria-hidden="true">
+                <div className="inv-allocation-bar">
+                  <span
+                    className="expense-skeleton"
+                    style={{ width: "100%", height: "24px", borderRadius: "6px" }}
+                  />
+                </div>
+                <div className="inv-allocation-legend">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="inv-legend-item">
+                      <span
+                        className="expense-skeleton"
+                        style={{ width: "12px", height: "12px", borderRadius: "50%" }}
+                      />
+                      <span
+                        className="expense-skeleton expense-skeleton-line"
+                        style={{ width: "80px", height: "10px" }}
+                      />
+                      <span
+                        className="expense-skeleton expense-skeleton-line"
+                        style={{ width: "40px", height: "10px" }}
+                      />
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Table skeleton */}
+              <table className="env-table" aria-hidden="true">
+                <thead>
+                  <tr className="env-table-header">
+                    <th>Asset</th>
+                    <th>Type</th>
+                    <th className="env-th-num">Value</th>
+                    <th className="env-th-num">Last Updated</th>
+                    <th className="env-th-action" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {[0, 1, 2, 3].map((i) => (
+                    <tr key={i} className="env-row">
+                      <td className="env-cell">
+                        <span
+                          className="expense-skeleton expense-skeleton-line"
+                          style={{ width: "100px", height: "12px" }}
+                        />
+                      </td>
+                      <td className="env-cell">
+                        <span
+                          className="expense-skeleton expense-skeleton-line"
+                          style={{ width: "80px", height: "12px" }}
+                        />
+                      </td>
+                      <td className="env-cell env-cell-num">
+                        <span
+                          className="expense-skeleton expense-skeleton-line"
+                          style={{ width: "90px", height: "12px" }}
+                        />
+                      </td>
+                      <td className="env-cell env-cell-num">
+                        <span
+                          className="expense-skeleton expense-skeleton-line"
+                          style={{ width: "110px", height: "12px" }}
+                        />
+                      </td>
+                      <td className="env-cell env-cell-action">
+                        <span
+                          className="expense-skeleton"
+                          style={{ width: "20px", height: "20px", borderRadius: "4px" }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
