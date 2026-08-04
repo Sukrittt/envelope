@@ -1,5 +1,5 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getScope, guestWriteGuard, type Scope } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 
 export const dynamic = 'force-dynamic'
@@ -73,8 +73,10 @@ export async function PUT(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!body.timestamp || !body.category) return error('timestamp and category required')
+  if (!body.timestamp) return error('timestamp required')
 
+  // Locate the row with the same (timestamp, item, amount) triple, so an edit
+  // updates the exact expense (same signal the PUT and DELETE use).
   const coll = await getCollection('expenses', scope)
   const candidates = await coll
     .find({ timestamp: String(body.timestamp), item: String(body.item ?? '') })
@@ -90,8 +92,59 @@ export async function PUT(req: Request) {
   }
   if (!found) return error('expense row not found', 404)
 
-  await coll.updateOne({ _id: found._id }, { $set: { category: String(body.category) } })
+  const update: Record<string, string> = {}
+  if (body.category !== undefined) update.category = String(body.category)
+  if (body.new_item !== undefined) update.item = String(body.new_item)
+  if (body.new_amount_inr !== undefined) update.amount_inr = String(body.new_amount_inr)
+  if (body.new_date !== undefined) update.date = String(body.new_date)
+  if (Object.keys(update).length === 0) return error('no fields to update')
+
+  // Keep the timestamp (date + time) in sync when only the date changes.
+  if (body.new_date !== undefined && found.timestamp !== undefined) {
+    const ts = String(found.timestamp)
+    const suffix = ts.includes('T') ? ts.slice(ts.indexOf('T')) : ''
+    update.timestamp = `${String(body.new_date)}${suffix}`
+  }
+
+  // Rebalance the Credit Card envelope when a CC expense's amount or month
+  // changes (POST bumps it on add; DELETE unwinds it on remove).
+  const isCC = String(found.payment_method ?? '') === 'credit_card'
+  const oldMonth = String(found.date ?? '').slice(0, 7)
+  const newMonth = String(body.new_date ?? found.date ?? '').slice(0, 7)
+  const oldAmount = Number(found.amount_inr) || 0
+  const newAmount = body.new_amount_inr !== undefined ? Number(body.new_amount_inr) : oldAmount
+  if (isCC && oldAmount !== newAmount) {
+    if (oldMonth === newMonth) {
+      await adjustCreditCardEnvelope(scope, oldMonth, newAmount - oldAmount)
+    } else {
+      await adjustCreditCardEnvelope(scope, oldMonth, -oldAmount)
+      await adjustCreditCardEnvelope(scope, newMonth, newAmount)
+    }
+  }
+
+  await coll.updateOne({ _id: found._id }, { $set: update })
   return json({ ok: true })
+}
+
+/** Nudge the __credit_card__ envelope for a month by an amount delta, floor 0. */
+async function adjustCreditCardEnvelope(scope: Scope, month: string, delta: number) {
+  if (!month || delta === 0) return
+  const budgetColl = await getCollection('budgets', scope)
+  const existing = await budgetColl.findOne({ month, category: '__credit_card__' })
+  if (existing) {
+    const current = Number(existing.assigned) || 0
+    await budgetColl.updateOne(
+      { _id: existing._id },
+      { $set: { assigned: String(Math.max(0, current + delta)) } },
+    )
+  } else if (delta > 0) {
+    await budgetColl.insertOne({
+      month,
+      category: '__credit_card__',
+      assigned: String(delta),
+      rolled_over: '0',
+    })
+  }
 }
 
 export async function DELETE(req: Request) {

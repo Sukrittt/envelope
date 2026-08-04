@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   loadTransactions,
   type Transaction,
 } from "../services/expenseTransactions";
-import { getBudgets, updateExpenseCategory } from "../services/api";
+import { getBudgets, updateExpenseCategory, deleteExpense } from "../services/api";
 import { suggestCategory } from "../services/autoCategory";
 import { TransactionEntry } from "./TransactionEntry";
 import { LoadingCaption } from "./LoadingCaption";
+import { Pencil, Trash2 } from "lucide-react";
+import { TransactionEditModal } from "./TransactionEditModal";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -117,10 +118,6 @@ export function TransactionsView({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
 
-  const [catOpen, setCatOpen] = useState(false);
-  const catTriggerRef = useRef<HTMLButtonElement>(null);
-  const catMenuRef = useRef<HTMLDivElement>(null);
-
   const searchParams = useSearchParams();
   const router = useRouter();
   const dateParam = searchParams.get("date");
@@ -131,6 +128,10 @@ export function TransactionsView({
   const [updating, setUpdating] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
   const [budgetCategories, setBudgetCategories] = useState<string[]>([]);
+  const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
+  const [deleteKey, setDeleteKey] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -173,7 +174,9 @@ export function TransactionsView({
   }, [categoryParam]);
 
   const categories = useMemo(() => {
-    return [...budgetCategories].sort();
+    // Budget rows repeat per month, so the same category can appear more
+    // than once; dedupe so dropdown options keep unique keys.
+    return [...new Set(budgetCategories)].sort();
   }, [budgetCategories]);
 
   const latestDate = useMemo(() => {
@@ -185,28 +188,6 @@ export function TransactionsView({
     }
     return max.getTime() === 0 ? new Date() : max;
   }, [transactions]);
-
-  useEffect(() => {
-    if (!catOpen) return;
-    function handleClick(e: MouseEvent) {
-      const t = e.target as Node;
-      if (
-        catOpen &&
-        !catMenuRef.current?.contains(t) &&
-        !catTriggerRef.current?.contains(t)
-      )
-        setCatOpen(false);
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setCatOpen(false);
-    }
-    window.addEventListener("mousedown", handleClick);
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      window.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [catOpen]);
 
   const filtered = useMemo(() => {
     let rows = [...transactions];
@@ -325,6 +306,22 @@ export function TransactionsView({
     }
   }
 
+  async function handleDelete(t: Transaction) {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteExpense(t.timestamp, t.item, t.amountInr);
+      setDeleteKey(null);
+      await refreshTransactions();
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Failed to delete transaction",
+      );
+    }
+    setDeleting(false);
+  }
+
   async function autoTagMonth() {
     if (autoTagging) return;
     setAutoTagging(true);
@@ -351,53 +348,6 @@ export function TransactionsView({
       // Auto-tagging is best-effort; leave the existing categories in place
     }
     setAutoTagging(false);
-  }
-
-  function renderPortal() {
-    const r = catTriggerRef.current?.getBoundingClientRect();
-    if (!catOpen || !r) return null;
-    return createPortal(
-      <div
-        ref={catMenuRef}
-        className="category-menu category-menu--portal"
-        role="menu"
-        aria-label="Category filter"
-        style={{
-          position: "fixed",
-          top: r.bottom + 4,
-          left: r.left,
-          display: "grid",
-          minWidth: 160,
-        }}
-      >
-        <div className="category-menu-list">
-          <button
-            type="button"
-            className={`action-button is-ghost category-option ${!selectedCategory ? "is-selected" : ""}`}
-            onClick={() => {
-              applyCategory("");
-              setCatOpen(false);
-            }}
-          >
-            All
-          </button>
-          {categories.map((o) => (
-            <button
-              type="button"
-              key={o}
-              className={`action-button is-ghost category-option ${selectedCategory === o ? "is-selected" : ""}`}
-              onClick={() => {
-                applyCategory(o);
-                setCatOpen(false);
-              }}
-            >
-              {o}
-            </button>
-          ))}
-        </div>
-      </div>,
-      document.body,
-    );
   }
 
   if (loading) {
@@ -615,17 +565,19 @@ export function TransactionsView({
           </div>
         )}
 
-        <button
-          type="button"
-          ref={catTriggerRef}
-          className="action-button category-trigger"
-          onClick={() => setCatOpen((o) => !o)}
-          aria-haspopup="menu"
-          aria-expanded={catOpen}
+        <select
+          className="txn-filter-select"
+          value={selectedCategory || ""}
+          onChange={(e) => applyCategory(e.target.value)}
+          aria-label="Filter by category"
         >
-          <span>{selectedCategory || "Category"}</span>{" "}
-          <span aria-hidden="true">▾</span>
-        </button>
+          <option value="">All</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
 
         <input
           type="search"
@@ -655,7 +607,7 @@ export function TransactionsView({
         </button>
       </div>
 
-      {renderPortal()}
+      {deleteError && <p className="txn-entry-error">{deleteError}</p>}
 
       <TransactionEntry categories={categories} onSaved={refreshTransactions} />
 
@@ -673,6 +625,7 @@ export function TransactionsView({
             <span className="txn-timeline-col-label txn-timeline-col-label--right">
               Amount
             </span>
+            <span />
           </div>
           {paged.map((item, i) => {
             if (item.kind === "header") {
@@ -689,6 +642,7 @@ export function TransactionsView({
                   >
                     {hideAmounts ? "---" : formatCurrency(item.total)}
                   </span>
+                  <span />
                 </div>
               );
             }
@@ -775,6 +729,49 @@ export function TransactionsView({
                     ? "---"
                     : `${isIncome ? "+" : "-"}${formatCurrency(t.amountInr)}`}
                 </span>
+                <span className="txn-actions">
+                  {deleteKey === rowKey ? (
+                    <span className="txn-actions-confirm">
+                      <button
+                        type="button"
+                        className="txn-action-btn is-danger"
+                        disabled={deleting}
+                        onClick={() => handleDelete(t)}
+                      >
+                        Remove
+                      </button>
+                      <button
+                        type="button"
+                        className="txn-action-btn"
+                        disabled={deleting}
+                        onClick={() => setDeleteKey(null)}
+                      >
+                        Keep
+                      </button>
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="txn-action-btn"
+                        title="Edit transaction"
+                        aria-label="Edit transaction"
+                        onClick={() => setEditingTxn(t)}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="txn-action-btn"
+                        title="Delete transaction"
+                        aria-label="Delete transaction"
+                        onClick={() => setDeleteKey(rowKey)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  )}
+                </span>
               </div>
             );
           })}
@@ -810,6 +807,19 @@ export function TransactionsView({
         )}
         <span>Total: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
       </div>
+
+      {editingTxn && (
+        <TransactionEditModal
+          timestamp={editingTxn.timestamp}
+          item={editingTxn.item}
+          amountInr={editingTxn.amountInr}
+          date={editingTxn.date}
+          category={editingTxn.category}
+          categories={categories}
+          onClose={() => setEditingTxn(null)}
+          onSaved={refreshTransactions}
+        />
+      )}
     </div>
   );
 }

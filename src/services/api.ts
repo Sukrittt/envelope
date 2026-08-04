@@ -208,18 +208,35 @@ export async function getCategoryMap(): Promise<CategoryMap> {
   return resp.json()
 }
 
+export async function updateExpense(
+  timestamp: string,
+  item: string,
+  amountInr: number,
+  updates: {
+    new_item?: string
+    new_amount_inr?: string
+    new_date?: string
+    category?: string
+  },
+): Promise<void> {
+  const resp = await apiFetch('/api/expenses', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ timestamp, item, amount_inr: String(amountInr), ...updates }),
+  })
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}))
+    throw new Error(detail.error ?? `Failed to update expense: ${resp.status}`)
+  }
+}
+
 export async function updateExpenseCategory(
   timestamp: string,
   item: string,
   amountInr: number,
   category: string,
 ): Promise<void> {
-  const resp = await apiFetch('/api/expenses', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ timestamp, item, amount_inr: String(amountInr), category }),
-  })
-  if (!resp.ok) throw new Error(`Failed to update expense: ${resp.status}`)
+  await updateExpense(timestamp, item, amountInr, { category })
 }
 
 export async function deleteExpense(

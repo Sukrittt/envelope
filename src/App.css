@@ -4188,11 +4188,6 @@ summary:focus-visible,
   white-space: nowrap;
 }
 
-.transactions-filters .category-trigger {
-  width: auto;
-  min-width: 140px;
-}
-
 .transactions-footer {
   display: flex;
   justify-content: space-between;
@@ -4283,6 +4278,17 @@ summary:focus-visible,
   flex: 1;
 }
 
+.txn-filter-select {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-12);
+  padding: 6px 10px;
+  min-width: 140px;
+}
+
 .txn-timeline-list {
   display: grid;
   gap: 0;
@@ -4290,7 +4296,7 @@ summary:focus-visible,
 
 .txn-timeline-col-headers {
   display: grid;
-  grid-template-columns: 28px 55px 1fr 130px 90px;
+  grid-template-columns: 28px 55px 1fr 130px 90px 96px;
   align-items: center;
   gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-3);
@@ -4311,7 +4317,7 @@ summary:focus-visible,
 
 .txn-timeline-header {
   display: grid;
-  grid-template-columns: 28px 55px 1fr 130px 90px;
+  grid-template-columns: 28px 55px 1fr 130px 90px 96px;
   align-items: center;
   gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-3) var(--sp-1);
@@ -4339,7 +4345,7 @@ summary:focus-visible,
 
 .txn-timeline-row {
   display: grid;
-  grid-template-columns: 28px 55px 1fr 130px 90px;
+  grid-template-columns: 28px 55px 1fr 130px 90px 96px;
   align-items: center;
   gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-3);
@@ -4458,6 +4464,65 @@ summary:focus-visible,
   color: var(--mint);
 }
 
+.txn-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.txn-timeline-row:hover .txn-actions {
+  opacity: 1;
+}
+
+.txn-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-2);
+  border-radius: var(--radius-sm);
+  transition:
+    color 0.15s,
+    opacity 0.15s;
+}
+
+.txn-action-btn:hover {
+  color: var(--text-primary);
+}
+
+.txn-action-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.txn-action-btn.is-danger {
+  color: var(--coral);
+}
+
+.txn-action-btn.is-danger:hover {
+  color: var(--coral);
+  opacity: 1;
+}
+
+.txn-actions-confirm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.txn-actions-confirm .txn-action-btn {
+  font-size: var(--fs-11);
+  padding: 2px 7px;
+}
+
 .txn-timeline-footer {
   display: flex;
   justify-content: space-between;
@@ -4494,11 +4559,6 @@ summary:focus-visible,
 .txn-timeline-loading {
   display: grid;
   gap: var(--sp-2);
-}
-
-.txn-timeline-filters .category-trigger {
-  width: auto;
-  min-width: 140px;
 }
 
 /* ── Transaction Entry ──────────────────────────────────── */

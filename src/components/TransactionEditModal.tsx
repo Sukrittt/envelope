@@ -1,0 +1,140 @@
+import { useState } from 'react'
+import { updateExpense } from '../services/api'
+
+interface Props {
+  timestamp: string
+  item: string
+  amountInr: number
+  date: string
+  category: string
+  categories: string[]
+  onClose: () => void
+  onSaved: () => void
+}
+
+export function TransactionEditModal({
+  timestamp,
+  item: initialItem,
+  amountInr,
+  date: initialDate,
+  category: initialCategory,
+  categories,
+  onClose,
+  onSaved,
+}: Props) {
+  const [item, setItem] = useState(initialItem)
+  const [amount, setAmount] = useState(String(amountInr))
+  const [date, setDate] = useState(initialDate.slice(0, 10))
+  const [category, setCategory] = useState(initialCategory)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const amt = parseFloat(amount)
+  const canSave = item.trim() !== '' && !Number.isNaN(amt) && amt >= 0 && date.trim() !== ''
+
+  async function handleSave() {
+    if (!canSave || saving) return
+    setError('')
+    setSaving(true)
+    try {
+      await updateExpense(timestamp, initialItem, amountInr, {
+        new_item: item.trim(),
+        new_amount_inr: String(amt),
+        new_date: date,
+        category,
+      })
+      onSaved()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update transaction')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="category-manager-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="category-manager subscription-modal">
+        <div className="category-manager-header">
+          <h3>Edit transaction</h3>
+          <button type="button" className="action-button is-ghost" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        {error && <p className="txn-entry-error">{error}</p>}
+
+        <div className="category-manager-body">
+          <div className="subscription-modal-form">
+            <label className="subscription-modal-field">
+              <span>Description</span>
+              <input
+                type="text"
+                className="txn-entry-input"
+                value={item}
+                onChange={(e) => setItem(e.target.value)}
+                placeholder="What was this for?"
+                autoFocus
+              />
+            </label>
+
+            <label className="subscription-modal-field">
+              <span>Amount (₹)</span>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                className="txn-entry-input"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </label>
+
+            <label className="subscription-modal-field">
+              <span>Date</span>
+              <input
+                type="date"
+                className="txn-entry-input"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </label>
+
+            <label className="subscription-modal-field">
+              <span>Category</span>
+              <select
+                className="txn-entry-input"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="subscription-modal-actions">
+          <button type="button" className="action-button is-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="action-button"
+            disabled={!canSave || saving}
+            onClick={handleSave}
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
