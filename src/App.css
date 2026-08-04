@@ -4031,6 +4031,44 @@ summary:focus-visible,
   .mobile-only {
     display: inline-flex;
   }
+
+  /* ── Expense Dashboard Tablet ──────────────────────────── */
+
+  /* Reduce sidebar width on tablet */
+  .expense-sidebar {
+    width: 180px;
+    padding: 16px 10px;
+  }
+
+  .expense-sidebar-link {
+    font-size: 0.75rem;
+    padding: 5px 6px;
+  }
+
+  /* Adjust main content padding */
+  .expense-main {
+    padding: 12px 18px;
+  }
+
+  /* Stack panels vertically on tablet */
+  .expense-grid-xman {
+    gap: 14px;
+  }
+
+  /* Reduce panel padding */
+  .expense-grid-xman .mc-panel {
+    padding: 14px;
+  }
+
+  /* Make scopebar more compact */
+  .expense-scopebar {
+    padding: 8px;
+  }
+
+  .expense-scopebar .action-button {
+    font-size: var(--fs-12);
+    padding: 6px 10px;
+  }
 }
 
 @media (max-width: 767px) {
@@ -4109,6 +4147,405 @@ summary:focus-visible,
   .inline-link,
   .sidebar-link {
     min-height: 36px;
+  }
+
+  /* ── Expense Dashboard Mobile ──────────────────────────── */
+
+  /* Hide sidebar on mobile, show navigation differently */
+  .expense-layout {
+    flex-direction: column;
+  }
+
+  .expense-sidebar {
+    position: static;
+    width: 100%;
+    min-height: auto;
+    padding: 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--expense-border);
+  }
+
+  /* Collapse sidebar summary on mobile */
+  .expense-sidebar-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 8px 0 12px;
+  }
+
+  .expense-sidebar-summary .ess-month {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  .expense-sidebar-summary .ess-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+  }
+
+  /* Horizontal navigation on mobile */
+  .expense-sidebar > div {
+    display: none;
+  }
+
+  .expense-sidebar > div:first-of-type {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .expense-sidebar-group-label {
+    display: none;
+  }
+
+  .expense-sidebar-link {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+
+  /* Reduce main content padding on mobile */
+  .expense-main {
+    padding: 12px;
+  }
+
+  .expense-main .expense-tab-content {
+    gap: 16px;
+  }
+
+  /* Ready to Assign banner mobile */
+  .rta-banner {
+    padding: 12px;
+  }
+
+  .rta-main {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .rta-text-block {
+    align-items: flex-start;
+  }
+
+  .rta-spark {
+    align-self: stretch;
+    justify-content: space-evenly;
+  }
+
+  .rta-breakdown {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Scope bar mobile */
+  .expense-scopebar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .expense-scopebar .mc-filter-chips {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .expense-scopebar .scope-meta-inline {
+    margin-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: var(--fs-11);
+  }
+
+  .expense-scopebar .custom-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  /* Trend panel mobile */
+  .expense-trend-panel .mc-panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .expense-trend-panel .mc-panel-header > div:first-child {
+    justify-content: flex-start;
+  }
+
+  .segmented-control.trend-toggle {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .segmented-control.trend-toggle .action-button {
+    min-width: 0;
+  }
+
+  /* Envelope panel mobile */
+  .expense-envelope-panel .mc-panel-header {
+    gap: 10px;
+  }
+
+  .expense-envelope-panel .mc-panel-header > div:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .expense-envelope-panel .mc-panel-header > div:last-child {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .expense-envelope-panel .search-input,
+  .expense-envelope-panel select {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Envelope cards mobile - adjust font sizes and spacing */
+  .budget-envelope-card {
+    padding: 10px;
+  }
+
+  .env-card-header {
+    gap: 6px;
+  }
+
+  .env-card-name {
+    font-size: var(--fs-13);
+  }
+
+  .env-card-values {
+    font-size: var(--fs-11);
+    gap: 4px;
+  }
+
+  /* Subscription panel mobile */
+  .sub-metrics {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sub-metric {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sub-bar-row {
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .sub-bar-label,
+  .sub-bar-value {
+    font-size: var(--fs-12);
+  }
+
+  .sub-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .sub-actions {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+
+  /* Insights panel mobile */
+  .si-month-nav {
+    justify-content: center;
+  }
+
+  .si-review-text {
+    font-size: var(--fs-11);
+  }
+
+  .si-heatmap-grid {
+    gap: 3px;
+  }
+
+  .si-heatmap-row {
+    gap: 3px;
+  }
+
+  /* Daily detail modal mobile */
+  .daily-detail-modal {
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 80px);
+    padding: 16px;
+  }
+
+  .daily-detail-table {
+    font-size: var(--fs-12);
+  }
+
+  .daily-detail-table th,
+  .daily-detail-table td {
+    padding: 6px 4px;
+  }
+
+  /* Move money modal mobile */
+  .move-money-modal,
+  .modal-content {
+    max-width: calc(100vw - 32px);
+    width: 100%;
+    padding: 16px;
+  }
+
+  .move-money-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .move-money-actions button {
+    width: 100%;
+  }
+
+  /* Category manager mobile */
+  .category-manager-overlay {
+    padding: 16px;
+  }
+
+  .category-manager-modal {
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 80px);
+  }
+
+  /* Rollover banner mobile */
+  .rollover-banner {
+    padding: 12px;
+  }
+
+  .rollover-banner-main {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .rollover-banner-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .rollover-banner-actions button {
+    width: 100%;
+  }
+
+  /* App header mobile */
+  .mc-topbar .page-context h2 {
+    font-size: 1.25rem;
+  }
+
+  .mc-topbar .page-context p {
+    font-size: var(--fs-13);
+  }
+
+  /* App footer mobile */
+  .app-footer {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 8px;
+    font-size: var(--fs-12);
+  }
+}
+
+/* ── Extra Small Devices (≤ 480px) ──────────────────────── */
+
+@media (max-width: 480px) {
+  /* Further reduce spacing on very small screens */
+  .expense-main {
+    padding: 8px;
+  }
+
+  .expense-main .expense-tab-content {
+    gap: 12px;
+  }
+
+  .expense-grid-xman {
+    gap: 12px;
+  }
+
+  .expense-grid-xman .mc-panel {
+    padding: 12px;
+  }
+
+  /* Make RTA banner more compact */
+  .rta-banner {
+    padding: 10px;
+  }
+
+  .rta-amount {
+    font-size: 1.1rem;
+  }
+
+  .rta-label,
+  .rta-warning,
+  .rta-ok {
+    font-size: var(--fs-11);
+  }
+
+  /* Reduce heading sizes */
+  .mc-panel-header h3,
+  .mc-panel-header h4 {
+    font-size: var(--fs-14);
+  }
+
+  /* Make buttons slightly smaller */
+  .action-button {
+    font-size: var(--fs-12);
+    padding: 7px 10px;
+    min-height: 34px;
+  }
+
+  /* Envelope grid more compact */
+  .budget-envelope-card {
+    padding: 8px;
+  }
+
+  .env-card-name {
+    font-size: var(--fs-12);
+  }
+
+  /* Subscription metrics stack */
+  .sub-metric-value {
+    font-size: 1rem;
+  }
+
+  .sub-metric-label {
+    font-size: var(--fs-11);
+  }
+
+  /* Daily detail modal */
+  .daily-detail-modal {
+    padding: 12px;
+  }
+
+  .daily-detail-header h4 {
+    font-size: var(--fs-15);
+  }
+
+  /* Sidebar summary more compact */
+  .expense-sidebar-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .expense-sidebar-summary .ess-month {
+    grid-column: 1 / -1;
+  }
+
+  .expense-sidebar-summary .ess-row:nth-child(4) {
+    grid-column: 1 / -1;
   }
 }
 

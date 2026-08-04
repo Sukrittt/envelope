@@ -4,7 +4,7 @@ import '../src/App.css'
 import { ClientProviders } from '../components/ClientProviders'
 
 export const metadata: Metadata = {
-  title: 'Mission Control',
+  title: 'YNAB Replacement',
   description: 'YNAB Replacement — budget, expense, investments, and mission dashboard',
   icons: { icon: '/favicon.svg' },
 }

@@ -2267,6 +2267,7 @@ export function ExpensePage() {
                       isOverAssigned: rta < 0,
                     };
                   }
+                  // Envelope-to-envelope transfer: persist both changes
                   const updated = prev.envelopes.map((e) => {
                     if (e.category === from)
                       return {
@@ -2287,6 +2288,21 @@ export function ExpensePage() {
                     0,
                   );
                   const rta = Math.round(prev.income - totalAssigned) || 0;
+
+                  // Persist both envelope updates to the database
+                  const fromEnv = updated.find((e) => e.category === from);
+                  const toEnv = updated.find((e) => e.category === to);
+                  if (fromEnv) {
+                    updateBudget(prev.month, from, {
+                      assigned: String(fromEnv.assigned),
+                    }).catch(() => {});
+                  }
+                  if (toEnv) {
+                    updateBudget(prev.month, to, {
+                      assigned: String(toEnv.assigned),
+                    }).catch(() => {});
+                  }
+
                   return {
                     ...prev,
                     envelopes: updated,
