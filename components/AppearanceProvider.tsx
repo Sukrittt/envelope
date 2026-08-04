@@ -25,8 +25,15 @@ function readDensity(): Density {
 }
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(readTheme)
-  const [density, setDensity] = useState<Density>(readDensity)
+  // Defaults match on both server and client; persisted theme/density are
+  // applied after hydration to avoid a render-phase localStorage desync.
+  const [theme, setTheme] = useState<Theme>('dark')
+  const [density, setDensity] = useState<Density>('comfortable')
+
+  useEffect(() => {
+    setTheme(readTheme())
+    setDensity(readDensity())
+  }, [])
 
   useEffect(() => {
     window.localStorage.setItem('mc-theme', theme)

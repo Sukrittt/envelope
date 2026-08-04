@@ -13,27 +13,7 @@ import { useDashboard } from '../context/useDashboard'
 
 const DASHBOARD_PASSWORD = process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD as string | undefined
 
-type GateStatus = 'locked' | 'guest' | 'real'
-
-function initialStatus(): GateStatus {
-  const persisted = readPersistedAccess()
-  if (persisted) {
-    persistAccess(persisted) // refresh the rolling 30-day window
-    return persisted
-  }
-  if (!DASHBOARD_PASSWORD) {
-    persistAccess('real')
-    return 'real'
-  }
-  accessMode.set('guest')
-  return 'locked'
-}
-
-function initialSessionKey(): 'guest' | 'real' {
-  const persisted = readPersistedAccess()
-  if (persisted === 'real' || !DASHBOARD_PASSWORD) return 'real'
-  return 'guest'
-}
+type GateStatus = 'checking' | 'locked' | 'guest' | 'real'
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { reload } = useDashboard()
@@ -41,8 +21,28 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shakeKey, setShakeKey] = useState(0)
-  const [status, setStatus] = useState<GateStatus>(initialStatus)
-  const [sessionKey, setSessionKey] = useState<'guest' | 'real'>(initialSessionKey)
+  const [status, setStatus] = useState<GateStatus>('checking')
+  const [sessionKey, setSessionKey] = useState<'guest' | 'real'>('guest')
+
+  // Restore a persisted access session only after hydration. Reading
+  // localStorage in a render-phase initializer would make the server (no
+  // storage) and client (has storage) render different trees, causing a
+  // hydration mismatch that leaves the gate's form handlers unattached.
+  useEffect(() => {
+    const persisted = readPersistedAccess()
+    if (persisted) {
+      persistAccess(persisted) // refresh the rolling 30-day window
+      setStatus(persisted)
+      setSessionKey(persisted)
+    } else if (!DASHBOARD_PASSWORD) {
+      persistAccess('real')
+      setStatus('real')
+      setSessionKey('real')
+    } else {
+      accessMode.set('guest')
+      setStatus('locked')
+    }
+  }, [])
 
   useEffect(() => {
     return accessMode.subscribeLogout(() => {
@@ -83,7 +83,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   return (
     <>
-      {status === 'locked' ? (
+      {status === 'checking' ? (
+        <div className="auth-gate-overlay" aria-busy="true" aria-label="Checking access" />
+      ) : status === 'locked' ? (
         <div
           className="auth-gate-overlay"
           role="dialog"
@@ -140,7 +142,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </div>
         </div>
       ) : null}
-      {keyedChildren}
+      {status === 'checking' ? null : keyedChildren}
     </>
   )
 }

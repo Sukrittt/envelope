@@ -3913,6 +3913,42 @@ input[type="date"]:hover {
   }
 }
 
+/* ── Loading Caption ─────────────────────────────────────── */
+
+.loading-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-3) var(--sp-2);
+  min-height: 32px;
+}
+
+.loading-caption-inline {
+  padding: 0;
+  min-height: unset;
+  justify-content: flex-start;
+  margin-bottom: 4px;
+}
+
+.loading-caption-text {
+  font-size: var(--fs-12);
+  color: var(--muted-2);
+  font-weight: 500;
+  animation: loadingCaptionFade 1.4s ease-in-out infinite;
+}
+
+@keyframes loadingCaptionFade {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
 .error,
 .red {
   color: var(--risk-fg);

@@ -212,7 +212,7 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
                       <span className="si-heatmap-cell-num">{cell.day}</span>
                     </div>
                 ) : (
-                  <div className="si-heatmap-cell si-heatmap-cell-empty" />
+                  <div key={`empty-${cellIdx}`} className="si-heatmap-cell si-heatmap-cell-empty" />
                 )
               })}
             </div>
