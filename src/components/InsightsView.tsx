@@ -197,7 +197,7 @@ export function InsightsView({ hideAmounts = false }: { hideAmounts?: boolean })
                   <div className="top-day-bar-track">
                     <div
                       className="top-day-bar-fill"
-                      style={{ width: `${topDaysMax > 0 ? (day.avgSpend / topDaysMax) * 100 : 0}%` }}
+                      style={{ width: '100%', transform: `scaleX(${topDaysMax > 0 ? day.avgSpend / topDaysMax : 0})` }}
                     />
                   </div>
                   <span className={`top-day-value ${hideAmounts ? 'amount-hidden' : ''}`}>
@@ -224,7 +224,7 @@ export function InsightsView({ hideAmounts = false }: { hideAmounts?: boolean })
           <div className="sub-burn-gauge-track">
             <div
               className="sub-burn-gauge-fill"
-              style={{ width: `${Math.min(subscriptionBurn.capPct, 100)}%` }}
+              style={{ width: '100%', transform: `scaleX(${Math.min(subscriptionBurn.capPct, 100) / 100})` }}
             />
           </div>
         </div>

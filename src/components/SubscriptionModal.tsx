@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { addSubscription, updateSubscription } from '../services/api'
+import { Scrim, Sheet } from './MotionSheet'
 
 interface SubscriptionEdit {
   service: string
@@ -66,8 +67,8 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
   }
 
   return (
-    <div className="category-manager-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="category-manager subscription-modal">
+    <Scrim className="category-manager-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <Sheet className="category-manager subscription-modal">
         <div className="category-manager-header">
           <h3>{isEdit ? 'Edit Subscription' : 'New Subscription'}</h3>
           <button type="button" className="action-button is-ghost" onClick={onClose}>✕</button>
@@ -147,7 +148,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
             {saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Add subscription')}
           </button>
         </div>
-      </div>
-    </div>
+      </Sheet>
+    </Scrim>
   )
 }

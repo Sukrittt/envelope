@@ -45,11 +45,15 @@ export async function PUT(req: Request) {
   if (body.newCategory !== undefined) update.category = String(body.newCategory)
 
   const coll = await getCollection('budgets', scope)
-  const result = await coll.updateOne(
+  // Upsert: an envelope's category may have no budget row yet (e.g. a
+  // subscription category whose assigned comes from rollover/spend only).
+  // updateBudget (PUT) must create the row then, not 404 — otherwise the
+  // client's optimistic local edit never reaches the DB and reverts on reload.
+  await coll.updateOne(
     { month: String(body.month), category: String(body.category) },
     { $set: update },
+    { upsert: true },
   )
-  if (result.matchedCount === 0) return error('budget row not found', 404)
   return json({ ok: true })
 }
 

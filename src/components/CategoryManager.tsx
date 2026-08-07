@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getCategories, getGroups, addCategory, updateCategory, deleteCategory, moveCategory, addGroup, updateGroup, deleteGroup } from '../services/api'
+import { Scrim, Sheet } from './MotionSheet'
 import type { Envelope } from '../types/expense'
 import type { CategoryRow } from '../services/api'
 
@@ -208,8 +209,8 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
   if (ungrouped.length > 0) grouped.push({ label: UNGROUPED_LABEL, items: ungrouped })
 
   return (
-    <div className="category-manager-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="category-manager">
+    <Scrim className="category-manager-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <Sheet className="category-manager">
         <div className="category-manager-header">
           <h3>Manage Categories</h3>
           <button type="button" className="action-button is-ghost" onClick={onClose}>✕</button>
@@ -385,7 +386,7 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </Sheet>
+    </Scrim>
   )
 }

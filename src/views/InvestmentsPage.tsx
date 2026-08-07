@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import { getHoldings, addHolding, deleteHolding, performHoldingAction, getHoldingEvents } from '../services/api'
+import { Scrim, Sheet } from '../components/MotionSheet'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 
 interface Holding {
@@ -518,9 +520,10 @@ export function InvestmentsPage() {
             )}
           </div>
 
+          <AnimatePresence>
           {showAdd && (
-            <div className="modal-overlay" onClick={() => setShowAdd(false)}>
-              <div className="modal-content inv-add-modal" onClick={e => e.stopPropagation()}>
+            <Scrim className="modal-overlay" onClick={() => setShowAdd(false)}>
+              <Sheet className="modal-content inv-add-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                   <h4>Add Holding</h4>
                 </div>
@@ -549,9 +552,10 @@ export function InvestmentsPage() {
                   <button type="button" className="action-button is-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
                   <button type="button" className="action-button" onClick={handleAdd}>Add</button>
                 </div>
-              </div>
-            </div>
+              </Sheet>
+            </Scrim>
           )}
+          </AnimatePresence>
         </div>
       </div>
     </section>

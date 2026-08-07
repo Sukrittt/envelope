@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   loadTransactions,
@@ -120,6 +121,7 @@ export function TransactionsView({
 
   const searchParams = useSearchParams();
   const router = useRouter();
+  const reduce = useReducedMotion();
   const dateParam = searchParams.get("date");
   const categoryParam = searchParams.get("category");
 
@@ -616,7 +618,13 @@ export function TransactionsView({
           No transactions for this filter.
         </div>
       ) : (
-        <div className="txn-timeline-list">
+        <motion.div
+          key={page}
+          className="txn-timeline-list"
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
+        >
           <div className="txn-timeline-col-headers">
             <span />
             <span className="txn-timeline-col-label">Time</span>
@@ -775,7 +783,7 @@ export function TransactionsView({
               </div>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       <div className="txn-timeline-footer">
@@ -808,6 +816,7 @@ export function TransactionsView({
         <span>Total: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
       </div>
 
+      <AnimatePresence>
       {editingTxn && (
         <TransactionEditModal
           timestamp={editingTxn.timestamp}
@@ -820,6 +829,7 @@ export function TransactionsView({
           onSaved={refreshTransactions}
         />
       )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence } from "motion/react";
 import { SparkBars } from "../components/SparkBars";
+import { FluidDemo } from "../components/FluidDemo";
 import { ReadyToAssignBanner } from "../components/ReadyToAssignBanner";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
 import { MoveMoneyModal } from "../components/MoveMoneyModal";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { CategoryManager } from "../components/CategoryManager";
 import { SubscriptionModal } from "../components/SubscriptionModal";
+import { Scrim, Sheet } from "../components/MotionSheet";
 import { SpendingInsights } from "../components/SpendingInsights";
 import { LoadingCaption } from "../components/LoadingCaption";
 import {
@@ -141,6 +144,7 @@ export function ExpensePage() {
   const [cancellingSub, setCancellingSub] = useState<string | null>(null);
   const [reactivatingSub, setReactivatingSub] = useState<string | null>(null);
   const [showSubModal, setShowSubModal] = useState(false);
+  const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [payCreditCardAmount, setPayCreditCardAmount] = useState<number | null>(
     null,
   );
@@ -1556,6 +1560,14 @@ export function ExpensePage() {
                       </button>
                     )}
                     <h3>Spending trend</h3>
+                    <button
+                      type="button"
+                      className="action-button is-ghost is-small"
+                      onClick={() => setShowFluidDemo(!showFluidDemo)}
+                      style={{ marginLeft: 'auto', marginRight: '8px' }}
+                    >
+                      🎨 Fluid Demo
+                    </button>
                   </div>
                   <div className="segmented-control trend-toggle">
                     <button
@@ -1600,14 +1612,16 @@ export function ExpensePage() {
                   onBarClick={
                     trendView === "daily" ? handleDailyBarClick : handleBarClick
                   }
+                  enableFluidInteractions
                 />
+                <AnimatePresence>
                 {dailyDetailDate &&
                   createPortal(
-                    <div
+                    <Scrim
                       className="daily-detail-overlay"
                       onClick={() => setDailyDetailDate(null)}
                     >
-                      <div
+                      <Sheet
                         className="daily-detail-modal"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -1694,10 +1708,11 @@ export function ExpensePage() {
                             </div>
                           </>
                         )}
-                      </div>
-                    </div>,
+                      </Sheet>
+                    </Scrim>,
                     document.body,
                   )}
+                </AnimatePresence>
               </article>
 
               <article className="mc-panel expense-envelope-panel">
@@ -2165,6 +2180,7 @@ export function ExpensePage() {
               </article>
             </section>
           </div>
+          <AnimatePresence>
           {showCategoryManager && (
             <CategoryManager
               onClose={() => setShowCategoryManager(false)}
@@ -2172,6 +2188,8 @@ export function ExpensePage() {
               envelopes={envelopeState?.envelopes ?? null}
             />
           )}
+          </AnimatePresence>
+          <AnimatePresence>
           {showSubModal && (
             <SubscriptionModal
               onClose={() => {
@@ -2186,12 +2204,14 @@ export function ExpensePage() {
               editData={editSub ?? undefined}
             />
           )}
+          </AnimatePresence>
+          <AnimatePresence>
           {payCreditCardAmount !== null && envelopeState && (
-            <div
+            <Scrim
               className="modal-overlay"
               onClick={() => setPayCreditCardAmount(null)}
             >
-              <div
+              <Sheet
                 className="modal-content move-money-modal"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -2225,9 +2245,11 @@ export function ExpensePage() {
                     Pay {formatCurrency(payCreditCardAmount)}
                   </button>
                 </div>
-              </div>
-            </div>
+              </Sheet>
+            </Scrim>
           )}
+          </AnimatePresence>
+          <AnimatePresence>
           {moveMoneyTarget && envelopeState && (
             <MoveMoneyModal
               targetCategory={moveMoneyTarget}
@@ -2315,6 +2337,8 @@ export function ExpensePage() {
               }}
             />
           )}
+          </AnimatePresence>
+          <AnimatePresence>
           {showBulkReturnConfirm &&
             envelopeState &&
             (() => {
@@ -2323,11 +2347,11 @@ export function ExpensePage() {
               );
               const total = positive.reduce((s, e) => s + e.available, 0);
               return (
-                <div
+                <Scrim
                   className="move-money-overlay"
                   onClick={() => setShowBulkReturnConfirm(false)}
                 >
-                  <div
+                  <Sheet
                     className="move-money-modal"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -2381,11 +2405,27 @@ export function ExpensePage() {
                         </div>
                       </>
                     )}
-                  </div>
-                </div>
+                  </Sheet>
+                </Scrim>
               );
             })()}
+          </AnimatePresence>
           {categoryMenu}
+          {showFluidDemo && (
+            <Scrim onClick={() => setShowFluidDemo(false)}>
+              <Sheet>
+                <FluidDemo />
+                <button
+                  type="button"
+                  className="action-button is-ghost"
+                  onClick={() => setShowFluidDemo(false)}
+                  style={{ marginTop: '24px' }}
+                >
+                  Close Demo
+                </button>
+              </Sheet>
+            </Scrim>
+          )}
         </div>
       </div>
     </section>

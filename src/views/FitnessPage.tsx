@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
+import { AnimatePresence } from 'motion/react'
 import fitnessContract from '../../productivity/fitness/fitness-dashboard.sample.json'
+import { Scrim, Sheet } from '../components/MotionSheet'
 import { SparkLine } from '../components/SparkLine'
 import { toFitnessDashboardPanel } from '../services/fitnessDashboardAdapter'
 
@@ -286,7 +288,7 @@ export function FitnessPage() {
               <div className="progress-bar">
                 <div
                   className="progress-bar-fill"
-                  style={{ width: `${Math.min(100, ((panel.startWeightKg - panel.currentWeightKg) / (panel.startWeightKg - panel.targetWeightKg)) * 100).toFixed(0)}%` }}
+                  style={{ width: '100%', transform: `scaleX(${Math.min(1, (panel.startWeightKg - panel.currentWeightKg) / (panel.startWeightKg - panel.targetWeightKg)).toFixed(3)})` }}
                 />
               </div>
             </div>
@@ -374,7 +376,6 @@ export function FitnessPage() {
                   formatValue={(v) => `${v} kg`}
                   height={160}
                   color={prChartColors[idx % prChartColors.length]}
-                  gradientFrom={prChartColors[idx % prChartColors.length]}
                   showDots={true}
                   showArea={false}
                 />
@@ -662,9 +663,10 @@ export function FitnessPage() {
         </section>
       )}
 
+      <AnimatePresence>
       {selectedFoodDate && (
-        <div className="modal-overlay" onClick={() => setSelectedFoodDate(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <Scrim className="modal-overlay" onClick={() => setSelectedFoodDate(null)}>
+          <Sheet className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Food Log - {formatDate(selectedFoodDate.date)}</h2>
               <button type="button" className="action-button" onClick={() => setSelectedFoodDate(null)}>
@@ -694,9 +696,10 @@ export function FitnessPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
+          </Sheet>
+        </Scrim>
       )}
+      </AnimatePresence>
     </section>
   )
 }
