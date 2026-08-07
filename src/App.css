@@ -2151,12 +2151,16 @@ input[type="date"]:hover {
   justify-content: center;
   cursor: pointer;
   position: relative;
-  transition: background 0.15s;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  transition:
+    background var(--dur-slow) var(--ease-standard),
+    outline-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-med) var(--ease-standard);
 }
 
 .si-heatmap-cell:hover {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline-color: var(--accent);
   filter: brightness(1.12);
 }
 
@@ -2189,7 +2193,6 @@ input[type="date"]:hover {
 
 .si-heatmap-tooltip {
   position: fixed;
-  transform: translate(-50%, -100%);
   background: #1a1f2d;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-sm);

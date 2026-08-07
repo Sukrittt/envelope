@@ -5,8 +5,6 @@ interface SparkLineProps {
   formatValue?: (value: number) => string
   height?: number
   color?: string
-  gradientFrom?: string
-  gradientTo?: string
   showDots?: boolean
   showArea?: boolean
   targetValue?: number
@@ -19,8 +17,6 @@ export function SparkLine({
   formatValue = (v) => `${v}`,
   height = 280,
   color = 'var(--ok-fg)',
-  gradientFrom = 'var(--ok-fg)',
-  gradientTo = 'transparent',
   showDots = true,
   showArea = true,
   targetValue,
@@ -147,8 +143,6 @@ export function SparkLine({
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
   }
 
-  const gradientId = 'spark-line-gradient'
-
   return (
     <div className="spark-line" onMouseLeave={() => setHoveredIndex(null)}>
       <svg
@@ -156,13 +150,6 @@ export function SparkLine({
         preserveAspectRatio="none"
         className="spark-line-svg"
       >
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={gradientFrom} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={gradientTo} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
         {/* Grid lines */}
         {yTicks.map((tick) => (
           <line
@@ -198,7 +185,7 @@ export function SparkLine({
 
         {/* Area fill */}
         {showArea && areaPath && (
-          <path d={areaPath} fill={`url(#${gradientId})`} />
+          <path d={areaPath} fill={color} fillOpacity="0.12" />
         )}
 
         {/* Line */}

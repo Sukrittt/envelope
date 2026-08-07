@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
+import { motion, useReducedMotion } from 'motion/react'
 import type { Envelope } from '../types/expense'
 
 interface Props {
@@ -152,6 +153,7 @@ function monthLabel(month: string): string {
 export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onNavigate }: Props) {
   const [tooltip, setTooltip] = useState<{ day: number; date: string; total: number; topCat: string; x: number; y: number } | null>(null)
   const router = useRouter()
+  const reduce = useReducedMotion()
 
   const review = useMemo(() => buildReview(envelopes), [envelopes])
   const heatmap = useMemo(() => buildHeatmap(expenseRows, month), [expenseRows, month])
@@ -200,7 +202,7 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
                     <div
                       key={cell.date}
                       className={`si-heatmap-cell ${cell.isToday ? 'si-heatmap-today' : ''}`}
-                      style={{ background: LEVEL_COLORS[cell.level] }}
+                      style={{ backgroundColor: LEVEL_COLORS[cell.level] }}
                       data-date={cell.date}
                       onClick={(e) => handleCellClick(e)}
                       onMouseEnter={(e) => {
@@ -220,9 +222,12 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
         </div>
 
         {tooltip && createPortal(
-          <div
+          <motion.div
             className="si-heatmap-tooltip"
-            style={{ left: tooltip.x, top: tooltip.y }}
+            style={{ left: tooltip.x, top: tooltip.y, x: '-50%', y: '-100%' }}
+            initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'tween', duration: 0.12, ease: 'easeOut' }}
           >
             <strong>{new Date(tooltip.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong>
             {tooltip.total > 0 ? (
@@ -233,7 +238,7 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
             ) : (
               <span>No spend</span>
             )}
-          </div>,
+          </motion.div>,
           document.body
         )}
 

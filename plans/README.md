@@ -1,6 +1,6 @@
 # Animation Plans — Mission Control Dashboard
 
-Audit run 2026-08-07 via `improve-animations` on commit `a8c7f22` (branch `feat/playful-sleek-frontend`). All plans are self-contained; any executor with zero context can run one start to finish.
+Audit run 2026-08-07 via `improve-animations` on commit `a8c7f22` (branch `feat/playful-sleek-frontend`); follow-up batch 007–009 written on `f481763` from calendar-heatmap / graph feedback. All plans are self-contained; any executor with zero context can run one start to finish.
 
 ## Plan index
 
@@ -12,10 +12,17 @@ Audit run 2026-08-07 via `improve-animations` on commit `a8c7f22` (branch `feat/
 | 004 | Replace `transition: all` on `.tab-button` | LOW | Performance | `App.css` | DONE |
 | 005 | Make the expense-shimmer sweep `linear` | LOW | Cohesion / Easing | `App.css` | DONE |
 | 006 | Crossfade the transactions list on page change | LOW | Missed opportunity | `TransactionsView.tsx` | DONE |
+| 007 | Ease the heatmap day border in instead of snapping it | MEDIUM | Easing & duration | `App.css` | DONE |
+| 008 | Animate the heatmap tooltip in | LOW | Missed opportunity | `SpendingInsights.tsx`, `App.css` | DONE |
+| 009 | Replace the SparkLine gradient area fill with a solid tint | LOW | Cohesion & tokens | `SparkLine.tsx`, `FitnessPage.tsx` | DONE |
 
 ## Recommended execution order
 
-All plans are independent (no plan edits a region another plan edits):
+All plans are independent (no plan edits a region another plan edits). The 007–009 batch was added on `f481763` from the calendar-heatmap / graph feedback:
+
+1. **007** — the heatmap border grow; it owns the `.si-heatmap-cell*` rules in `App.css`.
+2. **008** — the heatmap tooltip entrance; it owns `.si-heatmap-tooltip` + `SpendingInsights.tsx`, disjoint from 007's rules.
+3. **009** — the graph solid fill; `SparkLine.tsx` + `FitnessPage.tsx`, fully disjoint from 007/008.
 
 1. **001** — flagship fluid feature; the fix is small and the feature's promise currently doesn't hold.
 2. **002** — core surface (envelope bars) on the compositor; biggest perceptual+perf win per effort.

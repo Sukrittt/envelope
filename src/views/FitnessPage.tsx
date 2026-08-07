@@ -376,7 +376,6 @@ export function FitnessPage() {
                   formatValue={(v) => `${v} kg`}
                   height={160}
                   color={prChartColors[idx % prChartColors.length]}
-                  gradientFrom={prChartColors[idx % prChartColors.length]}
                   showDots={true}
                   showArea={false}
                 />
