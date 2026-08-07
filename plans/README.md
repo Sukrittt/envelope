@@ -6,12 +6,12 @@ Audit run 2026-08-07 via `improve-animations` on commit `a8c7f22` (branch `feat/
 
 | # | Title | Severity | Category | Files | Status |
 | --- | --- | --- | --- | --- | --- |
-| 001 | Fix SparkBars interruptibility and active-transform conflict | MEDIUM | Interruptibility | `SparkBars.tsx`, `App.css` | TODO |
-| 002 | Rebuild width-animated bar fills on `transform: scaleX` | MEDIUM | Performance / Easing | `App.css`, `EnvelopeGrid.tsx`, `InsightsView.tsx`, `FitnessPage.tsx` | TODO |
-| 003 | Route hand-typed theme transitions through motion tokens | MEDIUM | Cohesion & tokens | `App.css` | TODO |
-| 004 | Replace `transition: all` on `.tab-button` | LOW | Performance | `App.css` | TODO |
-| 005 | Make the expense-shimmer sweep `linear` | LOW | Cohesion / Easing | `App.css` | TODO |
-| 006 | Crossfade the transactions list on page change | LOW | Missed opportunity | `TransactionsView.tsx` | TODO |
+| 001 | Fix SparkBars interruptibility and active-transform conflict | MEDIUM | Interruptibility | `SparkBars.tsx`, `App.css` | DONE |
+| 002 | Rebuild width-animated bar fills on `transform: scaleX` | MEDIUM | Performance / Easing | `App.css`, `EnvelopeGrid.tsx`, `InsightsView.tsx`, `FitnessPage.tsx` | DONE |
+| 003 | Route hand-typed theme transitions through motion tokens | MEDIUM | Cohesion & tokens | `App.css` | DONE |
+| 004 | Replace `transition: all` on `.tab-button` | LOW | Performance | `App.css` | DONE |
+| 005 | Make the expense-shimmer sweep `linear` | LOW | Cohesion / Easing | `App.css` | DONE |
+| 006 | Crossfade the transactions list on page change | LOW | Missed opportunity | `TransactionsView.tsx` | DONE |
 
 ## Recommended execution order
 

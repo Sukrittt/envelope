@@ -1,6 +1,6 @@
 # 002 — Rebuild the width-animated bar fills on transform: scaleX
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: a8c7f22
 - **Severity**: MEDIUM
 - **Category**: 5 · Performance / 2 · Easing & duration

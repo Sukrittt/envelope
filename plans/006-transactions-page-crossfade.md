@@ -1,6 +1,6 @@
 # 006 — Crossfade the transactions list on page change
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: a8c7f22
 - **Severity**: LOW (additive / missed opportunity)
 - **Category**: 8 · Missed opportunities

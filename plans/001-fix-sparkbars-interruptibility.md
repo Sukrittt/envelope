@@ -1,6 +1,6 @@
 # 001 — Fix SparkBars interruptibility and active-transform conflict
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: a8c7f22
 - **Severity**: MEDIUM
 - **Category**: 4 · Interruptibility

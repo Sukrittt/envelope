@@ -1,6 +1,6 @@
 # 005 — Make the expense-shimmer sweep `linear`
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: a8c7f22
 - **Severity**: LOW
 - **Category**: 7 · Cohesion / 2 · Easing & duration

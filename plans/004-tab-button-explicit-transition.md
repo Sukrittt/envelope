@@ -1,6 +1,6 @@
 # 004 — Replace `transition: all` on `.tab-button`
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: a8c7f22
 - **Severity**: LOW
 - **Category**: 5 · Performance

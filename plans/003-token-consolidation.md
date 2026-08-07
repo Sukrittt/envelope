@@ -1,6 +1,6 @@
 # 003 — Route hand-typed theme transitions through motion tokens
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: a8c7f22
 - **Severity**: MEDIUM
 - **Category**: 7 · Cohesion & tokens
