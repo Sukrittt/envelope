@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Envelope } from '../types/expense'
+import { Scrim, Sheet } from './MotionSheet'
 
 interface Props {
   targetCategory: string
@@ -46,8 +47,8 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
 
   if (!target || (envelopeSources.length === 0 && readyToAssign <= 0)) {
     return (
-      <div className="move-money-overlay" onClick={onClose}>
-        <div className="move-money-modal" onClick={(e) => e.stopPropagation()}>
+      <Scrim className="move-money-overlay" onClick={onClose}>
+        <Sheet className="move-money-modal" onClick={(e) => e.stopPropagation()}>
           <div className="move-money-header">
             <h4>Move Money</h4>
             <button type="button" className="move-money-close" onClick={onClose}>✕</button>
@@ -58,14 +59,14 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
             <p className="move-money-empty">No funds available to pull from.</p>
           )}
           <button type="button" className="action-button move-money-cancel" onClick={onClose}>Close</button>
-        </div>
-      </div>
+        </Sheet>
+      </Scrim>
     )
   }
 
   return (
-    <div className="move-money-overlay" onClick={onClose}>
-      <div className="move-money-modal" onClick={(e) => e.stopPropagation()}>
+    <Scrim className="move-money-overlay" onClick={onClose}>
+      <Sheet className="move-money-modal" onClick={(e) => e.stopPropagation()}>
         <div className="move-money-header">
           <h4>Move Money</h4>
           <button type="button" className="move-money-close" onClick={onClose}>✕</button>
@@ -129,7 +130,7 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </Sheet>
+    </Scrim>
   )
 }

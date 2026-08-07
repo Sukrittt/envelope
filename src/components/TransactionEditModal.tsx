@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { updateExpense } from '../services/api'
+import { Scrim, Sheet } from './MotionSheet'
 
 interface Props {
   timestamp: string
@@ -52,13 +53,13 @@ export function TransactionEditModal({
   }
 
   return (
-    <div
+    <Scrim
       className="category-manager-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="category-manager subscription-modal">
+      <Sheet className="category-manager subscription-modal">
         <div className="category-manager-header">
           <h3>Edit transaction</h3>
           <button type="button" className="action-button is-ghost" onClick={onClose} aria-label="Close">
@@ -134,7 +135,7 @@ export function TransactionEditModal({
             {saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
-      </div>
-    </div>
+      </Sheet>
+    </Scrim>
   )
 }

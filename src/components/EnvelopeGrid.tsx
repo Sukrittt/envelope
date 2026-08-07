@@ -237,7 +237,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
             <div className="env-bar-track">
               <div
                 className={`env-bar-fill ${isOverspent ? 'env-bar-red' : pct > 85 ? 'env-bar-warn' : ''}`}
-                style={{ width: `${pct}%` }}
+                style={{ width: '100%', transform: `scaleX(${Math.max(0, pct) / 100})` }}
               />
             </div>
           )}
