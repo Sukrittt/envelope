@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mission Control Dashboard — Knowledge Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+    #graph {
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+    }
+    svg { display: block; }
+    circle.node {
+      stroke: #333;
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    circle.node:hover {
+      stroke: #fff;
+      stroke-width: 3px;
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+    }
+    line.link {
+      stroke: #444;
+      stroke-opacity: 0.6;
+    }
+    text.label {
+      font-size: 11px;
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+      fill: #bbb;
+    }
+    .community-0 { fill: #E8956F; }
+    .community-1 { fill: #7B9FE0; }
+    .community-2 { fill: #A78EE3; }
+    .community-3 { fill: #7FE8A8; }
+    .legend {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(20,20,20,0.9);
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.8;
+      border: 1px solid #333;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .legend-color { width: 16px; height: 16px; border-radius: 50%; }
+    .info {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(20,20,20,0.9);
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 11px;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+<div id="graph"></div>
+<div class="legend">
+  <div style="font-weight: bold; margin-bottom: 8px;">Communities</div>
+  <div class="legend-item"><div class="legend-color community-0"></div> Product &amp; User</div>
+  <div class="legend-item"><div class="legend-color community-1"></div> Tech Stack</div>
+  <div class="legend-item"><div class="legend-color community-2"></div> Interactions</div>
+  <div class="legend-item"><div class="legend-color community-3"></div> Fitness</div>
+</div>
+<div class="info">
+  <strong>Mission Control Dashboard</strong><br>
+  29 nodes · 27 edges · 4 communities<br>
+  Drag to move · Scroll to zoom
+</div>
+
+<script>
+const graphData = {
+  "nodes": [
+    {"id": "mission_control_dashboard", "label": "Mission Control Dashboard", "community": 0},
+    {"id": "sukrit", "label": "Sukrit", "community": 0},
+    {"id": "nextjs_15", "label": "Next.js 15", "community": 1},
+    {"id": "mongodb", "label": "MongoDB", "community": 1},
+    {"id": "envelope_budgeting", "label": "Envelope Budgeting", "community": 0},
+    {"id": "fluid_interactions", "label": "Fluid Interactions", "community": 2},
+    {"id": "sparkbars", "label": "SparkBars", "community": 2},
+    {"id": "heatmap", "label": "Heatmap", "community": 2},
+    {"id": "sparkline", "label": "SparkLine", "community": 2},
+    {"id": "apple_design", "label": "Apple Design", "community": 2},
+    {"id": "spring_physics", "label": "Spring Physics", "community": 2},
+    {"id": "interruptibility", "label": "Interruptibility", "community": 2},
+    {"id": "animation_plans", "label": "Animation Plans", "community": 2},
+    {"id": "plan_007", "label": "Plan 007", "community": 2},
+    {"id": "plan_008", "label": "Plan 008", "community": 2},
+    {"id": "plan_009", "label": "Plan 009", "community": 2},
+    {"id": "fitness_spec", "label": "Fitness Spec", "community": 3},
+    {"id": "fitness_contract", "label": "Fitness Contract", "community": 3},
+    {"id": "fitness_kpi", "label": "Fitness KPI", "community": 3},
+    {"id": "expense_page", "label": "ExpensePage", "community": 0},
+    {"id": "transactions_page", "label": "TransactionsPage", "community": 0},
+    {"id": "fitness_page", "label": "FitnessPage", "community": 3},
+    {"id": "dashboard_provider", "label": "DashboardProvider", "community": 1},
+    {"id": "api_expenses", "label": "expenses API", "community": 1},
+    {"id": "api_budgets", "label": "budgets API", "community": 1},
+    {"id": "privacy", "label": "Privacy", "community": 0},
+    {"id": "guest_mode", "label": "Guest Mode", "community": 0},
+    {"id": "motion_library", "label": "motion/react", "community": 2},
+    {"id": "mac_assistant", "label": "Mac (Assistant)", "community": 0}
+  ],
+  "links": [
+    {"source": "mission_control_dashboard", "target": "sukrit"},
+    {"source": "mission_control_dashboard", "target": "nextjs_15"},
+    {"source": "mission_control_dashboard", "target": "mongodb"},
+    {"source": "mission_control_dashboard", "target": "envelope_budgeting"},
+    {"source": "mission_control_dashboard", "target": "fluid_interactions"},
+    {"source": "mission_control_dashboard", "target": "privacy"},
+    {"source": "mission_control_dashboard", "target": "guest_mode"},
+    {"source": "fluid_interactions", "target": "apple_design"},
+    {"source": "fluid_interactions", "target": "spring_physics"},
+    {"source": "fluid_interactions", "target": "interruptibility"},
+    {"source": "sparkbars", "target": "fluid_interactions"},
+    {"source": "heatmap", "target": "fluid_interactions"},
+    {"source": "sparkline", "target": "fluid_interactions"},
+    {"source": "animation_plans", "target": "plan_007"},
+    {"source": "animation_plans", "target": "plan_008"},
+    {"source": "animation_plans", "target": "plan_009"},
+    {"source": "plan_007", "target": "heatmap"},
+    {"source": "plan_008", "target": "heatmap"},
+    {"source": "plan_009", "target": "sparkline"},
+    {"source": "fitness_spec", "target": "fitness_contract"},
+    {"source": "fitness_contract", "target": "fitness_kpi"},
+    {"source": "expense_page", "target": "sparkbars"},
+    {"source": "transactions_page", "target": "heatmap"},
+    {"source": "fitness_page", "target": "sparkline"},
+    {"source": "dashboard_provider", "target": "expense_page"},
+    {"source": "api_expenses", "target": "mongodb"},
+    {"source": "api_budgets", "target": "mongodb"}
+  ]
+};
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const svg = d3.select("#graph")
+  .append("svg")
+  .attr("width", width)
+  .attr("height", height);
+
+const g = svg.append("g");
+
+const zoom = d3.zoom()
+  .on("zoom", (e) => { g.attr("transform", e.transform); });
+
+svg.call(zoom);
+
+const simulation = d3.forceSimulation(graphData.nodes)
+  .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(80))
+  .force("charge", d3.forceManyBody().strength(-300))
+  .force("center", d3.forceCenter(width / 2, height / 2));
+
+const links = g.selectAll("line.link")
+  .data(graphData.links)
+  .enter()
+  .append("line")
+  .attr("class", "link");
+
+const nodes = g.selectAll("circle.node")
+  .data(graphData.nodes)
+  .enter()
+  .append("circle")
+  .attr("class", d => `node community-${d.community}`)
+  .attr("r", d => d.id === "mission_control_dashboard" ? 12 : 8)
+  .call(d3.drag()
+    .on("start", (e, d) => {
+      if (!e.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    })
+    .on("drag", (e, d) => {
+      d.fx = e.x;
+      d.fy = e.y;
+    })
+    .on("end", (e, d) => {
+      if (!e.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }));
+
+const labels = g.selectAll("text.label")
+  .data(graphData.nodes)
+  .enter()
+  .append("text")
+  .attr("class", "label")
+  .text(d => d.label);
+
+simulation.on("tick", () => {
+  links
+    .attr("x1", d => d.source.x)
+    .attr("y1", d => d.source.y)
+    .attr("x2", d => d.target.x)
+    .attr("y2", d => d.target.y);
+
+  nodes
+    .attr("cx", d => d.x)
+    .attr("cy", d => d.y);
+
+  labels
+    .attr("x", d => d.x)
+    .attr("y", d => d.y);
+});
+</script>
+</body>
+</html>

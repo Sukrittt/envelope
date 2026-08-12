@@ -428,6 +428,7 @@ h4 {
 .mc-main {
   padding: var(--sp-4);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-4);
   align-content: start;
   min-width: 0;

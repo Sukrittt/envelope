@@ -33,72 +33,79 @@ export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOv
     if (e.key === 'Escape') setEditing(false)
   }
 
-  const rtaClass = isOverAssigned ? 'rta-negative' : readyToAssign === 0 ? 'rta-zero' : 'rta-positive'
+  const assignedPct = totalAssigned > 0 ? Math.min(100, (totalAssigned / Math.max(income, 1)) * 100) : 0
 
   const maxSpark = sparkData && sparkData.length > 0
     ? Math.max(...sparkData.map((d) => d.value), 1)
     : 1
 
   return (
-    <div className={`rta-banner ${rtaClass}`}>
-      <div className="rta-main">
-        <div className="rta-text-block">
-          <span className="rta-label">Ready to Assign</span>
-          <span className="rta-amount">{formatCurrency(readyToAssign)}</span>
-          {isOverAssigned && (
-            <span className="rta-warning">Over-assigned — reduce category budgets</span>
-          )}
-          {!isOverAssigned && readyToAssign === 0 && (
-            <span className="rta-ok">Every rupee has a job</span>
-          )}
+    <>
+      <section className={`erd-card erd-rta-hero ${isOverAssigned ? 'is-negative' : ''}`}>
+        <div className="erd-rta-label">
+          <span className="erd-pulse-dot" />
+          Ready to Assign
         </div>
-        {sparkData && sparkData.length > 0 && (
-          <div className="rta-spark">
-            {sparkData.map((d) => {
-              const h = Math.max(2, (d.value / maxSpark) * 20)
-              return (
-                <div
-                  key={d.date}
-                  className="rta-spark-bar"
-                  style={{ height: `${h}px` }}
-                  title={`${d.date}: ${formatCurrency(d.value)}`}
-                />
-              )
-            })}
-          </div>
+        <div className={`erd-rta-amount ${isOverAssigned ? 'is-negative' : ''}`}>
+          {formatCurrency(readyToAssign)}
+        </div>
+        {isOverAssigned && (
+          <div className="erd-rta-warn">Over-assigned — reduce category budgets</div>
         )}
-      </div>
-      <div className="rta-breakdown">
-        <div className="rta-item">
-          <span className="rta-item-label">Income</span>
-          {editing ? (
-            <input
-              className="rta-income-input"
-              type="number"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={handleKeyDown}
-              autoFocus
-            />
-          ) : (
-            <button className="rta-income-value" onClick={() => { setEditValue(String(income)); setEditing(true) }}>
-              {formatCurrency(income)}
-              <span className="rta-edit-icon">✏️</span>
-            </button>
+        {!isOverAssigned && readyToAssign === 0 && (
+          <div className="erd-rta-ok">Every rupee has a job ✨</div>
+        )}
+        {!isOverAssigned && readyToAssign > 0 && (
+          <div className="erd-rta-ok">{overspentCount} envelope{overspentCount === 1 ? '' : 's'} overspent</div>
+        )}
+        <div className="erd-rta-track">
+          <div className="erd-rta-fill" style={{ width: `${assignedPct}%` }} />
+        </div>
+        <div className="erd-rta-hint">{Math.round(assignedPct)}% of income assigned</div>
+      </section>
+
+      <section className="erd-card erd-income-card">
+        <div className="erd-income-top">
+          <div>
+            <div className="erd-income-label">INCOME</div>
+            {editing ? (
+              <input
+                className="erd-income-input"
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={handleKeyDown}
+                autoFocus
+              />
+            ) : (
+              <button className="erd-income-edit" onClick={() => { setEditValue(String(income)); setEditing(true) }}>
+                {formatCurrency(income)}
+                <span className="erd-income-edit-icon">✏️</span>
+              </button>
+            )}
+          </div>
+          {sparkData && sparkData.length > 0 && (
+            <div className="erd-income-spark">
+              {sparkData.map((d) => {
+                const h = Math.max(2, (d.value / maxSpark) * 20)
+                return <i key={d.date} style={{ height: `${h}px` }} title={`${d.date}: ${formatCurrency(d.value)}`} />
+              })}
+            </div>
           )}
         </div>
-        <div className="rta-item">
-          <span className="rta-item-label">Assigned</span>
-          <span className="rta-item-value">{formatCurrency(totalAssigned)}</span>
+        <div className="erd-card-divider" />
+        <div className="erd-income-row">
+          <span>Assigned</span>
+          <strong>{formatCurrency(totalAssigned)}</strong>
         </div>
-        <div className="rta-item">
-          <span className="rta-item-label">Overspent</span>
-          <span className={`rta-item-value ${overspentCount > 0 ? 'rta-negative' : ''}`}>
+        <div className="erd-income-row">
+          <span>Overspent</span>
+          <strong className={overspentCount > 0 ? 'is-neg' : ''}>
             {overspentCount} of {totalEnvelopes}
-          </span>
+          </strong>
         </div>
-      </div>
-    </div>
+      </section>
+    </>
   )
 }

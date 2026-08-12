@@ -354,7 +354,7 @@ export function TransactionsView({
 
   if (loading) {
     return (
-      <div className="txn-timeline">
+      <div className="txn-timeline erd-card">
         {/* Filter bar skeleton */}
         <div className="txn-timeline-filters" aria-hidden="true">
           <div className="mc-filter-chips" style={{ opacity: 0.4 }}>
@@ -518,7 +518,7 @@ export function TransactionsView({
 
   if (error) {
     return (
-      <div className="txn-timeline">
+      <div className="txn-timeline erd-card">
         <div className="txn-timeline-empty">
           Couldn't load transactions. {error}
         </div>
@@ -527,7 +527,7 @@ export function TransactionsView({
   }
 
   return (
-    <div className="txn-timeline">
+    <div className="txn-timeline erd-card">
       <div className="txn-timeline-filters">
         <div
           className="mc-filter-chips"

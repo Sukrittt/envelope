@@ -1,0 +1,462 @@
+{
+  "app/api/budgets/route.ts": {
+    "mtime": 1786111316521.395,
+    "hash": "ae5a6aced756255aec84ef5cd59847d6"
+  },
+  "app/api/categories/move/route.ts": {
+    "mtime": 1785847598970.905,
+    "hash": "0016b469c766191aef12dffc6dcb20eb"
+  },
+  "app/api/categories/reorder/route.ts": {
+    "mtime": 1785847598971.2302,
+    "hash": "84377bb87cc3418a75d2b307c3f3b890"
+  },
+  "app/api/categories/route.ts": {
+    "mtime": 1785847598971.4302,
+    "hash": "8cbc075397e77110dc82d0108e608e9d"
+  },
+  "app/api/category-map/route.ts": {
+    "mtime": 1785847598971.7002,
+    "hash": "635fb7f732c493416b6345dfecca8a00"
+  },
+  "app/api/expenses/route.ts": {
+    "mtime": 1785848992108.4067,
+    "hash": "7145649ae3dc933540b1ff3d3079531d"
+  },
+  "app/api/groups/route.ts": {
+    "mtime": 1785847598972.4739,
+    "hash": "05183353c4b87827352a15bba4eae3c1"
+  },
+  "app/api/holding-events/route.ts": {
+    "mtime": 1785847598972.7449,
+    "hash": "446f9399a25d4131f0b322ed1b38014a"
+  },
+  "app/api/holdings/action/route.ts": {
+    "mtime": 1785847598973.0325,
+    "hash": "cb06d2bb65fa5ffc25e7385568eb874b"
+  },
+  "app/api/holdings/route.ts": {
+    "mtime": 1785847598973.2178,
+    "hash": "198563464f82ad7cf5bb25485f9e0c39"
+  },
+  "app/api/subscriptions/route.ts": {
+    "mtime": 1785848290448.9802,
+    "hash": "43e97e417d4aa146f6f6773dfdc18fde"
+  },
+  "app/expense/page.tsx": {
+    "mtime": 1785847598973.8127,
+    "hash": "b3d8a631c46a69b90b8456a892a42f73"
+  },
+  "app/expense/transactions/page.tsx": {
+    "mtime": 1785847598974.0728,
+    "hash": "de16d97b9b85df37a582cac701315e6d"
+  },
+  "app/fitness/page.tsx": {
+    "mtime": 1785847598974.5576,
+    "hash": "f3532b206811a97a579932fc17502b7f"
+  },
+  "app/investments/page.tsx": {
+    "mtime": 1785847598974.7544,
+    "hash": "10aeb7344d76dddcbcef718b0ac5caec"
+  },
+  "app/layout.tsx": {
+    "mtime": 1786011758494.2725,
+    "hash": "ae872a87e018ff8814462a7114d03532"
+  },
+  "app/learnings/page.tsx": {
+    "mtime": 1785847598975.1814,
+    "hash": "12138fa3ea5edd96a26dfe809081ee6b"
+  },
+  "app/page.tsx": {
+    "mtime": 1785847598975.3196,
+    "hash": "e145c365fd437751e741038b7c350545"
+  },
+  "app/settings/page.tsx": {
+    "mtime": 1785847598975.5828,
+    "hash": "fd67fc7ac9486a2f3de87ada9264acc3"
+  },
+  "components/AppShell.tsx": {
+    "mtime": 1785865635658.4587,
+    "hash": "8d245c350b9b6d7a61582434fac96f94"
+  },
+  "components/AppearanceProvider.tsx": {
+    "mtime": 1785847598976.109,
+    "hash": "3d6b224ebd3896c3ec2abf60dc22b467"
+  },
+  "components/ClientProviders.tsx": {
+    "mtime": 1785847598976.2385,
+    "hash": "a092aa3ece9ae6b1d5622ef4a89061a3"
+  },
+  "eslint.config.mjs": {
+    "mtime": 1786111316521.6519,
+    "hash": "345cf26b66de1d5695f0eb4535c5e0e0"
+  },
+  "lib/access.ts": {
+    "mtime": 1785847598976.6484,
+    "hash": "7833f8ad544ea1c1ff2d71327eb56ba1"
+  },
+  "lib/categoryMap.ts": {
+    "mtime": 1785847598976.7917,
+    "hash": "8a0f93e836edae92c8006255ba193d75"
+  },
+  "lib/http.ts": {
+    "mtime": 1785847598976.9177,
+    "hash": "e990fda6aafd436017ad35baeafe0807"
+  },
+  "lib/models.ts": {
+    "mtime": 1785847598977.046,
+    "hash": "a9ae5f8bce0ee382481d51cf22103448"
+  },
+  "lib/mongodb.ts": {
+    "mtime": 1785847598977.182,
+    "hash": "2d0a6d53c84da5bad7b75ae15fcd8c84"
+  },
+  "mission-control-app/src/components/SparkBars.tsx": {
+    "mtime": 1773681297002.8516,
+    "hash": "3939743356fbb4012b04002de9385c2a"
+  },
+  "mission-control-app/src/pages/ExpensePage.tsx": {
+    "mtime": 1773681297003.008,
+    "hash": "3220f720f94a970dc0a184784a5286f5"
+  },
+  "next-env.d.ts": {
+    "mtime": 1785847598977.3337,
+    "hash": "ba64ff7d54714a8f64db89b1003207d8"
+  },
+  "next.config.ts": {
+    "mtime": 1785847598977.4724,
+    "hash": "695b9f152b1d0e413755a4d6f834292e"
+  },
+  "scripts/migrate-to-mongo.mjs": {
+    "mtime": 1785847598978.6643,
+    "hash": "3b263c3aa5e3483b1b85af3d554c124f"
+  },
+  "scripts/sync_expenses.mjs": {
+    "mtime": 1785796772468.0476,
+    "hash": "68cc7387d70314156df29b37f48d79ee"
+  },
+  "src/components/AuthGate.tsx": {
+    "mtime": 1785847598980.6575,
+    "hash": "d32341e2176e8e40889dae66dc13ff06"
+  },
+  "src/components/BudgetEnvelopeCard.tsx": {
+    "mtime": 1785796772468.989,
+    "hash": "7748acd616ddac419145b461b9ca552e"
+  },
+  "src/components/CategoryManager.tsx": {
+    "mtime": 1786111316527.1855,
+    "hash": "536168c7cb307bdc74b092d4835d85fd"
+  },
+  "src/components/EnvelopeGrid.tsx": {
+    "mtime": 1786111316527.5608,
+    "hash": "5e7004edabc07b0789cf5463374f58c4"
+  },
+  "src/components/ExpenseSidebar.tsx": {
+    "mtime": 1785847598981.4749,
+    "hash": "c2b9dd14bab79033660908d02a477c12"
+  },
+  "src/components/FluidDemo.tsx": {
+    "mtime": 1786111316527.8052,
+    "hash": "aaf0c66c3fa06596837ba0b9a0f20385"
+  },
+  "src/components/InsightsView.tsx": {
+    "mtime": 1786111316528.0894,
+    "hash": "752209b507b6da62159f52e620b99c5d"
+  },
+  "src/components/LoadingCaption.tsx": {
+    "mtime": 1785847598981.6975,
+    "hash": "a962a7acb3f71ff3c355ae1572668c59"
+  },
+  "src/components/MonthRolloverBanner.tsx": {
+    "mtime": 1785796772470.4558,
+    "hash": "a3b41d002435ca21d3a61cb6b079c030"
+  },
+  "src/components/MotionSheet.tsx": {
+    "mtime": 1786111316528.2817,
+    "hash": "48a8514e8c49c0be4641fca40d5a8fa0"
+  },
+  "src/components/MoveMoneyModal.tsx": {
+    "mtime": 1786111316528.767,
+    "hash": "248472d7871bfd2145af83c240420373"
+  },
+  "src/components/PageSectionHeader.tsx": {
+    "mtime": 1773526919417.0479,
+    "hash": "98fd21919bfc32e1ba2dde6995790ae3"
+  },
+  "src/components/ReadyToAssignBanner.tsx": {
+    "mtime": 1785796772471.0417,
+    "hash": "a0b3020ffc8c68870c1963c15939b5fa"
+  },
+  "src/components/SparkBars.tsx": {
+    "mtime": 1786111316529.1628,
+    "hash": "74d6501017d8a070e986bd1bf5d94d0e"
+  },
+  "src/components/SparkLine.tsx": {
+    "mtime": 1786111316529.3875,
+    "hash": "d0a76ac0a81f757f4d8b1bccf02b2e1e"
+  },
+  "src/components/SpendingInsights.tsx": {
+    "mtime": 1786111316529.59,
+    "hash": "966e9dfaad0612076da817d97112a5fa"
+  },
+  "src/components/StatusChip.tsx": {
+    "mtime": 1773526919417.281,
+    "hash": "34820c7d9faa6eade885aee25cede910"
+  },
+  "src/components/SubscriptionModal.tsx": {
+    "mtime": 1786111316530.0696,
+    "hash": "b0ad5b33d936c0440312af0099a43c96"
+  },
+  "src/components/TimelineList.tsx": {
+    "mtime": 1773526919417.3823,
+    "hash": "888e7bc12e471ea41d3f5548d679426a"
+  },
+  "src/components/TransactionEditModal.tsx": {
+    "mtime": 1786111316530.328,
+    "hash": "5c06239f65b5837066433d8274e7be95"
+  },
+  "src/components/TransactionEntry.tsx": {
+    "mtime": 1785796772472.6365,
+    "hash": "46dd015e26f46cf0559897ebc3126673"
+  },
+  "src/components/TransactionsView.tsx": {
+    "mtime": 1786111316530.6738,
+    "hash": "8e6bc26833062d311b6f84bf7231ebc1"
+  },
+  "src/context/DashboardProvider.tsx": {
+    "mtime": 1773526919417.601,
+    "hash": "0d93b2229341666c0a6eb992e5a133d6"
+  },
+  "src/context/dashboardContext.ts": {
+    "mtime": 1773526919417.6863,
+    "hash": "1b2e33ace428cfb35711c99e219e5ae7"
+  },
+  "src/context/useDashboard.ts": {
+    "mtime": 1773526919417.7683,
+    "hash": "7e319d86ca10203ab0a486411d1e03c4"
+  },
+  "src/data/categoryColors.ts": {
+    "mtime": 1785796772473.1206,
+    "hash": "27be3437093fc8c6684f95134e91c040"
+  },
+  "src/lib/telemetry.ts": {
+    "mtime": 1773526919418.4985,
+    "hash": "a28cc2ac1e9ce8caaea08cf998303558"
+  },
+  "src/services/accessMode.ts": {
+    "mtime": 1785796772474.7996,
+    "hash": "10a84eeda81ffee696b42eb2b3b0c18f"
+  },
+  "src/services/api.ts": {
+    "mtime": 1785849099924.0173,
+    "hash": "4c20d7cf84d6358abec3fa5c71f9510d"
+  },
+  "src/services/autoCategory.ts": {
+    "mtime": 1785796772475.0332,
+    "hash": "2fb6eaab6dd440ec9ff564845947f871"
+  },
+  "src/services/budgetLoader.ts": {
+    "mtime": 1785847598982.845,
+    "hash": "60e904982822eb2d8d33583bb6ec4eb6"
+  },
+  "src/services/dashboardService.ts": {
+    "mtime": 1785847598983.133,
+    "hash": "f39d0958d767bbed4a7cb529ad679bd4"
+  },
+  "src/services/expensePanelAdapter.ts": {
+    "mtime": 1785796772475.636,
+    "hash": "0a72ba6fe748a541b720fc02bb0261d0"
+  },
+  "src/services/expensePanelLoader.ts": {
+    "mtime": 1785796772475.8293,
+    "hash": "00e1a731868a2a692094f25626abc505"
+  },
+  "src/services/expenseTransactions.ts": {
+    "mtime": 1785847598983.426,
+    "hash": "a90b6697e6ed1e382eef520721dc6d20"
+  },
+  "src/services/fitnessDashboardAdapter.ts": {
+    "mtime": 1773751700836.628,
+    "hash": "c99c9d4c19dcab2574bfd6b789a50faf"
+  },
+  "src/services/fitnessPanelAdapter.ts": {
+    "mtime": 1773691548191.1975,
+    "hash": "4e2ff4b6179976284c1a7374f613da6e"
+  },
+  "src/services/insightsAdapter.ts": {
+    "mtime": 1785796772476.2603,
+    "hash": "cdca209d78b538fa783a680d6b009f9d"
+  },
+  "src/types.ts": {
+    "mtime": 1773526919420.308,
+    "hash": "b574c60181fc91fb99a66f696dbb0f44"
+  },
+  "src/types/expense.ts": {
+    "mtime": 1785796772476.524,
+    "hash": "8f23a24dd7750df70e5aebef51c9fb3c"
+  },
+  "src/views/ExpensePage.tsx": {
+    "mtime": 1786111316531.516,
+    "hash": "80f6796ce02c52f0c3dd2cdeab04407e"
+  },
+  "src/views/FitnessPage.tsx": {
+    "mtime": 1786111316532.0576,
+    "hash": "e6ec8378c453ea2d6fd54a574deb203f"
+  },
+  "src/views/InvestmentsPage.tsx": {
+    "mtime": 1786111316532.382,
+    "hash": "c945a25a9b98710946e1f4ee4815195c"
+  },
+  "src/views/LearningsPage.tsx": {
+    "mtime": 1785847598985.7957,
+    "hash": "fd63e54a3b24ec02fb9aa7bb7e85d6a3"
+  },
+  "src/views/SettingsPage.tsx": {
+    "mtime": 1785847598985.9243,
+    "hash": "42744c38b71d86ec7864cdb6bf8f1652"
+  },
+  "src/views/TransactionsPage.tsx": {
+    "mtime": 1785847598986.1323,
+    "hash": "08bd37ad587773e3a8aa667aa7b90f0e"
+  },
+  "AGENTS.md": {
+    "mtime": 1773581434753.5647,
+    "hash": "f579f8765105453dcba4a68a9eec1f3d"
+  },
+  "CLAUDE.md": {
+    "mtime": 1786112316163.2302,
+    "hash": "3839c0a03bf7b473762ffcb20dbdb702"
+  },
+  "FLUID_INTERACTIONS.md": {
+    "mtime": 1786111316520.721,
+    "hash": "25291d3cba69d43c533634a659487b37"
+  },
+  "HEARTBEAT.md": {
+    "mtime": 1773681297000.9883,
+    "hash": "2659519658475e82104bcd15e79af41f"
+  },
+  "IDENTITY.md": {
+    "mtime": 1773681297001.1414,
+    "hash": "c7c566900382b42010f6466640b5f4e2"
+  },
+  "MEMORY.md": {
+    "mtime": 1773681297001.3997,
+    "hash": "7a95b840feb773779702d172d4d6f89c"
+  },
+  "PRODUCT.md": {
+    "mtime": 1786111316521.0007,
+    "hash": "a1bea931b33c37fb1f461de721f04094"
+  },
+  "README.md": {
+    "mtime": 1785969573612.4285,
+    "hash": "ace06443398164fc8e0eeeeda7238f91"
+  },
+  "SOUL.md": {
+    "mtime": 1773581434753.8613,
+    "hash": "93ae61bb0d893a26f7b01eee9a91dc21"
+  },
+  "TOOLS.md": {
+    "mtime": 1773581434753.9424,
+    "hash": "7f25f99542d044549910ad14d93e2232"
+  },
+  "USER.md": {
+    "mtime": 1773581434754.0398,
+    "hash": "0c098aedf09246ada4cde1d782cf628c"
+  },
+  "memory/2026-03-11.md": {
+    "mtime": 1773681297001.931,
+    "hash": "35e32bd45a7f0429f143b5cb7a249528"
+  },
+  "memory/2026-07-31.md": {
+    "mtime": 1785796772464.462,
+    "hash": "bd9219896f7276036d54310373d7c04a"
+  },
+  "memory/context/00-projects.md": {
+    "mtime": 1773581434754.598,
+    "hash": "c5cc971bb1f641be8cc4dddd00dc4496"
+  },
+  "memory/corrections/README.md": {
+    "mtime": 1773581434754.7048,
+    "hash": "59153646bc3459b2fa6cc7f2b2b65b5f"
+  },
+  "memory/hot/00-rules.md": {
+    "mtime": 1773681297002.4055,
+    "hash": "3dc013788a2110093b3c319b86f0afa7"
+  },
+  "plans/001-fix-sparkbars-interruptibility.md": {
+    "mtime": 1786111316523.15,
+    "hash": "30f8e199097d897f22d1bf02e51ce26d"
+  },
+  "plans/002-envelope-bars-scale-x.md": {
+    "mtime": 1786111316523.4507,
+    "hash": "3595573f5afb2f77bb30368c0825afd2"
+  },
+  "plans/004-tab-button-explicit-transition.md": {
+    "mtime": 1786111316524.2727,
+    "hash": "a8fbcbcf92bb92a4df03d90c9045fe52"
+  },
+  "plans/005-shimmer-linear-sweep.md": {
+    "mtime": 1786111316524.5193,
+    "hash": "29acf4be5cd1125591f268f7bcdeda82"
+  },
+  "plans/006-transactions-page-crossfade.md": {
+    "mtime": 1786111316524.7893,
+    "hash": "6eb5c86397a3fe67f8f9242654a507c1"
+  },
+  "plans/007-heatmap-day-border-transition.md": {
+    "mtime": 1786111316525.0874,
+    "hash": "bb3c0220ef03c2fbd9a881c27d6cbafa"
+  },
+  "plans/008-heatmap-tooltip-entrance.md": {
+    "mtime": 1786111316525.3557,
+    "hash": "da227db377bdcf291f80a3572fc465cd"
+  },
+  "plans/009-sparkline-solid-area-fill.md": {
+    "mtime": 1786111316525.937,
+    "hash": "24b98cb9516a4915159a7059cc1c81b1"
+  },
+  "plans/README.md": {
+    "mtime": 1786111316526.1816,
+    "hash": "c86fa924c39fcbe79fce425e3359c8d0"
+  },
+  "productivity/fitness/FITNESS_DASHBOARD_DATA_CONTRACT.md": {
+    "mtime": 1773581434761.3828,
+    "hash": "caf4a947739b37ef85f28d85d1bf59b2"
+  },
+  "productivity/fitness/FITNESS_DASHBOARD_SPEC.md": {
+    "mtime": 1773581434761.4604,
+    "hash": "c9e0f097208ca5da7c322ee2426d8e2c"
+  },
+  "productivity/fitness/FITNESS_KPI_DEFINITIONS.md": {
+    "mtime": 1773581434761.5403,
+    "hash": "1c8466b828c6cdfe1582b0d8666f49c3"
+  },
+  "productivity/fitness/JOE_INTEGRATION_NOTE.md": {
+    "mtime": 1773581434761.6228,
+    "hash": "bf3ea8e6f0f2b1b691bd82b3314c1cf1"
+  },
+  "public/claude_code.webp": {
+    "mtime": 1785796772466.434,
+    "hash": "b47fe8d55ba5569aaeff88b160d17529"
+  },
+  "public/favicon.svg": {
+    "mtime": 1773526919415.726,
+    "hash": "7e840862161341271697daa99a40d76b"
+  },
+  "public/icons.svg": {
+    "mtime": 1773526919415.8652,
+    "hash": "3b4fcfcf393eca4d264dca4a4663bc37"
+  },
+  "src/assets/hero.png": {
+    "mtime": 1773526919416.4312,
+    "hash": "5cf2b0762834cdddc0dd3ec1397b5011"
+  },
+  "src/assets/react.svg": {
+    "mtime": 1773526919416.6848,
+    "hash": "f0402b67b6ce880f65666bb49e841696"
+  },
+  "src/assets/vite.svg": {
+    "mtime": 1773526919416.8186,
+    "hash": "9960a24288958394ac50e57ff638b036"
+  }
+}

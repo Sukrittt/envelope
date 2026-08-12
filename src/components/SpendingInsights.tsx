@@ -122,19 +122,13 @@ function buildHeatmap(expenseRows: Array<{ date: string; amountInr: number; cate
 
 const LEVEL_COLORS = [
   'transparent',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.16)',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.38)',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.62)',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.88)',
+  'var(--erd-chip-active-bg)',
+  'var(--erd-heat-a)',
+  'var(--erd-heat-b)',
+  'var(--gold)',
 ]
 
-const LEGEND_SWATCHES = [
-  'transparent',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.16)',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.38)',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.62)',
-  'rgba(var(--accent-rgb, 88, 130, 255), 0.88)',
-]
+const LEGEND_SWATCHES = LEVEL_COLORS
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -165,7 +159,7 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
   }
 
   return (
-    <article className="mc-panel expense-insights-panel">
+    <article className="erd-insights-panel">
       <div className="mc-panel-header">
         <h3>Insights</h3>
         <div className="si-month-nav">
@@ -177,11 +171,11 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
 
       <div className="si-review">
         <div className="si-review-block">
-          <span className="si-review-label">What went wrong</span>
+          <span className="si-review-label wrong">What went wrong</span>
           <p className="si-review-text">{review.wentWrong}</p>
         </div>
         <div className="si-review-block">
-          <span className="si-review-label">What to do next</span>
+          <span className="si-review-label next">What to do next</span>
           <p className="si-review-text">{review.nextAction}</p>
         </div>
       </div>
@@ -211,7 +205,7 @@ export function SpendingInsights({ envelopes, expenseRows, month, canGoNext, onN
                       }}
                       onMouseLeave={() => setTooltip(null)}
                     >
-                      <span className="si-heatmap-cell-num">{cell.day}</span>
+                      <span className={`si-heatmap-cell-num ${cell.level >= 3 ? 'si-heatmap-cell-num-bright' : ''}`}>{cell.day}</span>
                     </div>
                 ) : (
                   <div key={`empty-${cellIdx}`} className="si-heatmap-cell si-heatmap-cell-empty" />

@@ -42,6 +42,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   )
 
   const isExpenseRoute = pathname.startsWith('/expense') || pathname.startsWith('/investments')
+  // Expense redesign routes carry their own chrome (sidebar, greeting, theme
+  // toggle, mobile tabbar), so skip the legacy mission-control topbar/footer.
+  const isErdRoute = pathname === '/expense' || pathname.startsWith('/expense/')
 
   return (
     <main
@@ -49,54 +52,58 @@ export function AppShell({ children }: { children: ReactNode }) {
     >
       <div className="mc-layout">
         <section className="mc-main">
-          <header className="mc-topbar">
-            <div className="page-context">
-              <h2>{currentMeta.title}</h2>
-              <p>{currentMeta.subtitle}</p>
-            </div>
-            <div className="utility-cluster">
-              <button
-                type="button"
-                className="action-button theme-toggle"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            </div>
-          </header>
+          {!isErdRoute && (
+            <header className="mc-topbar">
+              <div className="page-context">
+                <h2>{currentMeta.title}</h2>
+                <p>{currentMeta.subtitle}</p>
+              </div>
+              <div className="utility-cluster">
+                <button
+                  type="button"
+                  className="action-button theme-toggle"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+              </div>
+            </header>
+          )}
 
           {children}
 
-          <footer className="app-footer">
-            <span>Built by</span>
-            <a
-              href="https://github.com/sukrittt"
-              target="_blank"
-              rel="noreferrer"
-              className="app-footer-link"
-            >
-              <Github size={14} aria-hidden="true" />
-              <span>sukrittt</span>
-            </a>
-            <span>and</span>
-            <a
-              href="https://github.com/anthropics/claude-code"
-              target="_blank"
-              rel="noreferrer"
-              className="app-footer-link"
-            >
-              <img
-                className="app-footer-claude"
-                src="/claude_code.webp"
-                alt=""
-                width={14}
-                height={14}
-                aria-hidden="true"
-              />
-              <span>claude-code</span>
-            </a>
-          </footer>
+          {!isErdRoute && (
+            <footer className="app-footer">
+              <span>Built by</span>
+              <a
+                href="https://github.com/sukrittt"
+                target="_blank"
+                rel="noreferrer"
+                className="app-footer-link"
+              >
+                <Github size={14} aria-hidden="true" />
+                <span>sukrittt</span>
+              </a>
+              <span>and</span>
+              <a
+                href="https://github.com/anthropics/claude-code"
+                target="_blank"
+                rel="noreferrer"
+                className="app-footer-link"
+              >
+                <img
+                  className="app-footer-claude"
+                  src="/claude_code.webp"
+                  alt=""
+                  width={14}
+                  height={14}
+                  aria-hidden="true"
+                />
+                <span>claude-code</span>
+              </a>
+            </footer>
+          )}
         </section>
       </div>
     </main>

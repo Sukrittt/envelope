@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { AnimatePresence } from "motion/react";
+import { useAppearance } from "../../components/AppearanceProvider";
 import { SparkBars } from "../components/SparkBars";
 import { FluidDemo } from "../components/FluidDemo";
 import { ReadyToAssignBanner } from "../components/ReadyToAssignBanner";
@@ -30,25 +32,13 @@ import {
   loadEnvelopeStateForMonth,
 } from "../services/expensePanelLoader";
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
+import { LogExpenseModal } from "../components/LogExpenseModal";
 import type { BudgetRow, Envelope, EnvelopeState } from "../types/expense";
 
 type PeriodKey = "7d" | "30d" | "mtd" | "custom";
 type TrendView = "daily" | "weekly" | "monthly";
 type DrillFilter = { start: string; end: string; parentView: TrendView } | null;
 type ActiveSubscription = ExpensePanelData["subscriptions"]["active"][number];
-
-function formatLastUpdated(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Updated recently";
-
-  const mins = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000));
-  if (mins < 60) return `Updated ${mins}m ago`;
-
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `Updated ${hrs}h ago`;
-
-  return `Updated ${Math.round(hrs / 24)}d ago`;
-}
 
 function toDateInputValue(value: Date): string {
   return value.toISOString().slice(0, 10);
@@ -107,6 +97,8 @@ function weekRangeLabel(startIso: string): string {
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
+  // TESTING ONLY — set true to pin the page on the loading skeleton.
+  const FORCE_LOADING_SKELETON = false;
   const [panel, setPanel] = useState<ExpensePanelData | null>(null);
   // const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>("mtd");
@@ -155,6 +147,9 @@ export function ExpensePage() {
     next_due_date: string;
     notes: string;
   } | null>(null);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [chartType, setChartType] = useState<"area" | "bar">("area");
+  const { theme, setTheme } = useAppearance();
 
   // Restore the "hide amounts" preference after hydration so the server and
   // client render the same initial output (avoids a hydration mismatch).
@@ -835,492 +830,647 @@ export function ExpensePage() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [dailyDetailDate]);
 
-  const stalenessText = panel
-    ? formatLastUpdated(panel.lastUpdated)
-    : "Loading…";
   const categoryScopeLabel = selectedCategories.length
     ? `${selectedCategories.length} selected`
     : "All categories";
 
-  if (!panel) {
+  if (!panel || FORCE_LOADING_SKELETON) {
     return (
-      <section className="expense-view" aria-busy="true" aria-live="polite">
-        <div className="expense-layout">
-          {/* ── Sidebar skeleton ── */}
-          <nav className="expense-sidebar">
-            <div className="expense-sidebar-summary">
+      <section className="expense-redesign" aria-busy="true" aria-live="polite">
+        <header className="erd-mobile-header" aria-hidden="true">
+          <div
+            className="erd-skeleton"
+            style={{ width: "132px", height: "22px", borderRadius: "8px" }}
+          />
+          <div
+            className="erd-skeleton"
+            style={{
+              width: "190px",
+              height: "12px",
+              borderRadius: "6px",
+              marginTop: "12px",
+            }}
+          />
+        </header>
+
+        <div className="erd-mobile-stats" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="erd-mstat">
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "50%", height: "10px" }}
+                className="erd-skeleton"
+                style={{
+                  width: "76px",
+                  height: "10px",
+                  borderRadius: "5px",
+                  display: "block",
+                }}
               />
-              <div className="ess-row">
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "35%", height: "10px" }}
-                />
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "40%", height: "10px" }}
-                />
-              </div>
-              <div className="ess-row">
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "30%", height: "10px" }}
-                />
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "45%", height: "10px" }}
-                />
-              </div>
-              <div className="ess-row">
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "25%", height: "10px" }}
-                />
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "50%", height: "10px" }}
-                />
-              </div>
+              <strong
+                className="erd-skeleton"
+                style={{
+                  width: "96px",
+                  height: "22px",
+                  borderRadius: "7px",
+                  marginTop: "10px",
+                  display: "block",
+                }}
+              />
             </div>
+          ))}
+        </div>
+
+        <div className="erd-main">
+          {/* ── Sidebar skeleton ── */}
+          <nav className="erd-sidebar" aria-hidden="true">
             <div>
-              <div className="expense-sidebar-group-label">Views</div>
-              <div className="expense-sidebar-link is-active">
-                <span className="expense-sidebar-link-icon">◈</span>
-                Dashboard
-              </div>
-              <div className="expense-sidebar-link">
-                <span className="expense-sidebar-link-icon">↕</span>
-                Transactions
-              </div>
+              <div
+                className="erd-skeleton"
+                style={{ width: "120px", height: "22px", borderRadius: "8px" }}
+              />
+              <div
+                className="erd-skeleton"
+                style={{
+                  width: "150px",
+                  height: "12px",
+                  borderRadius: "6px",
+                  marginTop: "10px",
+                }}
+              />
             </div>
-            <div>
-              <div className="expense-sidebar-group-label">Finance</div>
-              <div className="expense-sidebar-link">
-                <span className="expense-sidebar-link-icon">◆</span>
-                Investments
+
+            <div className="erd-summary-box">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="erd-summary-row">
+                  <span
+                    className="erd-skeleton"
+                    style={{
+                      width: "52px",
+                      height: "11px",
+                      borderRadius: "5px",
+                    }}
+                  />
+                  <span
+                    className="erd-skeleton"
+                    style={{
+                      width: "66px",
+                      height: "11px",
+                      borderRadius: "5px",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="erd-nav-group">
+              <div className="erd-nav-label">
+                <span
+                  className="erd-skeleton"
+                  style={{
+                    width: "40px",
+                    height: "9px",
+                    borderRadius: "4px",
+                    display: "block",
+                  }}
+                />
               </div>
+              {[0, 1].map((i) => (
+                <div key={i} className="erd-nav-item">
+                  <span className="erd-nav-dot erd-skeleton" />
+                  <span
+                    className="erd-skeleton"
+                    style={{
+                      width: "88px",
+                      height: "12px",
+                      borderRadius: "6px",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="erd-nav-group">
+              <div className="erd-nav-label">
+                <span
+                  className="erd-skeleton"
+                  style={{
+                    width: "64px",
+                    height: "9px",
+                    borderRadius: "4px",
+                    display: "block",
+                  }}
+                />
+              </div>
+              {[0, 1].map((i) => (
+                <div key={i} className="erd-nav-item">
+                  <span className="erd-nav-dot erd-skeleton" />
+                  <span
+                    className="erd-skeleton"
+                    style={{
+                      width: "80px",
+                      height: "12px",
+                      borderRadius: "6px",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="erd-sidebar-foot">
+              <span
+                className="erd-skeleton"
+                style={{
+                  width: "140px",
+                  height: "10px",
+                  borderRadius: "5px",
+                  display: "block",
+                }}
+              />
             </div>
           </nav>
 
           {/* ── Main content skeleton ── */}
-          <div className="expense-main">
-            <div className="expense-tab-content">
-              {/* RTA Banner skeleton */}
-              <div className="rta-banner rta-zero" aria-hidden="true">
-                <div className="rta-main">
-                  <div className="rta-text-block">
-                    <LoadingCaption className="loading-caption-inline" />
+          <div className="erd-content">
+            {/* RTA hero + income card */}
+            <div className="erd-hero-row">
+              <div className="erd-card erd-rta-hero">
+                <LoadingCaption className="loading-caption-inline" />
+                <div
+                  className="erd-skeleton"
+                  style={{
+                    width: "210px",
+                    height: "46px",
+                    borderRadius: "12px",
+                    marginTop: "10px",
+                  }}
+                />
+                <div
+                  className="erd-skeleton"
+                  style={{
+                    width: "100%",
+                    height: "8px",
+                    borderRadius: "100px",
+                    marginTop: "20px",
+                  }}
+                />
+                <div
+                  className="erd-skeleton"
+                  style={{
+                    width: "56%",
+                    height: "12px",
+                    borderRadius: "6px",
+                    marginTop: "14px",
+                  }}
+                />
+              </div>
+
+              <div className="erd-card erd-income-card">
+                <div>
+                  <div
+                    className="erd-skeleton"
+                    style={{
+                      width: "72px",
+                      height: "11px",
+                      borderRadius: "5px",
+                    }}
+                  />
+                  <div
+                    className="erd-skeleton"
+                    style={{
+                      width: "130px",
+                      height: "20px",
+                      borderRadius: "7px",
+                      marginTop: "6px",
+                    }}
+                  />
+                </div>
+                <div className="erd-income-spark" aria-hidden="true">
+                  {[6, 10, 8, 14, 9, 12, 16, 11].map((h, i) => (
                     <span
-                      className="expense-skeleton expense-skeleton-line"
+                      key={i}
+                      className="erd-skeleton"
                       style={{
-                        width: "140px",
-                        height: "22px",
+                        width: "4px",
+                        height: `${h}px`,
                         borderRadius: "4px",
                       }}
                     />
+                  ))}
+                </div>
+                <div className="erd-card-divider" />
+                {[0, 1].map((i) => (
+                  <div key={i} className="erd-income-row">
+                    <span
+                      className="erd-skeleton"
+                      style={{
+                        width: i === 0 ? "48px" : "60px",
+                        height: "11px",
+                        borderRadius: "5px",
+                      }}
+                    />
+                    <span
+                      className="erd-skeleton"
+                      style={{
+                        width: "72px",
+                        height: "11px",
+                        borderRadius: "5px",
+                      }}
+                    />
                   </div>
-                  <div
-                    className="rta-spark"
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-end",
-                      gap: "3px",
-                    }}
-                  >
-                    {[8, 14, 6, 18, 10, 12, 16].map((h, i) => (
-                      <span
-                        key={i}
-                        className="expense-skeleton"
+                ))}
+              </div>
+            </div>
+
+            {/* Scope bar */}
+            <section className="erd-card erd-scopebar" aria-hidden="true">
+              {[
+                "Last 7 days",
+                "Last 30 days",
+                "Month to date",
+                "Custom range",
+              ].map((label) => (
+                <span
+                  key={label}
+                  className="erd-skeleton"
+                  style={{
+                    width: "92px",
+                    height: "32px",
+                    borderRadius: "100px",
+                  }}
+                />
+              ))}
+              <div className="erd-scope-spacer" />
+              <div className="erd-scope-meta">
+                <span
+                  className="erd-skeleton"
+                  style={{
+                    width: "110px",
+                    height: "11px",
+                    borderRadius: "5px",
+                  }}
+                />
+                <span
+                  className="erd-skeleton"
+                  style={{
+                    width: "86px",
+                    height: "30px",
+                    borderRadius: "100px",
+                  }}
+                />
+                <span
+                  className="erd-skeleton"
+                  style={{
+                    width: "112px",
+                    height: "36px",
+                    borderRadius: "100px",
+                  }}
+                />
+              </div>
+            </section>
+
+            <div className="expense-grid-xman">
+              {/* Spending trend */}
+              <article className="erd-card erd-trend-panel">
+                <div className="erd-panel-head">
+                  <div className="erd-panel-title">
+                    <div>
+                      <div
+                        className="erd-skeleton"
                         style={{
-                          width: "6px",
-                          height: `${h}px`,
-                          borderRadius: "2px",
+                          width: "130px",
+                          height: "18px",
+                          borderRadius: "7px",
                         }}
                       />
-                    ))}
-                  </div>
-                </div>
-                <div className="rta-breakdown">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="rta-item">
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "55px", height: "10px" }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "70px", height: "12px" }}
+                      <div
+                        className="erd-skeleton"
+                        style={{
+                          width: "160px",
+                          height: "12px",
+                          borderRadius: "6px",
+                          marginTop: "6px",
+                        }}
                       />
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Scope bar skeleton */}
-              <section
-                className="mc-filterbar expense-scopebar"
-                aria-hidden="true"
-                style={{ marginTop: "0" }}
-              >
-                <div
-                  className="scope-group"
-                  style={{ display: "flex", gap: "6px" }}
-                >
-                  {[
-                    "Last 7 days",
-                    "Last 30 days",
-                    "Month to date",
-                    "Custom range",
-                  ].map((label) => (
-                    <span
-                      key={label}
-                      className="action-button"
-                      style={{ opacity: 0.4, pointerEvents: "none" }}
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-                <div className="scope-meta-inline" style={{ opacity: 0.4 }}>
-                  <span
-                    className="expense-skeleton expense-skeleton-line"
-                    style={{ width: "90px", height: "10px" }}
-                  />
-                  <span
-                    className="expense-skeleton expense-skeleton-line"
-                    style={{ width: "100px", height: "10px" }}
-                  />
-                </div>
-              </section>
-
-              {/* Main grid skeleton */}
-              <section className="expense-grid-xman" aria-hidden="true">
-                {/* Spending trend panel (full width) */}
-                <article className="mc-panel expense-trend-panel">
-                  <div className="mc-panel-header">
-                    <span
-                      className="expense-skeleton expense-skeleton-line"
-                      style={{ width: "120px", height: "14px" }}
-                    />
-                    <div style={{ display: "flex", gap: "4px" }}>
-                      {["Daily", "Weekly", "Monthly"].map((l) => (
+                  </div>
+                  <div className="erd-panel-tools">
+                    {["Area", "Bars", "Daily", "Weekly", "Monthly"].map(
+                      (label) => (
                         <span
-                          key={l}
-                          className="expense-skeleton expense-skeleton-line"
+                          key={label}
+                          className="erd-skeleton"
                           style={{
-                            width: "52px",
-                            height: "26px",
-                            borderRadius: "6px",
+                            width: "54px",
+                            height: "30px",
+                            borderRadius: "100px",
                           }}
                         />
-                      ))}
-                    </div>
+                      ),
+                    )}
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-end",
-                      gap: "6px",
-                      height: "300px",
-                      padding: "8px 0",
-                    }}
-                  >
-                    {[45, 70, 35, 90, 55, 80, 40].map((h, i) => (
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: "6px",
+                    height: "260px",
+                    padding: "16px 0 8px",
+                  }}
+                >
+                  {[45, 70, 35, 90, 55, 80, 40, 62, 48, 76, 30, 68].map(
+                    (h, i) => (
                       <span
                         key={i}
-                        className="expense-skeleton"
+                        className="erd-skeleton"
                         style={{
                           flex: 1,
                           height: `${h}%`,
-                          borderRadius: "4px 4px 0 0",
+                          borderRadius: "8px 8px 0 0",
                         }}
                       />
-                    ))}
-                  </div>
-                </article>
+                    ),
+                  )}
+                </div>
+              </article>
 
-                {/* Envelopes panel (full width) */}
-                <article
-                  className="mc-panel expense-envelope-panel"
-                  style={{ maxHeight: "320px" }}
-                >
-                  <div
-                    className="mc-panel-header"
-                    style={{
-                      flexDirection: "column",
-                      alignItems: "stretch",
-                      gap: "8px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
+              {/* Envelopes */}
+              <article className="erd-card erd-envelopes-panel">
+                <div className="erd-panel-head">
+                  <div className="erd-panel-title">
+                    <div>
                       <div
+                        className="erd-skeleton"
                         style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "4px",
-                        }}
-                      >
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "90px", height: "14px" }}
-                        />
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "140px", height: "10px" }}
-                        />
-                      </div>
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{
-                          width: "60px",
-                          height: "26px",
-                          borderRadius: "6px",
+                          width: "96px",
+                          height: "18px",
+                          borderRadius: "7px",
                         }}
                       />
-                    </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{
-                          width: "200px",
-                          height: "28px",
-                          borderRadius: "6px",
-                        }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
+                      <div
+                        className="erd-skeleton"
                         style={{
                           width: "150px",
-                          height: "28px",
+                          height: "12px",
                           borderRadius: "6px",
+                          marginTop: "6px",
                         }}
                       />
                     </div>
                   </div>
-                  {[0, 1, 2, 3, 4].map((i) => (
+                  <span
+                    className="erd-skeleton"
+                    style={{
+                      width: "66px",
+                      height: "30px",
+                      borderRadius: "100px",
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "center",
+                    marginTop: "10px",
+                  }}
+                >
+                  <span
+                    className="erd-skeleton"
+                    style={{
+                      width: "220px",
+                      height: "34px",
+                      borderRadius: "100px",
+                    }}
+                  />
+                  <span
+                    className="erd-skeleton"
+                    style={{
+                      width: "150px",
+                      height: "34px",
+                      borderRadius: "100px",
+                    }}
+                  />
+                </div>
+                <div className="erd-table-wrap">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "12px",
-                        padding: "6px 0",
+                        gap: "14px",
+                        padding: "13px 0",
+                        borderBottom: "1px solid var(--erd-border)",
                       }}
                     >
                       <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "120px", height: "12px" }}
+                        className="erd-skeleton"
+                        style={{
+                          width: "110px",
+                          height: "12px",
+                          borderRadius: "6px",
+                        }}
                       />
                       <span
-                        className="expense-skeleton"
-                        style={{ flex: 1, height: "6px", borderRadius: "3px" }}
+                        className="erd-skeleton"
+                        style={{
+                          flex: 1,
+                          maxWidth: "220px",
+                          height: "6px",
+                          borderRadius: "100px",
+                        }}
                       />
                       <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "70px", height: "12px" }}
+                        className="erd-skeleton"
+                        style={{
+                          width: "62px",
+                          height: "12px",
+                          borderRadius: "6px",
+                        }}
+                      />
+                      <span
+                        className="erd-skeleton"
+                        style={{
+                          width: "62px",
+                          height: "12px",
+                          borderRadius: "6px",
+                        }}
                       />
                     </div>
                   ))}
-                </article>
+                </div>
+              </article>
 
-                {/* Insights panel (col 1) */}
-                <article className="mc-panel expense-insights-panel">
-                  <div className="mc-panel-header">
-                    <span
-                      className="expense-skeleton expense-skeleton-line"
-                      style={{ width: "70px", height: "14px" }}
-                    />
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "6px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        className="expense-skeleton"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "4px",
-                        }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "70px", height: "12px" }}
-                      />
-                      <span
-                        className="expense-skeleton"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    </div>
-                  </div>
+              {/* Insights + subscriptions */}
+              <div className="erd-bottom-row">
+                <section className="erd-card erd-insights-panel">
+                  <div
+                    className="erd-skeleton"
+                    style={{
+                      width: "84px",
+                      height: "18px",
+                      borderRadius: "7px",
+                    }}
+                  />
                   <div
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      gap: "10px",
-                      padding: "4px 0",
+                      gap: "12px",
+                      marginTop: "16px",
                     }}
                   >
-                    <div>
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{
-                          width: "100px",
-                          height: "10px",
-                          marginBottom: "6px",
-                        }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "100%", height: "10px" }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{
-                          width: "80%",
-                          height: "10px",
-                          marginTop: "4px",
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{
-                          width: "110px",
-                          height: "10px",
-                          marginBottom: "6px",
-                        }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "95%", height: "10px" }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{
-                          width: "70%",
-                          height: "10px",
-                          marginTop: "4px",
-                        }}
-                      />
-                    </div>
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i}>
+                        <div
+                          className="erd-skeleton"
+                          style={{
+                            width: "40%",
+                            height: "10px",
+                            borderRadius: "5px",
+                          }}
+                        />
+                        <div
+                          className="erd-skeleton"
+                          style={{
+                            width: "100%",
+                            height: "10px",
+                            borderRadius: "5px",
+                            marginTop: "6px",
+                          }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                  {/* Heatmap grid skeleton */}
                   <div
                     style={{
                       display: "grid",
                       gridTemplateColumns: "repeat(7, 1fr)",
-                      gap: "3px",
-                      padding: "8px 0",
+                      gap: "4px",
+                      marginTop: "18px",
                     }}
                   >
-                    {Array.from({ length: 35 }).map((_, i) => (
+                    {Array.from({ length: 28 }).map((_, i) => (
                       <span
                         key={i}
-                        className="expense-skeleton"
-                        style={{
-                          width: "100%",
-                          aspectRatio: "1",
-                          borderRadius: "3px",
-                        }}
+                        className="erd-skeleton"
+                        style={{ aspectRatio: "1", borderRadius: "6px" }}
                       />
                     ))}
                   </div>
-                </article>
+                </section>
 
-                {/* Subscriptions panel (col 2) */}
-                <article className="mc-panel expense-subscriptions-panel">
-                  <div className="mc-panel-header">
+                <article className="erd-card erd-subs-panel">
+                  <div className="erd-panel-head">
+                    <div className="erd-panel-title">
+                      <div>
+                        <div
+                          className="erd-skeleton"
+                          style={{
+                            width: "112px",
+                            height: "18px",
+                            borderRadius: "7px",
+                          }}
+                        />
+                        <div
+                          className="erd-skeleton"
+                          style={{
+                            width: "150px",
+                            height: "12px",
+                            borderRadius: "6px",
+                            marginTop: "6px",
+                          }}
+                        />
+                      </div>
+                    </div>
                     <span
-                      className="expense-skeleton expense-skeleton-line"
-                      style={{ width: "100px", height: "14px" }}
-                    />
-                    <span
-                      className="expense-skeleton expense-skeleton-line"
+                      className="erd-skeleton"
                       style={{
-                        width: "45px",
-                        height: "24px",
-                        borderRadius: "6px",
+                        width: "62px",
+                        height: "30px",
+                        borderRadius: "100px",
                       }}
                     />
                   </div>
                   <div
-                    className="sub-metrics"
-                    style={{ display: "flex", gap: "16px" }}
+                    className="erd-subs-totals"
+                    style={{ marginTop: "12px" }}
                   >
                     {[0, 1, 2].map((i) => (
-                      <div key={i} className="sub-metric">
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "65px", height: "16px" }}
-                        />
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{
-                            width: "30px",
-                            height: "10px",
-                            marginTop: "2px",
-                          }}
-                        />
-                      </div>
+                      <span
+                        key={i}
+                        className="erd-skeleton"
+                        style={{
+                          width: "64px",
+                          height: "12px",
+                          borderRadius: "6px",
+                        }}
+                      />
                     ))}
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "8px",
-                      padding: "8px 0",
-                    }}
-                  >
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                        }}
-                      >
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "80px", height: "10px" }}
-                        />
-                        <span
-                          className="expense-skeleton"
-                          style={{
-                            flex: 1,
-                            height: "6px",
-                            borderRadius: "3px",
-                          }}
-                        />
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "70px", height: "10px" }}
-                        />
+                  <div className="erd-subs-list">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i} className="erd-subs-item">
+                        <div className="erd-subs-item-row">
+                          <span
+                            className="erd-skeleton"
+                            style={{
+                              width: "96px",
+                              height: "12px",
+                              borderRadius: "6px",
+                            }}
+                          />
+                          <span
+                            className="erd-skeleton"
+                            style={{
+                              width: "70px",
+                              height: "12px",
+                              borderRadius: "6px",
+                            }}
+                          />
+                        </div>
+                        <div className="erd-subs-item-track">
+                          <span
+                            className="erd-skeleton"
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              height: "6px",
+                              borderRadius: "100px",
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
                 </article>
-              </section>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* ── Mobile tabbar skeleton ── */}
+        <nav className="erd-tabbar" aria-label="Primary" aria-hidden="true">
+          {["🏠", "🧾"].map((icon) => (
+            <span key={icon} className="erd-tab">
+              <span aria-hidden="true">{icon}</span>
+              <span
+                className="erd-skeleton"
+                style={{ width: "34px", height: "8px", borderRadius: "4px" }}
+              />
+            </span>
+          ))}
+          <span className="erd-tab-fab erd-skeleton" aria-hidden="true" />
+          {["🧺", "⚙️"].map((icon) => (
+            <span key={icon} className="erd-tab">
+              <span aria-hidden="true">{icon}</span>
+              <span
+                className="erd-skeleton"
+                style={{ width: "34px", height: "8px", borderRadius: "4px" }}
+              />
+            </span>
+          ))}
+        </nav>
       </section>
     );
   }
@@ -1411,13 +1561,60 @@ export function ExpensePage() {
   }
 
   function handleShowCategories() {
-    const el = document.querySelector(".expense-envelope-panel");
+    const el = document.querySelector(".erd-envelopes-panel");
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  const overspentCount =
+    envelopeState?.envelopes.filter((e) => e.isOverspent).length ?? 0;
+
   return (
-    <section className="expense-view">
-      <div className="expense-layout">
+    <section className="expense-redesign">
+      <button
+        type="button"
+        className="erd-theme-toggle"
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        aria-label="Toggle theme"
+      >
+        {theme === "dark" ? "☀️" : "🌙"}
+      </button>
+
+      <header className="erd-mobile-header">
+        <div className="erd-mobile-greet">
+          Hey Sukrit <span>👋</span>
+        </div>
+        <div className="erd-mobile-sub">
+          <span>
+            {panel.month}
+            {envelopeState
+              ? ` · Income ${formatCurrency(envelopeState.income)}`
+              : ""}
+          </span>
+          <span className="erd-mobile-rta">
+            RTA{" "}
+            {envelopeState ? formatCurrency(envelopeState.readyToAssign) : "…"}
+          </span>
+        </div>
+      </header>
+
+      {envelopeState && (
+        <div className="erd-mobile-stats">
+          <div className="erd-mstat erd-mstat-rta">
+            <span>Ready to assign</span>
+            <strong>{formatCurrency(envelopeState.readyToAssign)}</strong>
+          </div>
+          <div className="erd-mstat">
+            <span>Income</span>
+            <strong>{formatCurrency(envelopeState.income)}</strong>
+          </div>
+          <div className={`erd-mstat ${overspentCount > 0 ? "is-neg" : ""}`}>
+            <span>Overspent</span>
+            <strong>{overspentCount}</strong>
+          </div>
+        </div>
+      )}
+
+      <div className="erd-main">
         <ExpenseSidebar
           onMoveMoney={handleSidebarMoveMoney}
           onShowCategories={handleShowCategories}
@@ -1426,9 +1623,9 @@ export function ExpensePage() {
           income={envelopeState?.income}
           totalSpent={envelopeState?.totalSpent}
         />
-        <div className="expense-main">
-          <div className="expense-tab-content">
-            {envelopeState && (
+        <div className="erd-content">
+          {envelopeState && (
+            <div className="erd-hero-row">
               <ReadyToAssignBanner
                 income={envelopeState.income}
                 totalAssigned={envelopeState.totalAssigned}
@@ -1436,143 +1633,139 @@ export function ExpensePage() {
                 isOverAssigned={envelopeState.isOverAssigned}
                 onIncomeChange={handleIncomeChange}
                 sparkData={panel.miniTrend.slice(-7)}
-                overspentCount={
-                  envelopeState.envelopes.filter((e) => e.isOverspent).length
-                }
+                overspentCount={overspentCount}
                 totalEnvelopes={envelopeState.envelopes.length}
               />
-            )}
+            </div>
+          )}
 
-            {showRolloverBanner && rolloverData && (
-              <MonthRolloverBanner
-                currentMonth={panel.month}
-                lastMonth={rolloverData.lastMonth}
-                lastIncome={rolloverData.lastIncome}
-                lastAssignments={rolloverData.lastAssignments}
-                onConfirm={handleRolloverConfirm}
-                onDismiss={handleRolloverDismiss}
-              />
-            )}
+          {showRolloverBanner && rolloverData && (
+            <MonthRolloverBanner
+              currentMonth={panel.month}
+              lastMonth={rolloverData.lastMonth}
+              lastIncome={rolloverData.lastIncome}
+              lastAssignments={rolloverData.lastAssignments}
+              onConfirm={handleRolloverConfirm}
+              onDismiss={handleRolloverDismiss}
+            />
+          )}
 
-            <section
-              className="mc-filterbar expense-scopebar"
-              aria-label="Scope bar"
-            >
-              <div
-                className="scope-group"
-                role="group"
-                aria-label="Period selector"
-              >
-                <div
-                  className="mc-filter-chips"
-                  role="tablist"
-                  aria-label="Period presets"
+          <section className="erd-card erd-scopebar" aria-label="Scope bar">
+            <div role="group" aria-label="Period selector">
+              <div role="tablist" aria-label="Period presets">
+                <button
+                  type="button"
+                  className={`erd-pill ${period === "7d" ? "is-active" : ""}`}
+                  onClick={() => setPeriod("7d")}
                 >
-                  <button
-                    type="button"
-                    className={`action-button ${period === "7d" ? "is-active" : ""}`}
-                    onClick={() => setPeriod("7d")}
-                  >
-                    Last 7 days
-                  </button>
-                  <button
-                    type="button"
-                    className={`action-button ${period === "30d" ? "is-active" : ""}`}
-                    onClick={() => setPeriod("30d")}
-                  >
-                    Last 30 days
-                  </button>
-                  <button
-                    type="button"
-                    className={`action-button ${period === "mtd" ? "is-active" : ""}`}
-                    onClick={() => setPeriod("mtd")}
-                  >
-                    Month to date
-                  </button>
-                  <button
-                    type="button"
-                    className={`action-button ${period === "custom" ? "is-active" : ""}`}
-                    onClick={() => setPeriod("custom")}
-                  >
-                    Custom range
-                  </button>
-                </div>
+                  Last 7 days
+                </button>
+                <button
+                  type="button"
+                  className={`erd-pill ${period === "30d" ? "is-active" : ""}`}
+                  onClick={() => setPeriod("30d")}
+                >
+                  Last 30 days
+                </button>
+                <button
+                  type="button"
+                  className={`erd-pill ${period === "mtd" ? "is-active" : ""}`}
+                  onClick={() => setPeriod("mtd")}
+                >
+                  Month to date
+                </button>
+                <button
+                  type="button"
+                  className={`erd-pill ${period === "custom" ? "is-active" : ""}`}
+                  onClick={() => setPeriod("custom")}
+                >
+                  Custom range
+                </button>
               </div>
+            </div>
 
-              {period === "custom" ? (
-                <div className="scope-group custom-dates">
-                  <label>
-                    <input
-                      type="date"
-                      value={customStart}
-                      onChange={(event) => setCustomStart(event.target.value)}
-                      aria-label="Custom start date"
-                    />
-                  </label>
-                  <label>
-                    <input
-                      type="date"
-                      value={customEnd}
-                      onChange={(event) => setCustomEnd(event.target.value)}
-                      aria-label="Custom end date"
-                    />
-                  </label>
-                </div>
-              ) : null}
+            {period === "custom" ? (
+              <div className="erd-custom-dates">
+                <label>
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={(event) => setCustomStart(event.target.value)}
+                    aria-label="Custom start date"
+                  />
+                </label>
+                <label>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    onChange={(event) => setCustomEnd(event.target.value)}
+                    aria-label="Custom end date"
+                  />
+                </label>
+              </div>
+            ) : null}
 
-              <div className="scope-meta-inline" aria-label="Scope status">
-                <span>{stalenessText}</span>
-                <span className="scope-inline-category">
-                  <div className="category-dropdown category-dropdown--inline">
+            <div className="erd-scope-spacer" />
+
+            <div className="erd-scope-meta" aria-label="Scope status">
+              <span
+                className="category-trigger"
+                onClick={() => setIsCategoryMenuOpen((open) => !open)}
+                ref={categoryTriggerRef}
+              >
+                <span>{categoryScopeLabel}</span>
+                <span aria-hidden="true">▾</span>
+              </span>
+              <button
+                type="button"
+                className="erd-log-btn"
+                onClick={() => setShowLogModal(true)}
+              >
+                + Log expense
+              </button>
+            </div>
+          </section>
+
+          <div className="expense-grid-xman">
+            <article className="erd-card erd-trend-panel">
+              <div className="erd-panel-head">
+                <div className="erd-panel-title">
+                  {drillFilter && (
                     <button
                       type="button"
-                      className="action-button category-trigger"
-                      onClick={() => setIsCategoryMenuOpen((open) => !open)}
-                      aria-haspopup="menu"
-                      aria-expanded={isCategoryMenuOpen}
-                      ref={categoryTriggerRef}
+                      className="erd-drill-back"
+                      onClick={handleDrillBack}
                     >
-                      <span>{categoryScopeLabel}</span>
-                      <span aria-hidden="true">▾</span>
+                      ← Back
                     </button>
-                  </div>
-                </span>
-              </div>
-            </section>
-
-            <section className="expense-grid-xman">
-              <article className="mc-panel expense-trend-panel">
-                <div className="mc-panel-header">
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    {drillFilter && (
-                      <button
-                        type="button"
-                        className="action-button is-ghost"
-                        onClick={handleDrillBack}
-                      >
-                        ← Back
-                      </button>
-                    )}
+                  )}
+                  <div>
                     <h3>Spending trend</h3>
+                    <p>How money flows, day by day</p>
+                  </div>
+                  <span className="erd-live-badge">● Live</span>
+                </div>
+                <div className="erd-panel-tools">
+                  <div className="erd-chart-toggle">
                     <button
                       type="button"
-                      className="action-button is-ghost is-small"
-                      onClick={() => setShowFluidDemo(!showFluidDemo)}
-                      style={{ marginLeft: 'auto', marginRight: '8px' }}
+                      className={chartType === "area" ? "is-active" : ""}
+                      onClick={() => setChartType("area")}
                     >
-                      🎨 Fluid Demo
+                      Area
+                    </button>
+                    <button
+                      type="button"
+                      className={chartType === "bar" ? "is-active" : ""}
+                      onClick={() => setChartType("bar")}
+                    >
+                      Bars
                     </button>
                   </div>
-                  <div className="segmented-control trend-toggle">
+                  <div className="erd-chart-toggle">
                     <button
                       type="button"
-                      className={`action-button ${trendView === "daily" ? "is-active" : ""}`}
+                      className={trendView === "daily" ? "is-active" : ""}
                       onClick={() => {
                         setTrendView("daily");
                         setDrillFilter(null);
@@ -1582,7 +1775,7 @@ export function ExpensePage() {
                     </button>
                     <button
                       type="button"
-                      className={`action-button ${trendView === "weekly" ? "is-active" : ""}`}
+                      className={trendView === "weekly" ? "is-active" : ""}
                       onClick={() => {
                         setTrendView("weekly");
                         setDrillFilter(null);
@@ -1592,7 +1785,7 @@ export function ExpensePage() {
                     </button>
                     <button
                       type="button"
-                      className={`action-button ${trendView === "monthly" ? "is-active" : ""}`}
+                      className={trendView === "monthly" ? "is-active" : ""}
                       onClick={() => {
                         setTrendView("monthly");
                         setDrillFilter(null);
@@ -1602,19 +1795,21 @@ export function ExpensePage() {
                     </button>
                   </div>
                 </div>
-                <SparkBars
-                  data={trendSeries}
-                  size="expanded"
-                  formatValue={(value) =>
-                    hideAmounts ? "---" : formatCurrency(value)
-                  }
-                  capOutliers
-                  onBarClick={
-                    trendView === "daily" ? handleDailyBarClick : handleBarClick
-                  }
-                  enableFluidInteractions
-                />
-                <AnimatePresence>
+              </div>
+              <SparkBars
+                data={trendSeries}
+                size="expanded"
+                variant={chartType}
+                formatValue={(value) =>
+                  hideAmounts ? "---" : formatCurrency(value)
+                }
+                capOutliers
+                onBarClick={
+                  trendView === "daily" ? handleDailyBarClick : handleBarClick
+                }
+                enableFluidInteractions
+              />
+              <AnimatePresence>
                 {dailyDetailDate &&
                   createPortal(
                     <Scrim
@@ -1712,75 +1907,58 @@ export function ExpensePage() {
                     </Scrim>,
                     document.body,
                   )}
-                </AnimatePresence>
-              </article>
+              </AnimatePresence>
+            </article>
 
-              <article className="mc-panel expense-envelope-panel">
-                <div
-                  className="mc-panel-header"
-                  style={{
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    gap: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div>
-                      <h3>Envelopes</h3>
-                      <p>Assigned · Spent · Available</p>
-                    </div>
-                    <button
-                      type="button"
-                      className="env-manage-btn"
-                      onClick={() => setShowCategoryManager(true)}
-                    >
-                      Manage
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      alignItems: "center",
-                    }}
-                  >
-                    <input
-                      type="search"
-                      className="search-input"
-                      placeholder="Search categories or groups…"
-                      value={envelopeSearch}
-                      onChange={(e) => setEnvelopeSearch(e.target.value)}
-                      style={{
-                        width: "200px",
-                        minHeight: "28px",
-                        fontSize: "var(--fs-12)",
-                      }}
-                    />
-                    <select
-                      value={envelopeSort}
-                      onChange={(e) =>
-                        setEnvelopeSort(e.target.value as typeof envelopeSort)
-                      }
-                      style={{
-                        minWidth: "150px",
-                        minHeight: "28px",
-                        fontSize: "var(--fs-12)",
-                      }}
-                    >
-                      <option value="custom">Custom order</option>
-                      <option value="overspent-first">Overspent first</option>
-                      <option value="alphabetical">Alphabetical</option>
-                      <option value="by-assigned">By assigned amount</option>
-                    </select>
+            <article className="erd-card erd-envelopes-panel">
+              <div className="erd-panel-head">
+                <div className="erd-panel-title">
+                  <div>
+                    <h3>Envelopes</h3>
+                    <p className="erd-panel-head-sub">
+                      Assigned · Spent · Available
+                    </p>
                   </div>
                 </div>
-                {envelopeState && (
+                <button
+                  type="button"
+                  className="erd-manage-btn"
+                  onClick={() => setShowCategoryManager(true)}
+                >
+                  Manage
+                </button>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  alignItems: "center",
+                }}
+              >
+                <input
+                  type="search"
+                  className="erd-search-input"
+                  placeholder="Search categories or groups…"
+                  value={envelopeSearch}
+                  onChange={(e) => setEnvelopeSearch(e.target.value)}
+                  style={{ width: "220px", marginTop: 0 }}
+                />
+                <select
+                  value={envelopeSort}
+                  onChange={(e) =>
+                    setEnvelopeSort(e.target.value as typeof envelopeSort)
+                  }
+                  className="erd-search-input"
+                  style={{ width: "auto", marginTop: 0 }}
+                >
+                  <option value="custom">Custom order</option>
+                  <option value="overspent-first">Overspent first</option>
+                  <option value="alphabetical">Alphabetical</option>
+                  <option value="by-assigned">By assigned amount</option>
+                </select>
+              </div>
+              {envelopeState && (
+                <div className="erd-table-wrap">
                   <EnvelopeGrid
                     envelopes={envelopeState.envelopes}
                     groups={envelopeState.groups}
@@ -1793,28 +1971,40 @@ export function ExpensePage() {
                     onSetAssigned={handleSetAssigned}
                     onPayCreditCard={handlePayCreditCard}
                   />
-                )}
-              </article>
+                </div>
+              )}
+            </article>
 
-              <SpendingInsights
-                envelopes={insightEnvelopes ?? envelopeState?.envelopes ?? []}
-                expenseRows={panel.expenseRows}
-                month={insightMonth ?? panel.month}
-                canGoNext={
-                  (insightMonth ??
-                    envelopeState?.month ??
-                    new Date().toISOString().slice(0, 7)) <
-                  (envelopeState?.month ?? new Date().toISOString().slice(0, 7))
-                }
-                onNavigate={handleInsightNavigate}
-              />
+            <div className="erd-bottom-row">
+              <section className="erd-card erd-insights-panel">
+                <SpendingInsights
+                  envelopes={insightEnvelopes ?? envelopeState?.envelopes ?? []}
+                  expenseRows={panel.expenseRows}
+                  month={insightMonth ?? panel.month}
+                  canGoNext={
+                    (insightMonth ??
+                      envelopeState?.month ??
+                      new Date().toISOString().slice(0, 7)) <
+                    (envelopeState?.month ??
+                      new Date().toISOString().slice(0, 7))
+                  }
+                  onNavigate={handleInsightNavigate}
+                />
+              </section>
 
-              <article className="mc-panel expense-subscriptions-panel">
-                <div className="mc-panel-header">
-                  <h3>Subscriptions</h3>
+              <article className="erd-card erd-subs-panel">
+                <div className="erd-panel-head">
+                  <div className="erd-panel-title">
+                    <div>
+                      <h3>Subscriptions</h3>
+                      <p className="erd-panel-head-sub">
+                        Recurring monthly burn
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    className="env-manage-btn"
+                    className="erd-manage-btn"
                     onClick={() => setShowSubModal(true)}
                     title="Add subscription"
                   >
@@ -1952,29 +2142,27 @@ export function ExpensePage() {
 
                   return (
                     <>
-                      <div className="sub-metrics">
-                        <div className="sub-metric">
-                          <span className="sub-metric-value">
+                      <div className="erd-subs-totals">
+                        <span>
+                          <strong>
                             {hideAmounts
                               ? "---"
                               : `~${formatCurrency(totalMonthly)}`}
-                          </span>
-                          <span className="sub-metric-label">/mo</span>
-                        </div>
-                        <div className="sub-metric">
-                          <span className="sub-metric-value">
-                            {panel.subscriptions.active.length}
-                          </span>
-                          <span className="sub-metric-label">Active</span>
-                        </div>
-                        <div className="sub-metric">
-                          <span className="sub-metric-value">
+                          </strong>{" "}
+                          /mo
+                        </span>
+                        <span>
+                          <strong>{panel.subscriptions.active.length}</strong>{" "}
+                          active
+                        </span>
+                        <span>
+                          <strong>
                             {hideAmounts
                               ? "---"
                               : `~${formatCurrency(totalYearly)}`}
-                          </span>
-                          <span className="sub-metric-label">/yr</span>
-                        </div>
+                          </strong>{" "}
+                          /yr
+                        </span>
                       </div>
 
                       <div className="sub-breakdown">
@@ -2178,9 +2366,10 @@ export function ExpensePage() {
                   );
                 })()}
               </article>
-            </section>
+            </div>
           </div>
-          <AnimatePresence>
+        </div>
+        <AnimatePresence>
           {showCategoryManager && (
             <CategoryManager
               onClose={() => setShowCategoryManager(false)}
@@ -2188,8 +2377,8 @@ export function ExpensePage() {
               envelopes={envelopeState?.envelopes ?? null}
             />
           )}
-          </AnimatePresence>
-          <AnimatePresence>
+        </AnimatePresence>
+        <AnimatePresence>
           {showSubModal && (
             <SubscriptionModal
               onClose={() => {
@@ -2204,8 +2393,8 @@ export function ExpensePage() {
               editData={editSub ?? undefined}
             />
           )}
-          </AnimatePresence>
-          <AnimatePresence>
+        </AnimatePresence>
+        <AnimatePresence>
           {payCreditCardAmount !== null && envelopeState && (
             <Scrim
               className="modal-overlay"
@@ -2248,8 +2437,8 @@ export function ExpensePage() {
               </Sheet>
             </Scrim>
           )}
-          </AnimatePresence>
-          <AnimatePresence>
+        </AnimatePresence>
+        <AnimatePresence>
           {moveMoneyTarget && envelopeState && (
             <MoveMoneyModal
               targetCategory={moveMoneyTarget}
@@ -2337,8 +2526,8 @@ export function ExpensePage() {
               }}
             />
           )}
-          </AnimatePresence>
-          <AnimatePresence>
+        </AnimatePresence>
+        <AnimatePresence>
           {showBulkReturnConfirm &&
             envelopeState &&
             (() => {
@@ -2409,25 +2598,65 @@ export function ExpensePage() {
                 </Scrim>
               );
             })()}
-          </AnimatePresence>
-          {categoryMenu}
-          {showFluidDemo && (
-            <Scrim onClick={() => setShowFluidDemo(false)}>
-              <Sheet>
-                <FluidDemo />
-                <button
-                  type="button"
-                  className="action-button is-ghost"
-                  onClick={() => setShowFluidDemo(false)}
-                  style={{ marginTop: '24px' }}
-                >
-                  Close Demo
-                </button>
-              </Sheet>
-            </Scrim>
-          )}
-        </div>
+        </AnimatePresence>
+        {categoryMenu}
+        {showFluidDemo && (
+          <Scrim onClick={() => setShowFluidDemo(false)}>
+            <Sheet>
+              <FluidDemo />
+              <button
+                type="button"
+                className="action-button is-ghost"
+                onClick={() => setShowFluidDemo(false)}
+                style={{ marginTop: "24px" }}
+              >
+                Close Demo
+              </button>
+            </Sheet>
+          </Scrim>
+        )}
       </div>
+      <nav className="erd-tabbar" aria-label="Primary">
+        <Link href="/expense" className="erd-tab">
+          <span aria-hidden="true">🏠</span>
+          <span>Home</span>
+        </Link>
+        <Link href="/expense/transactions" className="erd-tab">
+          <span aria-hidden="true">🧾</span>
+          <span>Activity</span>
+        </Link>
+        <button
+          type="button"
+          className="erd-tab-fab"
+          onClick={() => setShowLogModal(true)}
+          aria-label="Log expense"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          className="erd-tab"
+          onClick={() => setShowCategoryManager(true)}
+        >
+          <span aria-hidden="true">🧺</span>
+          <span>Envelopes</span>
+        </button>
+        <Link href="/settings" className="erd-tab">
+          <span aria-hidden="true">⚙️</span>
+          <span>More</span>
+        </Link>
+      </nav>
+      {showLogModal && (
+        <LogExpenseModal
+          onClose={() => setShowLogModal(false)}
+          onSaved={refreshPanel}
+          categories={
+            envelopeState?.envelopes
+              .filter((e) => !e.isCreditCardPayment)
+              .map((e) => e.category) ?? []
+          }
+        />
+      )}
     </section>
   );
 }

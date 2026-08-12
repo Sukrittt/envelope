@@ -202,11 +202,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
     return { assigned, spent, available }
   }
 
-  function groupUsed(totals: { assigned: number; spent: number }): string {
-    if (totals.assigned > 0) return `${Math.round((totals.spent / totals.assigned) * 100)}%`
-    return totals.spent > 0 ? '∞' : '—'
-  }
-
   function renderRow(e: Envelope, nested: boolean) {
     const isCC = e.isCreditCardPayment
     const isOverspent = e.isOverspent
@@ -230,15 +225,17 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
               onClick={() => router.push(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
               title={`View ${e.category} transactions`}
             >
-              {e.category}
+              <span>{e.category}</span>
             </button>
           )}
           {!isCC && (
             <div className="env-bar-track">
               <div
-                className={`env-bar-fill ${isOverspent ? 'env-bar-red' : pct > 85 ? 'env-bar-warn' : ''}`}
+                className={`env-bar-fill ${(!e.assigned && !e.spent) ? 'is-done' : isOverspent ? 'is-coral' : pct > 85 ? 'is-warn' : 'is-mint'}`}
                 style={{ width: '100%', transform: `scaleX(${Math.max(0, pct) / 100})` }}
-              />
+              >
+                <span className="env-bar-shimmer" />
+              </div>
             </div>
           )}
         </td>
@@ -342,7 +339,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
           </th>
           <th className="env-th env-th-num">Assigned</th>
           <th className="env-th env-th-num">Spent</th>
-          <th className="env-th env-th-num">Used</th>
           <th className="env-th env-th-num">Available</th>
           <th className="env-th env-th-last">Last spent</th>
           <th className="env-th env-th-action" />
@@ -364,9 +360,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
                 </td>
                 <td className="env-group-cell env-group-num env-cell-assigned">{hideAmounts ? '---' : formatCurrency(totals.assigned)}</td>
                 <td className="env-group-cell env-group-num env-cell-spent">{hideAmounts ? '---' : formatCurrency(totals.spent)}</td>
-                <td className={`env-group-cell env-group-num ${totals.assigned > 0 ? (totals.spent > totals.assigned ? 'env-cell-negative' : 'env-cell-positive') : 'env-cell-muted'}`}>
-                  {groupUsed(totals)}
-                </td>
                 <td className={`env-group-cell env-group-num env-cell-avail ${availableClass}`}>{hideAmounts ? '---' : formatCurrency(totals.available)}</td>
                 <td className="env-group-cell env-group-num env-cell-last">—</td>
                 <td className="env-group-cell env-group-action" />

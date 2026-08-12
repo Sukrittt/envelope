@@ -15,13 +15,6 @@ function formatCurrency(value: number): string {
   return `₹${Math.round(value).toLocaleString("en-IN")}`;
 }
 
-function daysLeftInMonth(): string {
-  const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const left = lastDay - now.getDate();
-  return `${left} day${left !== 1 ? "s" : ""} left`;
-}
-
 export function ExpenseSidebar({
   onMoveMoney,
   onShowCategories,
@@ -34,102 +27,87 @@ export function ExpenseSidebar({
   const access = useAccessMode();
   const isBudget = pathname.startsWith("/expense");
   const isInvestments = pathname === "/investments";
+  const left = income != null && totalSpent != null ? income - totalSpent : null;
 
   return (
-    <nav className="expense-sidebar">
+    <nav className="erd-sidebar">
+      <div>
+        <div className="erd-greeting">
+          Hey Sukrit <span className="erd-wave">👋</span>
+        </div>
+        <div className="erd-sidebar-month">
+          {month ?? ""} · {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+        </div>
+      </div>
+
       {month && (
-        <div className="expense-sidebar-summary">
-          <span className="ess-month">{month}</span>
-          <div className="ess-row">
-            <span className="ess-label">Income</span>
-            <span className="ess-value">
-              {income != null ? formatCurrency(income) : "—"}
-            </span>
+        <div className="erd-summary-box">
+          <div className="erd-summary-row">
+            <span>Income</span>
+            <strong>{income != null ? formatCurrency(income) : "—"}</strong>
           </div>
-          <div className="ess-row">
-            <span className="ess-label">Spent</span>
-            <span className="ess-value">
-              {totalSpent != null ? formatCurrency(totalSpent) : "—"}
-            </span>
+          <div className="erd-summary-row">
+            <span>Spent</span>
+            <strong>{totalSpent != null ? formatCurrency(totalSpent) : "—"}</strong>
           </div>
-          <div className="ess-row">
-            <span className="ess-label">Left</span>
-            <span className="ess-value">{daysLeftInMonth()}</span>
+          <div className="erd-summary-row">
+            <span>Left</span>
+            <strong style={{ color: "var(--mint)" }}>
+              {left != null ? formatCurrency(left) : "—"}
+            </strong>
           </div>
         </div>
       )}
 
-      <div>
-        <div className="expense-sidebar-group-label">Views</div>
+      <div className="erd-nav-group">
+        <div className="erd-nav-label">Views</div>
         <Link
           href="/expense"
-          className={`expense-sidebar-link ${isBudget && pathname === "/expense" ? "is-active" : ""}`}
+          className={`erd-nav-item ${isBudget && pathname === "/expense" ? "is-active" : ""}`}
         >
-          <span className="expense-sidebar-link-icon">◈</span>
+          <span className="erd-nav-dot" />
           Dashboard
         </Link>
         <Link
           href="/expense/transactions"
-          className={`expense-sidebar-link ${pathname === "/expense/transactions" ? "is-active" : ""}`}
+          className={`erd-nav-item ${pathname === "/expense/transactions" ? "is-active" : ""}`}
         >
-          <span className="expense-sidebar-link-icon">↕</span>
+          <span className="erd-nav-dot" />
           Transactions
         </Link>
       </div>
 
-      <div>
-        <div className="expense-sidebar-group-label">Finance</div>
-        <Link
-          href="/investments"
-          className={`expense-sidebar-link ${isInvestments ? "is-active" : ""}`}
-        >
-          <span className="expense-sidebar-link-icon">◆</span>
-          Investments
-        </Link>
-      </div>
-
-      {onMoveMoney && onShowCategories && (
-        <div>
-          <div className="expense-sidebar-group-label">Envelopes</div>
-          <button
-            type="button"
-            className="expense-sidebar-link"
-            onClick={onShowCategories}
-          >
-            <span className="expense-sidebar-link-icon">▤</span>
+      <div className="erd-nav-group">
+        <div className="erd-nav-label">Envelopes</div>
+        {onShowCategories && (
+          <button type="button" className="erd-nav-item" onClick={onShowCategories}>
+            <span className="erd-nav-dot" />
             Categories
           </button>
-          <button
-            type="button"
-            className="expense-sidebar-link"
-            onClick={onMoveMoney}
-          >
-            <span className="expense-sidebar-link-icon">⇄</span>
+        )}
+        {onMoveMoney && (
+          <button type="button" className="erd-nav-item" onClick={onMoveMoney}>
+            <span className="erd-nav-dot" />
             Move money
           </button>
-        </div>
-      )}
-      <div>
-        <div className="expense-sidebar-group-label">Settings</div>
+        )}
+      </div>
+
+      <div className="erd-nav-group">
+        <div className="erd-nav-label">Settings</div>
         {onBulkReturn && (
-          <button
-            type="button"
-            className="expense-sidebar-link"
-            onClick={onBulkReturn}
-          >
-            <span className="expense-sidebar-link-icon">⟲</span>
+          <button type="button" className="erd-nav-item" onClick={onBulkReturn}>
+            <span className="erd-nav-dot" />
             Return all to RTA
           </button>
         )}
-        <button
-          type="button"
-          className="expense-sidebar-link"
-          onClick={clearAccess}
-        >
-          <span className="expense-sidebar-link-icon">⏻</span>
+        <button type="button" className="erd-nav-item" onClick={clearAccess}>
+          <span className="erd-nav-dot" />
           {access === "real" ? "Log out" : "Exit guest mode"}
         </button>
       </div>
+
+      <div className="erd-sidebar-foot">Crafted for Sukrit&apos;s finances</div>
     </nav>
   );
 }
