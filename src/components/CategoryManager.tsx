@@ -325,7 +325,7 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
                                   {groups.map((g) => (
                                     <button key={g} type="button" className={`cm-group-option ${cat.group === g ? 'is-selected' : ''}`}
                                       onClick={() => { setOpenGroupMenu(null); handleSetGroup(cat.name, g) }}>
-                                      {groupIcon(g)} {g}
+                                      {g}
                                     </button>
                                   ))}
                                 </div>

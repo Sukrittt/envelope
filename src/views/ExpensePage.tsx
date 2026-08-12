@@ -803,6 +803,20 @@ export function ExpensePage() {
     }
   }
 
+  function formatDrillRange(start: string, end: string): string {
+    const s = new Date(start);
+    const e = new Date(end);
+    const sameMonth =
+      s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+    if (sameMonth) {
+      const month = e.toLocaleDateString("en-IN", { month: "short" });
+      return `${s.getDate()}–${e.getDate()} ${month}`;
+    }
+    const fmt = (d: Date) =>
+      d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    return `${fmt(s)} – ${fmt(e)}`;
+  }
+
   function handleDailyBarClick(index: number) {
     const entry = trendSeries[index];
     if (!entry) return;
@@ -1733,36 +1747,79 @@ export function ExpensePage() {
                   {drillFilter && (
                     <button
                       type="button"
-                      className="erd-drill-back"
+                      className="erd-title-back"
                       onClick={handleDrillBack}
+                      aria-label="Back to Spending trend"
+                      title="Back"
                     >
-                      ← Back
+                      <svg viewBox="0 0 20 20" fill="none">
+                        <path
+                          d="M12.5 5.5 7 10l5.5 4.5"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </button>
                   )}
                   <div>
-                    <h3>Spending trend</h3>
+                    <h3>
+                      {drillFilter
+                        ? formatDrillRange(drillFilter.start, drillFilter.end)
+                        : "Spending trend"}
+                    </h3>
                     <p>How money flows, day by day</p>
                   </div>
-                  <span className="erd-live-badge">● Live</span>
                 </div>
                 <div className="erd-panel-tools">
-                  <div className="erd-chart-toggle">
+                  <div className="erd-chart-icon-toggle">
                     <button
                       type="button"
-                      className={chartType === "area" ? "is-active" : ""}
+                      className={`erd-chart-icon-btn ${chartType === "area" ? "is-active" : ""}`}
                       onClick={() => setChartType("area")}
+                      aria-label="Area chart"
+                      title="Area"
                     >
-                      Area
+                      <svg viewBox="0 0 16 16" fill="none">
+                        <path
+                          d="M1 10c1.5 0 1.5-4 3-4s1.5 4 3 4 1.5-6 3-6 1.5 6 3 6"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </button>
                     <button
                       type="button"
-                      className={chartType === "bar" ? "is-active" : ""}
+                      className={`erd-chart-icon-btn ${chartType === "bar" ? "is-active" : ""}`}
                       onClick={() => setChartType("bar")}
+                      aria-label="Bar chart"
+                      title="Bars"
                     >
-                      Bars
+                      <svg viewBox="0 0 16 16" fill="none">
+                        <rect
+                          x="4"
+                          y="3"
+                          width="2.6"
+                          height="10"
+                          rx="1.3"
+                          fill="currentColor"
+                        />
+                        <rect
+                          x="9.4"
+                          y="3"
+                          width="2.6"
+                          height="10"
+                          rx="1.3"
+                          fill="currentColor"
+                        />
+                      </svg>
                     </button>
                   </div>
-                  <div className="erd-chart-toggle">
+                  <span className="erd-tools-divider" aria-hidden="true" />
+                  <div className="erd-view-toggle">
                     <button
                       type="button"
                       className={trendView === "daily" ? "is-active" : ""}
@@ -2646,17 +2703,19 @@ export function ExpensePage() {
           <span>More</span>
         </Link>
       </nav>
-      {showLogModal && (
-        <LogExpenseModal
-          onClose={() => setShowLogModal(false)}
-          onSaved={refreshPanel}
-          categories={
-            envelopeState?.envelopes
-              .filter((e) => !e.isCreditCardPayment)
-              .map((e) => e.category) ?? []
-          }
-        />
-      )}
+      <AnimatePresence>
+        {showLogModal && (
+          <LogExpenseModal
+            onClose={() => setShowLogModal(false)}
+            onSaved={refreshPanel}
+            categories={
+              envelopeState?.envelopes
+                .filter((e) => !e.isCreditCardPayment)
+                .map((e) => e.category) ?? []
+            }
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 }

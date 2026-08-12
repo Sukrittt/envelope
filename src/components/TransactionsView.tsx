@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -7,10 +7,10 @@ import {
 } from "../services/expenseTransactions";
 import { getBudgets, updateExpenseCategory, deleteExpense } from "../services/api";
 import { suggestCategory } from "../services/autoCategory";
-import { TransactionEntry } from "./TransactionEntry";
 import { LoadingCaption } from "./LoadingCaption";
-import { Pencil, Trash2 } from "lucide-react";
+import { getCategoryColor } from "../data/categoryColors";
 import { TransactionEditModal } from "./TransactionEditModal";
+import { LogExpenseModal } from "./LogExpenseModal";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -61,7 +61,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 function getCategoryIcon(category: string): string {
   return (
-    CATEGORY_ICONS[category] ?? CATEGORY_ICONS[category.toLowerCase()] ?? "💳"
+    CATEGORY_ICONS[category] ?? CATEGORY_ICONS[category.toLowerCase()] ?? ""
   );
 }
 
@@ -108,6 +108,8 @@ export function TransactionsView({
 }: {
   hideAmounts?: boolean;
 }) {
+  // TESTING ONLY — set true to pin the page on the loading skeleton.
+  const FORCE_LOADING_SKELETON = false;
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +136,24 @@ export function TransactionsView({
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [actionsKey, setActionsKey] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!actionsKey) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        actionsMenuRef.current &&
+        !actionsMenuRef.current.contains(e.target as Node)
+      ) {
+        setActionsKey(null);
+        setDeleteKey(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [actionsKey]);
 
   useEffect(() => {
     Promise.all([
@@ -315,6 +335,7 @@ export function TransactionsView({
     try {
       await deleteExpense(t.timestamp, t.item, t.amountInr);
       setDeleteKey(null);
+      setActionsKey(null);
       await refreshTransactions();
     } catch (err) {
       setDeleteError(
@@ -352,47 +373,48 @@ export function TransactionsView({
     setAutoTagging(false);
   }
 
-  if (loading) {
+  if (loading || FORCE_LOADING_SKELETON) {
     return (
-      <div className="txn-timeline erd-card">
+      <div className="txn-timeline erd-card" aria-busy="true" aria-live="polite">
         {/* Filter bar skeleton */}
         <div className="txn-timeline-filters" aria-hidden="true">
-          <div className="mc-filter-chips" style={{ opacity: 0.4 }}>
+          <div className="mc-filter-chips">
             {["This week", "This month", "Custom"].map((label) => (
               <span
                 key={label}
-                className="action-button"
-                style={{ pointerEvents: "none" }}
-              >
-                {label}
-              </span>
+                className="erd-skeleton"
+                style={{ width: "92px", height: "32px", borderRadius: "100px" }}
+              />
             ))}
           </div>
           <span
-            className="expense-skeleton expense-skeleton-line"
-            style={{ width: "100px", height: "32px", borderRadius: "6px" }}
+            className="erd-skeleton"
+            style={{ width: "100px", height: "32px", borderRadius: "100px" }}
           />
           <span
-            className="expense-skeleton expense-skeleton-line"
-            style={{ width: "180px", height: "32px", borderRadius: "6px" }}
+            className="erd-skeleton"
+            style={{ width: "180px", height: "32px", borderRadius: "8px" }}
           />
           <span
-            className="expense-skeleton expense-skeleton-line"
-            style={{ width: "60px", height: "32px", borderRadius: "6px" }}
+            className="erd-skeleton"
+            style={{ width: "60px", height: "32px", borderRadius: "100px" }}
           />
           <span
-            className="expense-skeleton expense-skeleton-line"
-            style={{ width: "90px", height: "32px", borderRadius: "6px" }}
+            className="erd-skeleton"
+            style={{ width: "90px", height: "32px", borderRadius: "100px" }}
           />
         </div>
 
-        {/* Transaction entry skeleton */}
-        <div style={{ padding: "12px 0" }}>
-          <span
-            className="expense-skeleton expense-skeleton-line"
-            style={{ width: "100%", height: "32px", borderRadius: "8px" }}
-          />
-        </div>
+        {/* Log expense button skeleton */}
+        <span
+          className="erd-skeleton"
+          style={{
+            width: "128px",
+            height: "36px",
+            borderRadius: "100px",
+            marginBottom: "14px",
+          }}
+        />
 
         {/* Loading caption */}
         <LoadingCaption
@@ -403,14 +425,18 @@ export function TransactionsView({
         {/* Timeline skeleton */}
         <div className="txn-timeline-list" aria-hidden="true">
           {/* Column headers */}
-          <div className="txn-timeline-col-headers" style={{ opacity: 0.4 }}>
-            <span />
-            <span className="txn-timeline-col-label">Time</span>
-            <span className="txn-timeline-col-label">Description</span>
-            <span className="txn-timeline-col-label">Category</span>
-            <span className="txn-timeline-col-label txn-timeline-col-label--right">
-              Amount
-            </span>
+          <div className="txn-timeline-col-headers">
+            {["Time", "Description", "Category", "Amount"].map((label) => (
+              <span
+                key={label}
+                className={`erd-skeleton txn-timeline-col-label ${
+                  label === "Amount"
+                    ? "txn-timeline-col-label--right"
+                    : ""
+                }`}
+                style={{ height: "10px", borderRadius: "4px" }}
+              />
+            ))}
           </div>
 
           {/* Date header skeleton */}
@@ -418,38 +444,38 @@ export function TransactionsView({
             <span />
             <span />
             <span
-              className="expense-skeleton expense-skeleton-line"
-              style={{ width: "140px", height: "14px" }}
+              className="erd-skeleton"
+              style={{ width: "140px", height: "14px", borderRadius: "6px" }}
             />
             <span />
             <span
-              className="expense-skeleton expense-skeleton-line"
-              style={{ width: "80px", height: "14px", marginLeft: "auto" }}
+              className="erd-skeleton"
+              style={{ width: "80px", height: "14px", borderRadius: "6px", marginLeft: "auto" }}
             />
           </div>
 
           {/* Transaction row skeletons */}
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="txn-timeline-row" style={{ opacity: 0.6 }}>
+            <div key={i} className="txn-timeline-row">
               <span
-                className="expense-skeleton"
-                style={{ width: "20px", height: "20px", borderRadius: "4px" }}
+                className="erd-skeleton"
+                style={{ width: "20px", height: "20px", borderRadius: "8px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "40px", height: "12px" }}
+                className="erd-skeleton"
+                style={{ width: "40px", height: "12px", borderRadius: "6px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: `${60 + (i % 3) * 20}%`, height: "12px" }}
+                className="erd-skeleton"
+                style={{ width: `${60 + (i % 3) * 20}%`, height: "12px", borderRadius: "6px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "90px", height: "20px", borderRadius: "10px" }}
+                className="erd-skeleton"
+                style={{ width: "90px", height: "20px", borderRadius: "100px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "70px", height: "12px", marginLeft: "auto" }}
+                className="erd-skeleton"
+                style={{ width: "70px", height: "12px", borderRadius: "6px", marginLeft: "auto" }}
               />
             </div>
           ))}
@@ -459,57 +485,53 @@ export function TransactionsView({
             <span />
             <span />
             <span
-              className="expense-skeleton expense-skeleton-line"
-              style={{ width: "120px", height: "14px" }}
+              className="erd-skeleton"
+              style={{ width: "120px", height: "14px", borderRadius: "6px" }}
             />
             <span />
             <span
-              className="expense-skeleton expense-skeleton-line"
-              style={{ width: "80px", height: "14px", marginLeft: "auto" }}
+              className="erd-skeleton"
+              style={{ width: "80px", height: "14px", borderRadius: "6px", marginLeft: "auto" }}
             />
           </div>
 
           {/* More transaction rows */}
           {[...Array(6)].map((_, i) => (
-            <div
-              key={`second-${i}`}
-              className="txn-timeline-row"
-              style={{ opacity: 0.6 }}
-            >
+            <div key={`second-${i}`} className="txn-timeline-row">
               <span
-                className="expense-skeleton"
-                style={{ width: "20px", height: "20px", borderRadius: "4px" }}
+                className="erd-skeleton"
+                style={{ width: "20px", height: "20px", borderRadius: "8px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "40px", height: "12px" }}
+                className="erd-skeleton"
+                style={{ width: "40px", height: "12px", borderRadius: "6px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: `${50 + (i % 4) * 15}%`, height: "12px" }}
+                className="erd-skeleton"
+                style={{ width: `${50 + (i % 4) * 15}%`, height: "12px", borderRadius: "6px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "85px", height: "20px", borderRadius: "10px" }}
+                className="erd-skeleton"
+                style={{ width: "85px", height: "20px", borderRadius: "100px" }}
               />
               <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "70px", height: "12px", marginLeft: "auto" }}
+                className="erd-skeleton"
+                style={{ width: "70px", height: "12px", borderRadius: "6px", marginLeft: "auto" }}
               />
             </div>
           ))}
         </div>
 
         {/* Footer skeleton */}
-        <div className="txn-timeline-footer" style={{ opacity: 0.4 }}>
+        <div className="txn-timeline-footer">
           <span
-            className="expense-skeleton expense-skeleton-line"
-            style={{ width: "120px", height: "12px" }}
+            className="erd-skeleton"
+            style={{ width: "120px", height: "12px", borderRadius: "6px" }}
           />
           <span />
           <span
-            className="expense-skeleton expense-skeleton-line"
-            style={{ width: "100px", height: "12px" }}
+            className="erd-skeleton"
+            style={{ width: "100px", height: "12px", borderRadius: "6px" }}
           />
         </div>
       </div>
@@ -598,7 +620,7 @@ export function TransactionsView({
           Reset
         </button>
 
-        <button
+        {/* <button
           type="button"
           className="action-button"
           disabled={autoTagging}
@@ -606,12 +628,18 @@ export function TransactionsView({
           title="Auto-categorise this month's transactions"
         >
           {autoTagging ? "Tagging…" : "✨ Auto-tag"}
-        </button>
+        </button> */}
       </div>
 
       {deleteError && <p className="txn-entry-error">{deleteError}</p>}
 
-      <TransactionEntry categories={categories} onSaved={refreshTransactions} />
+      <button
+        type="button"
+        className="erd-log-btn"
+        onClick={() => setShowLogModal(true)}
+      >
+        + Log expense
+      </button>
 
       {filtered.length === 0 ? (
         <div className="txn-timeline-empty">
@@ -625,21 +653,10 @@ export function TransactionsView({
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
         >
-          <div className="txn-timeline-col-headers">
-            <span />
-            <span className="txn-timeline-col-label">Time</span>
-            <span className="txn-timeline-col-label">Description</span>
-            <span className="txn-timeline-col-label">Category</span>
-            <span className="txn-timeline-col-label txn-timeline-col-label--right">
-              Amount
-            </span>
-            <span />
-          </div>
           {paged.map((item, i) => {
             if (item.kind === "header") {
               return (
                 <div key={`h-${item.date}`} className="txn-timeline-header">
-                  <span />
                   <span />
                   <span className="txn-timeline-header-label">
                     {item.label}
@@ -667,118 +684,153 @@ export function TransactionsView({
                   {formatTime(t.timestamp)}
                 </span>
                 <span className="txn-timeline-item">{t.item}</span>
-                {isEditing ? (
-                  <span className="txn-timeline-cat-col">
-                    <select
-                      className="txn-cat-select"
-                      value={t.category}
-                      disabled={updating}
-                      onChange={async (e) => {
-                        const newCat = e.target.value;
-                        if (newCat === t.category) {
+                <span className="txn-timeline-amount-group">
+                  {isEditing ? (
+                    <span className="txn-timeline-cat-col">
+                      <select
+                        className="txn-cat-select"
+                        value={t.category}
+                        disabled={updating}
+                        onChange={async (e) => {
+                          const newCat = e.target.value;
+                          if (newCat === t.category) {
+                            setEditingKey(null);
+                            return;
+                          }
+                          setUpdating(true);
+                          try {
+                            await updateExpenseCategory(
+                              t.timestamp,
+                              t.item,
+                              t.amountInr,
+                              newCat,
+                            );
+                            setEditingSuggestedCat("");
+                            await refreshTransactions();
+                          } catch {
+                            // Keep the row as-is if the category update fails
+                          }
+                          setUpdating(false);
                           setEditingKey(null);
-                          return;
-                        }
-                        setUpdating(true);
-                        try {
-                          await updateExpenseCategory(
-                            t.timestamp,
-                            t.item,
-                            t.amountInr,
-                            newCat,
-                          );
-                          setEditingSuggestedCat("");
-                          await refreshTransactions();
-                        } catch {
-                          // Keep the row as-is if the category update fails
-                        }
-                        setUpdating(false);
-                        setEditingKey(null);
-                      }}
-                      onBlur={() => {
-                        if (!updating) {
-                          setEditingKey(null);
-                          setEditingSuggestedCat("");
-                        }
-                      }}
-                      autoFocus
-                    >
-                      {editingSuggestedCat &&
-                        editingSuggestedCat !== t.category && (
-                          <option value={editingSuggestedCat}>
-                            ✨ {editingSuggestedCat}
+                        }}
+                        onBlur={() => {
+                          if (!updating) {
+                            setEditingKey(null);
+                            setEditingSuggestedCat("");
+                          }
+                        }}
+                        autoFocus
+                      >
+                        {editingSuggestedCat &&
+                          editingSuggestedCat !== t.category && (
+                            <option value={editingSuggestedCat}>
+                              ✨ {editingSuggestedCat}
+                            </option>
+                          )}
+                        {categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
                           </option>
-                        )}
-                      {categories.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    {updating && <span className="txn-cat-saving">…</span>}
-                  </span>
-                ) : (
-                  <span
-                    className="txn-timeline-cat-col txn-timeline-cat-pill"
-                    onClick={async () => {
-                      setEditingKey(rowKey);
-                      const s = await suggestCategory(t.item, categories);
-                      setEditingSuggestedCat(s);
-                    }}
-                  >
-                    {t.category}
-                    <span className="cat-chevron">▾</span>
-                  </span>
-                )}
-                <span
-                  className={`txn-timeline-amount ${isIncome ? "is-income" : "is-expense"} ${hideAmounts ? "amount-hidden" : ""}`}
-                >
-                  {hideAmounts
-                    ? "---"
-                    : `${isIncome ? "+" : "-"}${formatCurrency(t.amountInr)}`}
-                </span>
-                <span className="txn-actions">
-                  {deleteKey === rowKey ? (
-                    <span className="txn-actions-confirm">
-                      <button
-                        type="button"
-                        className="txn-action-btn is-danger"
-                        disabled={deleting}
-                        onClick={() => handleDelete(t)}
-                      >
-                        Remove
-                      </button>
-                      <button
-                        type="button"
-                        className="txn-action-btn"
-                        disabled={deleting}
-                        onClick={() => setDeleteKey(null)}
-                      >
-                        Keep
-                      </button>
+                        ))}
+                      </select>
+                      {updating && <span className="txn-cat-saving">…</span>}
                     </span>
                   ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="txn-action-btn"
-                        title="Edit transaction"
-                        aria-label="Edit transaction"
-                        onClick={() => setEditingTxn(t)}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="txn-action-btn"
-                        title="Delete transaction"
-                        aria-label="Delete transaction"
-                        onClick={() => setDeleteKey(rowKey)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </>
+                    <span
+                      className="txn-timeline-cat-col txn-timeline-cat-pill"
+                      style={
+                        {
+                          "--chip-accent": getCategoryColor(t.category),
+                        } as React.CSSProperties
+                      }
+                      onClick={async () => {
+                        setEditingKey(rowKey);
+                        const s = await suggestCategory(t.item, categories);
+                        setEditingSuggestedCat(s);
+                      }}
+                    >
+                      {t.category}
+                      <span className="cat-chevron">▾</span>
+                    </span>
                   )}
+                  <span
+                    className={`txn-timeline-amount ${isIncome ? "is-income" : "is-expense"} ${hideAmounts ? "amount-hidden" : ""}`}
+                  >
+                    {hideAmounts
+                      ? "---"
+                      : `${isIncome ? "+" : "-"}${formatCurrency(t.amountInr)}`}
+                  </span>
+                </span>
+                <span className="txn-actions">
+                  <div className="env-action-wrap">
+                    <button
+                      type="button"
+                      className={`env-menu-trigger txn-kebab-trigger ${actionsKey === rowKey ? "is-open" : ""}`}
+                      title="Actions"
+                      aria-label="Transaction actions"
+                      onClick={() =>
+                        setActionsKey((k) => {
+                          if (k === rowKey) {
+                            setDeleteKey(null);
+                            return null;
+                          }
+                          setDeleteKey(null);
+                          return rowKey;
+                        })
+                      }
+                    >
+                      ⋯
+                    </button>
+                    {actionsKey === rowKey && (
+                      <div className="env-menu" ref={actionsMenuRef}>
+                        {deleteKey === rowKey ? (
+                          <div className="txn-kebab-confirm">
+                            <span className="txn-kebab-confirm-label">
+                              Delete this transaction?
+                            </span>
+                            <div className="txn-kebab-confirm-actions">
+                              <button
+                                type="button"
+                                className="env-menu-item env-menu-item-danger"
+                                disabled={deleting}
+                                onClick={() => handleDelete(t)}
+                              >
+                                {deleting ? "Removing…" : "Remove"}
+                              </button>
+                              <button
+                                type="button"
+                                className="env-menu-item"
+                                disabled={deleting}
+                                onClick={() => setDeleteKey(null)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="env-menu-item"
+                              onClick={() => {
+                                setEditingTxn(t);
+                                setActionsKey(null);
+                              }}
+                            >
+                              Edit transaction
+                            </button>
+                            <button
+                              type="button"
+                              className="env-menu-item env-menu-item-danger"
+                              onClick={() => setDeleteKey(rowKey)}
+                            >
+                              Delete transaction
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </span>
               </div>
             );
@@ -827,6 +879,16 @@ export function TransactionsView({
           categories={categories}
           onClose={() => setEditingTxn(null)}
           onSaved={refreshTransactions}
+        />
+      )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+      {showLogModal && (
+        <LogExpenseModal
+          onClose={() => setShowLogModal(false)}
+          onSaved={refreshTransactions}
+          categories={categories}
         />
       )}
       </AnimatePresence>

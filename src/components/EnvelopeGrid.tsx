@@ -339,6 +339,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
           </th>
           <th className="env-th env-th-num">Assigned</th>
           <th className="env-th env-th-num">Spent</th>
+          <th className="env-th env-th-num">Used</th>
           <th className="env-th env-th-num">Available</th>
           <th className="env-th env-th-last">Last spent</th>
           <th className="env-th env-th-action" />
@@ -360,6 +361,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
                 </td>
                 <td className="env-group-cell env-group-num env-cell-assigned">{hideAmounts ? '---' : formatCurrency(totals.assigned)}</td>
                 <td className="env-group-cell env-group-num env-cell-spent">{hideAmounts ? '---' : formatCurrency(totals.spent)}</td>
+                <td className="env-group-cell env-group-num">{totals.assigned > 0 ? `${Math.round((totals.spent / totals.assigned) * 100)}%` : '—'}</td>
                 <td className={`env-group-cell env-group-num env-cell-avail ${availableClass}`}>{hideAmounts ? '---' : formatCurrency(totals.available)}</td>
                 <td className="env-group-cell env-group-num env-cell-last">—</td>
                 <td className="env-group-cell env-group-action" />
