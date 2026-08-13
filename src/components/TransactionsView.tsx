@@ -5,7 +5,11 @@ import {
   loadTransactions,
   type Transaction,
 } from "../services/expenseTransactions";
-import { getBudgets, updateExpenseCategory, deleteExpense } from "../services/api";
+import {
+  getBudgets,
+  updateExpenseCategory,
+  deleteExpense,
+} from "../services/api";
 import { suggestCategory } from "../services/autoCategory";
 import { LoadingCaption } from "./LoadingCaption";
 import { getCategoryColor } from "../data/categoryColors";
@@ -375,7 +379,11 @@ export function TransactionsView({
 
   if (loading || FORCE_LOADING_SKELETON) {
     return (
-      <div className="txn-timeline erd-card" aria-busy="true" aria-live="polite">
+      <div
+        className="txn-timeline erd-card"
+        aria-busy="true"
+        aria-live="polite"
+      >
         {/* Filter bar skeleton */}
         <div className="txn-timeline-filters" aria-hidden="true">
           <div className="mc-filter-chips">
@@ -430,9 +438,7 @@ export function TransactionsView({
               <span
                 key={label}
                 className={`erd-skeleton txn-timeline-col-label ${
-                  label === "Amount"
-                    ? "txn-timeline-col-label--right"
-                    : ""
+                  label === "Amount" ? "txn-timeline-col-label--right" : ""
                 }`}
                 style={{ height: "10px", borderRadius: "4px" }}
               />
@@ -450,7 +456,12 @@ export function TransactionsView({
             <span />
             <span
               className="erd-skeleton"
-              style={{ width: "80px", height: "14px", borderRadius: "6px", marginLeft: "auto" }}
+              style={{
+                width: "80px",
+                height: "14px",
+                borderRadius: "6px",
+                marginLeft: "auto",
+              }}
             />
           </div>
 
@@ -467,7 +478,11 @@ export function TransactionsView({
               />
               <span
                 className="erd-skeleton"
-                style={{ width: `${60 + (i % 3) * 20}%`, height: "12px", borderRadius: "6px" }}
+                style={{
+                  width: `${60 + (i % 3) * 20}%`,
+                  height: "12px",
+                  borderRadius: "6px",
+                }}
               />
               <span
                 className="erd-skeleton"
@@ -475,7 +490,12 @@ export function TransactionsView({
               />
               <span
                 className="erd-skeleton"
-                style={{ width: "70px", height: "12px", borderRadius: "6px", marginLeft: "auto" }}
+                style={{
+                  width: "70px",
+                  height: "12px",
+                  borderRadius: "6px",
+                  marginLeft: "auto",
+                }}
               />
             </div>
           ))}
@@ -491,7 +511,12 @@ export function TransactionsView({
             <span />
             <span
               className="erd-skeleton"
-              style={{ width: "80px", height: "14px", borderRadius: "6px", marginLeft: "auto" }}
+              style={{
+                width: "80px",
+                height: "14px",
+                borderRadius: "6px",
+                marginLeft: "auto",
+              }}
             />
           </div>
 
@@ -508,7 +533,11 @@ export function TransactionsView({
               />
               <span
                 className="erd-skeleton"
-                style={{ width: `${50 + (i % 4) * 15}%`, height: "12px", borderRadius: "6px" }}
+                style={{
+                  width: `${50 + (i % 4) * 15}%`,
+                  height: "12px",
+                  borderRadius: "6px",
+                }}
               />
               <span
                 className="erd-skeleton"
@@ -516,7 +545,12 @@ export function TransactionsView({
               />
               <span
                 className="erd-skeleton"
-                style={{ width: "70px", height: "12px", borderRadius: "6px", marginLeft: "auto" }}
+                style={{
+                  width: "70px",
+                  height: "12px",
+                  borderRadius: "6px",
+                  marginLeft: "auto",
+                }}
               />
             </div>
           ))}
@@ -869,28 +903,28 @@ export function TransactionsView({
       </div>
 
       <AnimatePresence>
-      {editingTxn && (
-        <TransactionEditModal
-          timestamp={editingTxn.timestamp}
-          item={editingTxn.item}
-          amountInr={editingTxn.amountInr}
-          date={editingTxn.date}
-          category={editingTxn.category}
-          categories={categories}
-          onClose={() => setEditingTxn(null)}
-          onSaved={refreshTransactions}
-        />
-      )}
+        {editingTxn && (
+          <TransactionEditModal
+            timestamp={editingTxn.timestamp}
+            item={editingTxn.item}
+            amountInr={editingTxn.amountInr}
+            date={editingTxn.date}
+            category={editingTxn.category}
+            categories={categories}
+            onClose={() => setEditingTxn(null)}
+            onSaved={refreshTransactions}
+          />
+        )}
       </AnimatePresence>
 
       <AnimatePresence>
-      {showLogModal && (
-        <LogExpenseModal
-          onClose={() => setShowLogModal(false)}
-          onSaved={refreshTransactions}
-          categories={categories}
-        />
-      )}
+        {showLogModal && (
+          <LogExpenseModal
+            onClose={() => setShowLogModal(false)}
+            onSaved={refreshTransactions}
+            categories={categories}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

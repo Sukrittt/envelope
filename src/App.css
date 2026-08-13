@@ -1217,6 +1217,127 @@ h4 {
   gap: var(--sp-2);
 }
 
+/* Portal content (appended to document.body) sits outside the .expense-redesign
+   DOM subtree, so its --erd-* tokens don't cascade here — fall back to fixed
+   values, matching .category-menu--portal above. */
+.date-range-menu {
+  display: grid;
+  width: min(320px, calc(100vw - 32px));
+  gap: var(--sp-4);
+  padding: 18px;
+  font-family: var(--font-nunito, var(--font-stack));
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  transform-origin: top left;
+  transition:
+    opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.date-range-menu.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .date-range-menu {
+    transition: opacity 0.12s linear;
+    transform: none;
+  }
+}
+
+.date-range-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+
+.date-range-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.date-range-field label {
+  font-family: var(--font-fredoka, var(--font-display));
+  font-size: var(--fs-11);
+  color: var(--muted, #a7b0bf);
+  letter-spacing: 0.02em;
+}
+
+.date-range-field input[type="date"] {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  background: var(--panel-soft, #201d27);
+  color: var(--text, #f3efe9);
+  font-size: var(--fs-12);
+  font-family: inherit;
+  color-scheme: dark;
+}
+
+.date-range-field input[type="date"]:focus-visible {
+  outline: none;
+  border-color: oklch(70% 0.16 275 / 0.6);
+}
+
+.date-range-arrow {
+  padding-bottom: 8px;
+  color: var(--muted, #a7b0bf);
+  font-size: var(--fs-13);
+}
+
+.date-range-menu-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
+.date-range-cancel {
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  color: var(--muted, #a7b0bf);
+  font-family: var(--font-fredoka, var(--font-display));
+  font-size: var(--fs-12);
+  cursor: pointer;
+}
+
+.date-range-cancel:hover {
+  color: var(--text, #f3efe9);
+}
+
+.date-range-apply {
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 7px 16px;
+  font-family: var(--font-fredoka, var(--font-display));
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  background: oklch(70% 0.16 275);
+  color: oklch(8% 0 0);
+  transition:
+    transform var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
+}
+
+.date-range-apply:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.date-range-apply:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .kpi-toggle {
   min-width: auto !important;
   display: inline-flex !important;
@@ -6703,13 +6824,14 @@ summary:focus-visible,
   --panel: #12161f;
   --panel-soft: #171c26;
   --border: rgba(255, 255, 255, 0.1);
-  --divider-soft: rgba(255, 255, 255, 0.08);
+  --divider-soft: rgba(255, 255, 255, 0.05);
   --text: #edf1f8;
   --muted: #b4bfd3;
   --muted-2: #8f9bb0;
-  --accent: #9ea7b6;
-  --accent-strong: #c0c7d3;
-  --accent-soft: rgba(158, 167, 182, 0.16);
+  --accent: oklch(70% 0.16 275);
+  --accent-strong: oklch(78% 0.15 275);
+  --accent-soft: oklch(70% 0.16 275 / 0.18);
+  --input-bg: #111114;
   --risk-fg: #ff8b9a;
   --risk-bg: #4a1f2a;
 
@@ -6732,11 +6854,12 @@ summary:focus-visible,
   max-width: 400px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: 30px;
   padding: var(--sp-6);
   display: grid;
   gap: var(--sp-4);
   box-shadow: var(--shadow-2);
+  font-family: var(--font-nunito, var(--font-stack));
 }
 
 .auth-heading {
@@ -6752,11 +6875,12 @@ summary:focus-visible,
   place-items: center;
   flex-shrink: 0;
   border-radius: var(--r-sm);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--accent);
+  color: #fff;
 }
 
 .auth-title {
+  font-family: var(--font-fredoka, var(--font-display));
   font-size: var(--fs-22);
   font-weight: var(--fw-semibold);
   letter-spacing: -0.012em;
@@ -6784,13 +6908,13 @@ summary:focus-visible,
   width: 100%;
   min-height: 38px;
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  background: var(--panel-soft);
+  border-radius: 15px;
+  background: var(--input-bg);
   color: var(--text);
   padding: 0 var(--sp-3);
   padding-right: 36px;
   font-size: var(--fs-14);
-  font-family: var(--font-stack);
+  font-family: var(--font-nunito, var(--font-stack));
 }
 
 .auth-password::placeholder {
@@ -6839,8 +6963,14 @@ summary:focus-visible,
 .auth-unlock {
   min-height: 38px;
   cursor: pointer;
-  background: var(--accent-soft);
-  border-color: color-mix(in oklab, var(--accent-strong) 42%, var(--border));
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-weight: var(--fw-semibold);
+}
+
+.auth-unlock:hover {
+  background: var(--accent-strong);
 }
 
 .auth-divider {
@@ -6852,7 +6982,8 @@ summary:focus-visible,
 .auth-guest {
   background: transparent;
   border: none;
-  color: var(--muted-2);
+  color: var(--accent);
+  font-weight: var(--fw-medium);
   font-size: var(--fs-13);
   cursor: pointer;
   padding: var(--sp-2) 0;

@@ -7,11 +7,15 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react'
+import { Fredoka, Nunito } from 'next/font/google'
 import { Radar, Eye, EyeOff } from 'lucide-react'
 import { accessMode, persistAccess, readPersistedAccess } from '../services/accessMode'
 import { useDashboard } from '../context/useDashboard'
 
 const DASHBOARD_PASSWORD = process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD as string | undefined
+
+const fredoka = Fredoka({ subsets: ['latin'], weight: ['600'], variable: '--font-fredoka', display: 'swap' })
+const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' })
 
 type GateStatus = 'checking' | 'locked' | 'guest' | 'real'
 
@@ -92,12 +96,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
           aria-modal="true"
           aria-label="Dashboard is locked"
         >
-          <div className={`auth-dialog${error ? ' is-error' : ''}`} key={shakeKey}>
+          <div
+            className={`auth-dialog${error ? ' is-error' : ''} ${fredoka.variable} ${nunito.variable}`}
+            key={shakeKey}
+          >
             <div className="auth-heading">
               <div className="auth-heading-icon" aria-hidden="true">
                 <Radar size={18} />
               </div>
-              <h1 className="auth-title">YNAB Replacement</h1>
+              <h1 className="auth-title">YNAB Dashboard</h1>
             </div>
             <p className="auth-subtitle">
               Private dashboard. Enter your password, or explore with sample data instead.

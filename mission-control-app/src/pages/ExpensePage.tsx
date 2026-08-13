@@ -55,10 +55,14 @@ export function ExpensePage() {
   const [period, setPeriod] = useState<PeriodKey>('mtd')
   const [trendView, setTrendView] = useState<TrendView>('weekly')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false)
-  const [categoryMenuPosition, setCategoryMenuPosition] = useState<{ top: number; left: number; minWidth: number } | null>(null)
+  const [activeMenu, setActiveMenu] = useState<'category' | 'date' | null>(null)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; minWidth: number } | null>(null)
   const categoryMenuRef = useRef<HTMLDivElement | null>(null)
   const categoryTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const dateMenuRef = useRef<HTMLDivElement | null>(null)
+  const dateTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const isCategoryMenuOpen = activeMenu === 'category'
+  const isDateMenuOpen = activeMenu === 'date'
 
   const latestDate = useMemo(() => {
     const last = panel.miniTrend.at(-1)?.date ?? panel.month
@@ -81,19 +85,22 @@ export function ExpensePage() {
   }
 
   useEffect(() => {
-    if (!isCategoryMenuOpen) return
+    if (!activeMenu) return
+
+    const menuRef = activeMenu === 'category' ? categoryMenuRef : dateMenuRef
+    const triggerRef = activeMenu === 'category' ? categoryTriggerRef : dateTriggerRef
 
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node
-      if (categoryMenuRef.current?.contains(target) || categoryTriggerRef.current?.contains(target)) {
+      if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) {
         return
       }
-      setIsCategoryMenuOpen(false)
+      setActiveMenu(null)
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsCategoryMenuOpen(false)
+        setActiveMenu(null)
       }
     }
 
@@ -104,19 +111,21 @@ export function ExpensePage() {
       window.removeEventListener('mousedown', handleClickOutside)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [isCategoryMenuOpen])
+  }, [activeMenu])
 
   useEffect(() => {
-    if (!isCategoryMenuOpen) return
+    if (!activeMenu) return
+
+    const triggerRef = activeMenu === 'category' ? categoryTriggerRef : dateTriggerRef
 
     function updatePosition() {
-      const rect = categoryTriggerRef.current?.getBoundingClientRect()
+      const rect = triggerRef.current?.getBoundingClientRect()
       if (!rect) return
       const horizontalPadding = 16
       const minWidth = rect.width
       const maxLeft = Math.max(horizontalPadding, window.innerWidth - minWidth - horizontalPadding)
       const left = Math.min(Math.max(horizontalPadding, rect.left), maxLeft)
-      setCategoryMenuPosition({
+      setMenuPosition({
         top: rect.bottom + 6,
         left,
         minWidth,
@@ -131,7 +140,7 @@ export function ExpensePage() {
       window.removeEventListener('resize', updatePosition)
       window.removeEventListener('scroll', updatePosition, true)
     }
-  }, [isCategoryMenuOpen])
+  }, [activeMenu])
 
   const filteredTrend = useMemo(() => {
     const rows = [...panel.miniTrend]
@@ -253,9 +262,10 @@ export function ExpensePage() {
     return `conic-gradient(${slices.join(', ')})`
   }, [categoryColorMap, donutSegments])
 
-  const isCategoryMenuVisible = Boolean(isCategoryMenuOpen && categoryMenuPosition)
-  const menuPosition =
-    categoryMenuPosition ??
+  const isCategoryMenuVisible = Boolean(isCategoryMenuOpen && menuPosition)
+  const isDateMenuVisible = Boolean(isDateMenuOpen && menuPosition)
+  const resolvedMenuPosition =
+    menuPosition ??
     ({
       top: 0,
       left: 0,
@@ -271,9 +281,9 @@ export function ExpensePage() {
       ref={categoryMenuRef}
       style={{
         position: 'fixed',
-        top: `${menuPosition.top}px`,
-        left: `${menuPosition.left}px`,
-        minWidth: `${menuPosition.minWidth}px`,
+        top: `${resolvedMenuPosition.top}px`,
+        left: `${resolvedMenuPosition.left}px`,
+        minWidth: `${resolvedMenuPosition.minWidth}px`,
         display: isCategoryMenuVisible ? 'block' : 'none',
         pointerEvents: isCategoryMenuVisible ? 'auto' : 'none',
       }}
@@ -315,6 +325,36 @@ export function ExpensePage() {
     document.body,
   )
 
+  const dateMenu = createPortal(
+    <div
+      className="category-menu category-menu--portal date-range-menu"
+      role="menu"
+      aria-label="Custom date range"
+      aria-hidden={!isDateMenuVisible}
+      ref={dateMenuRef}
+      style={{
+        position: 'fixed',
+        top: `${resolvedMenuPosition.top}px`,
+        left: `${resolvedMenuPosition.left}px`,
+        minWidth: `${resolvedMenuPosition.minWidth}px`,
+        display: isDateMenuVisible ? 'block' : 'none',
+        pointerEvents: isDateMenuVisible ? 'auto' : 'none',
+      }}
+    >
+      <div className="custom-dates">
+        <label>
+          Start
+          <input type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} aria-label="Custom start date" />
+        </label>
+        <label>
+          End
+          <input type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} aria-label="Custom end date" />
+        </label>
+      </div>
+    </div>,
+    document.body,
+  )
+
   return (
     <section className="mc-content-grid expense-view">
       <section className="headline">
@@ -339,24 +379,21 @@ export function ExpensePage() {
             <button type="button" className={`action-button ${period === 'mtd' ? 'is-active' : ''}`} onClick={() => setPeriod('mtd')}>
               Month to date
             </button>
-            <button type="button" className={`action-button ${period === 'custom' ? 'is-active' : ''}`} onClick={() => setPeriod('custom')}>
+            <button
+              type="button"
+              className={`action-button ${period === 'custom' ? 'is-active' : ''}`}
+              onClick={() => {
+                setPeriod('custom')
+                setActiveMenu((menu) => (menu === 'date' ? null : 'date'))
+              }}
+              aria-haspopup="menu"
+              aria-expanded={isDateMenuOpen}
+              ref={dateTriggerRef}
+            >
               Custom range
             </button>
           </div>
         </div>
-
-        {period === 'custom' ? (
-          <div className="scope-group custom-dates">
-            <label>
-              Start
-              <input type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} aria-label="Custom start date" />
-            </label>
-            <label>
-              End
-              <input type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} aria-label="Custom end date" />
-            </label>
-          </div>
-        ) : null}
 
         <div className="scope-meta-inline" aria-label="Scope status">
           <span>{stalenessText}</span>
@@ -365,7 +402,7 @@ export function ExpensePage() {
               <button
                 type="button"
                 className="action-button category-trigger"
-                onClick={() => setIsCategoryMenuOpen((open) => !open)}
+                onClick={() => setActiveMenu((menu) => (menu === 'category' ? null : 'category'))}
                 aria-haspopup="menu"
                 aria-expanded={isCategoryMenuOpen}
                 ref={categoryTriggerRef}
@@ -581,6 +618,7 @@ export function ExpensePage() {
         ))}
       </div>
       {categoryMenu}
+      {dateMenu}
     </section>
   )
 }
