@@ -1797,27 +1797,6 @@
   font-size: 13px;
   margin: 10px 0 0;
 }
-.erd-log-success {
-  margin-top: 20px;
-  width: 100%;
-  padding: 14px;
-  border-radius: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--mint);
-  color: var(--erd-on-accent);
-  animation: erd-success-pop 300ms ease forwards;
-}
-.erd-log-success-check {
-  width: 22px;
-  height: 22px;
-}
-.erd-log-success-check path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: erd-check-draw 350ms ease 220ms forwards;
-}
 @keyframes erd-success-pop {
   from {
     transform: scale(0.6);
@@ -1908,6 +1887,53 @@
   opacity: 0.5;
   cursor: default;
   transform: none;
+}
+
+/* Success-tick state for action buttons */
+.expense-redesign .action-button,
+.erd-log-submit {
+  position: relative;
+}
+.expense-redesign .action-button.is-success,
+.erd-log-submit.is-success {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--erd-on-accent);
+  transform: none;
+}
+.expense-redesign .action-button.is-success:hover,
+.erd-log-submit.is-success:hover {
+  transform: none;
+}
+.expense-redesign .action-button.is-success:disabled,
+.erd-log-submit.is-success:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.expense-redesign .action-button.is-success .sb-label,
+.erd-log-submit.is-success .sb-label {
+  visibility: hidden;
+}
+.expense-redesign .action-button .sb-tick,
+.erd-log-submit .sb-tick {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: erd-success-pop 300ms ease forwards;
+}
+.expense-redesign .action-button .sb-tick svg,
+.erd-log-submit .sb-tick svg {
+  width: 18px;
+  height: 18px;
+}
+.expense-redesign .action-button .sb-tick path,
+.erd-log-submit .sb-tick path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: erd-check-draw 350ms ease 220ms forwards;
 }
 
 .txn-timeline {

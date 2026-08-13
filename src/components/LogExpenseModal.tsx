@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { addExpense, getCategoryMap } from '../services/api'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {
   onClose: () => void
@@ -19,9 +20,8 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<string>(categories[0] ?? '')
   const [date, setDate] = useState(toDateInputValue(new Date()))
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [logSuccess, setLogSuccess] = useState(false)
+  const { saving, success, start, succeed, fail } = useButtonPhase()
   const [categoryWords, setCategoryWords] = useState<Record<string, string>>({})
   const [categoryTouched, setCategoryTouched] = useState(false)
 
@@ -67,7 +67,6 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
     setAmount('')
     setCategory(categories[0] ?? '')
     setDate(toDateInputValue(new Date()))
-    setLogSuccess(false)
     setCategoryTouched(false)
     onClose()
   }
@@ -78,7 +77,7 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
       setError('Fill in item, amount, and pick a category.')
       return
     }
-    setSaving(true)
+    start()
     setError('')
     try {
       await addExpense({
@@ -88,17 +87,15 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
         date: date || undefined,
       })
       onSaved()
-      setSaving(false)
-      setLogSuccess(true)
-      setTimeout(closeAndReset, 1100)
+      succeed(closeAndReset)
     } catch {
       setError('Could not save — try again.')
-      setSaving(false)
+      fail()
     }
   }
 
   return (
-    <Scrim className="erd-modal-overlay" onClick={logSuccess ? undefined : onClose}>
+    <Scrim className="erd-modal-overlay" onClick={success ? undefined : onClose}>
       <Sheet className="erd-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="erd-modal-head">
           <h3>Log Expense</h3>
@@ -107,7 +104,7 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
             className="erd-modal-close"
             onClick={onClose}
             aria-label="Close"
-            disabled={logSuccess}
+            disabled={success}
           >
             ✕
           </button>
@@ -165,29 +162,17 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
 
         {error && <p className="erd-log-error">{error}</p>}
 
-        {logSuccess ? (
-          <div className="erd-log-success" aria-live="polite" aria-label="Expense saved">
-            <svg className="erd-log-success-check" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M5 13l4 4L19 7"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                pathLength={1}
-              />
-            </svg>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="erd-log-submit"
-            disabled={saving}
-            onClick={handleSubmit}
-          >
-            {saving ? 'Saving…' : 'Save expense'}
-          </button>
-        )}
+        <SuccessButton
+          type="button"
+          baseClass="erd-log-submit"
+          saving={saving}
+          success={success}
+          successLabel="Expense saved"
+          disabled={saving || success}
+          onClick={handleSubmit}
+        >
+          Save expense
+        </SuccessButton>
       </Sheet>
     </Scrim>
   )

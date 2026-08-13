@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {
   currentMonth: string
   lastMonth: string
   lastIncome: number
   lastAssignments: Array<{ category: string; assigned: number }>
-  onConfirm: (income: number, copyAssigned: boolean) => void
+  onConfirm: (income: number, copyAssigned: boolean) => Promise<void>
   onDismiss: () => void
 }
 
@@ -26,10 +27,18 @@ function monthLabel(monthKey: string): string {
 export function MonthRolloverBanner({ currentMonth, lastMonth, lastIncome, lastAssignments, onConfirm, onDismiss }: Props) {
   const [income, setIncome] = useState(String(lastIncome))
   const [copyAssigned, setCopyAssigned] = useState(true)
+  const { saving, success, start, succeed, fail } = useButtonPhase()
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    if (saving || success) return
     const parsed = parseInt(income) || 0
-    onConfirm(parsed, copyAssigned)
+    start()
+    try {
+      await onConfirm(parsed, copyAssigned)
+      succeed(onDismiss)
+    } catch {
+      fail()
+    }
   }
 
   return (
@@ -75,9 +84,16 @@ export function MonthRolloverBanner({ currentMonth, lastMonth, lastIncome, lastA
         )}
 
         <div className="rollover-banner-actions">
-          <button type="button" className="action-button is-active" onClick={handleConfirm}>
+          <SuccessButton
+            type="button"
+            className="is-active"
+            disabled={saving || success}
+            saving={saving}
+            success={success}
+            onClick={handleConfirm}
+          >
             Start {monthLabel(currentMonth)}
-          </button>
+          </SuccessButton>
           <button type="button" className="action-button is-ghost" onClick={onDismiss}>
             Remind me later
           </button>

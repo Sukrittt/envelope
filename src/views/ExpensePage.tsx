@@ -34,6 +34,7 @@ import {
 } from "../services/expensePanelLoader";
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
 import { LogExpenseModal } from "../components/LogExpenseModal";
+import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { BudgetRow, Envelope, EnvelopeState } from "../types/expense";
 
 // Portal content (date-range-menu, below) is appended to document.body, outside
@@ -152,6 +153,8 @@ export function ExpensePage() {
   const [payCreditCardAmount, setPayCreditCardAmount] = useState<number | null>(
     null,
   );
+  const payPhase = useButtonPhase();
+  const bulkReturnPhase = useButtonPhase();
   const [editSub, setEditSub] = useState<{
     service: string;
     amount_inr: string;
@@ -349,7 +352,7 @@ export function ExpensePage() {
         isOverAssigned: rta < 0,
       };
     });
-    setShowBulkReturnConfirm(false);
+    bulkReturnPhase.succeed(() => setShowBulkReturnConfirm(false));
   }
 
   async function handlePayCreditCard() {
@@ -367,7 +370,6 @@ export function ExpensePage() {
         category: "__credit_card__",
         payment_method: "bank",
       });
-      setPayCreditCardAmount(null);
       await refreshPanel();
     } catch {
       // silent
@@ -504,8 +506,6 @@ export function ExpensePage() {
     }
 
     localStorage.setItem("budget-active-month", month);
-    setShowRolloverBanner(false);
-    setRolloverData(null);
     const contract = await loadExpensePanelContract();
     const data = toExpensePanelData(contract);
     setPanel(data);
@@ -2567,6 +2567,7 @@ export function ExpensePage() {
                     type="button"
                     className="move-money-close"
                     onClick={() => setPayCreditCardAmount(null)}
+                    disabled={payPhase.saving || payPhase.success}
                   >
                     ✕
                   </button>
@@ -2580,16 +2581,24 @@ export function ExpensePage() {
                     type="button"
                     className="move-money-cancel"
                     onClick={() => setPayCreditCardAmount(null)}
+                    disabled={payPhase.saving || payPhase.success}
                   >
                     Cancel
                   </button>
-                  <button
+                  <SuccessButton
                     type="button"
-                    className="action-button"
-                    onClick={() => confirmPayCreditCard(payCreditCardAmount)}
+                    disabled={payPhase.saving || payPhase.success}
+                    saving={payPhase.saving}
+                    success={payPhase.success}
+                    onClick={async () => {
+                      if (payPhase.saving || payPhase.success || payCreditCardAmount == null) return;
+                      payPhase.start();
+                      await confirmPayCreditCard(payCreditCardAmount);
+                      payPhase.succeed(() => setPayCreditCardAmount(null));
+                    }}
                   >
                     Pay {formatCurrency(payCreditCardAmount)}
-                  </button>
+                  </SuccessButton>
                 </div>
               </Sheet>
             </Scrim>
@@ -2707,6 +2716,7 @@ export function ExpensePage() {
                         type="button"
                         className="move-money-close"
                         onClick={() => setShowBulkReturnConfirm(false)}
+                        disabled={bulkReturnPhase.saving || bulkReturnPhase.success}
                       >
                         ✕
                       </button>
@@ -2738,16 +2748,20 @@ export function ExpensePage() {
                             type="button"
                             className="action-button"
                             onClick={() => setShowBulkReturnConfirm(false)}
+                            disabled={bulkReturnPhase.saving || bulkReturnPhase.success}
                           >
                             Cancel
                           </button>
-                          <button
+                          <SuccessButton
                             type="button"
-                            className="action-button is-active"
+                            className="is-active"
+                            disabled={bulkReturnPhase.saving || bulkReturnPhase.success}
+                            saving={bulkReturnPhase.saving}
+                            success={bulkReturnPhase.success}
                             onClick={handleBulkReturnToRTA}
                           >
                             Return {formatCurrency(total)} to RTA
-                          </button>
+                          </SuccessButton>
                         </div>
                       </>
                     )}

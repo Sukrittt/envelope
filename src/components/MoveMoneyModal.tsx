@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Envelope } from '../types/expense'
 import { Scrim, Sheet } from './MotionSheet'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {
   targetCategory: string
@@ -24,6 +25,7 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
 
   const [selectedSource, setSelectedSource] = useState(RTA_SENTINEL)
   const [amount, setAmount] = useState(String(isOverspent ? Math.abs(targetAvail) : ''))
+  const { saving, success, succeed } = useButtonPhase()
 
   const maxAvailable = useMemo(() => {
     if (selectedSource === RTA_SENTINEL) return readyToAssign
@@ -41,8 +43,11 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedSource || !parsedAmount || parsedAmount <= 0 || isOverLimit) return
-    onTransfer(selectedSource, targetCategory, parsedAmount)
+    if (!selectedSource || !parsedAmount || parsedAmount <= 0 || isOverLimit || saving || success) return
+    const from = selectedSource
+    const to = targetCategory
+    const transferAmount = parsedAmount
+    succeed(() => onTransfer(from, to, transferAmount))
   }
 
   if (!target || (envelopeSources.length === 0 && readyToAssign <= 0)) {
@@ -65,11 +70,11 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
   }
 
   return (
-    <Scrim className="move-money-overlay" onClick={onClose}>
+    <Scrim className="move-money-overlay" onClick={saving || success ? undefined : onClose}>
       <Sheet className="move-money-modal" onClick={(e) => e.stopPropagation()}>
         <div className="move-money-header">
           <h4>Move Money</h4>
-          <button type="button" className="move-money-close" onClick={onClose}>✕</button>
+          <button type="button" className="move-money-close" onClick={onClose} disabled={saving || success}>✕</button>
         </div>
 
         <p className="move-money-desc">
@@ -118,16 +123,18 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
           </label>
 
           <div className="move-money-actions">
-            <button type="button" className="action-button" onClick={onClose}>
+            <button type="button" className="action-button" onClick={onClose} disabled={saving || success}>
               Cancel
             </button>
-            <button
+            <SuccessButton
               type="submit"
-              className="action-button is-active"
-              disabled={!selectedSource || !parsedAmount || parsedAmount <= 0 || isOverLimit}
+              className="is-active"
+              disabled={saving || success || !selectedSource || !parsedAmount || parsedAmount <= 0 || isOverLimit}
+              saving={saving}
+              success={success}
             >
               Move ₹{parsedAmount}
-            </button>
+            </SuccessButton>
           </div>
         </form>
       </Sheet>

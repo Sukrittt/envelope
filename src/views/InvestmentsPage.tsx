@@ -3,6 +3,7 @@ import { AnimatePresence } from 'motion/react'
 import { getHoldings, addHolding, deleteHolding, performHoldingAction, getHoldingEvents } from '../services/api'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
+import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 
 interface Holding {
   name: string
@@ -66,7 +67,8 @@ export function InvestmentsPage() {
   const [actionMenuHolding, setActionMenuHolding] = useState<string | null>(null)
   const [activeAction, setActiveAction] = useState<{ holding: string; type: 'market_update' | 'contribution' | 'withdrawal' } | null>(null)
   const [actionAmount, setActionAmount] = useState('')
-  const [actionLoading, setActionLoading] = useState(false)
+  const actionPhase = useButtonPhase()
+  const addPhase = useButtonPhase()
   const [showHistory, setShowHistory] = useState(false)
 
   const month = useMemo(() => new Date().toISOString().slice(0, 7), [])
@@ -131,16 +133,20 @@ export function InvestmentsPage() {
   const netWorth = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings])
 
   async function handleAdd() {
-    if (!addName.trim() || !addValue.trim()) return
+    if (!addName.trim() || !addValue.trim() || addPhase.saving || addPhase.success) return
+    addPhase.start()
     try {
       await addHolding({ name: addName.trim(), type: addType.trim() || 'Other', value: addValue.trim() })
-      setShowAdd(false)
-      setAddName('')
-      setAddType('')
-      setAddValue('')
-      await load()
+      addPhase.succeed(() => {
+        setShowAdd(false)
+        setAddName('')
+        setAddType('')
+        setAddValue('')
+        load()
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      addPhase.fail()
     }
   }
 
@@ -156,10 +162,10 @@ export function InvestmentsPage() {
   }
 
   async function handleConfirmAction() {
-    if (!activeAction) return
+    if (!activeAction || actionPhase.saving || actionPhase.success) return
     const parsed = Number(actionAmount)
     if (Number.isNaN(parsed) || parsed < 0) return
-    setActionLoading(true)
+    actionPhase.start()
     try {
       await performHoldingAction({
         name: activeAction.holding,
@@ -167,14 +173,16 @@ export function InvestmentsPage() {
         amount: activeAction.type === 'market_update' ? parsed : parsed,
         month,
       })
-      setActionMenuHolding(null)
-      setActiveAction(null)
-      setActionAmount('')
-      await load()
+      actionPhase.succeed(() => {
+        setActionMenuHolding(null)
+        setActiveAction(null)
+        setActionAmount('')
+        load()
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      actionPhase.fail()
     }
-    setActionLoading(false)
   }
 
   function openAction(holding: Holding, type: 'market_update' | 'contribution' | 'withdrawal') {
@@ -476,10 +484,15 @@ export function InvestmentsPage() {
                                 />
                               </div>
                               <div className="inv-action-buttons">
-                                <button className="action-button is-ghost" onClick={() => { setActiveAction(null); setActionAmount('') }} disabled={actionLoading}>Cancel</button>
-                                <button className="action-button" onClick={handleConfirmAction} disabled={actionLoading || !actionAmount}>
-                                  {actionLoading ? 'Saving…' : 'Confirm'}
-                                </button>
+                                <button className="action-button is-ghost" onClick={() => { setActiveAction(null); setActionAmount('') }} disabled={actionPhase.saving || actionPhase.success}>Cancel</button>
+                                <SuccessButton
+                                  onClick={handleConfirmAction}
+                                  disabled={actionPhase.saving || actionPhase.success || !actionAmount}
+                                  saving={actionPhase.saving}
+                                  success={actionPhase.success}
+                                >
+                                  Confirm
+                                </SuccessButton>
                               </div>
                             </div>
                           </div>
@@ -549,8 +562,16 @@ export function InvestmentsPage() {
                   <input type="number" value={addValue} onChange={e => setAddValue(e.target.value)} placeholder="0" />
                 </label>
                 <div className="inv-add-actions">
-                  <button type="button" className="action-button is-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
-                  <button type="button" className="action-button" onClick={handleAdd}>Add</button>
+                  <button type="button" className="action-button is-ghost" onClick={() => setShowAdd(false)} disabled={addPhase.saving || addPhase.success}>Cancel</button>
+                  <SuccessButton
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={addPhase.saving || addPhase.success}
+                    saving={addPhase.saving}
+                    success={addPhase.success}
+                  >
+                    Add
+                  </SuccessButton>
                 </div>
               </Sheet>
             </Scrim>

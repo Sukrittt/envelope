@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addSubscription, updateSubscription } from '../services/api'
 import { Scrim, Sheet } from './MotionSheet'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface SubscriptionEdit {
   service: string
@@ -31,16 +32,16 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
   const [billingCycle, setBillingCycle] = useState(editData?.billing_cycle ?? 'monthly')
   const [dueDate, setDueDate] = useState(toDateInput(editData?.next_due_date ?? ''))
   const [notes, setNotes] = useState(editData?.notes ?? '')
-  const [saving, setSaving] = useState(false)
+  const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
 
   const amt = parseFloat(amount)
   const canSave = service.trim() !== '' && amount.trim() !== '' && !Number.isNaN(amt) && amt > 0
 
   async function handleSave() {
-    if (!canSave || saving) return
+    if (!canSave || saving || success) return
     setError('')
-    setSaving(true)
+    start()
     try {
       if (isEdit) {
         const updates: Record<string, string> = { amount_inr: String(amt) }
@@ -59,10 +60,10 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
         })
       }
       onSaved()
-      onClose()
+      succeed(onClose)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save subscription')
-      setSaving(false)
+      fail()
     }
   }
 
@@ -71,7 +72,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
       <Sheet className="category-manager subscription-modal">
         <div className="category-manager-header">
           <h3>{isEdit ? 'Edit Subscription' : 'New Subscription'}</h3>
-          <button type="button" className="action-button is-ghost" onClick={onClose}>✕</button>
+          <button type="button" className="action-button is-ghost" onClick={onClose} disabled={success}>✕</button>
         </div>
 
         {error && <p className="txn-entry-error">{error}</p>}
@@ -143,10 +144,10 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
         </div>
 
         <div className="subscription-modal-actions">
-          <button type="button" className="action-button is-ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="action-button" disabled={!canSave || saving} onClick={handleSave}>
-            {saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Add subscription')}
-          </button>
+          <button type="button" className="action-button is-ghost" onClick={onClose} disabled={success}>Cancel</button>
+          <SuccessButton type="button" disabled={!canSave || saving || success} saving={saving} success={success} onClick={handleSave}>
+            {isEdit ? 'Save changes' : 'Add subscription'}
+          </SuccessButton>
         </div>
       </Sheet>
     </Scrim>

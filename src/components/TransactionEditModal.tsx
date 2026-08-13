@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { updateExpense } from '../services/api'
 import { Scrim, Sheet } from './MotionSheet'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {
   timestamp: string
@@ -27,16 +28,16 @@ export function TransactionEditModal({
   const [amount, setAmount] = useState(String(amountInr))
   const [date, setDate] = useState(initialDate.slice(0, 10))
   const [category, setCategory] = useState(initialCategory)
-  const [saving, setSaving] = useState(false)
+  const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
 
   const amt = parseFloat(amount)
   const canSave = item.trim() !== '' && !Number.isNaN(amt) && amt >= 0 && date.trim() !== ''
 
   async function handleSave() {
-    if (!canSave || saving) return
+    if (!canSave || saving || success) return
     setError('')
-    setSaving(true)
+    start()
     try {
       await updateExpense(timestamp, initialItem, amountInr, {
         new_item: item.trim(),
@@ -45,10 +46,10 @@ export function TransactionEditModal({
         category,
       })
       onSaved()
-      onClose()
+      succeed(onClose)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update transaction')
-      setSaving(false)
+      fail()
     }
   }
 
@@ -62,7 +63,7 @@ export function TransactionEditModal({
       <Sheet className="category-manager subscription-modal">
         <div className="category-manager-header">
           <h3>Edit transaction</h3>
-          <button type="button" className="action-button is-ghost" onClick={onClose} aria-label="Close">
+          <button type="button" className="action-button is-ghost" onClick={onClose} aria-label="Close" disabled={success}>
             ✕
           </button>
         </div>
@@ -123,17 +124,18 @@ export function TransactionEditModal({
         </div>
 
         <div className="subscription-modal-actions">
-          <button type="button" className="action-button is-ghost" onClick={onClose}>
+          <button type="button" className="action-button is-ghost" onClick={onClose} disabled={success}>
             Cancel
           </button>
-          <button
+          <SuccessButton
             type="button"
-            className="action-button"
-            disabled={!canSave || saving}
+            disabled={!canSave || saving || success}
+            saving={saving}
+            success={success}
             onClick={handleSave}
           >
-            {saving ? 'Saving…' : 'Save changes'}
-          </button>
+            Save changes
+          </SuccessButton>
         </div>
       </Sheet>
     </Scrim>

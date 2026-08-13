@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCategories, getGroups, addCategory, updateCategory, deleteCategory, moveCategory, addGroup, updateGroup, deleteGroup } from '../services/api'
 import { Scrim, Sheet } from './MotionSheet'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 import type { Envelope } from '../types/expense'
 import type { CategoryRow } from '../services/api'
 
@@ -28,8 +29,10 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
   const [editGroupName, setEditGroupName] = useState('')
   const [deleteGroupTarget, setDeleteGroupTarget] = useState<string | null>(null)
   const [newGroupName, setNewGroupName] = useState('')
-  const [addingCategory, setAddingCategory] = useState(false)
-  const [addingGroup, setAddingGroup] = useState(false)
+  const addCatPhase = useButtonPhase()
+  const addGroupPhase = useButtonPhase()
+  const editCatPhase = useButtonPhase()
+  const editGroupPhase = useButtonPhase()
   const [openGroupMenu, setOpenGroupMenu] = useState<string | null>(null)
   const [dragCategory, setDragCategory] = useState<string | null>(null)
   const [dragOverCategory, setDragOverCategory] = useState<string | null>(null)
@@ -74,39 +77,43 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
   }
 
   async function handleAdd() {
-    if (!newName.trim() || addingCategory) return
+    if (!newName.trim() || addCatPhase.saving || addCatPhase.success) return
     setError('')
-    setAddingCategory(true)
+    addCatPhase.start()
     try {
       await addCategory(newName.trim(), newGroup)
-      setNewName('')
-      setNewGroup('')
-      await load()
-      onSaved()
+      addCatPhase.succeed(() => {
+        setNewName('')
+        setNewGroup('')
+        load()
+        onSaved()
+      })
     } catch (err) {
       if (err instanceof Error && err.message.includes('409')) {
         setError(`Category "${newName.trim()}" already exists.`)
       } else {
         setError(err instanceof Error ? err.message : 'Failed to add')
       }
+      addCatPhase.fail()
       await load()
-    } finally {
-      setAddingCategory(false)
     }
   }
 
   async function handleSaveEdit(originalName: string) {
-    if (!editName.trim()) return
+    if (!editName.trim() || editCatPhase.saving || editCatPhase.success) return
     setError('')
     try {
       if (editName.trim() !== originalName) {
         await updateCategory(originalName, { newName: editName.trim() })
       }
-      setEditing(null)
-      await load()
-      onSaved()
+      editCatPhase.succeed(() => {
+        setEditing(null)
+        load()
+        onSaved()
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update')
+      editCatPhase.fail()
     }
   }
 
@@ -155,39 +162,43 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
   }
 
   async function handleAddGroup() {
-    if (!newGroupName.trim() || addingGroup) return
+    if (!newGroupName.trim() || addGroupPhase.saving || addGroupPhase.success) return
     const name = newGroupName.trim()
     setError('')
-    setAddingGroup(true)
+    addGroupPhase.start()
     try {
       await addGroup(name)
-      setNewGroupName('')
-      setNewGroup(name)
-      await load()
+      addGroupPhase.succeed(() => {
+        setNewGroupName('')
+        setNewGroup(name)
+        load()
+      })
     } catch (err) {
       if (err instanceof Error && err.message.includes('409')) {
         setError(`Group "${name}" already exists.`)
       } else {
         setError(err instanceof Error ? err.message : 'Failed to add group')
       }
+      addGroupPhase.fail()
       await load()
-    } finally {
-      setAddingGroup(false)
     }
   }
 
   async function handleSaveGroupEdit(originalName: string) {
-    if (!editGroupName.trim()) return
+    if (!editGroupName.trim() || editGroupPhase.saving || editGroupPhase.success) return
     setError('')
     try {
       if (editGroupName.trim() !== originalName) {
         await updateGroup(originalName, editGroupName.trim())
       }
-      setEditingGroup(null)
-      await load()
-      onSaved()
+      editGroupPhase.succeed(() => {
+        setEditingGroup(null)
+        load()
+        onSaved()
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to rename group')
+      editGroupPhase.fail()
     }
   }
 
@@ -234,7 +245,7 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
                     <div className="cm-group-edit">
                       <input type="text" className="txn-entry-input" value={editGroupName}
                         onChange={(e) => setEditGroupName(e.target.value)} aria-label="Group name" />
-                      <button type="button" className="action-button" onClick={() => handleSaveGroupEdit(group.label)}>Save</button>
+                      <SuccessButton type="button" saving={editGroupPhase.saving} success={editGroupPhase.success} disabled={editGroupPhase.saving || editGroupPhase.success} onClick={() => handleSaveGroupEdit(group.label)}>Save</SuccessButton>
                       <button type="button" className="action-button is-ghost" onClick={() => setEditingGroup(null)}>Cancel</button>
                     </div>
                   ) : deleteGroupTarget === group.label ? (
@@ -282,7 +293,7 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
                           <>
                             <input type="text" className="txn-entry-input" value={editName}
                               onChange={(e) => setEditName(e.target.value)} aria-label="Category name" />
-                            <button type="button" className="action-button" onClick={() => handleSaveEdit(cat.name)}>Save</button>
+                            <SuccessButton type="button" saving={editCatPhase.saving} success={editCatPhase.success} disabled={editCatPhase.saving || editCatPhase.success} onClick={() => handleSaveEdit(cat.name)}>Save</SuccessButton>
                             <button type="button" className="action-button is-ghost" onClick={() => setEditing(null)}>Cancel</button>
                           </>
                         ) : deleteTarget === cat.name ? (
@@ -361,8 +372,8 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
               <input type="text" className="txn-entry-input" placeholder="Group name"
                 value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddGroup() }}
-                aria-label="New group name" disabled={addingGroup} />
-              <button type="button" className="action-button" onClick={handleAddGroup} disabled={addingGroup}>Add</button>
+                aria-label="New group name" disabled={addGroupPhase.saving || addGroupPhase.success} />
+              <SuccessButton type="button" onClick={handleAddGroup} saving={addGroupPhase.saving} success={addGroupPhase.success} disabled={addGroupPhase.saving || addGroupPhase.success}>Add</SuccessButton>
             </div>
           </div>
 
@@ -376,13 +387,13 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
               <input type="text" className="txn-entry-input" placeholder="Category name"
                 value={newName} onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-                aria-label="New category name" disabled={addingCategory} />
+                aria-label="New category name" disabled={addCatPhase.saving || addCatPhase.success} />
               <select className="cm-group-select" value={newGroup}
-                onChange={(e) => setNewGroup(e.target.value)} aria-label="Group for new category" disabled={addingCategory}>
+                onChange={(e) => setNewGroup(e.target.value)} aria-label="Group for new category" disabled={addCatPhase.saving || addCatPhase.success}>
                 <option value="">Other</option>
                 {groups.map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
-              <button type="button" className="action-button" onClick={handleAdd} disabled={addingCategory}>Add</button>
+              <SuccessButton type="button" onClick={handleAdd} saving={addCatPhase.saving} success={addCatPhase.success} disabled={addCatPhase.saving || addCatPhase.success}>Add</SuccessButton>
             </div>
           </div>
         </div>

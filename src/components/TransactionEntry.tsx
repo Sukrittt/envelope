@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { addExpense } from '../services/api'
 import { suggestCategory, invalidateCategoryCache, getTodayISO } from '../services/autoCategory'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {
   categories: string[]
@@ -15,7 +16,7 @@ export function TransactionEntry({ categories, onSaved }: Props) {
   const [date, setDate] = useState(getTodayISO())
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'credit_card'>('bank')
-  const [saving, setSaving] = useState(false)
+  const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
   const itemRef = useRef<HTMLInputElement>(null)
   const suggestTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -55,7 +56,7 @@ export function TransactionEntry({ categories, onSaved }: Props) {
       setError('Amount must be a positive number')
       return
     }
-    setSaving(true)
+    start()
     setError('')
     try {
       await addExpense({
@@ -67,12 +68,11 @@ export function TransactionEntry({ categories, onSaved }: Props) {
         payment_method: paymentMethod,
       })
       invalidateCategoryCache()
-      reset()
       onSaved()
+      succeed(() => reset())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save')
-    } finally {
-      setSaving(false)
+      fail()
     }
   }
 
@@ -101,9 +101,9 @@ export function TransactionEntry({ categories, onSaved }: Props) {
         <button type="button" className="action-button is-ghost" onClick={() => { reset(); setExpanded(false) }}>
           Cancel
         </button>
-        <button type="submit" className="action-button" disabled={saving}>
-          {saving ? 'Saving…' : 'Save'}
-        </button>
+        <SuccessButton type="submit" saving={saving} success={success} disabled={saving || success}>
+          Save
+        </SuccessButton>
       </div>
       <div className="txn-entry-row">
         <input type="text" className="txn-entry-input txn-entry-notes" placeholder="Notes (optional)"
