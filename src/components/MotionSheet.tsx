@@ -1,5 +1,6 @@
 import { useReducedMotion, motion, type HTMLMotionProps } from 'motion/react'
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 type MotionSheetProps = {
   children?: ReactNode
@@ -27,7 +28,9 @@ export function Scrim({ children, className, initial, animate, exit, ...rest }: 
         exit: { opacity: 0, transition: SPRING },
       }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <motion.div
       className={className}
       initial={initial ?? variants.initial}
@@ -36,7 +39,8 @@ export function Scrim({ children, className, initial, animate, exit, ...rest }: 
       {...rest}
     >
       {children}
-    </motion.div>
+    </motion.div>,
+    document.querySelector('.expense-redesign') ?? document.body,
   )
 }
 
