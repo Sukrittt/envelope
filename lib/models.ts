@@ -6,6 +6,12 @@
  * `{ headers, rows }` response shapes need no changes.
  */
 
+// AI transaction-scan watermark (not part of EXPENSE_HEADERS/CSV shape): an
+// expense doc gets `ai_scanned: true, ai_scanned_at: <ISO string>` once the
+// scheduled scan (app/api/ai/scan-transactions) has processed it. Query
+// unscanned docs with `{ ai_scanned: { $ne: true } }` — matches both `false`
+// and missing-field docs.
+
 export const EXPENSE_HEADERS = [
   'timestamp',
   'date',
@@ -56,6 +62,8 @@ export const COLLECTIONS = {
   subscriptions: 'subscriptions',
   holdings: 'holdings',
   holdingEvents: 'holding_events',
+  pushTokens: 'push_tokens',
+  categoryMapOverrides: 'category_map_overrides',
 } as const
 
 /** One CSV-ish row; every value is a string so it round-trips exactly. */

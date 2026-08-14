@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { addExpense, getCategoryMap } from '../services/api'
+import { suggestCategoryLLM } from '../services/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {
@@ -24,11 +25,24 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [categoryWords, setCategoryWords] = useState<Record<string, string>>({})
   const [categoryTouched, setCategoryTouched] = useState(false)
+  const categoryTouchedRef = useRef(categoryTouched)
+  const llmDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     getCategoryMap()
       .then((map) => setCategoryWords(map.words))
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    categoryTouchedRef.current = categoryTouched
+  }, [categoryTouched])
+
+  // Cancel any pending debounced LLM lookup on unmount.
+  useEffect(() => {
+    return () => {
+      if (llmDebounceRef.current) clearTimeout(llmDebounceRef.current)
+    }
   }, [])
 
   const chips = useMemo(
@@ -38,6 +52,10 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
 
   function handleItemChange(value: string) {
     setItem(value)
+    if (llmDebounceRef.current) {
+      clearTimeout(llmDebounceRef.current)
+      llmDebounceRef.current = null
+    }
     if (categoryTouched) return
     const words = value.toLowerCase().split(/\s+/)
     for (const word of words) {
@@ -51,10 +69,20 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
         return
       }
     }
-    if (value.trim()) {
-      const misc = categories.find((c) => c.toLowerCase().includes('miscellaneous'))
-      if (misc) setCategory(misc)
-    }
+    if (!value.trim()) return
+
+    // No local match — debounce an LLM fallback lookup instead of firing per keystroke.
+    llmDebounceRef.current = setTimeout(() => {
+      suggestCategoryLLM(value, categories).then((llmCategory) => {
+        if (categoryTouchedRef.current) return
+        if (llmCategory) {
+          setCategory(llmCategory)
+          return
+        }
+        const misc = categories.find((c) => c.toLowerCase().includes('miscellaneous'))
+        if (misc) setCategory(misc)
+      })
+    }, 300)
   }
 
   function handleCategoryPick(c: string) {

@@ -13,7 +13,8 @@ export async function GET(req: Request) {
 
   if (!cache || cacheGuest !== guest) {
     const coll = await getCollection('expenses', scope)
-    cache = await buildCategoryMap(coll)
+    const overridesColl = await getCollection('category_map_overrides', scope)
+    cache = await buildCategoryMap(coll, overridesColl)
     cacheGuest = guest
   }
   return json(cache)
