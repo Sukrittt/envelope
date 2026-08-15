@@ -30,17 +30,16 @@ export async function POST(req: Request) {
   try {
     result = await generateJSON<SuggestResult>(
       `Pick the single best-fit budgeting category for this expense item: "${item}".\n` +
-        `Choose exactly one value from the allowed category list. If none fit well, return an empty string.`,
+        `Choose exactly one value from the allowed category list. If none fit well, omit the category field entirely.`,
       {
         type: Type.OBJECT,
         properties: {
           category: {
             type: Type.STRING,
             format: 'enum',
-            enum: [...categoryList, ''],
+            enum: categoryList,
           },
         },
-        required: ['category'],
       },
     )
   } catch {

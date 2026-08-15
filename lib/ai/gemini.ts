@@ -5,7 +5,7 @@ import { GoogleGenAI, type Schema } from '@google/genai'
  * fallback (Feature 3) and the AI transaction-scan feature import from here.
  */
 
-const MODEL = 'gemini-2.5-flash-lite'
+const MODEL = 'gemini-3.1-flash-lite'
 
 let client: GoogleGenAI | null = null
 
