@@ -1,4 +1,4 @@
-import { json, error, readBody, getCollection, escapeRegExp } from '@/lib/http'
+import { json, error, readBody, getCollection, escapeRegExp, nowIST } from '@/lib/http'
 import { getScope, guestWriteGuard } from '@/lib/access'
 import { SUBSCRIPTION_HEADERS, toRow } from '@/lib/models'
 
@@ -25,11 +25,8 @@ export async function POST(req: Request) {
   })
   if (exists) return error('subscription already exists', 409)
 
-  const now = new Date()
   await coll.insertOne({
-    timestamp: String(
-      body.timestamp || `${now.toISOString().slice(0, 10)}T${now.toTimeString().slice(0, 8)}+05:30`,
-    ),
+    timestamp: String(body.timestamp || nowIST().timestamp),
     service: String(body.service),
     amount_inr: String(body.amount_inr),
     billing_cycle: String(body.billing_cycle || 'monthly'),

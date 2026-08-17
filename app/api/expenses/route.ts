@@ -1,4 +1,4 @@
-import { json, error, readBody, getCollection } from '@/lib/http'
+import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getScope, guestWriteGuard, type Scope } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 
@@ -21,9 +21,9 @@ export async function POST(req: Request) {
     return error('item, amount_inr, category required')
   }
 
-  const now = new Date()
-  const date = String(body.date || now.toISOString().slice(0, 10))
-  const timestamp = String(body.timestamp || `${date}T${now.toTimeString().slice(0, 8)}+05:30`)
+  const ist = nowIST()
+  const date = String(body.date || ist.date)
+  const timestamp = String(body.timestamp || `${date}T${ist.timestamp.slice(11)}`)
   const paymentMethod = String(body.payment_method ?? 'bank')
 
   const coll = await getCollection('expenses', scope)

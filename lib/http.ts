@@ -34,3 +34,9 @@ export async function getCollection(base: string, scope: Scope): Promise<Collect
 
 /** Force handlers to run dynamically (never prerendered at build time). */
 export const dynamic = 'force-dynamic'
+
+/** Current instant as IST wall-clock date/timestamp strings (always +05:30, regardless of server locale). */
+export function nowIST(): { date: string; timestamp: string } {
+  const iso = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString()
+  return { date: iso.slice(0, 10), timestamp: `${iso.slice(0, 19)}+05:30` }
+}
