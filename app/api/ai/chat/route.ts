@@ -8,24 +8,23 @@ export const dynamic = 'force-dynamic'
 
 const MAX_MESSAGE_LEN = 500
 const HISTORY_LIMIT = 8
-const GUEST_RATE_LIMIT = 20
-const GUEST_RATE_WINDOW_MS = 60 * 60 * 1000
+const RATE_WINDOW_MS = 60 * 60 * 1000
+const RATE_LIMITS: Record<'real' | 'guest', number> = { real: 60, guest: 20 }
 
-// ponytail: single global in-memory bucket (no per-user id exists in this
-// single-user app) guarding guest-scope chat calls. Resets on redeploy/cold
-// start and isn't shared across instances — not durable, but an accepted
-// tradeoff for a personal-use guest demo. Swap for a real store if guest
-// traffic/abuse ever becomes a problem.
-const guestRequestTimestamps: number[] = []
+// ponytail: in-memory buckets per scope (no per-user id exists in this
+// single-user app, and guest has no token to key on either). Resets on
+// redeploy/cold start and isn't shared across instances — not durable, but
+// an accepted tradeoff for a personal-use app. Swap for a real store (Mongo/
+// Upstash) if traffic/abuse ever becomes a problem.
+const requestTimestamps: Record<'real' | 'guest', number[]> = { real: [], guest: [] }
 
-function guestRateLimited(): boolean {
+function rateLimited(scope: 'real' | 'guest'): boolean {
+  const bucket = requestTimestamps[scope]
   const now = Date.now()
-  const cutoff = now - GUEST_RATE_WINDOW_MS
-  while (guestRequestTimestamps.length && guestRequestTimestamps[0] < cutoff) {
-    guestRequestTimestamps.shift()
-  }
-  if (guestRequestTimestamps.length >= GUEST_RATE_LIMIT) return true
-  guestRequestTimestamps.push(now)
+  const cutoff = now - RATE_WINDOW_MS
+  while (bucket.length && bucket[0] < cutoff) bucket.shift()
+  if (bucket.length >= RATE_LIMITS[scope]) return true
+  bucket.push(now)
   return false
 }
 
@@ -47,7 +46,7 @@ function isValidMessages(value: unknown): value is ChatMessage[] {
 export async function POST(req: Request) {
   const scope = getScope(req)
 
-  if (scope === 'guest' && guestRateLimited()) {
+  if (rateLimited(scope)) {
     return error('rate limited', 429)
   }
 

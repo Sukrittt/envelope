@@ -145,7 +145,7 @@ function cycleMonths(cycle) {
 }
 
 function summarizeExpenses(input) {
-  const { expenses, budgets, categories, groups, subscriptions, currentMonth, today } = input
+  const { expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today } = input
 
   const [cy, cm] = currentMonth.split('-').map(Number)
   const totalDaysInMonth = daysInMonth(cy, cm)
@@ -244,6 +244,16 @@ function summarizeExpenses(input) {
   lines.push(`Total active monthly burn: ${round(totalMonthlyBurn)}`)
   lines.push('')
 
+  lines.push('INVESTMENTS (name|type|value|updated_at):')
+  let totalInvestmentValue = 0
+  for (const h of holdings) {
+    const value = round(Number(h.value) || 0)
+    totalInvestmentValue += value
+    lines.push(`${h.name}|${h.type ?? ''}|${value}|${h.updated_at ?? ''}`)
+  }
+  lines.push(`Total investment value: ${round(totalInvestmentValue)}`)
+  lines.push('')
+
   const cutoff = new Date(`${today}T00:00:00`)
   cutoff.setDate(cutoff.getDate() - TXN_HISTORY_DAYS)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
@@ -292,6 +302,10 @@ const budgets = [
 const categories = [{ name: 'Food', group: 'Essentials' }]
 const groups = [{ name: 'Essentials' }]
 const subscriptions = [{ service: 'Netflix', amount_inr: 649, billing_cycle: 'monthly', status: 'active' }]
+const holdings = [
+  { name: 'Nifty 50 Index Fund', type: 'mutual_fund', value: 50000, updated_at: '2026-08-15' },
+  { name: 'Gold ETF', type: 'etf', value: 15000, updated_at: '2026-08-10' },
+]
 
 const expenses = [
   { date: '2026-08-01', item: 'Groceries', amount_inr: 1200, category: 'Food', payment_method: 'card' },
@@ -300,7 +314,7 @@ const expenses = [
   { date: '2026-07-15', item: 'Groceries', amount_inr: 900, category: 'Food', payment_method: 'card' },
 ]
 
-const result = summarizeExpenses({ expenses, budgets, categories, groups, subscriptions, currentMonth, today })
+const result = summarizeExpenses({ expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today })
 
 // Month filtering: only the 3 August docs count as "this month".
 assert.equal(result.meta.txnCountThisMonth, 3, 'txnCountThisMonth should only count August rows')
@@ -318,9 +332,13 @@ assert.match(result.facts, /CREDIT CARD: assigned 3000, charged 2000 this month,
 assert.match(result.facts, /INCOME: 100000/, 'income reported separately')
 
 // Expected section headers present.
-for (const header of ['MONTH:', 'ENVELOPES', 'TREND', 'TOP 10 ITEMS THIS MONTH', 'SUBSCRIPTIONS', 'TRANSACTIONS']) {
+for (const header of ['MONTH:', 'ENVELOPES', 'TREND', 'TOP 10 ITEMS THIS MONTH', 'SUBSCRIPTIONS', 'INVESTMENTS', 'TRANSACTIONS']) {
   assert.ok(result.facts.includes(header), `facts should contain section header "${header}"`)
 }
+
+// Investment holdings: both rows listed, total summed correctly.
+assert.match(result.facts, /Nifty 50 Index Fund\|mutual_fund\|50000\|2026-08-15/, 'holding row should be formatted correctly')
+assert.match(result.facts, /Total investment value: 65000/, 'total investment value should sum all holdings')
 
 // days elapsed/left.
 assert.equal(result.meta.daysLeft, 31 - 18, 'daysLeft should be computed from the month length and today')
@@ -347,6 +365,7 @@ const capResult = summarizeExpenses({
   categories: [{ name: 'Food', group: 'Essentials' }],
   groups: [{ name: 'Essentials' }],
   subscriptions: [],
+  holdings: [],
   currentMonth: '2026-08',
   today: '2026-08-18',
 })

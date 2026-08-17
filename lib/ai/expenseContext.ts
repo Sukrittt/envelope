@@ -48,12 +48,20 @@ export interface SubscriptionDocRow {
   status?: string
 }
 
+export interface HoldingDocRow {
+  name: string
+  type?: string
+  value: number
+  updated_at?: string
+}
+
 export interface SummarizeExpensesInput {
   expenses: ExpenseRow[]
   budgets: BudgetDocRow[]
   categories: CategoryDocRow[]
   groups: GroupDocRow[]
   subscriptions: SubscriptionDocRow[]
+  holdings: HoldingDocRow[]
   currentMonth: string // 'YYYY-MM'
   today: string // 'YYYY-MM-DD'
 }
@@ -113,7 +121,7 @@ function cycleMonths(cycle?: string): number {
 }
 
 export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpensesResult {
-  const { expenses, budgets, categories, groups, subscriptions, currentMonth, today } = input
+  const { expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today } = input
 
   const [cy, cm] = currentMonth.split('-').map(Number)
   const totalDaysInMonth = daysInMonth(cy, cm)
@@ -217,6 +225,17 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   lines.push(`Total active monthly burn: ${round(totalMonthlyBurn)}`)
   lines.push('')
 
+  // Investment holdings snapshot (not spending — reported separately from envelopes).
+  lines.push('INVESTMENTS (name|type|value|updated_at):')
+  let totalInvestmentValue = 0
+  for (const h of holdings) {
+    const value = round(Number(h.value) || 0)
+    totalInvestmentValue += value
+    lines.push(`${h.name}|${h.type ?? ''}|${value}|${h.updated_at ?? ''}`)
+  }
+  lines.push(`Total investment value: ${round(totalInvestmentValue)}`)
+  lines.push('')
+
   // Last TXN_HISTORY_DAYS days of raw transactions, newest first, capped at TXN_CAP.
   const cutoff = new Date(`${today}T00:00:00`)
   cutoff.setDate(cutoff.getDate() - TXN_HISTORY_DAYS)
@@ -251,20 +270,22 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
 
 /** Fetches all collections needed for the money-brain context and builds `facts`. */
 export async function buildExpenseContext(scope: Scope): Promise<SummarizeExpensesResult> {
-  const [expensesColl, budgetsColl, categoriesColl, groupsColl, subscriptionsColl] = await Promise.all([
+  const [expensesColl, budgetsColl, categoriesColl, groupsColl, subscriptionsColl, holdingsColl] = await Promise.all([
     getCollection('expenses', scope),
     getCollection('budgets', scope),
     getCollection('categories', scope),
     getCollection('groups', scope),
     getCollection('subscriptions', scope),
+    getCollection('holdings', scope),
   ])
 
-  const [expenseDocs, budgetDocs, categoryDocs, groupDocs, subscriptionDocs] = await Promise.all([
+  const [expenseDocs, budgetDocs, categoryDocs, groupDocs, subscriptionDocs, holdingDocs] = await Promise.all([
     expensesColl.find({}).toArray(),
     budgetsColl.find({}).toArray(),
     categoriesColl.find({}).toArray(),
     groupsColl.find({}).toArray(),
     subscriptionsColl.find({}).toArray(),
+    holdingsColl.find({}).toArray(),
   ])
 
   const expenses: ExpenseRow[] = expenseDocs.map((d) => ({
@@ -297,8 +318,15 @@ export async function buildExpenseContext(scope: Scope): Promise<SummarizeExpens
     status: d.status ? String(d.status) : undefined,
   }))
 
+  const holdings: HoldingDocRow[] = holdingDocs.map((d) => ({
+    name: String(d.name ?? ''),
+    type: d.type ? String(d.type) : undefined,
+    value: Number(d.value) || 0,
+    updated_at: d.updated_at ? String(d.updated_at) : undefined,
+  }))
+
   const { date: today } = nowIST()
   const currentMonth = today.slice(0, 7)
 
-  return summarizeExpenses({ expenses, budgets, categories, groups, subscriptions, currentMonth, today })
+  return summarizeExpenses({ expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today })
 }
