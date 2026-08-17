@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "db:migrate": "node scripts/migrate-to-mongo.mjs",
-    "sync:expenses": "node scripts/sync_expenses.mjs"
+    "sync:expenses": "node scripts/sync_expenses.mjs",
+    "check:ai-context": "node scripts/check-ai-context.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.17.1",

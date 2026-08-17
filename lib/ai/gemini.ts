@@ -37,3 +37,25 @@ export async function generateJSON<T>(prompt: string, responseSchema: Schema): P
   if (!text) throw new Error('Gemini returned an empty response')
   return JSON.parse(text) as T
 }
+
+/**
+ * Streaming chat call for the money-brain chat route. Returns the async
+ * iterable stream directly — callers `for await` over it and read `.text`
+ * off each chunk (same shape as the non-streaming response's `.text`).
+ */
+export async function streamText(
+  systemInstruction: string,
+  contents: Array<{ role: 'user' | 'model'; parts: [{ text: string }] }>,
+  maxOutputTokens = 700,
+) {
+  const ai = getGeminiClient()
+  return ai.models.generateContentStream({
+    model: MODEL,
+    contents,
+    config: {
+      systemInstruction,
+      temperature: 0.4,
+      maxOutputTokens,
+    },
+  })
+}
