@@ -1,13 +1,14 @@
 import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getScope, guestWriteGuard, type Scope } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
+import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const scope = getScope(req)
   const coll = await getCollection('expenses', scope)
-  const docs = await coll.find({}).toArray()
+  const docs = await cachedRead('expenses', scope, () => coll.find({}).toArray())
   return json({ headers: EXPENSE_HEADERS, rows: docs.map((d) => toRow(EXPENSE_HEADERS, d)) })
 }
 
@@ -61,9 +62,11 @@ export async function POST(req: Request) {
           rolled_over: '0',
         })
       }
+      invalidate('budgets', scope)
     }
   }
 
+  invalidate('expenses', scope)
   return json({ ok: true })
 }
 
@@ -123,6 +126,7 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ _id: found._id }, { $set: update })
+  invalidate('expenses', scope)
   return json({ ok: true })
 }
 
@@ -145,6 +149,7 @@ async function adjustCreditCardEnvelope(scope: Scope, month: string, delta: numb
       rolled_over: '0',
     })
   }
+  invalidate('budgets', scope)
 }
 
 export async function DELETE(req: Request) {
@@ -191,8 +196,10 @@ export async function DELETE(req: Request) {
           { $set: { assigned: String(Math.max(0, current - amountNum)) } },
         )
       }
+      invalidate('budgets', scope)
     }
   }
 
+  invalidate('expenses', scope)
   return json({ ok: true })
 }

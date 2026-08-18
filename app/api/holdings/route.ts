@@ -1,13 +1,14 @@
 import { json, error, readBody, getCollection, escapeRegExp } from '@/lib/http'
 import { getScope, guestWriteGuard } from '@/lib/access'
 import { HOLDING_HEADERS, toRow } from '@/lib/models'
+import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const scope = getScope(req)
   const coll = await getCollection('holdings', scope)
-  const docs = await coll.find({}).toArray()
+  const docs = await cachedRead('holdings', scope, () => coll.find({}).toArray())
   return json({ headers: HOLDING_HEADERS, rows: docs.map((d) => toRow(HOLDING_HEADERS, d)) })
 }
 
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     value: String(body.value),
     updated_at: String(body.updated_at || new Date().toISOString()),
   })
+  invalidate('holdings', scope)
   return json({ ok: true })
 }
 
@@ -55,6 +57,7 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ name: String(body.name) }, { $set: update })
+  invalidate('holdings', scope)
   return json({ ok: true })
 }
 
@@ -69,5 +72,6 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('holdings', scope)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('holding not found', 404)
+  invalidate('holdings', scope)
   return json({ ok: true })
 }

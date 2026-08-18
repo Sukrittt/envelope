@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { AnimatePresence } from "motion/react";
@@ -108,7 +109,14 @@ function weekRangeLabel(startIso: string): string {
 export function ExpensePage() {
   // TESTING ONLY — set true to pin the page on the loading skeleton.
   const FORCE_LOADING_SKELETON = false;
-  const [panel, setPanel] = useState<ExpensePanelData | null>(null);
+  const { data: contract, mutate: mutatePanel } = useSWR(
+    "expense-panel-contract",
+    loadExpensePanelContract,
+  );
+  const panel = useMemo(
+    () => (contract ? toExpensePanelData(contract) : null),
+    [contract],
+  );
   // const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>("mtd");
   const [trendView, setTrendView] = useState<TrendView>("weekly");
@@ -179,16 +187,20 @@ export function ExpensePage() {
 
   async function refreshPanel() {
     try {
-      const contract = await loadExpensePanelContract();
-      const data = toExpensePanelData(contract);
-      setPanel(data);
-      setEnvelopeState(data.envelopeState);
+      await mutatePanel();
     } catch {
       // silent
     }
     setCancellingSub(null);
     setReactivatingSub(null);
   }
+
+  // Keep envelopeState in sync with the panel contract, while still allowing
+  // optimistic local updates (handleIncomeChange, handleAssignFromRTA, etc.)
+  // to apply in between contract refreshes.
+  useEffect(() => {
+    if (panel) setEnvelopeState(panel.envelopeState);
+  }, [panel]);
 
   async function handleInsightNavigate(delta: number) {
     const base =
@@ -382,14 +394,6 @@ export function ExpensePage() {
   const dateTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    loadExpensePanelContract().then((contract) => {
-      const data = toExpensePanelData(contract);
-      setPanel(data);
-      setEnvelopeState(data.envelopeState);
-    });
-  }, []);
-
-  useEffect(() => {
     if (!panel) return;
     const override = localStorage.getItem("expense-income-override");
     if (override === null) return;
@@ -506,10 +510,7 @@ export function ExpensePage() {
     }
 
     localStorage.setItem("budget-active-month", month);
-    const contract = await loadExpensePanelContract();
-    const data = toExpensePanelData(contract);
-    setPanel(data);
-    setEnvelopeState(data.envelopeState);
+    await refreshPanel();
   }
 
   function handleRolloverDismiss() {

@@ -1,5 +1,6 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getScope, guestWriteGuard } from '@/lib/access'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     { name: String(body.name) },
     { $set: { value: String(newValue), updated_at: new Date().toISOString() } },
   )
+  invalidate('holdings', scope)
 
   // Contributions/withdrawals move money in/out of Ready to Assign.
   if ((body.action === 'contribution' || body.action === 'withdrawal') && body.month) {
@@ -50,6 +52,7 @@ export async function POST(req: Request) {
         { _id: budget._id },
         { $set: { assigned: String(Math.max(0, currentIncome + delta)) } },
       )
+      invalidate('budgets', scope)
     }
   }
 
@@ -62,6 +65,7 @@ export async function POST(req: Request) {
     new_value: String(newValue),
     timestamp: new Date().toISOString(),
   })
+  invalidate('holdingEvents', scope)
 
   return json({ ok: true, previousValue: prevValue, newValue })
 }

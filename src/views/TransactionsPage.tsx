@@ -1,21 +1,16 @@
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useMemo } from 'react'
+import useSWR from 'swr'
 import Link from 'next/link'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { TransactionsView } from '../components/TransactionsView'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
-import { toExpensePanelData, type ExpensePanelData } from '../services/expensePanelAdapter'
+import { toExpensePanelData } from '../services/expensePanelAdapter'
 import { loadExpensePanelContract } from '../services/expensePanelLoader'
 
 export function TransactionsPage() {
-  const [panel, setPanel] = useState<ExpensePanelData | null>(null)
+  const { data: contract } = useSWR('expense-panel-contract', loadExpensePanelContract)
+  const panel = useMemo(() => (contract ? toExpensePanelData(contract) : null), [contract])
   const { theme, setTheme } = useAppearance()
-
-  useEffect(() => {
-    loadExpensePanelContract().then((contract) => {
-      const data = toExpensePanelData(contract)
-      setPanel(data)
-    })
-  }, [])
 
   return (
     <section className="expense-redesign">

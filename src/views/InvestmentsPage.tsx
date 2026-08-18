@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import useSWR from 'swr'
 import { AnimatePresence } from 'motion/react'
 import { getHoldings, addHolding, deleteHolding, performHoldingAction, getHoldingEvents } from '../services/api'
 import { Scrim, Sheet } from '../components/MotionSheet'
@@ -54,10 +55,30 @@ function eventLabel(type: string): string {
   }
 }
 
+async function fetchHoldingsPanel(): Promise<{ holdings: Holding[]; events: HoldingEvent[] }> {
+  const [holdingRows, eventRows] = await Promise.all([getHoldings(), getHoldingEvents()])
+  return {
+    holdings: holdingRows.map((r) => ({
+      name: r.name,
+      type: r.type,
+      value: Number(r.value) || 0,
+      updatedAt: r.updated_at,
+    })),
+    events: eventRows.map((r) => ({
+      holdingName: r.holding_name,
+      eventType: r.event_type,
+      amount: Number(r.amount) || 0,
+      previousValue: Number(r.previous_value) || 0,
+      newValue: Number(r.new_value) || 0,
+      timestamp: r.timestamp,
+    })),
+  }
+}
+
 export function InvestmentsPage() {
-  const [holdings, setHoldings] = useState<Holding[]>([])
-  const [events, setEvents] = useState<HoldingEvent[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading, error: loadError, mutate: reload } = useSWR('holdings-panel', fetchHoldingsPanel)
+  const holdings = data?.holdings ?? []
+  const events = data?.events ?? []
   const [showAdd, setShowAdd] = useState(false)
   const [addName, setAddName] = useState('')
   const [addType, setAddType] = useState('')
@@ -73,63 +94,6 @@ export function InvestmentsPage() {
 
   const month = useMemo(() => new Date().toISOString().slice(0, 7), [])
 
-  // `loading` starts true, so the initial mount is covered; later refreshes update in place.
-  async function load() {
-    try {
-      const [holdingRows, eventRows] = await Promise.all([
-        getHoldings(),
-        getHoldingEvents(),
-      ])
-      setHoldings(holdingRows.map(r => ({
-        name: r.name,
-        type: r.type,
-        value: Number(r.value) || 0,
-        updatedAt: r.updated_at,
-      })))
-      setEvents(eventRows.map(r => ({
-        holdingName: r.holding_name,
-        eventType: r.event_type,
-        amount: Number(r.amount) || 0,
-        previousValue: Number(r.previous_value) || 0,
-        newValue: Number(r.new_value) || 0,
-        timestamp: r.timestamp,
-      })))
-    } catch (e) {
-      setError(String(e))
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    // Fetches are awaited before any setState runs, keeping the initial load
-    // asynchronous and avoiding the sync-setState-in-effect cascade.
-    void (async () => {
-      try {
-        const [holdingRows, eventRows] = await Promise.all([
-          getHoldings(),
-          getHoldingEvents(),
-        ])
-        setHoldings(holdingRows.map(r => ({
-          name: r.name,
-          type: r.type,
-          value: Number(r.value) || 0,
-          updatedAt: r.updated_at,
-        })))
-        setEvents(eventRows.map(r => ({
-          holdingName: r.holding_name,
-          eventType: r.event_type,
-          amount: Number(r.amount) || 0,
-          previousValue: Number(r.previous_value) || 0,
-          newValue: Number(r.new_value) || 0,
-          timestamp: r.timestamp,
-        })))
-      } catch (e) {
-        setError(String(e))
-      }
-      setLoading(false)
-    })()
-  }, [])
-
   const netWorth = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings])
 
   async function handleAdd() {
@@ -142,7 +106,7 @@ export function InvestmentsPage() {
         setAddName('')
         setAddType('')
         setAddValue('')
-        load()
+        reload()
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -155,7 +119,7 @@ export function InvestmentsPage() {
       setActionMenuHolding(null)
       setActiveAction(null)
       await deleteHolding(name)
-      await load()
+      await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -177,7 +141,7 @@ export function InvestmentsPage() {
         setActionMenuHolding(null)
         setActiveAction(null)
         setActionAmount('')
-        load()
+        reload()
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -190,7 +154,7 @@ export function InvestmentsPage() {
     setActionAmount(type === 'market_update' ? String(holding.value) : '')
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <section className="expense-view" aria-busy="true" aria-live="polite">
         <div className="expense-layout">
@@ -363,7 +327,7 @@ export function InvestmentsPage() {
               <button type="button" className="env-manage-btn" onClick={() => setShowAdd(true)}>+ Add</button>
             </div>
 
-            {error && <div style={{ color: 'var(--risk-fg)', fontSize: 'var(--fs-12)', padding: 'var(--sp-3)' }}>{error}</div>}
+            {(error || loadError) && <div style={{ color: 'var(--risk-fg)', fontSize: 'var(--fs-12)', padding: 'var(--sp-3)' }}>{error ?? String(loadError)}</div>}
 
             <div className="inv-net-worth">
               <span className="inv-nw-label">Net Worth</span>

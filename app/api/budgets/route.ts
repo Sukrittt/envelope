@@ -1,13 +1,14 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getScope, guestWriteGuard } from '@/lib/access'
 import { BUDGET_HEADERS, toRow } from '@/lib/models'
+import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const scope = getScope(req)
   const coll = await getCollection('budgets', scope)
-  const docs = await coll.find({}).toArray()
+  const docs = await cachedRead('budgets', scope, () => coll.find({}).toArray())
   return json({ headers: BUDGET_HEADERS, rows: docs.map((d) => toRow(BUDGET_HEADERS, d)) })
 }
 
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     assigned: String(body.assigned),
     rolled_over: String(body.rolled_over ?? 0),
   })
+  invalidate('budgets', scope)
   return json({ ok: true })
 }
 
@@ -54,6 +56,7 @@ export async function PUT(req: Request) {
     { $set: update },
     { upsert: true },
   )
+  invalidate('budgets', scope)
   return json({ ok: true })
 }
 
@@ -68,5 +71,6 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('budgets', scope)
   const result = await coll.deleteOne({ month: String(body.month), category: String(body.category) })
   if (result.deletedCount === 0) return error('budget row not found', 404)
+  invalidate('budgets', scope)
   return json({ ok: true })
 }

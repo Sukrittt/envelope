@@ -1,12 +1,13 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getScope, guestWriteGuard } from '@/lib/access'
+import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const scope = getScope(req)
   const coll = await getCollection('groups', scope)
-  const docs = await coll.find({}).toArray()
+  const docs = await cachedRead('groups', scope, () => coll.find({}).toArray())
   return json(docs.map((d) => d.name).filter(Boolean))
 }
 
@@ -22,6 +23,7 @@ export async function POST(req: Request) {
   const exists = await coll.findOne({ name: String(body.name) })
   if (exists) return error('group already exists', 409)
   await coll.insertOne({ name: String(body.name) })
+  invalidate('groups', scope)
   return json({ ok: true })
 }
 
@@ -42,7 +44,9 @@ export async function PUT(req: Request) {
     await coll.updateOne({ name: String(body.name) }, { $set: { name: newName } })
     const catColl = await getCollection('categories', scope)
     await catColl.updateMany({ group: String(body.name) }, { $set: { group: newName } })
+    invalidate('categories', scope)
   }
+  invalidate('groups', scope)
   return json({ ok: true })
 }
 
@@ -60,5 +64,7 @@ export async function DELETE(req: Request) {
 
   const catColl = await getCollection('categories', scope)
   await catColl.updateMany({ group: String(body.name) }, { $set: { group: '' } })
+  invalidate('categories', scope)
+  invalidate('groups', scope)
   return json({ ok: true })
 }

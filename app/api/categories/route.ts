@@ -1,12 +1,13 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getScope, guestWriteGuard } from '@/lib/access'
+import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const scope = getScope(req)
   const coll = await getCollection('categories', scope)
-  const docs = await coll.find({}).sort({ order: 1 }).toArray()
+  const docs = await cachedRead('categories', scope, () => coll.find({}).sort({ order: 1 }).toArray())
   return json(
     docs
       .map((d) => ({ name: d.name ?? '', group: d.group ?? '' }))
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
   const maxDoc = await coll.find({}).sort({ order: -1 }).limit(1).next()
   const order = (maxDoc && typeof maxDoc.order === 'number' ? maxDoc.order : 0) + 1
   await coll.insertOne({ name: String(body.name), group: String(body.group ?? ''), order })
+  invalidate('categories', scope)
   return json({ ok: true })
 }
 
@@ -52,12 +54,16 @@ export async function PUT(req: Request) {
 
     const expenseColl = await getCollection('expenses', scope)
     await expenseColl.updateMany({ category: String(body.name) }, { $set: { category: effectiveName } })
+
+    invalidate('budgets', scope)
+    invalidate('expenses', scope)
   }
 
   if (body.group !== undefined) {
     await coll.updateOne({ name: effectiveName }, { $set: { group: String(body.group) } })
   }
 
+  invalidate('categories', scope)
   return json({ ok: true })
 }
 
@@ -72,5 +78,6 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('categories', scope)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('category not found', 404)
+  invalidate('categories', scope)
   return json({ ok: true })
 }

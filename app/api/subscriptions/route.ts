@@ -1,13 +1,14 @@
 import { json, error, readBody, getCollection, escapeRegExp, nowIST } from '@/lib/http'
 import { getScope, guestWriteGuard } from '@/lib/access'
 import { SUBSCRIPTION_HEADERS, toRow } from '@/lib/models'
+import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const scope = getScope(req)
   const coll = await getCollection('subscriptions', scope)
-  const docs = await coll.find({}).toArray()
+  const docs = await cachedRead('subscriptions', scope, () => coll.find({}).toArray())
   return json({ headers: SUBSCRIPTION_HEADERS, rows: docs.map((d) => toRow(SUBSCRIPTION_HEADERS, d)) })
 }
 
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
     renewal_or_end_month: String(body.renewal_or_end_month ?? ''),
     notes: String(body.notes ?? ''),
   })
+  invalidate('subscriptions', scope)
   return json({ ok: true })
 }
 
@@ -69,6 +71,7 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ service: String(body.service) }, { $set: update })
+  invalidate('subscriptions', scope)
   return json({ ok: true })
 }
 
@@ -86,5 +89,6 @@ export async function DELETE(req: Request) {
     service: { $regex: new RegExp(`^${escapeRegExp(String(body.service))}$`, 'i') },
   })
   if (result.deletedCount === 0) return error('subscription not found', 404)
+  invalidate('subscriptions', scope)
   return json({ ok: true })
 }
