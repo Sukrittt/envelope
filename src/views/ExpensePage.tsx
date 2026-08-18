@@ -111,7 +111,7 @@ export function ExpensePage() {
   const [panel, setPanel] = useState<ExpensePanelData | null>(null);
   // const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>("mtd");
-  const [trendView, setTrendView] = useState<TrendView>("daily");
+  const [trendView, setTrendView] = useState<TrendView>("weekly");
   const [drillFilter, setDrillFilter] = useState<DrillFilter>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeMenu, setActiveMenu] = useState<"category" | "date" | null>(
