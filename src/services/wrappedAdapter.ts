@@ -9,6 +9,7 @@ export interface WrappedData {
   topWeekday: { day: string; total: number; count: number } | null
   longestStreak: { days: number; startDate: string; endDate: string } | null
   longestGap: { days: number; startDate: string; endDate: string } | null
+  monthlyTotals: Array<{ month: string; label: string; total: number }>
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -22,7 +23,10 @@ const EMPTY_WRAPPED: WrappedData = {
   topWeekday: null,
   longestStreak: null,
   longestGap: null,
+  monthlyTotals: [],
 }
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /** Compute the all-time "Wrapped" recap from raw expense docs (real spend only, refunds excluded). */
 export function computeWrapped(docs: Row[]): WrappedData {
@@ -104,6 +108,15 @@ export function computeWrapped(docs: Row[]): WrappedData {
     }
   }
 
+  const monthlyMap = new Map<string, number>()
+  for (const r of rows) {
+    const month = r.date.slice(0, 7)
+    monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + r.amountInr)
+  }
+  const monthlyTotals = [...monthlyMap.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([month, total]) => ({ month, label: MONTH_LABELS[Number(month.slice(5, 7)) - 1] ?? month, total }))
+
   return {
     range: { startDate, endDate, daysTracked: distinctDates.length },
     totalSpent,
@@ -113,5 +126,6 @@ export function computeWrapped(docs: Row[]): WrappedData {
     topWeekday,
     longestStreak,
     longestGap,
+    monthlyTotals,
   }
 }
