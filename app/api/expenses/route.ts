@@ -67,6 +67,7 @@ export async function POST(req: Request) {
   }
 
   invalidate('expenses', scope)
+  invalidate('wrapped', scope)
   return json({ ok: true })
 }
 
@@ -127,6 +128,7 @@ export async function PUT(req: Request) {
 
   await coll.updateOne({ _id: found._id }, { $set: update })
   invalidate('expenses', scope)
+  invalidate('wrapped', scope)
   return json({ ok: true })
 }
 
@@ -201,5 +203,6 @@ export async function DELETE(req: Request) {
   }
 
   invalidate('expenses', scope)
+  invalidate('wrapped', scope)
   return json({ ok: true })
 }
