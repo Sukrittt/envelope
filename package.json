@@ -12,6 +12,7 @@
     "check:ai-context": "node scripts/check-ai-context.mjs",
     "db:backfill": "node scripts/backfill-user-id.mjs",
     "db:indexes": "node scripts/ensure-indexes.mjs",
+    "db:sync-users": "node scripts/sync-users.mjs",
     "check:scoping": "node scripts/check-scoping.mjs"
   },
   "dependencies": {

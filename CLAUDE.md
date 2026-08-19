@@ -30,13 +30,15 @@ Real data lives in MongoDB; the app was migrated off flat CSVs (`productivity/`,
 
 ### Auth / scope model
 
-Auth is WorkOS AuthKit. Every API route resolves an `Auth` (`{ userId, readOnly }`) per-request via `lib/access.ts::getAuth`, which tries three things in order: an `Authorization: Bearer <jwt>` verified against WorkOS's JWKS (the mobile app), the AuthKit session cookie via `withAuth()` (the web app, same-origin so the token never reaches browser JS), then the read-only demo user (`DEMO_USER_ID`) for anyone signed out. There is no local `users` collection and no webhook sync — the JWT's `sub` *is* the tenant key.
+Auth is WorkOS AuthKit. Every API route resolves an `Auth` (`{ userId, readOnly }`) per-request via `lib/access.ts::getAuth`, which tries three things in order: an `Authorization: Bearer <jwt>` verified against WorkOS's JWKS (the mobile app), the AuthKit session cookie via `withAuth()` (the web app, same-origin so the token never reaches browser JS), then the read-only demo user (`DEMO_USER_ID`) for anyone signed out. There's no hosted AuthKit page — Google goes straight to Google's consent screen (`provider: 'GoogleOAuth'`, skips the AuthKit picker) via `app/api/auth/google`, and email uses magic-auth codes via `app/api/auth/magic-auth/*`. Both call `saveSession()` from `@workos-inc/authkit-nextjs` directly, since neither goes through `handleAuth()`.
+
+A local `users` collection (`lib/users.ts`) holds WorkOS-account metadata (email, name) for attaching app-specific data to a person — kept in sync JIT, not via webhook: `ensureUser()` upserts from the `user` object already returned by a fresh sign-in (the two auth routes above), `ensureUserById()` upserts by id alone — fetching from WorkOS only if the row is missing — for the mobile app, which authenticates directly against WorkOS and only touches this backend via `app/api/auth/verify`. `scripts/sync-users.mjs` seeds/re-syncs it on demand. The JWT's `sub` is still the tenant key for data scoping; this collection is metadata, not the source of truth for who owns what.
 
 Tenancy is enforced at the choke point, not per handler: `getCollection(base, auth)` returns a `ScopedCollection` (`lib/scoped.ts`) that injects `user_id` into every filter and stamps it onto every insert, including inside `bulkWrite`. When adding a new API route, follow the existing pattern: `const auth = await getAuth(req)`, call `readOnlyGuard(auth, method)` for mutations, and use `getCollection(base, auth)` — never `db.collection()` directly, which bypasses scoping.
 
 Caches must be keyed by user id too (`lib/cache.ts`, and the module-level map in `app/api/category-map/route.ts`) — a cache keyed only by collection name serves one user's rows to the next.
 
-Web routes: `app/callback` (AuthKit code exchange), `app/login` and `app/logout` (plain hrefs client components can navigate to, since `getSignInUrl`/`signOut` are server-only). `middleware.ts` refreshes the session cookie but deliberately never forces sign-in.
+Web routes: `app/api/auth/google` + `.../google/callback` (Google sign-in), `app/api/auth/magic-auth/send` + `.../verify` (email sign-in), `app/logout` (plain href client components can navigate to, since `signOut` is server-only). `middleware.ts` refreshes the session cookie but deliberately never forces sign-in.
 
 ### Routes
 

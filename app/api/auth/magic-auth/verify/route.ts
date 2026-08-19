@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { saveSession } from '@workos-inc/authkit-nextjs'
 import { getWorkOSClient } from '@/lib/workosClient'
+import { ensureUser } from '@/lib/users'
 
 /**
  * Shared by both clients: web relies on the cookie saveSession() sets;
@@ -16,6 +17,7 @@ export async function POST(req: Request) {
       email,
       code,
     })
+    await ensureUser(user)
     await saveSession({ accessToken, refreshToken, user }, req.url)
     return NextResponse.json({ ok: true, accessToken, refreshToken })
   } catch {
