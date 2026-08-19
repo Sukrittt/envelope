@@ -1,0 +1,62 @@
+// Creates the per-user indexes the multi-user data model needs. Idempotent —
+// createIndex is a no-op when the index already exists.
+//
+// Run AFTER backfill-user-id.mjs: the unique compound indexes would fail on
+// documents that still have no user_id. Run BEFORE a second user exists: they
+// are what make the app's duplicate checks (one holding named X, one budget row
+// per month+category) correct per-account rather than globally.
+//
+// Usage: node scripts/ensure-indexes.mjs
+import { MongoClient } from 'mongodb'
+import { loadEnv } from './lib/env.mjs'
+
+loadEnv()
+
+const INDEXES = {
+  expenses: [
+    [{ user_id: 1, date: -1 }, {}],
+    [{ user_id: 1, ai_scanned: 1 }, {}],
+  ],
+  budgets: [[{ user_id: 1, month: 1, category: 1 }, { unique: true }]],
+  categories: [
+    [{ user_id: 1, name: 1 }, { unique: true }],
+    [{ user_id: 1, group: 1, order: 1 }, {}],
+  ],
+  groups: [[{ user_id: 1, name: 1 }, { unique: true }]],
+  holdings: [[{ user_id: 1, name: 1 }, { unique: true }]],
+  holding_events: [[{ user_id: 1, timestamp: -1 }, {}]],
+  subscriptions: [[{ user_id: 1, service: 1 }, {}]],
+  push_tokens: [
+    [{ token: 1 }, { unique: true }],
+    [{ user_id: 1 }, {}],
+  ],
+  category_map_overrides: [[{ user_id: 1, word: 1 }, { unique: true }]],
+}
+
+async function main() {
+  const uri = process.env.MONGODB_URI
+  if (!uri) throw new Error('MONGODB_URI not set')
+
+  const client = new MongoClient(uri)
+  await client.connect()
+  try {
+    const db = client.db()
+    for (const [name, specs] of Object.entries(INDEXES)) {
+      for (const [keys, options] of specs) {
+        try {
+          const created = await db.collection(name).createIndex(keys, options)
+          console.log(`${name.padEnd(24)} ${created}`)
+        } catch (err) {
+          console.error(`${name.padEnd(24)} FAILED ${JSON.stringify(keys)}: ${err.message}`)
+        }
+      }
+    }
+  } finally {
+    await client.close()
+  }
+}
+
+main().catch((err) => {
+  console.error(err.message)
+  process.exit(1)
+})

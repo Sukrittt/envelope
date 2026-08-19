@@ -1,6 +1,6 @@
 import { computeEnvelopes } from '@/src/services/budgetLoader'
 import { getCollection, nowIST } from '@/lib/http'
-import type { Scope } from '@/lib/access'
+import type { Auth } from '@/lib/access'
 import type { BudgetRow } from '@/src/types/expense'
 
 /**
@@ -269,14 +269,14 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
 }
 
 /** Fetches all collections needed for the money-brain context and builds `facts`. */
-export async function buildExpenseContext(scope: Scope): Promise<SummarizeExpensesResult> {
+export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpensesResult> {
   const [expensesColl, budgetsColl, categoriesColl, groupsColl, subscriptionsColl, holdingsColl] = await Promise.all([
-    getCollection('expenses', scope),
-    getCollection('budgets', scope),
-    getCollection('categories', scope),
-    getCollection('groups', scope),
-    getCollection('subscriptions', scope),
-    getCollection('holdings', scope),
+    getCollection('expenses', auth),
+    getCollection('budgets', auth),
+    getCollection('categories', auth),
+    getCollection('groups', auth),
+    getCollection('subscriptions', auth),
+    getCollection('holdings', auth),
   ])
 
   const [expenseDocs, budgetDocs, categoryDocs, groupDocs, subscriptionDocs, holdingDocs] = await Promise.all([

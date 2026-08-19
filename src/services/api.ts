@@ -1,29 +1,11 @@
-import { isGuest } from './accessMode'
-
 /**
- * The dashboard unlock password, reused as the API Bearer token. It is already
- * bundled client-side (the AuthGate needs it for comparison), so we can read it
- * here and attach it to every API call made in real mode. Guests send no token
- * and get read-only demo data from the server.
- */
-const AUTH_TOKEN = process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD as string | undefined
-
-/** Authorization header for real-mode requests; guests send none. */
-function authHeaders(): Record<string, string> {
-  if (isGuest() || !AUTH_TOKEN) return {}
-  return { Authorization: `Bearer ${AUTH_TOKEN}` }
-}
-
-/**
- * fetch wrapper that attaches the real-mode Bearer token. The server derives
- * real-vs-guest scope from this header, so the old `?mode=guest` query param is
- * no longer used.
+ * fetch wrapper for the API. There is no Authorization header any more: these
+ * are same-origin requests, so the AuthKit session cookie rides along
+ * automatically and the access token never touches JavaScript. Signed-out
+ * callers simply have no cookie and the server answers as the demo user.
  */
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(path, {
-    ...init,
-    headers: { ...authHeaders(), ...(init?.headers ?? {}) },
-  })
+  return fetch(path, init)
 }
 
 export interface BudgetRow {

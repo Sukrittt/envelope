@@ -1,24 +1,36 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
-
-export type Scope = 'real' | 'guest'
-
-const DEMO_PREFIX = 'demo_'
+import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { withAuth } from '@workos-inc/authkit-nextjs'
 
 /**
- * Shared secret for the API. Same value as the AuthGate password
- * (`NEXT_PUBLIC_DASHBOARD_PASSWORD`), so the Telegram bot — and the dashboard
- * itself — authenticate with the same password used to unlock real mode.
- * When no password is configured the API is open, matching the gate, which
- * auto-unlocks to real mode.
+ * Who a request belongs to. `userId` is the WorkOS user id (`user_…`) taken
+ * from a verified access token, or `DEMO_USER_ID` for anyone signed out.
+ * `readOnly` marks the demo user, whose data is public sample data.
  */
-const EXPECTED_TOKEN = process.env.NEXT_PUBLIC_DASHBOARD_PASSWORD as string | undefined
+export interface Auth {
+  userId: string
+  readOnly: boolean
+}
 
-/** Constant-time string comparison, normalizing length via SHA-256. */
-function safeEqual(a: string, b: string): boolean {
-  const ah = createHash('sha256').update(a).digest()
-  const bh = createHash('sha256').update(b).digest()
-  return timingSafeEqual(ah, bh)
+/** The user id every unauthenticated request is served as. */
+export function demoUserId(): string {
+  return process.env.DEMO_USER_ID || 'demo'
+}
+
+/**
+ * WorkOS signs access tokens asymmetrically, so verification is a local
+ * signature check against their published JWKS — no API call per request.
+ * `createRemoteJWKSet` fetches once and caches the key set in-process, so this
+ * is built lazily and reused rather than rebuilt per request.
+ */
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null
+function getJwks() {
+  if (!jwks) {
+    jwks = createRemoteJWKSet(
+      new URL(`https://api.workos.com/sso/jwks/${process.env.WORKOS_CLIENT_ID}`),
+    )
+  }
+  return jwks
 }
 
 /** The Bearer token from a request's Authorization header, or null. */
@@ -29,43 +41,52 @@ export function bearerToken(req: Request): string | null {
   return match ? match[1].trim() : null
 }
 
-/** True when the request carries a valid Bearer token (or no password is set). */
-export function isAuthorized(req: Request): boolean {
-  if (!EXPECTED_TOKEN) return true
+/**
+ * Resolve the owner of a request.
+ *
+ * 1. `Authorization: Bearer <jwt>` — the mobile app, which holds a WorkOS
+ *    access token directly.
+ * 2. The AuthKit session cookie — the web app, same-origin, so the token
+ *    itself never reaches browser JavaScript.
+ * 3. Neither — the demo user, read-only.
+ *
+ * A token that fails verification falls through to demo rather than 401ing,
+ * matching the pre-WorkOS behaviour where data routes always answered 200.
+ * Verification failures are logged so a broken key never looks like empty data.
+ */
+export async function getAuth(req: Request): Promise<Auth> {
   const token = bearerToken(req)
-  return token !== null && safeEqual(token, EXPECTED_TOKEN)
-}
-
-/**
- * Resolve the request scope from its Bearer token. A valid token grants
- * 'real' (live data, read-write); anything else falls back to the read-only
- * guest/demo scope. The `?mode=guest` query param is no longer consulted —
- * presence of the token is the only signal.
- */
-export function getScope(req: Request): Scope {
-  return isAuthorized(req) ? 'real' : 'guest'
-}
-
-/**
- * Map a base collection name to the collection actually used for a scope.
- * Guest mode reads from the read-only `demo_*` collections.
- */
-export function resolveCollection(base: string, scope: Scope): string {
-  return scope === 'guest' ? `${DEMO_PREFIX}${base}` : base
-}
-
-/** 403 response used for any write attempt in guest (read-only demo) mode. */
-export function readOnlyResponse(): NextResponse {
-  return NextResponse.json({ error: 'read-only in guest mode' }, { status: 403 })
-}
-
-/**
- * Return a 403 response when a guest scope tries a non-GET mutation, else null.
- * Guests (no valid Bearer token) can read demo data but never write.
- */
-export function guestWriteGuard(scope: Scope, method: string): NextResponse | null {
-  if (scope === 'guest' && method !== 'GET') {
-    return readOnlyResponse()
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, getJwks(), {
+        issuer: 'https://api.workos.com/',
+      })
+      if (payload.sub) return { userId: payload.sub, readOnly: false }
+    } catch (err) {
+      console.warn('[auth] access token rejected:', (err as Error).message)
+    }
   }
+
+  try {
+    const { user } = await withAuth()
+    if (user) return { userId: user.id, readOnly: false }
+  } catch {
+    // No session cookie, or called outside a request scope — fall through.
+  }
+
+  return { userId: demoUserId(), readOnly: true }
+}
+
+/** 403 response used for any write attempt by the read-only demo user. */
+export function readOnlyResponse(): NextResponse {
+  return NextResponse.json({ error: 'read-only in demo mode' }, { status: 403 })
+}
+
+/**
+ * Return a 403 response when the read-only demo user tries a non-GET, else
+ * null. Demo can read the sample account but never write to it.
+ */
+export function readOnlyGuard(auth: Auth, method: string): NextResponse | null {
+  if (auth.readOnly && method !== 'GET') return readOnlyResponse()
   return null
 }

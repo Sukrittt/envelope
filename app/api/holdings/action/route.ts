@@ -1,12 +1,12 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'POST')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
   const body = await readBody(req)
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     return error('name, action, amount required')
   }
 
-  const holdingsColl = await getCollection('holdings', scope)
+  const holdingsColl = await getCollection('holdings', auth)
   const holding = await holdingsColl.findOne({ name: String(body.name) })
   if (!holding) return error('holding not found', 404)
 
@@ -39,11 +39,11 @@ export async function POST(req: Request) {
     { name: String(body.name) },
     { $set: { value: String(newValue), updated_at: new Date().toISOString() } },
   )
-  invalidate('holdings', scope)
+  invalidate('holdings', auth.userId)
 
   // Contributions/withdrawals move money in/out of Ready to Assign.
   if ((body.action === 'contribution' || body.action === 'withdrawal') && body.month) {
-    const budgetColl = await getCollection('budgets', scope)
+    const budgetColl = await getCollection('budgets', auth)
     const budget = await budgetColl.findOne({ month: String(body.month), category: '__income__' })
     if (budget) {
       const currentIncome = Number(budget.assigned) || 0
@@ -52,11 +52,11 @@ export async function POST(req: Request) {
         { _id: budget._id },
         { $set: { assigned: String(Math.max(0, currentIncome + delta)) } },
       )
-      invalidate('budgets', scope)
+      invalidate('budgets', auth.userId)
     }
   }
 
-  const eventsColl = await getCollection('holding_events', scope)
+  const eventsColl = await getCollection('holding_events', auth)
   await eventsColl.insertOne({
     holding_name: String(body.name),
     event_type: String(body.action),
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     new_value: String(newValue),
     timestamp: new Date().toISOString(),
   })
-  invalidate('holdingEvents', scope)
+  invalidate('holdingEvents', auth.userId)
 
   return json({ ok: true, previousValue: prevValue, newValue })
 }

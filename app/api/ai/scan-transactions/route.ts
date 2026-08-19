@@ -1,5 +1,8 @@
+import { timingSafeEqual, createHash } from 'node:crypto'
 import { Type } from '@google/genai'
 import { json, getCollection } from '@/lib/http'
+import { getDb } from '@/lib/mongodb'
+import { demoUserId, type Auth } from '@/lib/access'
 import { generateJSON } from '@/lib/ai/gemini'
 import { sendPushNotification } from '@/lib/push'
 
@@ -36,15 +39,41 @@ function buildCategoryHistory(docs: Record<string, unknown>[]): Record<string, {
   return stats
 }
 
+/** Constant-time comparison, normalizing length via SHA-256. */
+function safeEqual(a: string, b: string): boolean {
+  const ah = createHash('sha256').update(a).digest()
+  const bh = createHash('sha256').update(b).digest()
+  return timingSafeEqual(ah, bh)
+}
+
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET ? `Bearer ${process.env.CRON_SECRET}` : null
-  if (!expected || req.headers.get('authorization') !== expected) {
+  const secret = process.env.CRON_SECRET
+  const header = req.headers.get('authorization')
+  if (!secret || !header || !safeEqual(header, `Bearer ${secret}`)) {
     return json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  // Internal maintenance job — always the real (non-demo) collections.
-  const expensesColl = await getCollection('expenses', 'real')
-  const subscriptionsColl = await getCollection('subscriptions', 'real')
+  // Fan out over everyone who has expenses. There is no users collection by
+  // design (the WorkOS JWT's `sub` is the tenant key), so the data itself is
+  // the user list. The demo account is sample data — never scanned, never
+  // pushed to.
+  const db = await getDb()
+  const userIds = (await db.collection('expenses').distinct('user_id')) as string[]
+  const demo = demoUserId()
+
+  const results = []
+  for (const userId of userIds) {
+    if (!userId || userId === demo) continue
+    results.push({ userId, ...(await scanUser({ userId, readOnly: false })) })
+  }
+
+  return json({ ok: true, users: results.length, results })
+}
+
+/** Scan one user's unscanned expenses and push them their own flags. */
+async function scanUser(auth: Auth) {
+  const expensesColl = await getCollection('expenses', auth)
+  const subscriptionsColl = await getCollection('subscriptions', auth)
 
   const batch = await expensesColl
     .find({ ai_scanned: { $ne: true } })
@@ -53,7 +82,7 @@ export async function GET(req: Request) {
     .toArray()
 
   if (batch.length === 0) {
-    return json({ ok: true, scanned: 0, flagged: 0 })
+    return { scanned: 0, flagged: 0 }
   }
 
   const since = new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -115,6 +144,7 @@ export async function GET(req: Request) {
 
     for (const flag of flags) {
       await sendPushNotification({
+        userId: auth.userId,
         title: 'Flagged transaction',
         body: flag.message,
         data: { date: flag.timestamp.slice(0, 10) },
@@ -132,5 +162,5 @@ export async function GET(req: Request) {
     { $set: { ai_scanned: true, ai_scanned_at: new Date().toISOString() } },
   )
 
-  return json({ ok: true, scanned: batch.length, flagged: flags.length, ...(llmError ? { error: llmError } : {}) })
+  return { scanned: batch.length, flagged: flags.length, ...(llmError ? { error: llmError } : {}) }
 }

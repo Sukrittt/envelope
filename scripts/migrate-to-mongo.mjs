@@ -90,27 +90,39 @@ function readCsvAsObjects(filePath) {
 }
 
 // --- Migration config ---
+// Demo rows no longer go to demo_* collections: demo is just another user id,
+// so both sets seed the same collections and are separated by `user_id`.
+//
+// The real user id must be passed explicitly (--user-id user_xxx, or the
+// WORKOS_USER_ID env var). Seeding untagged documents would leave rows nobody
+// can read, so there is deliberately no default.
+const REAL_USER_ID =
+  process.argv.includes('--user-id')
+    ? process.argv[process.argv.indexOf('--user-id') + 1]
+    : process.env.WORKOS_USER_ID
+const DEMO_USER_ID = process.env.DEMO_USER_ID || 'demo'
+
 // target collection -> { file, key (natural key string or array), log (append-only) }
 const COLLECTION_MAP = [
-  { collection: 'expenses', file: path.join(workspace, 'productivity', 'expenses.csv'), key: 'log' },
-  { collection: 'budgets', file: path.join(workspace, 'productivity', 'budgets.csv'), key: ['month', 'category'] },
-  { collection: 'categories', file: path.join(workspace, 'productivity', 'categories.csv'), key: 'name' },
-  { collection: 'groups', file: path.join(workspace, 'productivity', 'groups.csv'), key: 'name' },
-  { collection: 'subscriptions', file: path.join(workspace, 'data', 'subscriptions.csv'), key: 'service' },
-  { collection: 'holdings', file: path.join(workspace, 'data', 'holdings.csv'), key: 'name' },
-  { collection: 'holding_events', file: path.join(workspace, 'data', 'holding_events.csv'), key: 'log' },
-  { collection: 'demo_expenses', file: path.join(workspace, 'productivity', 'demo', 'expenses.csv'), key: 'log' },
-  { collection: 'demo_budgets', file: path.join(workspace, 'productivity', 'demo', 'budgets.csv'), key: ['month', 'category'] },
-  { collection: 'demo_categories', file: path.join(workspace, 'productivity', 'demo', 'categories.csv'), key: 'name' },
-  { collection: 'demo_groups', file: path.join(workspace, 'productivity', 'demo', 'groups.csv'), key: 'name' },
-  { collection: 'demo_subscriptions', file: path.join(workspace, 'data', 'demo', 'subscriptions.csv'), key: 'service' },
-  { collection: 'demo_holdings', file: path.join(workspace, 'data', 'demo', 'holdings.csv'), key: 'name' },
-  { collection: 'demo_holding_events', file: path.join(workspace, 'data', 'demo', 'holding_events.csv'), key: 'log' },
+  { collection: 'expenses', userId: REAL_USER_ID, file: path.join(workspace, 'productivity', 'expenses.csv'), key: 'log' },
+  { collection: 'budgets', userId: REAL_USER_ID, file: path.join(workspace, 'productivity', 'budgets.csv'), key: ['month', 'category'] },
+  { collection: 'categories', userId: REAL_USER_ID, file: path.join(workspace, 'productivity', 'categories.csv'), key: 'name' },
+  { collection: 'groups', userId: REAL_USER_ID, file: path.join(workspace, 'productivity', 'groups.csv'), key: 'name' },
+  { collection: 'subscriptions', userId: REAL_USER_ID, file: path.join(workspace, 'data', 'subscriptions.csv'), key: 'service' },
+  { collection: 'holdings', userId: REAL_USER_ID, file: path.join(workspace, 'data', 'holdings.csv'), key: 'name' },
+  { collection: 'holding_events', userId: REAL_USER_ID, file: path.join(workspace, 'data', 'holding_events.csv'), key: 'log' },
+  { collection: 'expenses', userId: DEMO_USER_ID, file: path.join(workspace, 'productivity', 'demo', 'expenses.csv'), key: 'log' },
+  { collection: 'budgets', userId: DEMO_USER_ID, file: path.join(workspace, 'productivity', 'demo', 'budgets.csv'), key: ['month', 'category'] },
+  { collection: 'categories', userId: DEMO_USER_ID, file: path.join(workspace, 'productivity', 'demo', 'categories.csv'), key: 'name' },
+  { collection: 'groups', userId: DEMO_USER_ID, file: path.join(workspace, 'productivity', 'demo', 'groups.csv'), key: 'name' },
+  { collection: 'subscriptions', userId: DEMO_USER_ID, file: path.join(workspace, 'data', 'demo', 'subscriptions.csv'), key: 'service' },
+  { collection: 'holdings', userId: DEMO_USER_ID, file: path.join(workspace, 'data', 'demo', 'holdings.csv'), key: 'name' },
+  { collection: 'holding_events', userId: DEMO_USER_ID, file: path.join(workspace, 'data', 'demo', 'holding_events.csv'), key: 'log' },
 ]
 
-function buildFilter(row, key) {
+function buildFilter(row, key, userId) {
   if (key === 'log') return null
-  const filter = {}
+  const filter = { user_id: userId }
   const keys = Array.isArray(key) ? key : [key]
   for (const k of keys) filter[k] = row[k]
   return filter
@@ -123,12 +135,14 @@ async function seedCollection(db, config) {
     return 0
   }
   const coll = db.collection(config.collection)
+  const userId = config.userId
 
   // Categories need a stable order field for the envelope grid.
   let isCategories = config.collection.endsWith('categories')
 
   if (config.key === 'log') {
-    await coll.deleteMany({})
+    // Only this user's rows — the collection is shared across users now.
+    await coll.deleteMany({ user_id: userId })
   }
 
   let inserted = 0
@@ -136,7 +150,7 @@ async function seedCollection(db, config) {
   for (let i = 0; i < rows.length; i += 1) {
     const row = rows[i]
     const order = isCategories ? i : i
-    const doc = isCategories ? { ...row, order } : row
+    const doc = isCategories ? { ...row, order, user_id: userId } : { ...row, user_id: userId }
 
     if (config.key === 'log') {
       await coll.insertOne(doc)
@@ -144,12 +158,12 @@ async function seedCollection(db, config) {
       continue
     }
 
-    const filter = buildFilter(row, config.key)
+    const filter = buildFilter(row, config.key, userId)
     const result = await coll.replaceOne(filter, doc, { upsert: true })
     if (result.upsertedCount > 0) inserted += 1
     else if (result.modifiedCount > 0) updated += 1
   }
-  console.log(`  - ${config.collection}: ${inserted} inserted, ${updated} updated (${rows.length} total)`)
+  console.log(`  - ${config.collection} [${userId}]: ${inserted} inserted, ${updated} updated (${rows.length} total)`)
   return rows.length
 }
 
@@ -157,6 +171,11 @@ async function main() {
   const uri = process.env.MONGODB_URI
   if (!uri) {
     console.error('MONGODB_URI is not set. Add it to .env.local or the environment, then re-run.')
+    process.exit(1)
+  }
+
+  if (!REAL_USER_ID) {
+    console.error('Pass --user-id user_xxx (or set WORKOS_USER_ID). Documents must be owned by a user.')
     process.exit(1)
   }
 

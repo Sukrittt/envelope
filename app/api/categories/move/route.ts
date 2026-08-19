@@ -1,17 +1,17 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'POST')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.name || typeof body.toIndex !== 'number') return error('name, toIndex required')
 
-  const coll = await getCollection('categories', scope)
+  const coll = await getCollection('categories', auth)
   const current = await coll.findOne({ name: String(body.name) })
   if (!current) return error('category not found', 404)
 

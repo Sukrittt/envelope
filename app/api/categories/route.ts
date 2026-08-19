@@ -1,13 +1,13 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
-  const scope = getScope(req)
-  const coll = await getCollection('categories', scope)
-  const docs = await cachedRead('categories', scope, () => coll.find({}).sort({ order: 1 }).toArray())
+  const auth = await getAuth(req)
+  const coll = await getCollection('categories', auth)
+  const docs = await cachedRead('categories', auth.userId, () => coll.find({}).sort({ order: 1 }).toArray())
   return json(
     docs
       .map((d) => ({ name: d.name ?? '', group: d.group ?? '' }))
@@ -16,30 +16,30 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'POST')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
 
-  const coll = await getCollection('categories', scope)
+  const coll = await getCollection('categories', auth)
   const maxDoc = await coll.find({}).sort({ order: -1 }).limit(1).next()
   const order = (maxDoc && typeof maxDoc.order === 'number' ? maxDoc.order : 0) + 1
   await coll.insertOne({ name: String(body.name), group: String(body.group ?? ''), order })
-  invalidate('categories', scope)
+  invalidate('categories', auth.userId)
   return json({ ok: true })
 }
 
 export async function PUT(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'PUT')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'PUT')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
 
-  const coll = await getCollection('categories', scope)
+  const coll = await getCollection('categories', auth)
   const existing = await coll.findOne({ name: String(body.name) })
   if (!existing) return error('category not found', 404)
 
@@ -49,35 +49,35 @@ export async function PUT(req: Request) {
     await coll.updateOne({ name: String(body.name) }, { $set: { name: effectiveName } })
 
     // Cascade the rename to budgets + expenses so history stays consistent.
-    const budgetColl = await getCollection('budgets', scope)
+    const budgetColl = await getCollection('budgets', auth)
     await budgetColl.updateMany({ category: String(body.name) }, { $set: { category: effectiveName } })
 
-    const expenseColl = await getCollection('expenses', scope)
+    const expenseColl = await getCollection('expenses', auth)
     await expenseColl.updateMany({ category: String(body.name) }, { $set: { category: effectiveName } })
 
-    invalidate('budgets', scope)
-    invalidate('expenses', scope)
+    invalidate('budgets', auth.userId)
+    invalidate('expenses', auth.userId)
   }
 
   if (body.group !== undefined) {
     await coll.updateOne({ name: effectiveName }, { $set: { group: String(body.group) } })
   }
 
-  invalidate('categories', scope)
+  invalidate('categories', auth.userId)
   return json({ ok: true })
 }
 
 export async function DELETE(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'DELETE')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'DELETE')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
 
-  const coll = await getCollection('categories', scope)
+  const coll = await getCollection('categories', auth)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('category not found', 404)
-  invalidate('categories', scope)
+  invalidate('categories', auth.userId)
   return json({ ok: true })
 }

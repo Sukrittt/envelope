@@ -24,7 +24,7 @@ A YNAB-style budgeting tool that is fully self-hosted: real financial data lives
 - Currency is INR (₹), formatted `en-IN`.
 - A monthly money cycle: salary credited on the 4th, then income is assigned to envelopes, with a fixed investment sweep (~₹40,000/mo) and spendable pool (~₹40–45,000). Rent, subscriptions, food, travel/commute, and football are the heavy categories.
 - Deployment is Vercel with MongoDB (Atlas or local) as the single store; the DB is seeded from local CSVs by a one-off migrate script. The real-personal CSVs are gitignored; only `demo/` sample CSVs ship with the repo.
-- A password gate (`NEXT_PUBLIC_DASHBOARD_PASSWORD`) separates two scopes: **real mode** (Bearer token, read-write on real collections) and **guest mode** (no token, read-only on `demo_*` collections, every non-GET returns 403). No password configured = gate auto-unlocks and everything is real mode (local use).
+- Auth is WorkOS AuthKit. Signed-in users read and write their own data, scoped by a `user_id` on every document. Signed-out visitors are served as a read-only demo account (`DEMO_USER_ID`), which owns the sample data; every non-GET from them returns 403.
 
 ## Capabilities and Constraints
 

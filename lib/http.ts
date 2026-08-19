@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getDb } from './mongodb'
-import { resolveCollection, type Scope } from './access'
-import type { Collection } from 'mongodb'
+import { scoped, type ScopedCollection } from './scoped'
+import type { Auth } from './access'
 
 export function json(data: unknown, init?: ResponseInit): NextResponse {
   return NextResponse.json(data, init)
@@ -26,10 +26,14 @@ export async function readBody(req: Request): Promise<Record<string, string | nu
   }
 }
 
-/** Resolve a Mongo collection for a base name + scope (real vs demo_*). */
-export async function getCollection(base: string, scope: Scope): Promise<Collection<Record<string, unknown>>> {
+/**
+ * Resolve a Mongo collection, scoped to the requesting user. The returned
+ * handle injects `user_id` into every filter and insert, so handlers cannot
+ * reach another user's documents — see `lib/scoped.ts`.
+ */
+export async function getCollection(base: string, auth: Auth): Promise<ScopedCollection> {
   const db = await getDb()
-  return db.collection(resolveCollection(base, scope))
+  return scoped(db.collection(base), auth.userId)
 }
 
 /** Force handlers to run dynamically (never prerendered at build time). */

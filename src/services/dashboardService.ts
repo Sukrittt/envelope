@@ -1,5 +1,4 @@
 import mockData from '../data/mockData.json'
-import { isGuest } from './accessMode'
 import type {
   ActivityItem,
   DashboardData,
@@ -251,7 +250,7 @@ function normalizeDashboardData(value: unknown): DashboardData {
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  if (isGuest() || !API_BASE) {
+  if (!API_BASE) {
     return normalizeDashboardData(mockData)
   }
 

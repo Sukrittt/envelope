@@ -1,5 +1,5 @@
 import { readBody, error } from '@/lib/http'
-import { getScope } from '@/lib/access'
+import { getAuth, type Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { buildSystemPrompt } from '@/lib/ai/moneyBrainPrompt'
 import { streamText } from '@/lib/ai/gemini'
@@ -9,21 +9,26 @@ export const dynamic = 'force-dynamic'
 const MAX_MESSAGE_LEN = 500
 const HISTORY_LIMIT = 8
 const RATE_WINDOW_MS = 60 * 60 * 1000
-const RATE_LIMITS: Record<'real' | 'guest', number> = { real: 60, guest: 20 }
+const SIGNED_IN_LIMIT = 60
+const DEMO_LIMIT = 20
 
-// ponytail: in-memory buckets per scope (no per-user id exists in this
-// single-user app, and guest has no token to key on either). Resets on
-// redeploy/cold start and isn't shared across instances — not durable, but
-// an accepted tradeoff for a personal-use app. Swap for a real store (Mongo/
-// Upstash) if traffic/abuse ever becomes a problem.
-const requestTimestamps: Record<'real' | 'guest', number[]> = { real: [], guest: [] }
+// ponytail: in-memory buckets per user id. Resets on redeploy/cold start and
+// isn't shared across instances — not durable, but an accepted tradeoff for a
+// personal-use app. Note the demo user is a single shared bucket, so its limit
+// covers all signed-out traffic at once. Swap for a real store (Mongo/Upstash)
+// if traffic/abuse ever becomes a problem.
+const requestTimestamps = new Map<string, number[]>()
 
-function rateLimited(scope: 'real' | 'guest'): boolean {
-  const bucket = requestTimestamps[scope]
+function rateLimited(auth: Auth): boolean {
+  let bucket = requestTimestamps.get(auth.userId)
+  if (!bucket) {
+    bucket = []
+    requestTimestamps.set(auth.userId, bucket)
+  }
   const now = Date.now()
   const cutoff = now - RATE_WINDOW_MS
   while (bucket.length && bucket[0] < cutoff) bucket.shift()
-  if (bucket.length >= RATE_LIMITS[scope]) return true
+  if (bucket.length >= (auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT)) return true
   bucket.push(now)
   return false
 }
@@ -44,9 +49,9 @@ function isValidMessages(value: unknown): value is ChatMessage[] {
 }
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
+  const auth = await getAuth(req)
 
-  if (rateLimited(scope)) {
+  if (rateLimited(auth)) {
     return error('rate limited', 429)
   }
 
@@ -73,7 +78,7 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const { facts } = await buildExpenseContext(scope)
+        const { facts } = await buildExpenseContext(auth)
         const systemPrompt = buildSystemPrompt(facts)
         const geminiStream = await streamText(systemPrompt, contents)
 

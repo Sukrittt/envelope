@@ -1,26 +1,26 @@
 import { json, error, readBody, getCollection, escapeRegExp, nowIST } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { SUBSCRIPTION_HEADERS, toRow } from '@/lib/models'
 import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
-  const scope = getScope(req)
-  const coll = await getCollection('subscriptions', scope)
-  const docs = await cachedRead('subscriptions', scope, () => coll.find({}).toArray())
+  const auth = await getAuth(req)
+  const coll = await getCollection('subscriptions', auth)
+  const docs = await cachedRead('subscriptions', auth.userId, () => coll.find({}).toArray())
   return json({ headers: SUBSCRIPTION_HEADERS, rows: docs.map((d) => toRow(SUBSCRIPTION_HEADERS, d)) })
 }
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'POST')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.service || !body.amount_inr) return error('service, amount_inr required')
 
-  const coll = await getCollection('subscriptions', scope)
+  const coll = await getCollection('subscriptions', auth)
   const exists = await coll.findOne({
     service: { $regex: new RegExp(`^${escapeRegExp(String(body.service))}$`, 'i') },
   })
@@ -36,19 +36,19 @@ export async function POST(req: Request) {
     renewal_or_end_month: String(body.renewal_or_end_month ?? ''),
     notes: String(body.notes ?? ''),
   })
-  invalidate('subscriptions', scope)
+  invalidate('subscriptions', auth.userId)
   return json({ ok: true })
 }
 
 export async function PUT(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'PUT')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'PUT')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.service) return error('service required')
 
-  const coll = await getCollection('subscriptions', scope)
+  const coll = await getCollection('subscriptions', auth)
   const existing = await coll.findOne({ service: String(body.service) })
   if (!existing) return error('subscription not found', 404)
 
@@ -71,24 +71,24 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ service: String(body.service) }, { $set: update })
-  invalidate('subscriptions', scope)
+  invalidate('subscriptions', auth.userId)
   return json({ ok: true })
 }
 
 export async function DELETE(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'DELETE')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'DELETE')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.service) return error('service required')
 
   // Case-insensitive match, consistent with the POST duplicate check.
-  const coll = await getCollection('subscriptions', scope)
+  const coll = await getCollection('subscriptions', auth)
   const result = await coll.deleteOne({
     service: { $regex: new RegExp(`^${escapeRegExp(String(body.service))}$`, 'i') },
   })
   if (result.deletedCount === 0) return error('subscription not found', 404)
-  invalidate('subscriptions', scope)
+  invalidate('subscriptions', auth.userId)
   return json({ ok: true })
 }

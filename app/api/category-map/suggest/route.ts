@@ -1,9 +1,7 @@
 import { Type } from '@google/genai'
-import type { Collection } from 'mongodb'
 import { json, error, readBody, getCollection } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { generateJSON } from '@/lib/ai/gemini'
-import type { CategoryMapOverride } from '@/lib/categoryMap'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,8 +10,8 @@ interface SuggestResult {
 }
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'POST')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
   const body = (await readBody(req)) as Record<string, unknown>
@@ -49,7 +47,7 @@ export async function POST(req: Request) {
   const category = result.category ?? ''
 
   if (category) {
-    const overridesColl = (await getCollection('category_map_overrides', scope)) as unknown as Collection<CategoryMapOverride>
+    const overridesColl = await getCollection('category_map_overrides', auth)
     const words = item.toLowerCase().split(/\s+/)
     const now = new Date().toISOString()
     await Promise.all(
@@ -57,8 +55,8 @@ export async function POST(req: Request) {
         .filter((word) => word.length >= 2)
         .map((word) =>
           overridesColl.updateOne(
-            { _id: word },
-            { $set: { category, source: 'llm', createdAt: now } },
+            { word },
+            { $set: { word, category, source: 'llm', createdAt: now } },
             { upsert: true },
           ),
         ),

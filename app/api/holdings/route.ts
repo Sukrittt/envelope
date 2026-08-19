@@ -1,26 +1,26 @@
 import { json, error, readBody, getCollection, escapeRegExp } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { HOLDING_HEADERS, toRow } from '@/lib/models'
 import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
-  const scope = getScope(req)
-  const coll = await getCollection('holdings', scope)
-  const docs = await cachedRead('holdings', scope, () => coll.find({}).toArray())
+  const auth = await getAuth(req)
+  const coll = await getCollection('holdings', auth)
+  const docs = await cachedRead('holdings', auth.userId, () => coll.find({}).toArray())
   return json({ headers: HOLDING_HEADERS, rows: docs.map((d) => toRow(HOLDING_HEADERS, d)) })
 }
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'POST')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.name || body.value === undefined) return error('name, value required')
 
-  const coll = await getCollection('holdings', scope)
+  const coll = await getCollection('holdings', auth)
   const exists = await coll.findOne({
     name: { $regex: new RegExp(`^${escapeRegExp(String(body.name))}$`, 'i') },
   })
@@ -32,19 +32,19 @@ export async function POST(req: Request) {
     value: String(body.value),
     updated_at: String(body.updated_at || new Date().toISOString()),
   })
-  invalidate('holdings', scope)
+  invalidate('holdings', auth.userId)
   return json({ ok: true })
 }
 
 export async function PUT(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'PUT')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'PUT')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
 
-  const coll = await getCollection('holdings', scope)
+  const coll = await getCollection('holdings', auth)
   const existing = await coll.findOne({ name: String(body.name) })
   if (!existing) return error('holding not found', 404)
 
@@ -57,21 +57,21 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ name: String(body.name) }, { $set: update })
-  invalidate('holdings', scope)
+  invalidate('holdings', auth.userId)
   return json({ ok: true })
 }
 
 export async function DELETE(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'DELETE')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'DELETE')
   if (guard) return guard
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
 
-  const coll = await getCollection('holdings', scope)
+  const coll = await getCollection('holdings', auth)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('holding not found', 404)
-  invalidate('holdings', scope)
+  invalidate('holdings', auth.userId)
   return json({ ok: true })
 }

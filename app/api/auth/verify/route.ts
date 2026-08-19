@@ -1,13 +1,14 @@
 import { json, error } from '@/lib/http'
-import { isAuthorized } from '@/lib/access'
+import { getAuth } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
-// Unlike the data routes, this must reject a wrong/missing token outright —
-// they intentionally fall back to guest scope (200 + demo data) so the app
-// stays usable without a token, which makes them unusable for verifying a
-// password against the mobile unlock screen.
+// Unlike the data routes, this must reject a missing/invalid session outright —
+// they intentionally fall back to the read-only demo user (200 + sample data) so
+// the app stays usable signed out, which makes them useless for the mobile app's
+// "is my stored token still good?" check.
 export async function GET(req: Request) {
-  if (!isAuthorized(req)) return error('unauthorized', 401)
-  return json({ ok: true })
+  const auth = await getAuth(req)
+  if (auth.readOnly) return error('unauthorized', 401)
+  return json({ ok: true, userId: auth.userId })
 }

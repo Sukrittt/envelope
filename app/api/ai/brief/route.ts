@@ -1,6 +1,6 @@
 import { Type } from '@google/genai'
 import { json, error } from '@/lib/http'
-import { getScope } from '@/lib/access'
+import { getAuth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { generateJSON } from '@/lib/ai/gemini'
 
@@ -22,10 +22,10 @@ interface Brief {
 }
 
 export async function GET(req: Request) {
-  const scope = getScope(req)
+  const auth = await getAuth(req)
 
   try {
-    const { facts, meta } = await buildExpenseContext(scope)
+    const { facts, meta } = await buildExpenseContext(auth)
 
     const prompt = [
       'You are generating a short "money brief" for a personal expense-tracking dashboard, grounded strictly in the FACTS below.',

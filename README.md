@@ -34,7 +34,7 @@ The database is seeded from local CSV files (see [Data migration](#data-migratio
 
 ## Authentication & guest mode
 
-The app is wrapped in an `AuthGate`. When `NEXT_PUBLIC_DASHBOARD_PASSWORD` is set, the app starts locked behind a password dialog; visitors can also choose **Continue as guest**.
+The app is wrapped in an `AuthGate`. Signed-out visitors see a sign-in dialog (WorkOS AuthKit) and can also choose **Continue as guest**, which shows the read-only demo account's sample data.
 
 - **Real mode** — unlocked with the password. Every API call sends it as a `Authorization: Bearer <password>` header, which the server verifies (constant-time) to grant read-write access to the real collections.
 - **Guest mode** — no token. Read-only access to the `demo_*` collections; every non-GET request returns `403`.
@@ -76,7 +76,11 @@ Route handlers are the CSV-era `/api/*` endpoints, now backed by MongoDB. Each r
 | Variable | Purpose |
 | --- | --- |
 | `MONGODB_URI` | Required. MongoDB connection string (Atlas or local). |
-| `NEXT_PUBLIC_DASHBOARD_PASSWORD` | Optional. Password for real mode + API Bearer token. Empty = open. |
+| `WORKOS_CLIENT_ID` | WorkOS AuthKit client id. Use the same WorkOS environment locally and in production. |
+| `WORKOS_API_KEY` | WorkOS API key. |
+| `WORKOS_COOKIE_PASSWORD` | Encrypts the AuthKit session cookie. 32+ chars. |
+| `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Callback URL, also registered in the WorkOS dashboard. |
+| `DEMO_USER_ID` | Owner of the sample data served to signed-out visitors. |
 
 ## Data migration
 
@@ -109,7 +113,7 @@ npm run build                # type-checks; lint is deferred (see eslint.config.
 Deploy to Vercel. `vercel.json` pins the framework preset to `nextjs`, so the Next.js build output (`.next`) is used automatically.
 
 - Set `MONGODB_URI` in the project's environment variables.
-- Set `NEXT_PUBLIC_DASHBOARD_PASSWORD` if you want the gate locked in production.
+- Set the `WORKOS_*` vars and register the production callback URL in the WorkOS dashboard.
 
 ## Scripts
 

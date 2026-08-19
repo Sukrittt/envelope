@@ -1,21 +1,23 @@
 import { json, getCollection } from '@/lib/http'
-import { getScope } from '@/lib/access'
+import { getAuth } from '@/lib/access'
 import { buildCategoryMap, type CategoryMap } from '@/lib/categoryMap'
 
 export const dynamic = 'force-dynamic'
 
-let cache: CategoryMap | null = null
-let cacheGuest: boolean | null = null
+// Per-user, since the map is derived from that user's own expense vocabulary.
+// ponytail: unbounded Map on a personal app with a handful of users; swap for
+// an LRU if the user count ever makes that a memory concern.
+const cache = new Map<string, CategoryMap>()
 
 export async function GET(req: Request) {
-  const scope = getScope(req)
-  const guest = scope === 'guest'
+  const auth = await getAuth(req)
 
-  if (!cache || cacheGuest !== guest) {
-    const coll = await getCollection('expenses', scope)
-    const overridesColl = await getCollection('category_map_overrides', scope)
-    cache = await buildCategoryMap(coll, overridesColl)
-    cacheGuest = guest
+  let map = cache.get(auth.userId)
+  if (!map) {
+    const coll = await getCollection('expenses', auth)
+    const overridesColl = await getCollection('category_map_overrides', auth)
+    map = await buildCategoryMap(coll, overridesColl)
+    cache.set(auth.userId, map)
   }
-  return json(cache)
+  return json(map)
 }

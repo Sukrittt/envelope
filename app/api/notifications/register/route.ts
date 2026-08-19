@@ -1,5 +1,5 @@
 import { json, error, readBody } from '@/lib/http'
-import { getScope, guestWriteGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { registerPushToken } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
@@ -9,8 +9,8 @@ function isPlatform(v: unknown): v is 'ios' | 'android' {
 }
 
 export async function POST(req: Request) {
-  const scope = getScope(req)
-  const guard = guestWriteGuard(scope, 'POST')
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
   const body = await readBody(req)
@@ -19,6 +19,6 @@ export async function POST(req: Request) {
   if (typeof token !== 'string' || !token) return error('token required')
   if (!isPlatform(platform)) return error('platform required')
 
-  await registerPushToken(token, platform)
+  await registerPushToken(token, platform, auth.userId)
   return json({ ok: true })
 }

@@ -1,13 +1,20 @@
-import type { Collection } from 'mongodb'
+import type { ScopedCollection } from './scoped'
 
 export interface CategoryMap {
   words: Record<string, string>
   updatedAt: string
 }
 
-/** One `category_map_overrides` doc: word → LLM-picked category. */
+/**
+ * One `category_map_overrides` doc: word → LLM-picked category.
+ *
+ * The word lives in a `word` field rather than being the `_id`. It used to be
+ * the `_id`, which made it a globally unique key — two users could not both
+ * teach the app what "swiggy" means. Uniqueness is now the compound index
+ * `{user_id, word}`.
+ */
 export interface CategoryMapOverride {
-  _id: string
+  word: string
   category: string
   source: string
   createdAt: string
@@ -23,8 +30,8 @@ export interface CategoryMapOverride {
  * not majority-vote noise, so they win on conflicts.
  */
 export async function buildCategoryMap(
-  collection: Collection<Record<string, unknown>>,
-  overridesCollection?: Collection<Record<string, unknown>>,
+  collection: ScopedCollection,
+  overridesCollection?: ScopedCollection,
 ): Promise<CategoryMap> {
   const rows = await collection
     .find({}, { projection: { item: 1, category: 1, _id: 0 } })
@@ -64,7 +71,7 @@ export async function buildCategoryMap(
   if (overridesCollection) {
     const overrides = await overridesCollection.find({}).toArray()
     for (const doc of overrides) {
-      const word = String(doc._id ?? '')
+      const word = String(doc.word ?? '')
       const category = String(doc.category ?? '')
       if (word && category) words[word] = category
     }
