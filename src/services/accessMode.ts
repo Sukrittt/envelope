@@ -21,8 +21,3 @@ export function useAccessMode(): AccessMode {
 export function clearAccess(): void {
   window.location.href = '/logout'
 }
-
-/** Start the WorkOS sign-in flow. */
-export function startSignIn(): void {
-  window.location.href = '/login'
-}

@@ -6962,11 +6962,15 @@ summary:focus-visible,
 
 .auth-unlock {
   min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   background: var(--accent);
   border: none;
   color: #fff;
   font-weight: var(--fw-semibold);
+  text-decoration: none;
 }
 
 .auth-unlock:hover {
