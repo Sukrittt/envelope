@@ -1,22 +1,154 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useAuth } from '@workos-inc/authkit-nextjs/components'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
-export default function SecurityPage() {
-  const { user } = useAuth()
-  const [email, setEmail] = useState('')
+interface UserDoc {
+  email: string
+  emailVerified: boolean
+  name: string | null
+  avatarUrl: string | null
+}
+
+interface SessionRow {
+  id: string
+  userAgent: string | null
+  authMethod: string
+  createdAt: string
+  current: boolean
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function sessionLabel(s: SessionRow): string {
+  if (s.userAgent) return s.userAgent
+  const method = s.authMethod === 'oauth' ? 'Google' : s.authMethod === 'magic_code' ? 'Email code' : s.authMethod
+  return `Signed in with ${method}`
+}
+
+function SecurityContent() {
+  const params = useSearchParams()
+
+  const [doc, setDoc] = useState<UserDoc | null>(null)
+  const [sessions, setSessions] = useState<SessionRow[] | null>(null)
+  const [googleLinked, setGoogleLinked] = useState<boolean | null>(null)
+
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [savingName, setSavingName] = useState(false)
+
+  const [changingEmail, setChangingEmail] = useState(false)
+  const [emailDraft, setEmailDraft] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+
+  const [code, setCode] = useState('')
+  const [codeError, setCodeError] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [resent, setResent] = useState(false)
+
+  const [revokingId, setRevokingId] = useState<string | null>(null)
+  const [confirmingSignOutAll, setConfirmingSignOutAll] = useState(false)
+  const [signingOutAll, setSigningOutAll] = useState(false)
+
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  const loadUser = async () => {
+    const res = await fetch('/api/user')
+    if (!res.ok) return
+    setDoc(await res.json())
+  }
+  const loadSessions = async () => {
+    const res = await fetch('/api/user/sessions')
+    if (!res.ok) return
+    const body: { data: SessionRow[] } = await res.json()
+    setSessions(body.data)
+  }
+  const loadIdentities = async () => {
+    const res = await fetch('/api/user/identities')
+    if (!res.ok) return
+    const body: { providers: string[] } = await res.json()
+    setGoogleLinked(body.providers.includes('GoogleOAuth'))
+  }
+
   useEffect(() => {
-    void (async () => {
-      const res = await fetch('/api/user')
-      if (!res.ok) return
-      const data = await res.json()
-      setEmail(data.email)
-    })()
+    void loadUser()
+    void loadSessions()
+    void loadIdentities()
   }, [])
+
+  async function saveName() {
+    const name = nameDraft.trim()
+    setSavingName(true)
+    const res = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    setSavingName(false)
+    setEditingName(false)
+    if (res.ok) setDoc(await res.json())
+  }
+
+  async function sendEmailChange() {
+    const email = emailDraft.trim().toLowerCase()
+    if (!EMAIL_RE.test(email)) {
+      setEmailError('Enter a valid email address.')
+      return
+    }
+    setEmailError('')
+    setSendingEmail(true)
+    const res = await fetch('/api/user/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    setSendingEmail(false)
+    if (!res.ok) {
+      setEmailError(res.status === 409 ? 'That email is already in use.' : 'Could not change email.')
+      return
+    }
+    setChangingEmail(false)
+    setEmailDraft('')
+    await loadUser()
+  }
+
+  async function verifyCode() {
+    setVerifying(true)
+    setCodeError('')
+    const res = await fetch('/api/user/email/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+    setVerifying(false)
+    if (!res.ok) {
+      setCodeError('Wrong or expired code.')
+      return
+    }
+    setCode('')
+    await loadUser()
+  }
+
+  async function resendCode() {
+    setResent(false)
+    await fetch('/api/user/email/resend', { method: 'POST' })
+    setResent(true)
+  }
+
+  async function revokeSession(id: string) {
+    setRevokingId(id)
+    const res = await fetch(`/api/user/sessions?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    setRevokingId(null)
+    if (res.ok) await loadSessions()
+  }
+
+  async function signOutEverywhere() {
+    setSigningOutAll(true)
+    await fetch('/api/user/sessions', { method: 'DELETE' })
+    window.location.href = '/logout'
+  }
 
   async function deleteAccount() {
     setDeleting(true)
@@ -32,30 +164,214 @@ export default function SecurityPage() {
     setDeleting(false)
   }
 
+  const initial = (doc?.name || doc?.email || '?').trim().charAt(0).toUpperCase()
+
   return (
     <>
+      <div className="account-profile-card">
+        {doc?.avatarUrl ? (
+          <img className="account-avatar" src={doc.avatarUrl} alt="" style={{ objectFit: 'cover' }} />
+        ) : (
+          <div className="account-avatar" aria-hidden="true">
+            {initial}
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {editingName ? (
+            <div className="account-inline-actions" style={{ marginTop: 0 }}>
+              <input
+                className="account-inline-input"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                placeholder="Your name"
+                autoFocus
+              />
+              <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={saveName} disabled={savingName}>
+                {savingName ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          ) : (
+            <div className="account-profile-name">{doc?.name || 'You'}</div>
+          )}
+          <div className="account-profile-email">{doc?.email ?? ''}</div>
+        </div>
+        {!editingName && (
+          <button
+            type="button"
+            className="account-pill-btn"
+            onClick={() => {
+              setNameDraft(doc?.name ?? '')
+              setEditingName(true)
+            }}
+          >
+            Edit
+          </button>
+        )}
+      </div>
+
       <div className="account-card">
         <div style={{ padding: 16 }}>
           <div className="account-section-label">Email</div>
-          <div style={{ marginTop: 6, fontSize: 14, fontWeight: 700 }}>{email || user?.email}</div>
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--mint)' }}>✓ Verified</div>
+          {changingEmail ? (
+            <div style={{ marginTop: 8 }}>
+              <input
+                className="account-inline-input"
+                value={emailDraft}
+                onChange={(e) => setEmailDraft(e.target.value)}
+                placeholder="new@email.com"
+                autoFocus
+              />
+              {emailError && (
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--coral)' }}>{emailError}</div>
+              )}
+              <div className="account-inline-actions">
+                <button
+                  type="button"
+                  className="account-pill-btn"
+                  onClick={() => {
+                    setChangingEmail(false)
+                    setEmailError('')
+                  }}
+                  disabled={sendingEmail}
+                >
+                  Cancel
+                </button>
+                <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={sendEmailChange} disabled={sendingEmail}>
+                  {sendingEmail ? 'Sending…' : 'Send code'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{doc?.email}</div>
+                <div style={{ marginTop: 6, fontSize: 11, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold)' }}>
+                  {doc?.emailVerified ? '✓ Verified' : 'Unverified'}
+                </div>
+              </div>
+              <button type="button" className="account-pill-btn" onClick={() => setChangingEmail(true)}>
+                Change
+              </button>
+            </div>
+          )}
+
+          {doc && !doc.emailVerified && !changingEmail && (
+            <div className="account-warn-banner">
+              <div className="account-warn-title">Verify your new email</div>
+              <div className="account-warn-copy">Enter the 6-digit code sent to {doc.email}.</div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                <input
+                  className="account-inline-input"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  inputMode="numeric"
+                  style={{ maxWidth: 140 }}
+                />
+                <button
+                  type="button"
+                  className="account-pill-btn account-pill-btn--primary"
+                  onClick={verifyCode}
+                  disabled={verifying || code.length < 6}
+                >
+                  {verifying ? 'Verifying…' : 'Verify'}
+                </button>
+              </div>
+              {codeError && <div style={{ marginTop: 6, fontSize: 12, color: 'var(--coral)' }}>{codeError}</div>}
+              <div className="account-warn-actions">
+                <button type="button" onClick={resendCode}>
+                  {resent ? 'Code resent' : 'Resend code'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmailDraft('')
+                    setChangingEmail(true)
+                  }}
+                >
+                  Change back
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
         <div className="account-row" style={{ cursor: 'default' }}>
           <span className="account-row-icon" aria-hidden="true" style={{ color: 'var(--gold)' }}>
             G
           </span>
           <span className="account-row-label">Google</span>
-          <span className="account-row-meta">{user?.profilePictureUrl ? 'Linked' : 'Not linked'}</span>
+          {googleLinked ? (
+            <span className="account-row-meta">Linked</span>
+          ) : (
+            <a href="/api/auth/google?link=1" className="account-pill-btn">
+              Link
+            </a>
+          )}
+        </div>
+      </div>
+
+      {params.get('linkError') === '1' && (
+        <div className="account-confirm-copy">That Google account belongs to a different user — nothing was changed.</div>
+      )}
+      {params.get('linked') === '1' && <div className="account-confirm-copy">Google linked.</div>}
+
+      <div>
+        <div className="account-section-label" style={{ marginBottom: 10 }}>
+          Active sessions
+        </div>
+        <div className="account-card">
+          {(sessions ?? []).map((s) => (
+            <div className="account-row" key={s.id} style={{ cursor: 'default' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="account-row-label" style={{ fontWeight: 700 }}>
+                  {sessionLabel(s)}
+                </div>
+                <div className="account-row-meta">{new Date(s.createdAt).toLocaleDateString()}</div>
+              </div>
+              {s.current ? (
+                <span className="account-badge">Current</span>
+              ) : (
+                <button type="button" className="account-pill-btn" onClick={() => revokeSession(s.id)} disabled={revokingId === s.id}>
+                  {revokingId === s.id ? 'Revoking…' : 'Revoke'}
+                </button>
+              )}
+            </div>
+          ))}
+          {sessions?.length === 0 && (
+            <div style={{ padding: 16, fontSize: 12, color: 'var(--erd-text2)' }}>No active sessions.</div>
+          )}
         </div>
       </div>
 
       <div>
-        <div className="account-section-label" style={{ marginBottom: 10 }}>
-          Sessions
-        </div>
-        <a href="/logout" className="account-row account-card" style={{ color: 'var(--gold)' }}>
-          <span className="account-row-label">Sign out everywhere</span>
-        </a>
+        {confirmingSignOutAll ? (
+          <div className="account-confirm-panel">
+            <div className="account-confirm-copy">This signs out every device, including this one.</div>
+            <div className="account-confirm-actions">
+              <button
+                type="button"
+                className="account-confirm-cancel"
+                onClick={() => setConfirmingSignOutAll(false)}
+                disabled={signingOutAll}
+              >
+                Cancel
+              </button>
+              <button type="button" className="account-danger-btn" onClick={signOutEverywhere} disabled={signingOutAll}>
+                {signingOutAll ? 'Signing out…' : 'Sign out everywhere'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="account-row account-card"
+            style={{ color: 'var(--gold)' }}
+            onClick={() => setConfirmingSignOutAll(true)}
+          >
+            <span className="account-row-label">Sign out everywhere</span>
+          </button>
+        )}
       </div>
 
       <div className="account-danger-card">
@@ -89,5 +405,13 @@ export default function SecurityPage() {
         )}
       </div>
     </>
+  )
+}
+
+export default function SecurityPage() {
+  return (
+    <Suspense fallback={null}>
+      <SecurityContent />
+    </Suspense>
   )
 }

@@ -8,14 +8,19 @@ import { ensureUser } from '@/lib/users'
  * mobile has no cookie jar, so the tokens ride along in the JSON body too.
  */
 export async function POST(req: Request) {
-  const { email, code } = await req.json()
+  const { email, code, device } = await req.json()
   if (!email || !code) return NextResponse.json({ error: 'email and code required' }, { status: 400 })
+
+  // `device` is the RN app's own label (expo-device); it identifies the phone
+  // far better than the generic RN fetch user-agent string would.
+  const userAgent = typeof device === 'string' && device ? device : req.headers.get('user-agent') ?? undefined
 
   try {
     const { user, accessToken, refreshToken } = await getWorkOSClient().userManagement.authenticateWithMagicAuth({
       clientId: process.env.WORKOS_CLIENT_ID!,
       email,
       code,
+      userAgent,
     })
     await ensureUser(user)
     await saveSession({ accessToken, refreshToken, user }, req.url)

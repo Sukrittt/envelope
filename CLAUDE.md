@@ -44,6 +44,15 @@ Web routes: `app/api/auth/google` + `.../google/callback` (Google sign-in), `app
 
 `/` → redirects to `/expense`. Pages: `/expense` (budget dashboard), `/expense/transactions`, `/investments`, `/fitness`, `/learnings`, `/settings`.
 
+## Breaking Long-Running Tasks
+
+For any task expected to span multiple tool calls or involve 3+ files:
+1. Create a todo list at the start (use Todowrite tool)
+2. Mark items `in_progress` as you work them
+3. Mark `completed` only after verified done (not just "written")
+4. Keep exactly one `in_progress` at a time
+5. If blocked, add follow-up todo describing the blocker
+
 ## Repo-root docs
 
 `PRODUCT.md` and `FLUID_INTERACTIONS.md` at the repo root contain product/interaction-design notes worth checking before UI work. `plans/` holds planning docs for past feature work.

@@ -9,8 +9,8 @@ type NotifyCadence = 'off' | 'weekly' | 'daily'
 
 interface UserDoc {
   email: string
-  firstName?: string | null
-  lastName?: string | null
+  name: string | null
+  avatarUrl: string | null
   notifyCadence?: NotifyCadence
 }
 
@@ -39,28 +39,23 @@ export default function AccountPage() {
     })
   }
 
-  const name = [doc?.firstName, doc?.lastName].filter(Boolean).join(' ') || 'You'
+  const name = doc?.name || 'You'
   const email = doc?.email ?? user?.email ?? ''
   const initial = name.trim().charAt(0).toUpperCase() || 'U'
-  // ponytail: WorkOS doesn't expose "which provider signed this session in" on
-  // the User resource. profilePictureUrl is only ever populated for OAuth
-  // (Google) profiles, never for magic-auth email codes, so it's used here as
-  // a real-but-approximate signal rather than fabricated data.
-  const providerLabel = user?.profilePictureUrl ? 'Google' : 'email code'
 
   return (
     <>
       <div className="account-profile-card">
-        <div className="account-avatar" aria-hidden="true">
-          {initial}
-        </div>
+        {doc?.avatarUrl ? (
+          <img className="account-avatar" src={doc.avatarUrl} alt="" style={{ objectFit: 'cover' }} />
+        ) : (
+          <div className="account-avatar" aria-hidden="true">
+            {initial}
+          </div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="account-profile-name">{name}</div>
           <div className="account-profile-email">{email}</div>
-          <div className="account-profile-status">
-            <span className="account-profile-status-dot" />
-            Signed in with {providerLabel}
-          </div>
         </div>
       </div>
 

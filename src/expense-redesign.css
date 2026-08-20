@@ -3001,6 +3001,82 @@ button.account-row:hover {
   background: color-mix(in oklab, var(--coral) 12%, transparent);
 }
 
+.account-inline-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.account-inline-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.account-pill-btn {
+  padding: 9px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-pill-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.account-pill-btn--primary {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--erd-on-accent);
+}
+
+.account-warn-banner {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold);
+  margin-top: 10px;
+}
+
+.account-warn-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.account-warn-copy {
+  font-size: 12px;
+  color: var(--erd-text2);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.account-warn-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.account-warn-actions button {
+  border: none;
+  background: none;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
 .account-export-row {
   padding: 16px;
   background: var(--erd-card);

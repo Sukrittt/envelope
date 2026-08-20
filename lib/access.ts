@@ -10,6 +10,8 @@ import { withAuth } from '@workos-inc/authkit-nextjs'
 export interface Auth {
   userId: string
   readOnly: boolean
+  /** The WorkOS session id (`sid`), when resolved from a real session. Null for the demo user. */
+  sessionId: string | null
 }
 
 /** The user id every unauthenticated request is served as. */
@@ -61,20 +63,22 @@ export async function getAuth(req: Request): Promise<Auth> {
       const { payload } = await jwtVerify(token, getJwks(), {
         issuer: 'https://api.workos.com/',
       })
-      if (payload.sub) return { userId: payload.sub, readOnly: false }
+      if (payload.sub) {
+        return { userId: payload.sub, readOnly: false, sessionId: typeof payload.sid === 'string' ? payload.sid : null }
+      }
     } catch (err) {
       console.warn('[auth] access token rejected:', (err as Error).message)
     }
   }
 
   try {
-    const { user } = await withAuth()
-    if (user) return { userId: user.id, readOnly: false }
+    const { user, sessionId } = await withAuth()
+    if (user) return { userId: user.id, readOnly: false, sessionId: sessionId ?? null }
   } catch {
     // No session cookie, or called outside a request scope — fall through.
   }
 
-  return { userId: demoUserId(), readOnly: true }
+  return { userId: demoUserId(), readOnly: true, sessionId: null }
 }
 
 /** 403 response used for any write attempt by the read-only demo user. */

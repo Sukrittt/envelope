@@ -4,9 +4,14 @@ import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { scoped } from '@/lib/scoped'
 import { COLLECTIONS } from '@/lib/models'
-import type { UserDoc } from '@/lib/users'
+import { displayName, type UserDoc } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
+
+function serialize(user: UserDoc | null) {
+  if (!user) return null
+  return { ...user, name: displayName(user), emailVerified: user.emailVerified ?? true }
+}
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
@@ -14,7 +19,7 @@ export async function GET(req: Request) {
 
   const db = await getDb()
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
-  return json(user)
+  return json(serialize(user))
 }
 
 export async function PATCH(req: Request) {
@@ -22,30 +27,24 @@ export async function PATCH(req: Request) {
   if (auth.readOnly) return error('unauthorized', 401)
 
   const body = (await readBody(req)) as Record<string, unknown>
-  const firstName = typeof body.firstName === 'string' ? body.firstName : undefined
-  const lastName = typeof body.lastName === 'string' ? body.lastName : undefined
+  const name = typeof body.name === 'string' ? body.name.trim() : undefined
 
-  const updates: Partial<Pick<UserDoc, 'firstName' | 'lastName' | 'onboardedAt' | 'notifyCadence'>> = {}
-  if (firstName !== undefined) updates.firstName = firstName
-  if (lastName !== undefined) updates.lastName = lastName
+  const updates: Partial<Pick<UserDoc, 'name' | 'onboardedAt' | 'notifyCadence'>> = {}
+  if (name !== undefined) updates.name = name || null
   if (typeof body.onboardedAt === 'string' || body.onboardedAt === null) updates.onboardedAt = body.onboardedAt as string | null
   if (body.notifyCadence === 'off' || body.notifyCadence === 'weekly' || body.notifyCadence === 'daily') {
     updates.notifyCadence = body.notifyCadence
   }
   if (Object.keys(updates).length === 0) return error('no valid fields')
 
-  if (firstName !== undefined || lastName !== undefined) {
-    await getWorkOSClient().userManagement.updateUser({
-      userId: auth.userId,
-      ...(firstName !== undefined ? { firstName } : {}),
-      ...(lastName !== undefined ? { lastName } : {}),
-    })
+  if (name !== undefined) {
+    await getWorkOSClient().userManagement.updateUser({ userId: auth.userId, name: name || undefined })
   }
 
   const db = await getDb()
   await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: updates })
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
-  return json(user)
+  return json(serialize(user))
 }
 
 export async function DELETE(req: Request) {

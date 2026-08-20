@@ -42,8 +42,12 @@ async function main() {
       await coll.updateOne(
         { _id: u.id },
         {
-          $set: { email: u.email, firstName: u.first_name ?? null, lastName: u.last_name ?? null },
-          $setOnInsert: { _id: u.id, createdAt: new Date() },
+          $set: { email: u.email, avatarUrl: u.profile_picture_url ?? null },
+          $setOnInsert: {
+            _id: u.id,
+            name: u.name || [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || null,
+            createdAt: new Date(),
+          },
         },
         { upsert: true },
       )

@@ -64,7 +64,7 @@ export async function GET(req: Request) {
   const results = []
   for (const userId of userIds) {
     if (!userId || userId === demo) continue
-    results.push({ userId, ...(await scanUser({ userId, readOnly: false })) })
+    results.push({ userId, ...(await scanUser({ userId, readOnly: false, sessionId: null })) })
   }
 
   return json({ ok: true, users: results.length, results })
