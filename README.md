@@ -10,6 +10,10 @@ A self-hosted personal finance dashboard — a YNAB-style alternative for envelo
 - **Spending insights** — daily/weekly/monthly trend charts, a heatmap, sparklines, and a subscription timeline.
 - **Subscriptions** — track services and amounts, cancel/reactivate, and see next-due dates.
 - **Investments** — holdings and net worth, market updates, contributions/withdrawals, and an event log.
+- **AI (Money Brain)** — Gemini-powered chat about your spending (`/api/ai/chat`, streamed), daily brief cards (`/api/ai/brief`), and a cron transaction scan that flags anomalies and sends push notifications.
+- **Push notifications** — Expo push tokens registered per device; weekly spend digest and AI scan alerts.
+- **Wrapped recap** — `/api/wrapped` computes the year-in-review payload the mobile Wrapped screen renders.
+- **Account & security** — email change with 6-digit verification, linked identities (Google/email), active-session list with remote revoke, delete account, data export (CSV/JSON).
 - **Onboarding tour** — a 3-slide walkthrough shown once per account after first sign-in.
 - **Theme** — light/dark, persisted per account.
 
@@ -17,6 +21,8 @@ A self-hosted personal finance dashboard — a YNAB-style alternative for envelo
 
 - [Next.js 15](https://nextjs.org/) (App Router), React 19, TypeScript
 - [MongoDB](https://www.mongodb.com/) via the official `mongodb` driver (Atlas or local)
+- [@workos-inc/authkit-nextjs](https://github.com/workos/authkit-nextjs) + `@workos-inc/node` for sessions and user management
+- [@google/genai](https://github.com/googleapis/js-genai) (Gemini) for AI features
 - [lucide-react](https://lucide.dev/) for icons
 
 ## How data is stored
@@ -68,6 +74,7 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/api/categories/reorder` | POST | Move a category up/down |
 | `/api/categories/move` | POST | Drag a category to an index |
 | `/api/category-map` | GET | Keyword → category suggestions |
+| `/api/category-map/suggest` | POST | LLM-assisted suggestion fallback (Gemini) |
 | `/api/groups` | GET, POST, PUT, DELETE | Category groups |
 | `/api/groups/move` | POST | Drag a group to an index |
 | `/api/subscriptions` | GET, POST, PUT | Subscriptions |
@@ -75,11 +82,22 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/api/holdings/action` | POST | Contribution / withdrawal |
 | `/api/holding-events` | GET | Holding event log |
 | `/api/user` | GET, PATCH, DELETE | Profile, preferences, onboarding flag; delete account |
+| `/api/user/email` | POST | Start email change (sends 6-digit code) |
+| `/api/user/email/resend`, `/verify` | POST | Resend / verify the change-email code |
+| `/api/user/identities` | GET | Linked auth identities (Google, email) |
+| `/api/user/sessions` | GET, DELETE | Active sessions; revoke all others |
 | `/api/data/export` | GET | Export all of a user's data (`?format=csv\|json`) |
 | `/api/data/summary` | GET | Transaction/envelope counts for the export screen |
 | `/api/data/clear-transactions` | POST | Wipe transactions, keep envelopes |
+| `/api/wrapped` | GET | Year-in-review recap payload (mobile Wrapped screen) |
+| `/api/ai/brief` | POST | AI daily brief cards from recent spending |
+| `/api/ai/chat` | POST | Money Brain chat (streamed, rate-limited) |
+| `/api/ai/scan-transactions` | GET | Cron-only (`CRON_SECRET`); AI anomaly scan + push alert |
+| `/api/notifications/register` | POST | Store an Expo push token for a device |
+| `/api/notifications/send` | POST | Send a push notification |
 | `/api/notifications/weekly` | GET | Cron-only (`CRON_SECRET`); sends the weekly spend digest |
 | `/api/auth/google`, `/api/auth/magic-auth/*` | GET/POST | Sign-in |
+| `/logout` | GET | Sign out (clears session, ends WorkOS session) |
 
 ## Routes
 
@@ -94,6 +112,8 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/fitness` | Fitness dashboard (bundled sample data) |
 | `/learnings` | Agent learnings |
 | `/account`, `/account/security`, `/account/data`, `/account/help` | Profile, preferences, account & security, data export, help |
+
+Envelopes guard against duplicate category/group names, and the default **Archived** group can't be deleted.
 
 ## Environment variables
 
