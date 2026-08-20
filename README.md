@@ -1,6 +1,6 @@
 # Mission Control
 
-A self-hosted personal finance dashboard — a YNAB-style alternative for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with a password-gated guest mode so visitors can explore on sample data.
+A self-hosted personal finance dashboard — a YNAB-style alternative for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with WorkOS AuthKit for sign-in.
 
 ## Highlights
 
@@ -10,8 +10,8 @@ A self-hosted personal finance dashboard — a YNAB-style alternative for envelo
 - **Spending insights** — daily/weekly/monthly trend charts, a heatmap, sparklines, and a subscription timeline.
 - **Subscriptions** — track services and amounts, cancel/reactivate, and see next-due dates.
 - **Investments** — holdings and net worth, market updates, contributions/withdrawals, and an event log.
-- **Guest demo mode** — a password gate protects real data; guests explore on read-only sample data.
-- **Theme & density** — light/dark theme and comfortable/compact density, persisted to localStorage.
+- **Onboarding tour** — a 3-slide walkthrough shown once per account after first sign-in.
+- **Theme** — light/dark, persisted per account.
 
 ## Stack
 
@@ -28,22 +28,37 @@ Data lives in MongoDB. The API route handlers under `app/api/` read and write th
 | Expenses & budgeting | `expenses`, `budgets`, `categories`, `groups` |
 | Subscriptions | `subscriptions` |
 | Investments | `holdings`, `holding_events` |
-| Guest demo (read-only) | `demo_expenses`, `demo_budgets`, `demo_categories`, `demo_groups`, `demo_subscriptions`, `demo_holdings`, `demo_holding_events` |
+| Accounts & devices | `users`, `push_tokens` |
+
+Every document carries a `user_id` (a WorkOS user id) — there are no separate `demo_*`
+mirror collections; the demo account is just another `user_id` (`DEMO_USER_ID`).
 
 The database is seeded from local CSV files (see [Data migration](#data-migration)). The real-data CSVs are **gitignored** — they hold personal financial data and are never committed; only the sample `demo/` CSVs ship with the repo.
 
-## Authentication & guest mode
+## Authentication
 
-The app is wrapped in an `AuthGate`. Signed-out visitors see a sign-in dialog (WorkOS AuthKit) and can also choose **Continue as guest**, which shows the read-only demo account's sample data.
+Sign-in is WorkOS AuthKit, but never through WorkOS's hosted UI — Google goes straight
+to Google's consent screen and email uses 6-digit magic-auth codes, both via
+`/api/auth/*` (`app/(auth)/sign-in`, `/email`, `/code`). A first-time sign-in creates
+the account; there is no separate signup step.
 
-- **Real mode** — unlocked with the password. Every API call sends it as a `Authorization: Bearer <password>` header, which the server verifies (constant-time) to grant read-write access to the real collections.
-- **Guest mode** — no token. Read-only access to the `demo_*` collections; every non-GET request returns `403`.
-- If no password is configured, the gate auto-unlocks and the API treats all requests as real mode — convenient for local-only use.
-- The chosen mode persists in `localStorage` (`mc-access`) for 30 days. Use **Log out** / **Exit guest mode** in the sidebar or Settings to clear it.
+- `middleware.ts` gates every page except `/sign-in`, `/email`, `/code` behind a
+  session cookie; signed-out visitors are redirected to `/sign-in`. `/api/*` is never
+  gated by middleware — each route resolves its own auth via `lib/access.ts::getAuth`.
+- New accounts land on `/onboarding` (a 3-slide tour) once, tracked via `onboardedAt`
+  on the user's doc.
+- `/api/*` requests without a valid session fall back to a read-only demo user
+  (`DEMO_USER_ID`) — every non-GET from that user returns `403`. This is a backend
+  fallback for API callers that bypass the browser (tests, curl); there is no "continue
+  as guest" UI path in any page.
+- `/account` (You), `/account/security`, `/account/data`, `/account/help` cover profile,
+  sign-out-everywhere, delete account, data export (CSV/JSON), clear-transactions, and
+  support links.
 
 ## API
 
-Route handlers are the CSV-era `/api/*` endpoints, now backed by MongoDB. Each request resolves `real` vs `guest` scope from its Bearer token.
+Route handlers are the CSV-era `/api/*` endpoints, now backed by MongoDB. Each request
+resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 
 | Endpoint | Methods | Purpose |
 | --- | --- | --- |
@@ -58,18 +73,26 @@ Route handlers are the CSV-era `/api/*` endpoints, now backed by MongoDB. Each r
 | `/api/holdings` | GET, POST, PUT, DELETE | Investment holdings |
 | `/api/holdings/action` | POST | Contribution / withdrawal |
 | `/api/holding-events` | GET | Holding event log |
+| `/api/user` | GET, PATCH, DELETE | Profile, preferences, onboarding flag; delete account |
+| `/api/data/export` | GET | Export all of a user's data (`?format=csv\|json`) |
+| `/api/data/summary` | GET | Transaction/envelope counts for the export screen |
+| `/api/data/clear-transactions` | POST | Wipe transactions, keep envelopes |
+| `/api/notifications/weekly` | GET | Cron-only (`CRON_SECRET`); sends the weekly spend digest |
+| `/api/auth/google`, `/api/auth/magic-auth/*` | GET/POST | Sign-in |
 
 ## Routes
 
 | Route | Page |
 | --- | --- |
 | `/` | Redirects to `/expense` |
+| `/sign-in`, `/email`, `/code` | Sign-in flow |
+| `/onboarding` | First-run tour |
 | `/expense` | Budget dashboard |
 | `/expense/transactions` | Transaction log |
 | `/investments` | Investments / net worth |
 | `/fitness` | Fitness dashboard (bundled sample data) |
 | `/learnings` | Agent learnings |
-| `/settings` | Appearance, density, session |
+| `/account`, `/account/security`, `/account/data`, `/account/help` | Profile, preferences, account & security, data export, help |
 
 ## Environment variables
 
@@ -80,7 +103,9 @@ Route handlers are the CSV-era `/api/*` endpoints, now backed by MongoDB. Each r
 | `WORKOS_API_KEY` | WorkOS API key. |
 | `WORKOS_COOKIE_PASSWORD` | Encrypts the AuthKit session cookie. 32+ chars. |
 | `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Callback URL, also registered in the WorkOS dashboard. |
-| `DEMO_USER_ID` | Owner of the sample data served to signed-out visitors. |
+| `DEMO_USER_ID` | Owner of the sample data served to unauthenticated API requests. |
+| `CRON_SECRET` | Bearer token Vercel Cron sends when invoking `/api/ai/scan-transactions` and `/api/notifications/weekly`. |
+| `GEMINI_API_KEY` | LLM-assisted category suggestions and AI transaction scan. |
 
 ## Data migration
 
@@ -95,7 +120,7 @@ Collections keyed by a natural field (`budgets`, `categories`, `groups`, `subscr
 ## Local development
 
 ```bash
-cp .env.example .env.local   # set MONGODB_URI (and a password if you want the gate)
+cp .env.example .env.local   # set MONGODB_URI and the WORKOS_* vars
 npm install
 npm run db:migrate           # seed MongoDB from your local CSVs
 npm run dev
