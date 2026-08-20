@@ -1,11 +1,58 @@
 import { authkitMiddleware } from '@workos-inc/authkit-nextjs'
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
+
+const refreshSession = authkitMiddleware()
+
+// Pages reachable without a session. Everything else under the page matcher
+// (below) requires one; /api/* is never gated here (see comment).
+const PUBLIC_PAGE_PATHS = ['/sign-in', '/email', '/code']
 
 /**
- * Refreshes the sealed AuthKit session cookie. Deliberately configured without
- * `middlewareAuth`, so it never forces a sign-in: signed-out visitors are served
- * as the read-only demo user rather than bounced to a login page.
+ * Refreshes the sealed AuthKit session cookie, then gates every other *page*
+ * behind a session.
+ *
+ * This app never uses WorkOS's hosted AuthKit UI — Google goes straight to
+ * Google's consent screen and email uses magic-auth codes, both via
+ * `app/api/auth/*`, both calling `saveSession()` directly (see lib/access.ts's
+ * header comment). That means the library's built-in `middlewareAuth` option
+ * doesn't fit here: enabling it redirects signed-out visitors to WorkOS's
+ * hosted authorize URL, not to this app's own `/sign-in` page, and this app
+ * has no route handler at the redirect URI it would need. So auth is gated
+ * by hand below instead of via `middlewareAuth: { enabled: true, ... }`.
+ *
+ * `/api/*` is deliberately excluded from the gate: every API route resolves
+ * its own auth via `lib/access.ts::getAuth`, which already falls back to the
+ * read-only demo user (`DEMO_USER_ID`) for anyone without a session. That
+ * backend demo-scoping stays as-is — it's the fallback for API callers that
+ * bypass the browser (tests, curl, direct requests). What changes here is
+ * only the *page* experience: there is no more "continue as guest" UI path
+ * in, signed-out visitors hitting an app page are sent to /sign-in.
+ *
+ * ponytail: the gate below only checks whether the session cookie is
+ * *present*, not whether it's still valid (signature/expiry) — a forged or
+ * expired cookie still passes the redirect check here but fails at the API
+ * layer, where `getAuth()` falls back to the demo user. Upgrade to actually
+ * unsealing the cookie (there's no public helper for that pre-middleware
+ * response; `getSessionFromCookie` isn't exported) if a false-positive gate
+ * pass ever becomes a real problem — today it just means an occasional demo
+ * page render, no data or write access.
  */
-export default authkitMiddleware()
+export default async function middleware(request: NextRequest, event: NextFetchEvent) {
+  const response = await refreshSession(request, event)
+
+  const { pathname } = request.nextUrl
+  if (pathname.startsWith('/api/')) return response
+
+  const isPublicPage = PUBLIC_PAGE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  const cookieName = process.env.WORKOS_COOKIE_NAME || 'wos-session'
+  const hasSession = request.cookies.has(cookieName)
+
+  if (!isPublicPage && !hasSession) {
+    return NextResponse.redirect(new URL('/sign-in', request.url))
+  }
+
+  return response
+}
 
 export const config = {
   // Everything except static assets, so /api/* route handlers see a fresh session.

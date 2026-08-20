@@ -24,7 +24,7 @@ A YNAB-style budgeting tool that is fully self-hosted: real financial data lives
 - Currency is INR (₹), formatted `en-IN`.
 - A monthly money cycle: salary credited on the 4th, then income is assigned to envelopes, with a fixed investment sweep (~₹40,000/mo) and spendable pool (~₹40–45,000). Rent, subscriptions, food, travel/commute, and football are the heavy categories.
 - Deployment is Vercel with MongoDB (Atlas or local) as the single store; the DB is seeded from local CSVs by a one-off migrate script. The real-personal CSVs are gitignored; only `demo/` sample CSVs ship with the repo.
-- Auth is WorkOS AuthKit. Signed-in users read and write their own data, scoped by a `user_id` on every document. Signed-out visitors are served as a read-only demo account (`DEMO_USER_ID`), which owns the sample data; every non-GET from them returns 403.
+- Auth is WorkOS AuthKit. Signed-in users read and write their own data, scoped by a `user_id` on every document. There is no guest/demo path in the UI any more — every app page requires a session, and a signed-out browser visitor is redirected to sign in. The read-only demo account (`DEMO_USER_ID`) still exists as the backend's fallback scope for any API request that arrives without a session (e.g. a direct/test request bypassing the browser); every non-GET from it still returns 403.
 
 ## Capabilities and Constraints
 
@@ -40,7 +40,7 @@ Confirmed capabilities:
 Constraints and boundaries:
 
 - **Fitness and learnings pages are experiments**, running on bundled sample data, not real product surfaces. Do not treat them as first-class until wired to real data.
-- Single-user real mode; no multi-user or household model.
+- Real accounts are created by anyone who signs in (Google or email code) and data is scoped per `user_id`, so the schema supports multiple accounts — but Sukrit remains the only *intended* real user; there's no multi-user or household model (shared envelopes, invites, permissions) on top of that scoping.
 - API is route handlers under `app/api/`, each resolving `real` vs `guest` scope from the Bearer token.
 - Personal financial data is private by design and never committed to git.
 - Balance/cashflow reconciliation tracking was paused by Sukrit (2026-03) as too troublesome — not a feature to expand.

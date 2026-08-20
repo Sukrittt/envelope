@@ -26,10 +26,6 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
     title: 'Investments',
     subtitle: 'Net worth, allocation, and holdings tracker',
   },
-  '/settings': {
-    title: 'Settings',
-    subtitle: 'Appearance, density, and operations preferences',
-  },
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -45,6 +41,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Expense redesign routes carry their own chrome (sidebar, greeting, theme
   // toggle, mobile tabbar), so skip the legacy mission-control topbar/footer.
   const isErdRoute = pathname === '/expense' || pathname.startsWith('/expense/')
+  // Auth, onboarding, and account pages are full-bleed layouts with their own
+  // chrome too (auth card, tour, nav rail) — same treatment as ERD routes.
+  const isStandaloneRoute =
+    pathname === '/sign-in' ||
+    pathname === '/email' ||
+    pathname === '/code' ||
+    pathname === '/onboarding' ||
+    pathname.startsWith('/account')
+  const skipChrome = isErdRoute || isStandaloneRoute
 
   return (
     <main
@@ -52,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     >
       <div className="mc-layout">
         <section className="mc-main">
-          {!isErdRoute && (
+          {!skipChrome && (
             <header className="mc-topbar">
               <div className="page-context">
                 <h2>{currentMeta.title}</h2>
@@ -73,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           {children}
 
-          {!isErdRoute && (
+          {!skipChrome && (
             <footer className="app-footer">
               <span>Built by</span>
               <a
