@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('groups', auth)
-  const docs = await cachedRead('groups', auth.userId, () => coll.find({}).toArray())
+  const docs = await cachedRead('groups', auth.userId, () => coll.find({}).sort({ order: 1 }).toArray())
   return json(docs.map((d) => d.name).filter(Boolean))
 }
 
@@ -22,7 +22,9 @@ export async function POST(req: Request) {
   const coll = await getCollection('groups', auth)
   const exists = await coll.findOne({ name: String(body.name) })
   if (exists) return error('group already exists', 409)
-  await coll.insertOne({ name: String(body.name) })
+  const maxDoc = await coll.find({}).sort({ order: -1 }).limit(1).next()
+  const order = (maxDoc && typeof maxDoc.order === 'number' ? maxDoc.order : 0) + 1
+  await coll.insertOne({ name: String(body.name), order })
   invalidate('groups', auth.userId)
   return json({ ok: true })
 }

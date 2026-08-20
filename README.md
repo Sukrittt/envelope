@@ -69,6 +69,7 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/api/categories/move` | POST | Drag a category to an index |
 | `/api/category-map` | GET | Keyword → category suggestions |
 | `/api/groups` | GET, POST, PUT, DELETE | Category groups |
+| `/api/groups/move` | POST | Drag a group to an index |
 | `/api/subscriptions` | GET, POST, PUT | Subscriptions |
 | `/api/holdings` | GET, POST, PUT, DELETE | Investment holdings |
 | `/api/holdings/action` | POST | Contribution / withdrawal |
