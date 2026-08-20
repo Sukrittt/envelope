@@ -4,6 +4,8 @@ import { cachedRead, invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
+const ARCHIVED_GROUP = 'Archived'
+
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('groups', auth)
@@ -41,8 +43,10 @@ export async function PUT(req: Request) {
   const existing = await coll.findOne({ name: String(body.name) })
   if (!existing) return error('group not found', 404)
 
-  if (body.newName) {
+  if (body.newName && body.newName !== body.name) {
     const newName = String(body.newName)
+    const dupe = await coll.findOne({ name: newName })
+    if (dupe) return error('group already exists', 409)
     await coll.updateOne({ name: String(body.name) }, { $set: { name: newName } })
     const catColl = await getCollection('categories', auth)
     await catColl.updateMany({ group: String(body.name) }, { $set: { group: newName } })
@@ -59,6 +63,7 @@ export async function DELETE(req: Request) {
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
+  if (String(body.name) === ARCHIVED_GROUP) return error('cannot delete the Archived group', 400)
 
   const coll = await getCollection('groups', auth)
   const result = await coll.deleteOne({ name: String(body.name) })

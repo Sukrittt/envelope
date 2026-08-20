@@ -24,6 +24,8 @@ export async function POST(req: Request) {
   if (!body.name) return error('name required')
 
   const coll = await getCollection('categories', auth)
+  const exists = await coll.findOne({ name: String(body.name) })
+  if (exists) return error('category already exists', 409)
   const maxDoc = await coll.find({}).sort({ order: -1 }).limit(1).next()
   const order = (maxDoc && typeof maxDoc.order === 'number' ? maxDoc.order : 0) + 1
   await coll.insertOne({ name: String(body.name), group: String(body.group ?? ''), order })
@@ -46,6 +48,8 @@ export async function PUT(req: Request) {
   let effectiveName = String(body.name)
   if (body.newName && body.newName !== body.name) {
     effectiveName = String(body.newName)
+    const dupe = await coll.findOne({ name: effectiveName })
+    if (dupe) return error('category already exists', 409)
     await coll.updateOne({ name: String(body.name) }, { $set: { name: effectiveName } })
 
     // Cascade the rename to budgets + expenses so history stays consistent.
