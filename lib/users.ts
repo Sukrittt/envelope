@@ -7,6 +7,8 @@ export interface UserDoc {
   firstName: string | null
   lastName: string | null
   createdAt: Date
+  onboardedAt?: string | null
+  notifyCadence?: 'off' | 'weekly' | 'daily'
 }
 
 interface WorkOSUserLike {

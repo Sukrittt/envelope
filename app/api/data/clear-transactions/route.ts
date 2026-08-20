@@ -1,0 +1,17 @@
+import { json, error, readBody, getCollection } from '@/lib/http'
+import { getAuth, readOnlyGuard } from '@/lib/access'
+
+export const dynamic = 'force-dynamic'
+
+export async function POST(req: Request) {
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'POST')
+  if (guard) return guard
+
+  const body = (await readBody(req)) as Record<string, unknown>
+  if (body.confirm !== true) return error('confirm required', 400)
+
+  const expenses = await getCollection('expenses', auth)
+  const result = await expenses.deleteMany({})
+  return json({ ok: true, deleted: result.deletedCount })
+}
