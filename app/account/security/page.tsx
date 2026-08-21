@@ -52,6 +52,7 @@ function SecurityContent() {
   const [signingOutAll, setSigningOutAll] = useState(false)
 
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleteEmailDraft, setDeleteEmailDraft] = useState('')
   const [deleting, setDeleting] = useState(false)
 
   const loadUser = async () => {
@@ -382,18 +383,36 @@ function SecurityContent() {
         {confirmingDelete ? (
           <div className="account-confirm-panel">
             <div className="account-confirm-copy">
-              This permanently deletes your account and all data. There is no undo.
+              This permanently deletes your account and all data. There is no undo. Type <strong>{doc?.email}</strong> to
+              confirm.
             </div>
+            <input
+              type="email"
+              className="account-inline-input"
+              value={deleteEmailDraft}
+              onChange={(e) => setDeleteEmailDraft(e.target.value)}
+              placeholder={doc?.email ?? ''}
+              disabled={deleting}
+              autoComplete="off"
+            />
             <div className="account-confirm-actions">
               <button
                 type="button"
                 className="account-confirm-cancel"
-                onClick={() => setConfirmingDelete(false)}
+                onClick={() => {
+                  setConfirmingDelete(false)
+                  setDeleteEmailDraft('')
+                }}
                 disabled={deleting}
               >
                 Cancel
               </button>
-              <button type="button" className="account-danger-btn" onClick={deleteAccount} disabled={deleting}>
+              <button
+                type="button"
+                className="account-danger-btn"
+                onClick={deleteAccount}
+                disabled={deleting || !doc?.email || deleteEmailDraft.trim().toLowerCase() !== doc.email.toLowerCase()}
+              >
                 {deleting ? 'Deleting…' : 'Delete permanently'}
               </button>
             </div>
