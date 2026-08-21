@@ -136,10 +136,24 @@ function handleDemo(auth: Auth, body: Record<string, unknown>): Response {
   return streamReply(auth, contents, null, () => {})
 }
 
-/** Real user: sessions persisted to `chat_sessions`, keyed by an id the client threads through. */
+/**
+ * Real user: sessions persisted to `chat_sessions`, keyed by an id the client
+ * threads through. The wire format matches the demo path (`messages`, the
+ * client's full trimmed history) — the client can't know ahead of a request
+ * whether it'll land here or in `handleDemo`, so both must accept the same
+ * body. Only the last (newest) message is actually used; the rest of the
+ * array is redundant once a session exists (the DB is source of truth for
+ * everything before it) but harmless to receive.
+ */
 async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promise<Response> {
-  const message = typeof body.message === 'string' ? body.message.trim() : ''
-  if (!message || message.length > MAX_MESSAGE_LEN) return error('invalid body', 400)
+  const messages = body.messages
+  if (!isValidMessages(messages)) return error('invalid body', 400)
+
+  const last = messages[messages.length - 1]
+  if (last.role !== 'user' || !last.text.trim() || last.text.length > MAX_MESSAGE_LEN) {
+    return error('invalid body', 400)
+  }
+  const message = last.text.trim()
 
   const rawSessionId = body.sessionId
   const sessionId = typeof rawSessionId === 'string' && rawSessionId ? rawSessionId : null
