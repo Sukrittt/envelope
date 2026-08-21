@@ -54,8 +54,12 @@ export async function verifyBearerToken(
   token: string,
 ): Promise<{ userId: string; sessionId: string | null } | null> {
   try {
+    // WorkOS issues access tokens with iss "https://api.workos.com" — no
+    // trailing slash. A stray slash here made every real token fail
+    // verification (confirmed via Vercel logs: 100% of requests hit this),
+    // silently masked by the demo-fallback this file used to have.
     const { payload } = await jwtVerify(token, getJwks(), {
-      issuer: 'https://api.workos.com/',
+      issuer: 'https://api.workos.com',
     })
     if (!payload.sub) return null
     return { userId: payload.sub, sessionId: typeof payload.sid === 'string' ? payload.sid : null }
