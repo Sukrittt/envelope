@@ -71,13 +71,13 @@ export default function AccountPage() {
             <span className="account-feature-title">Expense Wrapped</span>
             <span className="account-feature-copy">Your month as a story · on mobile</span>
           </div>
-          <div className="account-feature-card account-feature-card--placeholder">
+          <Link href="/account/chat-history" className="account-feature-card">
             <span className="account-feature-icon" style={{ background: 'var(--gold-soft)' }} aria-hidden="true">
               🧠
             </span>
             <span className="account-feature-title">Money Brain</span>
-            <span className="account-feature-copy">Ask about your spending · on mobile</span>
-          </div>
+            <span className="account-feature-copy">View past chats · chat on mobile</span>
+          </Link>
           <Link href="/investments" className="account-feature-card">
             <span className="account-feature-icon" style={{ background: 'var(--mint-soft)' }} aria-hidden="true">
               📈

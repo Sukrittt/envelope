@@ -64,6 +64,7 @@ export const COLLECTIONS = {
   holdingEvents: 'holding_events',
   pushTokens: 'push_tokens',
   categoryMapOverrides: 'category_map_overrides',
+  chatSessions: 'chat_sessions',
 } as const
 
 /** One CSV-ish row; every value is a string so it round-trips exactly. */

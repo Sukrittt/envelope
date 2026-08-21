@@ -31,6 +31,7 @@ const INDEXES = {
     [{ user_id: 1 }, {}],
   ],
   category_map_overrides: [[{ user_id: 1, word: 1 }, { unique: true }]],
+  chat_sessions: [[{ user_id: 1, updatedAt: -1 }, {}]],
 }
 
 async function main() {

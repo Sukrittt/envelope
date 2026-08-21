@@ -51,4 +51,5 @@ export const USER_COLLECTIONS = [
   'holding_events',
   'push_tokens',
   'category_map_overrides',
+  'chat_sessions',
 ]
