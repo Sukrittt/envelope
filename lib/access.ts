@@ -44,6 +44,28 @@ export function bearerToken(req: Request): string | null {
 }
 
 /**
+ * Verify a WorkOS access token against their JWKS. Returns the resolved
+ * identity, or null if the token is missing/expired/malformed/revoked.
+ * Shared by `getAuth` (below) and `middleware.ts`, which uses it to 401 a
+ * mobile request carrying a dead token before it ever reaches a route
+ * handler — see that file for why that case must NOT fall through to demo.
+ */
+export async function verifyBearerToken(
+  token: string,
+): Promise<{ userId: string; sessionId: string | null } | null> {
+  try {
+    const { payload } = await jwtVerify(token, getJwks(), {
+      issuer: 'https://api.workos.com/',
+    })
+    if (!payload.sub) return null
+    return { userId: payload.sub, sessionId: typeof payload.sid === 'string' ? payload.sid : null }
+  } catch (err) {
+    console.warn('[auth] access token rejected:', (err as Error).message)
+    return null
+  }
+}
+
+/**
  * Resolve the owner of a request.
  *
  * 1. `Authorization: Bearer <jwt>` — the mobile app, which holds a WorkOS
@@ -52,23 +74,19 @@ export function bearerToken(req: Request): string | null {
  *    itself never reaches browser JavaScript.
  * 3. Neither — the demo user, read-only.
  *
- * A token that fails verification falls through to demo rather than 401ing,
- * matching the pre-WorkOS behaviour where data routes always answered 200.
- * Verification failures are logged so a broken key never looks like empty data.
+ * A *missing* credential falls through to demo (anonymous browsing). A
+ * Bearer token that's present but fails verification does NOT reach this
+ * function in practice — `middleware.ts` 401s it first, since that case is a
+ * broken real session, not a guest. This still checks it too (defence in
+ * depth for any caller that bypasses middleware), falling through to demo
+ * rather than throwing, matching the pre-WorkOS behaviour where data routes
+ * always answered 200.
  */
 export async function getAuth(req: Request): Promise<Auth> {
   const token = bearerToken(req)
   if (token) {
-    try {
-      const { payload } = await jwtVerify(token, getJwks(), {
-        issuer: 'https://api.workos.com/',
-      })
-      if (payload.sub) {
-        return { userId: payload.sub, readOnly: false, sessionId: typeof payload.sid === 'string' ? payload.sid : null }
-      }
-    } catch (err) {
-      console.warn('[auth] access token rejected:', (err as Error).message)
-    }
+    const resolved = await verifyBearerToken(token)
+    if (resolved) return { userId: resolved.userId, readOnly: false, sessionId: resolved.sessionId }
   }
 
   try {

@@ -1,5 +1,6 @@
 import { authkitMiddleware } from '@workos-inc/authkit-nextjs'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
+import { bearerToken, verifyBearerToken } from '@/lib/access'
 
 const refreshSession = authkitMiddleware()
 
@@ -20,15 +21,26 @@ const PUBLIC_PAGE_PATHS = ['/sign-in', '/email', '/code']
  * has no route handler at the redirect URI it would need. So auth is gated
  * by hand below instead of via `middlewareAuth: { enabled: true, ... }`.
  *
- * `/api/*` is deliberately excluded from the gate: every API route resolves
- * its own auth via `lib/access.ts::getAuth`, which already falls back to the
- * read-only demo user (`DEMO_USER_ID`) for anyone without a session. That
- * backend demo-scoping stays as-is — it's the fallback for API callers that
- * bypass the browser (tests, curl, direct requests). What changes here is
- * only the *page* experience: there is no more "continue as guest" UI path
- * in, signed-out visitors hitting an app page are sent to /sign-in.
+ * `/api/*` is mostly excluded from the page gate below: every API route
+ * resolves its own auth via `lib/access.ts::getAuth`, which falls back to
+ * the read-only demo user (`DEMO_USER_ID`) for anyone with *no* credential
+ * at all. That stays as-is — it's the fallback for API callers that bypass
+ * the browser (tests, curl, direct requests, mobile's explicit "continue as
+ * guest"). What changes here is only the *page* experience: there is no
+ * more "continue as guest" UI path in, signed-out visitors hitting an app
+ * page are sent to /sign-in.
  *
- * ponytail: the gate below only checks whether the session cookie is
+ * One exception: a request that *does* carry a Bearer token (the mobile
+ * app's normal case — it always sends one once signed in) but whose token
+ * fails WorkOS verification is 401'd right here, before it ever reaches a
+ * route handler. That case is a broken real session (expired refresh,
+ * revoked elsewhere, clock skew), not a guest — letting it fall through to
+ * `getAuth`'s demo fallback would silently render the demo account's data
+ * under a real, still-appears-signed-in user with no error anywhere. The
+ * mobile client already has 401-triggered logout wired up
+ * (`app/_layout.tsx`'s query-cache listener); this is what feeds it.
+ *
+ * ponytail: the *page* gate below only checks whether the session cookie is
  * *present*, not whether it's still valid (signature/expiry) — a forged or
  * expired cookie still passes the redirect check here but fails at the API
  * layer, where `getAuth()` falls back to the demo user. Upgrade to actually
@@ -41,7 +53,13 @@ export default async function middleware(request: NextRequest, event: NextFetchE
   const response = await refreshSession(request, event)
 
   const { pathname } = request.nextUrl
-  if (pathname.startsWith('/api/')) return response
+  if (pathname.startsWith('/api/')) {
+    const token = bearerToken(request)
+    if (token && !(await verifyBearerToken(token))) {
+      return NextResponse.json({ error: 'invalid or expired session' }, { status: 401 })
+    }
+    return response
+  }
 
   const isPublicPage = PUBLIC_PAGE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   const cookieName = process.env.WORKOS_COOKIE_NAME || 'wos-session'
