@@ -17,8 +17,8 @@ export interface ChatSessionDoc {
 
 const TITLE_MAX_LEN = 40
 
-/** Derive a session's list title from its first user message. */
-export function makeTitle(firstMessage: string): string {
-  const trimmed = firstMessage.trim()
-  return trimmed.length > TITLE_MAX_LEN ? `${trimmed.slice(0, TITLE_MAX_LEN).trimEnd()}…` : trimmed
+/** Truncate to `maxLen` chars with an ellipsis. Used for both session titles and list previews. */
+export function makeTitle(text: string, maxLen = TITLE_MAX_LEN): string {
+  const trimmed = text.trim()
+  return trimmed.length > maxLen ? `${trimmed.slice(0, maxLen).trimEnd()}…` : trimmed
 }

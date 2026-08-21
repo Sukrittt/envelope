@@ -39,7 +39,8 @@ export default function ChatHistoryPage() {
     void (async () => {
       const res = await fetch('/api/ai/chat/sessions')
       if (!res.ok) return
-      setSessions(await res.json())
+      const data = await res.json()
+      setSessions(data.sessions)
     })()
   }, [])
 
