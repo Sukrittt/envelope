@@ -48,6 +48,8 @@ export async function GET(req: Request) {
   const out: Record<string, unknown> = {}
 
   for (const [key, name] of Object.entries(COLLECTIONS) as [keyof typeof COLLECTIONS, string][]) {
+    if (key === 'pushTokens') continue // device plumbing, not user data
+
     const docs = await scoped(db.collection(name), auth.userId).find({}).toArray()
     const cleaned = docs.map(({ _id: _drop1, user_id: _drop2, ...rest }) => rest)
     const headers = HEADERS[key]
