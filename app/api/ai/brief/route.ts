@@ -47,7 +47,7 @@ export async function GET(req: Request) {
           items: {
             type: Type.OBJECT,
             properties: {
-              icon: { type: Type.STRING },
+              icon: { type: Type.STRING, description: 'A single emoji character representing the card, e.g. 💰 or 🛒' },
               title: { type: Type.STRING },
               subtitle: { type: Type.STRING },
               valueLabel: { type: Type.STRING },
