@@ -50,7 +50,7 @@ export async function GET(req: Request) {
               icon: { type: Type.STRING, description: 'A single emoji character representing the card, e.g. 💰 or 🛒' },
               title: { type: Type.STRING },
               subtitle: { type: Type.STRING },
-              valueLabel: { type: Type.STRING },
+              valueLabel: { type: Type.STRING, description: 'Currency unit label for the amount, always "INR" — never USD or any other currency' },
               amount: { type: Type.NUMBER },
               tone: { type: Type.STRING, enum: ['mint', 'violet', 'coral', 'warn'] },
             },
