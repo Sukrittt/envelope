@@ -54,14 +54,8 @@ export async function verifyBearerToken(
   token: string,
 ): Promise<{ userId: string; sessionId: string | null } | null> {
   try {
-    // No issuer check: WorkOS's own SDK doesn't assert one either (see
-    // `verifyAccessTokenClaims` in @workos-inc/node) — the `iss` value isn't
-    // documented and guessing it twice already produced two different wrong
-    // strings (confirmed via Vercel logs: 100% of requests rejected on
-    // "unexpected iss claim value" both times). Audience is the check WorkOS
-    // itself relies on, defaulting to the client id.
     const { payload } = await jwtVerify(token, getJwks(), {
-      audience: process.env.WORKOS_CLIENT_ID,
+      issuer: 'https://api.workos.com/',
     })
     if (!payload.sub) return null
     return { userId: payload.sub, sessionId: typeof payload.sid === 'string' ? payload.sid : null }
