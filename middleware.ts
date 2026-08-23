@@ -8,6 +8,12 @@ const refreshSession = authkitMiddleware()
 // (below) requires one; /api/* is never gated here (see comment).
 const PUBLIC_PAGE_PATHS = ['/sign-in', '/email', '/code']
 
+// Vercel cron targets (mirrors `crons` in vercel.json). These carry
+// `Authorization: Bearer ${CRON_SECRET}` — a shared secret, not a WorkOS JWT —
+// so the Bearer gate below must not try to verify it. Each handler does its own
+// constant-time secret check before doing anything.
+const CRON_PATHS = ['/api/ai/scan-transactions', '/api/notifications/weekly']
+
 /**
  * Refreshes the sealed AuthKit session cookie, then gates every other *page*
  * behind a session.
@@ -38,7 +44,8 @@ const PUBLIC_PAGE_PATHS = ['/sign-in', '/email', '/code']
  * `getAuth`'s demo fallback would silently render the demo account's data
  * under a real, still-appears-signed-in user with no error anywhere. The
  * mobile client already has 401-triggered logout wired up
- * (`app/_layout.tsx`'s query-cache listener); this is what feeds it.
+ * (`app/_layout.tsx`'s query-cache listener); this is what feeds it. The cron
+ * paths are exempt from that gate — see `CRON_PATHS` above.
  *
  * ponytail: the *page* gate below only checks whether the session cookie is
  * *present*, not whether it's still valid (signature/expiry) — a forged or
@@ -54,7 +61,7 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 
   const { pathname } = request.nextUrl
   if (pathname.startsWith('/api/')) {
-    const token = bearerToken(request)
+    const token = CRON_PATHS.includes(pathname) ? null : bearerToken(request)
     if (token && !(await verifyBearerToken(token))) {
       return NextResponse.json({ error: 'invalid or expired session' }, { status: 401 })
     }

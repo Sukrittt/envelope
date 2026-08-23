@@ -49,14 +49,23 @@ export function bearerToken(req: Request): string | null {
  * Shared by `getAuth` (below) and `middleware.ts`, which uses it to 401 a
  * mobile request carrying a dead token before it ever reaches a route
  * handler — see that file for why that case must NOT fall through to demo.
+ *
+ * Deliberately asserts no `issuer` and no `audience`, matching what WorkOS's
+ * own SDK does for these tokens. Do not add either back: both have been tried
+ * against production and both reject every real token. `issuer:
+ * 'https://api.workos.com/'` and `'https://api.workos.com'` each logged
+ * `unexpected "iss" claim value` on 100% of requests, and
+ * `audience: WORKOS_CLIENT_ID` logged `missing required "aud" claim` — these
+ * tokens carry no `aud` at all. The check that matters still runs: jose
+ * validates the signature (and `exp`/`nbf`) before any claim, and `getJwks()`
+ * is scoped to our own client id, so only our tenant's keys can sign a token
+ * this accepts.
  */
 export async function verifyBearerToken(
   token: string,
 ): Promise<{ userId: string; sessionId: string | null } | null> {
   try {
-    const { payload } = await jwtVerify(token, getJwks(), {
-      issuer: 'https://api.workos.com/',
-    })
+    const { payload } = await jwtVerify(token, getJwks())
     if (!payload.sub) return null
     return { userId: payload.sub, sessionId: typeof payload.sid === 'string' ? payload.sid : null }
   } catch (err) {
