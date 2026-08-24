@@ -14,6 +14,7 @@ import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { CategoryManager } from "../components/CategoryManager";
 import { SubscriptionModal } from "../components/SubscriptionModal";
 import { Scrim, Sheet } from "../components/MotionSheet";
+import { CalendarBody, parseISO, toISO, key as dateKey, monthStart as dateMonthStart } from "../components/DatePicker";
 import { SpendingInsights } from "../components/SpendingInsights";
 import { LoadingCaption } from "../components/LoadingCaption";
 import {
@@ -542,6 +543,11 @@ export function ExpensePage() {
   );
   const [draftStart, setDraftStart] = useState<string>(customStart);
   const [draftEnd, setDraftEnd] = useState<string>(customEnd);
+  const [menuView, setMenuView] = useState<Date>(
+    () => parseISO(customStart) ?? new Date(),
+  );
+  const [menuDir, setMenuDir] = useState<"next" | "prev">("next");
+  const [menuPingKey, setMenuPingKey] = useState<number | null>(null);
 
   const draftStartTime = new Date(draftStart).getTime();
   const draftEndTime = new Date(draftEnd).getTime();
@@ -553,7 +559,23 @@ export function ExpensePage() {
   function openDateMenu() {
     setDraftStart(customStart);
     setDraftEnd(customEnd);
+    setMenuView(dateMonthStart(parseISO(customStart) ?? new Date()));
     setActiveMenu("date");
+  }
+
+  function tapMenuDay(d: Date) {
+    setMenuPingKey(dateKey(d));
+    const ds = parseISO(draftStart);
+    const de = parseISO(draftEnd);
+    if (!ds || (ds && de)) {
+      setDraftStart(toISO(d));
+      setDraftEnd("");
+    } else if (dateKey(d) < dateKey(ds)) {
+      setDraftEnd(draftStart);
+      setDraftStart(toISO(d));
+    } else {
+      setDraftEnd(toISO(d));
+    }
   }
 
   function applyDateRange() {
@@ -1626,7 +1648,7 @@ export function ExpensePage() {
 
   const dateMenu = createPortal(
     <div
-      className={`category-menu category-menu--portal date-range-menu ${fredoka.variable} ${nunito.variable} ${isDateMenuVisible ? "is-open" : ""}`}
+      className={`category-menu category-menu--portal date-range-menu date-picker-vars ${fredoka.variable} ${nunito.variable} ${isDateMenuVisible ? "is-open" : ""}`}
       role="menu"
       aria-label="Custom date range"
       aria-hidden={!isDateMenuVisible}
@@ -1640,31 +1662,24 @@ export function ExpensePage() {
         pointerEvents: isDateMenuVisible ? "auto" : "none",
       }}
     >
-      <div className="date-range-fields">
-        <div className="date-range-field">
-          <label htmlFor="expense-custom-start">From</label>
-          <input
-            id="expense-custom-start"
-            type="date"
-            value={draftStart}
-            onChange={(event) => setDraftStart(event.target.value)}
-            aria-label="Custom start date"
-          />
-        </div>
-        <span className="date-range-arrow" aria-hidden="true">
-          →
-        </span>
-        <div className="date-range-field">
-          <label htmlFor="expense-custom-end">To</label>
-          <input
-            id="expense-custom-end"
-            type="date"
-            value={draftEnd}
-            onChange={(event) => setDraftEnd(event.target.value)}
-            aria-label="Custom end date"
-          />
-        </div>
-      </div>
+      <CalendarBody
+        view={menuView}
+        today={new Date()}
+        draftStart={parseISO(draftStart)}
+        draftEnd={parseISO(draftEnd)}
+        disableFuture
+        dir={menuDir}
+        pingKey={menuPingKey}
+        onPrevMonth={() => {
+          setMenuDir("prev");
+          setMenuView((v) => new Date(v.getFullYear(), v.getMonth() - 1, 1));
+        }}
+        onNextMonth={() => {
+          setMenuDir("next");
+          setMenuView((v) => new Date(v.getFullYear(), v.getMonth() + 1, 1));
+        }}
+        onTapDay={tapMenuDay}
+      />
 
       <div className="date-range-menu-actions">
         <button

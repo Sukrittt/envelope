@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { addSubscription, updateSubscription } from '../services/api'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { DatePicker } from './DatePicker'
 
 interface SubscriptionEdit {
   service: string
@@ -121,12 +122,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
 
             <label className="subscription-modal-field">
               <span>Next due date</span>
-              <input
-                type="date"
-                className="txn-entry-input"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
+              <DatePicker mode="single" value={dueDate} onChange={setDueDate} disableFuture={false} />
             </label>
 
             <label className="subscription-modal-field">

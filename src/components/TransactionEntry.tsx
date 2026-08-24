@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { addExpense } from '../services/api'
 import { suggestCategory, invalidateCategoryCache, getTodayISO } from '../services/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { DatePicker } from './DatePicker'
 
 interface Props {
   categories: string[]
@@ -96,8 +97,9 @@ export function TransactionEntry({ categories, onSaved }: Props) {
           <option value="">Assign to</option>
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input type="date" className="txn-entry-input txn-entry-date" value={date}
-          onChange={(e) => setDate(e.target.value)} aria-label="Date" />
+        <div className="txn-entry-date">
+          <DatePicker mode="single" value={date} onChange={setDate} />
+        </div>
         <button type="button" className="action-button is-ghost" onClick={() => { reset(); setExpanded(false) }}>
           Cancel
         </button>

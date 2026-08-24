@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
+import { DatePicker } from './DatePicker'
 import { addExpense, getCategoryMap } from '../services/api'
 import { suggestCategoryLLM } from '../services/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -176,17 +177,8 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
           ))}
         </div>
 
-        <label className="erd-log-label" htmlFor="erd-log-date">
-          Date
-        </label>
-        <input
-          id="erd-log-date"
-          className="erd-log-input"
-          type="date"
-          value={date}
-          max={toDateInputValue(new Date())}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <label className="erd-log-label">Date</label>
+        <DatePicker mode="single" value={date} onChange={setDate} />
 
         {error && <p className="erd-log-error">{error}</p>}
 

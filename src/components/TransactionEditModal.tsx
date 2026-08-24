@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { updateExpense } from '../services/api'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { DatePicker } from './DatePicker'
 
 interface Props {
   id?: string
@@ -100,12 +101,7 @@ export function TransactionEditModal({
 
             <label className="subscription-modal-field">
               <span>Date</span>
-              <input
-                type="date"
-                className="txn-entry-input"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
+              <DatePicker mode="single" value={date} onChange={setDate} />
             </label>
 
             <label className="subscription-modal-field">

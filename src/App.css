@@ -1246,51 +1246,6 @@ h4 {
   }
 }
 
-.date-range-fields {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--sp-2);
-}
-
-.date-range-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.date-range-field label {
-  font-family: var(--font-fredoka, var(--font-display));
-  font-size: var(--fs-11);
-  color: var(--muted, #a7b0bf);
-  letter-spacing: 0.02em;
-}
-
-.date-range-field input[type="date"] {
-  width: 100%;
-  min-width: 0;
-  padding: 6px 8px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
-  background: var(--panel-soft, #201d27);
-  color: var(--text, #f3efe9);
-  font-size: var(--fs-12);
-  font-family: inherit;
-  color-scheme: dark;
-}
-
-.date-range-field input[type="date"]:focus-visible {
-  outline: none;
-  border-color: oklch(70% 0.16 275 / 0.6);
-}
-
-.date-range-arrow {
-  padding-bottom: 8px;
-  color: var(--muted, #a7b0bf);
-  font-size: var(--fs-13);
-}
-
 .date-range-menu-actions {
   display: flex;
   justify-content: space-between;

@@ -15,6 +15,7 @@ import { LoadingCaption } from "./LoadingCaption";
 import { getCategoryColor } from "../data/categoryColors";
 import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
+import { DatePicker } from "./DatePicker";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -617,17 +618,13 @@ export function TransactionsView({
 
         {period === "custom" && (
           <div className="txn-timeline-dates">
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              aria-label="Start date"
-            />
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              aria-label="End date"
+            <DatePicker
+              mode="range"
+              value={{ start: customStart, end: customEnd }}
+              onChange={({ start, end }) => {
+                setCustomStart(start);
+                setCustomEnd(end);
+              }}
             />
           </div>
         )}
