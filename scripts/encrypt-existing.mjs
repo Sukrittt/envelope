@@ -19,6 +19,7 @@
 //   node --experimental-strip-types scripts/encrypt-existing.mjs
 //   node --experimental-strip-types scripts/encrypt-existing.mjs --apply
 //   node --experimental-strip-types scripts/encrypt-existing.mjs --verify
+import { pathToFileURL } from 'node:url'
 import { MongoClient } from 'mongodb'
 import { loadEnv, args } from './lib/env.mjs'
 import { encrypt, decrypt, isEncrypted } from '../lib/crypto.ts'
@@ -166,8 +167,10 @@ export { buildUpdate }
 
 // Only auto-run when executed directly (`node encrypt-existing.mjs`), not when
 // imported for its exports (scripts/encrypt-existing.test.mjs unit-tests
-// buildUpdate without connecting to Mongo).
-if (import.meta.url === `file://${process.argv[1]}`) {
+// buildUpdate without connecting to Mongo). Compared as file:// URLs, not raw
+// strings — a plain `file://${process.argv[1]}` breaks on any path containing
+// spaces or other characters import.meta.url percent-encodes but argv[1] doesn't.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((err) => {
     console.error(err)
     process.exitCode = 1
