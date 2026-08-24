@@ -16,6 +16,7 @@
     "db:backfill": "node scripts/backfill-user-id.mjs",
     "db:indexes": "node scripts/ensure-indexes.mjs",
     "db:sync-users": "node scripts/sync-users.mjs",
+    "db:encrypt": "node --experimental-strip-types scripts/encrypt-existing.mjs",
     "check:scoping": "node scripts/check-scoping.mjs"
   },
   "dependencies": {

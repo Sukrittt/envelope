@@ -19,37 +19,9 @@ import type {
   WithId,
 } from 'mongodb'
 import { encrypt, decrypt, isEncrypted } from './crypto'
+import { fieldsFor, fieldAad as aad } from './encryptedFields'
 
 type Doc = Record<string, unknown>
-
-/**
- * Collection name -> encrypted field names. `'messages.text'` means "the
- * `text` field inside each element of the `messages` array" — the one
- * nested case in the app, handled specially in encDoc/decDoc/encPush.
- *
- * Deliberately not encrypted, because each is a filter/sort/index key: on
- * `expenses` — date, category, payment_method, timestamp, ai_scanned*; on
- * `budgets` — month, category; `categories`/`groups`/`category_map_overrides`
- * entirely (name/word are unique-index filter keys); `subscriptions.service`
- * and `holdings.name` (also filter keys — a future re-key to `_id` could move
- * them into this list); `chat_sessions.updatedAt` (sort + index).
- */
-const ENCRYPTED_FIELDS: Record<string, string[]> = {
-  expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
-  budgets: ['assigned', 'rolled_over'],
-  subscriptions: ['amount_inr', 'notes'],
-  holdings: ['value'],
-  holding_events: ['amount', 'previous_value', 'new_value'],
-  chat_sessions: ['title', 'messages.text'],
-}
-
-function fieldsFor(collectionName: string): string[] {
-  return ENCRYPTED_FIELDS[collectionName] ?? []
-}
-
-function aad(userId: string, collectionName: string, field: string): string {
-  return `${userId}:${collectionName}:${field}`
-}
 
 /** Encrypts a doc's encrypted fields before insert/replace. Idempotent — skips a value already `enc:`. */
 function encDoc(doc: Doc, fields: string[], userId: string, collectionName: string): Doc {
@@ -168,10 +140,11 @@ function encUpdate(update: Doc, fields: string[], userId: string, collectionName
  * if it forgets to think about tenancy. The check lives here instead of in the
  * ~50 `getCollection` call sites that would each otherwise have to remember it.
  *
- * Also the one choke point for field-level encryption (see ENCRYPTED_FIELDS
- * above and lib/crypto.ts): inserts/replaces/$set/$push encrypt on the way
- * in, find/findOne/aggregate decrypt on the way out, and any filter/distinct
- * naming an encrypted field throws rather than silently matching nothing.
+ * Also the one choke point for field-level encryption (see
+ * lib/encryptedFields.ts and lib/crypto.ts): inserts/replaces/$set/$push
+ * encrypt on the way in, find/findOne/aggregate decrypt on the way out, and
+ * any filter/distinct naming an encrypted field throws rather than silently
+ * matching nothing.
  *
  * Method signatures mirror the driver's, so existing handler code (including
  * `.find(...).sort(...).limit(...).toArray()` chains) works unchanged.
