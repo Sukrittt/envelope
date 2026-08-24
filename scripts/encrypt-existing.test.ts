@@ -80,3 +80,28 @@ describe('buildUpdate (scripts/encrypt-existing.mjs)', () => {
     expect(buildUpdate(doc, fields, 'expenses')).toBeNull()
   })
 })
+
+describe('verifyCollection (regression: AAD must match encryption, not the display label)', () => {
+  it('verifies a messages[].text value encrypted via buildUpdate, using the real field name as AAD', async () => {
+    const mod = await import('./encrypt-existing.mjs')
+    const buildUpdate = mod.buildUpdate as (doc: Record<string, unknown>, fields: string[], collectionName: string) => Record<string, unknown> | null
+    const verifyCollection = mod.verifyCollection as (
+      db: { collection: (name: string) => { find: () => unknown[] } },
+      collectionName: string,
+      fields: string[],
+    ) => Promise<number>
+
+    const doc = { _id: 'sess1', user_id: 'user_a', title: 'Money chat', messages: [{ role: 'user', text: 'How much did I spend?' }] }
+    const set = buildUpdate(doc, ['title', 'messages.text'], 'chat_sessions')
+    const encryptedDoc = { ...doc, ...set }
+
+    const fakeDb = { collection: () => ({ find: () => [encryptedDoc] }) }
+    const failed = await verifyCollection(fakeDb, 'chat_sessions', ['title', 'messages.text'])
+
+    // Before the fix, this failed with 2 (title's AAD field happened to match
+    // its label, but messages[].text's AAD field ('messages[].text') didn't
+    // match what encryption used ('messages.text') — a real production bug
+    // this test would have caught before it ever reached --verify.
+    expect(failed).toBe(0)
+  })
+})

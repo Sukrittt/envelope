@@ -95,11 +95,13 @@ async function verifyCollection(db, collectionName, fields) {
   let checked = 0
   let failed = 0
 
-  const checkValue = (value, docId, label, userId) => {
+  // `aadField` must exactly match what encryption used (from ENCRYPTED_FIELDS)
+  // — `label` is only for the error message and can read however's clearest.
+  const checkValue = (value, docId, aadField, label, userId) => {
     if (typeof value !== 'string' || !isEncrypted(value)) return
     checked++
     try {
-      decrypt(value, aad(userId, collectionName, label))
+      decrypt(value, aad(userId, collectionName, aadField))
     } catch (err) {
       failed++
       console.error(`  FAIL ${collectionName}/${docId} ${label}: ${err.message}`)
@@ -110,11 +112,11 @@ async function verifyCollection(db, collectionName, fields) {
     for (const field of fields) {
       if (field === 'messages.text') {
         if (Array.isArray(doc.messages)) {
-          for (const m of doc.messages) checkValue(m?.text, doc._id, 'messages[].text', doc.user_id)
+          for (const m of doc.messages) checkValue(m?.text, doc._id, field, 'messages[].text', doc.user_id)
         }
         continue
       }
-      checkValue(doc[field], doc._id, field, doc.user_id)
+      checkValue(doc[field], doc._id, field, field, doc.user_id)
     }
   }
 
@@ -163,7 +165,7 @@ async function main() {
   }
 }
 
-export { buildUpdate }
+export { buildUpdate, verifyCollection }
 
 // Only auto-run when executed directly (`node encrypt-existing.mjs`), not when
 // imported for its exports (scripts/encrypt-existing.test.mjs unit-tests
