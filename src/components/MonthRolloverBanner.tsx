@@ -73,7 +73,7 @@ export function MonthRolloverBanner({ currentMonth, lastMonth, lastIncome, lastA
               checked={copyAssigned}
               onChange={(e) => setCopyAssigned(e.target.checked)}
             />
-            <span>Copy last month's assigned amounts as starting point</span>
+            <span>Copy last month&apos;s assigned amounts as starting point</span>
           </label>
         </div>
 

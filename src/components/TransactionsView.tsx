@@ -192,9 +192,12 @@ export function TransactionsView({
       .finally(() => setLoading(false));
   }, [dateParam]);
 
-  // Arriving from an envelope: adopt its category and match its per-month window
+  // Arriving from an envelope: adopt its category and match its per-month window.
+  // Deliberate one-time adoption of an external (URL) value into local filter
+  // state that the user can then change independently — not derivable at render time.
   useEffect(() => {
     if (!categoryParam) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedCategory(categoryParam);
     setPeriod("month");
   }, [categoryParam]);
@@ -265,6 +268,8 @@ export function TransactionsView({
   ]);
 
   useEffect(() => {
+    // Reset pagination whenever any filter changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(0);
   }, [period, customStart, customEnd, selectedCategory, search]);
 
@@ -349,6 +354,9 @@ export function TransactionsView({
     setDeleting(false);
   }
 
+  // Trigger button is commented out below (UI is disabled, not deleted) — kept
+  // for whoever re-enables it.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function autoTagMonth() {
     if (autoTagging) return;
     setAutoTagging(true);
@@ -576,7 +584,7 @@ export function TransactionsView({
     return (
       <div className="txn-timeline erd-card">
         <div className="txn-timeline-empty">
-          Couldn't load transactions. {error}
+          Couldn&apos;t load transactions. {error}
         </div>
       </div>
     );

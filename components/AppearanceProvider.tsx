@@ -31,6 +31,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [density, setDensity] = useState<Density>('comfortable')
 
   useEffect(() => {
+    // Deliberate: reading localStorage during render would desync server/client
+    // markup, so this adopts the persisted value once, after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(readTheme())
     setDensity(readDensity())
   }, [])

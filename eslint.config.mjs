@@ -11,8 +11,18 @@ const compat = new FlatCompat({
 
 export default defineConfig([
   {
-    ignores: ['.next/**', 'dist/**', 'node_modules/**'],
+    ignores: ['.next/**', 'dist/**', 'node_modules/**', 'next-env.d.ts', 'mission-control-app/**'],
   },
   ...compat.extends('next/core-web-vitals'),
   ...compat.extends('next/typescript'),
+  {
+    rules: {
+      // Leading underscore is the codebase's convention for "intentionally unused"
+      // (e.g. destructuring a field off just to drop it).
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' },
+      ],
+    },
+  },
 ])

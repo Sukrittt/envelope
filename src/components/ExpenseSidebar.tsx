@@ -26,7 +26,6 @@ export function ExpenseSidebar({
   const pathname = usePathname();
   const access = useAccessMode();
   const isBudget = pathname.startsWith("/expense");
-  const isInvestments = pathname === "/investments";
   const left = income != null && totalSpent != null ? income - totalSpent : null;
 
   return (

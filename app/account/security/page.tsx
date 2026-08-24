@@ -74,9 +74,9 @@ function SecurityContent() {
   }
 
   useEffect(() => {
-    void loadUser()
-    void loadSessions()
-    void loadIdentities()
+    void (async () => {
+      await Promise.all([loadUser(), loadSessions(), loadIdentities()])
+    })()
   }, [])
 
   async function saveName() {

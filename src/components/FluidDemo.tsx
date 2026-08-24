@@ -47,7 +47,7 @@ export function FluidDemo() {
           <li>✓ Immediate feedback on pointer down (instant scale transform)</li>
           <li>✓ Direct manipulation - bars track 1:1 with pointer movement</li>
           <li>✓ Interruptible spring animations - can be grabbed mid-flight</li>
-          <li>✓ Velocity handoff - animations continue at finger's velocity</li>
+          <li>✓ Velocity handoff - animations continue at finger&apos;s velocity</li>
           <li>✓ Reduced motion support - respects user preferences</li>
           <li>✓ Rubber-banding effect on hover</li>
           <li>✓ Smooth tooltip transitions with proper easing</li>

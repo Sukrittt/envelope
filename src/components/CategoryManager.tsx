@@ -250,7 +250,7 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
                     </div>
                   ) : deleteGroupTarget === group.label ? (
                     <div className="cm-delete-confirm">
-                      <span className="muted">Delete "{group.label}"? Categories move to Other.</span>
+                      <span className="muted">Delete &quot;{group.label}&quot;? Categories move to Other.</span>
                       <div className="cm-delete-actions">
                         <button type="button" className="action-button" onClick={() => handleDeleteGroup(group.label)}>Delete</button>
                         <button type="button" className="action-button is-ghost" onClick={() => setDeleteGroupTarget(null)}>Keep</button>
@@ -298,7 +298,7 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
                           </>
                         ) : deleteTarget === cat.name ? (
                           <div className="cm-delete-confirm">
-                            <span className="muted">Remove "{cat.name}"? Past transactions are kept.</span>
+                            <span className="muted">Remove &quot;{cat.name}&quot;? Past transactions are kept.</span>
                             <div className="cm-delete-actions">
                               <button type="button" className="action-button" onClick={() => handleDelete(cat.name)}>Remove</button>
                               <button type="button" className="action-button is-ghost" onClick={() => setDeleteTarget(null)}>Keep</button>

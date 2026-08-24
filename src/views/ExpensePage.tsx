@@ -181,6 +181,7 @@ export function ExpensePage() {
       typeof window !== "undefined" &&
       localStorage.getItem("expense-hide-amounts") === "true"
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHideAmounts(true);
     }
   }, []);
@@ -199,6 +200,7 @@ export function ExpensePage() {
   // optimistic local updates (handleIncomeChange, handleAssignFromRTA, etc.)
   // to apply in between contract refreshes.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (panel) setEnvelopeState(panel.envelopeState);
   }, [panel]);
 
@@ -413,6 +415,12 @@ export function ExpensePage() {
     })();
   }, [panel]);
 
+  function prevMonth(key: string): string {
+    const [y, m] = key.split("-");
+    const d = new Date(Number(y), Number(m) - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+
   useEffect(() => {
     if (!panel) return;
     const storedMonth = localStorage.getItem("budget-active-month");
@@ -452,12 +460,6 @@ export function ExpensePage() {
     }
     checkRollover();
   }, [panel]);
-
-  function prevMonth(key: string): string {
-    const [y, m] = key.split("-");
-    const d = new Date(Number(y), Number(m) - 2, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }
 
   async function handleRolloverConfirm(income: number, copyAssigned: boolean) {
     const p = panel;
@@ -790,6 +792,7 @@ export function ExpensePage() {
     drillFilter,
     filteredTrend,
     trendView,
+    period,
     panel,
     selectedCategories,
   ]);
@@ -2732,7 +2735,7 @@ export function ExpensePage() {
                           Move <strong>{formatCurrency(total)}</strong> from{" "}
                           {positive.length} categor
                           {positive.length === 1 ? "y" : "ies"} back to Ready to
-                          Assign. Each category's Available will reset to ₹0.
+                          Assign. Each category&apos;s Available will reset to ₹0.
                         </p>
                         <div className="bulk-return-list">
                           {positive.map((e) => (

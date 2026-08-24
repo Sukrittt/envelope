@@ -77,7 +77,7 @@ async function fetchHoldingsPanel(): Promise<{ holdings: Holding[]; events: Hold
 
 export function InvestmentsPage() {
   const { data, isLoading, error: loadError, mutate: reload } = useSWR('holdings-panel', fetchHoldingsPanel)
-  const holdings = data?.holdings ?? []
+  const holdings = useMemo(() => data?.holdings ?? [], [data])
   const events = data?.events ?? []
   const [showAdd, setShowAdd] = useState(false)
   const [addName, setAddName] = useState('')

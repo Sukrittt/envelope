@@ -308,7 +308,7 @@ export function FitnessPage() {
                     <strong>{daysIn} days in</strong>{startDate && <> since {formatDate(startDate)}</>}, down <strong>{totalLost.toFixed(1)} kg</strong>.
                     {' '}Currently losing <strong>{weeklyRate.toFixed(2)} kg/week</strong>.
                     {weeksToGo && (
-                      <> At this rate, you'll hit {panel.targetWeightKg} kg in <strong>~{weeksToGo} weeks</strong>.</>
+                      <> At this rate, you&apos;ll hit {panel.targetWeightKg} kg in <strong>~{weeksToGo} weeks</strong>.</>
                     )}
                   </p>
 

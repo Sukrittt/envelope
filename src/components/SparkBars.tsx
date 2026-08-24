@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { animate, spring } from "motion";
+import { animate } from "motion";
 
 interface SparkBarDatum {
   date: string;
