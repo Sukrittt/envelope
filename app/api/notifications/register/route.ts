@@ -19,6 +19,10 @@ export async function POST(req: Request) {
   if (typeof token !== 'string' || !token) return error('token required')
   if (!isPlatform(platform)) return error('platform required')
 
-  await registerPushToken(token, platform, auth.userId)
+  try {
+    await registerPushToken(token, platform, auth.userId)
+  } catch {
+    return error('invalid push token')
+  }
   return json({ ok: true })
 }

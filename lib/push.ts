@@ -11,26 +11,37 @@ export type PushToken = {
   updatedAt: string
 }
 
+const EXPO_PUSH_TOKEN_RE = /^Expo(?:nent)?PushToken\[[\w-]+\]$/
+
 /**
  * Upsert a device's push token. `createdAt` is set once, `updatedAt` on every
- * call, and `user_id` on every call too — a device that re-registers under a
- * different account moves to that account rather than notifying both.
+ * call. `user_id` moves with a re-registration under a different account
+ * (a device that's signed out and back in on a different account should
+ * move, not leave both accounts notified) — but only via an explicit
+ * delete+insert once we've confirmed the current owner doesn't already match,
+ * not a blind `$set` keyed on `token` alone. Anyone who submits a token
+ * string they don't own can't otherwise retarget someone else's device: the
+ * scoped update below only succeeds when `user_id` already matches.
  */
 export async function registerPushToken(
   token: string,
   platform: 'ios' | 'android',
   userId: string,
 ): Promise<void> {
+  if (!EXPO_PUSH_TOKEN_RE.test(token)) throw new Error('invalid push token')
+
   const db = await getDb()
   const now = new Date().toISOString()
-  await db.collection<PushToken>(COLLECTIONS.pushTokens).updateOne(
-    { token },
-    {
-      $set: { token, platform, user_id: userId, updatedAt: now },
-      $setOnInsert: { createdAt: now },
-    },
-    { upsert: true },
+  const coll = db.collection<PushToken>(COLLECTIONS.pushTokens)
+
+  const updated = await coll.updateOne(
+    { token, user_id: userId },
+    { $set: { platform, updatedAt: now } },
   )
+  if (updated.matchedCount > 0) return
+
+  await coll.deleteOne({ token })
+  await coll.insertOne({ token, platform, user_id: userId, createdAt: now, updatedAt: now })
 }
 
 type ExpoPushMessage = {
