@@ -52,9 +52,18 @@ export async function DELETE(req: Request) {
   if (auth.readOnly) return error('unauthorized', 401)
 
   const body = (await readBody(req)) as Record<string, unknown>
-  if (body.confirm !== true) return error('confirm required', 400)
+  const confirmEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
 
   const db = await getDb()
+  // The client already gates the delete button on the typed email matching
+  // the account's own — this re-checks it server-side, since that's the only
+  // check that actually stops a direct API call (the old body.confirm===true
+  // check was one curl call away from irreversible).
+  const account = await db.collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { email: 1 } })
+  if (!account?.email || !confirmEmail || confirmEmail !== account.email.toLowerCase()) {
+    return error('email confirmation required', 400)
+  }
+
   for (const name of Object.values(COLLECTIONS)) {
     await scoped(db.collection(name), auth.userId).deleteMany({})
   }

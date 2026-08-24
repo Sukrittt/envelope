@@ -156,7 +156,7 @@ function SecurityContent() {
     const res = await fetch('/api/user', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirm: true }),
+      body: JSON.stringify({ email: deleteEmailDraft.trim() }),
     })
     if (res.ok) {
       window.location.href = '/sign-in'
