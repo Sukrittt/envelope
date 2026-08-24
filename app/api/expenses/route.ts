@@ -1,7 +1,9 @@
+import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { cachedRead, invalidate } from '@/lib/cache'
+import type { ScopedCollection } from '@/lib/scoped'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +11,44 @@ export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('expenses', auth)
   const docs = await cachedRead('expenses', auth.userId, () => coll.find({}).toArray())
-  return json({ headers: EXPENSE_HEADERS, rows: docs.map((d) => toRow(EXPENSE_HEADERS, d)) })
+  // `id` rides alongside the CSV-shaped headers/row rather than joining
+  // EXPENSE_HEADERS itself, since that array is also the CSV export's column
+  // set — this keeps the export unchanged while giving JSON callers a real
+  // row identity to edit/delete by by (see findExpense below).
+  return json({
+    headers: EXPENSE_HEADERS,
+    rows: docs.map((d) => ({ id: String(d._id), ...toRow(EXPENSE_HEADERS, d) })),
+  })
+}
+
+type ExpenseDoc = Record<string, unknown> & { _id: ObjectId }
+
+/**
+ * Locate one expense row. Prefers `id` (a real Mongo _id, added to the GET
+ * response above) when the caller supplies one; falls back to the legacy
+ * (timestamp, item, amount) triple-match — first candidate whose amount
+ * matches wins — for one release, so a stale mobile build (which only knows
+ * the triple) keeps working. Drop the fallback once every client sends `id`.
+ */
+async function findExpense(
+  coll: ScopedCollection,
+  body: Record<string, unknown>,
+): Promise<ExpenseDoc | null> {
+  const id = typeof body.id === 'string' ? body.id : null
+  if (id) {
+    if (!ObjectId.isValid(id)) return null
+    return (await coll.findOne({ _id: new ObjectId(id) })) as ExpenseDoc | null
+  }
+
+  const candidates = (await coll
+    .find({ timestamp: String(body.timestamp ?? ''), item: String(body.item ?? '') })
+    .sort({ _id: 1 })
+    .toArray()) as ExpenseDoc[]
+
+  for (const c of candidates) {
+    if (Number(c.amount_inr) === Number(body.amount_inr)) return c
+  }
+  return null
 }
 
 export async function POST(req: Request) {
@@ -60,23 +99,10 @@ export async function PUT(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!body.timestamp) return error('timestamp required')
+  if (!body.id && !body.timestamp) return error('id or timestamp required')
 
-  // Locate the row with the same (timestamp, item, amount) triple, so an edit
-  // updates the exact expense (same signal the PUT and DELETE use).
   const coll = await getCollection('expenses', auth)
-  const candidates = await coll
-    .find({ timestamp: String(body.timestamp), item: String(body.item ?? '') })
-    .sort({ _id: 1 })
-    .toArray()
-
-  let found: (typeof candidates)[number] | null = null
-  for (const c of candidates) {
-    if (Number(c.amount_inr) === Number(body.amount_inr)) {
-      found = c
-      break
-    }
-  }
+  const found = await findExpense(coll, body)
   if (!found) return error('expense row not found', 404)
 
   const update: Record<string, string> = {}
@@ -146,25 +172,12 @@ export async function DELETE(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!body.timestamp || !body.item || body.amount_inr === undefined) {
-    return error('timestamp, item, amount_inr required')
+  if (!body.id && (!body.timestamp || !body.item || body.amount_inr === undefined)) {
+    return error('id, or timestamp/item/amount_inr, required')
   }
 
-  // Locate the row with the same (timestamp, item, amount) triple the PUT uses,
-  // so a delete removes the exact expense rather than a lookalike.
   const coll = await getCollection('expenses', auth)
-  const candidates = await coll
-    .find({ timestamp: String(body.timestamp), item: String(body.item) })
-    .sort({ _id: 1 })
-    .toArray()
-
-  let found: (typeof candidates)[number] | null = null
-  for (const c of candidates) {
-    if (Number(c.amount_inr) === Number(body.amount_inr)) {
-      found = c
-      break
-    }
-  }
+  const found = await findExpense(coll, body)
   if (!found) return error('expense row not found', 404)
 
   const paymentMethod = String(found.payment_method ?? '')

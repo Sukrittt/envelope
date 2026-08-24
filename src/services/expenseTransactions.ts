@@ -1,6 +1,7 @@
 import { apiFetch } from './api'
 
 export interface Transaction {
+  id: string
   timestamp: string
   date: string
   item: string
@@ -16,6 +17,7 @@ export async function loadTransactions(): Promise<Transaction[]> {
   const data = await resp.json()
   if (!data.rows || !Array.isArray(data.rows)) return []
   return data.rows.map((r: Record<string, string>) => ({
+    id: r.id ?? '',
     timestamp: r.timestamp ?? '',
     date: r.date ?? '',
     item: r.item ?? '',

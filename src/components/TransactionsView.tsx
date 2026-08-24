@@ -342,7 +342,7 @@ export function TransactionsView({
     setDeleting(true);
     setDeleteError(null);
     try {
-      await deleteExpense(t.timestamp, t.item, t.amountInr);
+      await deleteExpense(t.id, t.timestamp, t.item, t.amountInr);
       setDeleteKey(null);
       setActionsKey(null);
       await refreshTransactions();
@@ -371,6 +371,7 @@ export function TransactionsView({
         const suggested = await suggestCategory(t.item, categories);
         if (suggested && suggested !== t.category) {
           await updateExpenseCategory(
+            t.id,
             t.timestamp,
             t.item,
             t.amountInr,
@@ -742,6 +743,7 @@ export function TransactionsView({
                           setUpdating(true);
                           try {
                             await updateExpenseCategory(
+                              t.id,
                               t.timestamp,
                               t.item,
                               t.amountInr,
@@ -913,6 +915,7 @@ export function TransactionsView({
       <AnimatePresence>
         {editingTxn && (
           <TransactionEditModal
+            id={editingTxn.id}
             timestamp={editingTxn.timestamp}
             item={editingTxn.item}
             amountInr={editingTxn.amountInr}

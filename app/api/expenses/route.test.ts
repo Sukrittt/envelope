@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ObjectId } from 'mongodb'
 
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
@@ -10,34 +11,39 @@ vi.mock('@/lib/cache', () => ({
   invalidate: vi.fn(),
 }))
 
-type Doc = Record<string, unknown> & { _id: number }
+type Doc = Record<string, unknown> & { _id: ObjectId }
 
 const stores: Record<string, Doc[]> = { expenses: [], budgets: [] }
-let nextId = 1
+
+/** Matches a filter against a doc, comparing `_id` by value (ObjectId has no useful `===`). */
+function matches(doc: Doc, filter: Record<string, unknown>): boolean {
+  return Object.entries(filter).every(([k, v]) =>
+    k === '_id' && v instanceof ObjectId ? doc._id.equals(v) : doc[k] === v,
+  )
+}
 
 function fakeCollection(base: string) {
   const store = stores[base]
   return {
     find: (filter: Record<string, unknown> = {}) => ({
       sort: () => ({
-        toArray: async () => store.filter((d) => Object.entries(filter).every(([k, v]) => d[k] === v)),
+        toArray: async () => store.filter((d) => matches(d, filter)),
       }),
-      toArray: async () => store.filter((d) => Object.entries(filter).every(([k, v]) => d[k] === v)),
+      toArray: async () => store.filter((d) => matches(d, filter)),
     }),
-    findOne: async (filter: Record<string, unknown>) =>
-      store.find((d) => Object.entries(filter).every(([k, v]) => d[k] === v)) ?? null,
+    findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
     insertOne: async (doc: Record<string, unknown>) => {
-      const withId = { ...doc, _id: nextId++ } as Doc
+      const withId = { ...doc, _id: new ObjectId() } as Doc
       store.push(withId)
       return { insertedId: withId._id }
     },
     updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
-      const doc = store.find((d) => Object.entries(filter).every(([k, v]) => d[k] === v))
+      const doc = store.find((d) => matches(d, filter))
       if (doc) Object.assign(doc, update.$set)
       return { matchedCount: doc ? 1 : 0 }
     },
     deleteOne: async (filter: Record<string, unknown>) => {
-      const idx = store.findIndex((d) => Object.entries(filter).every(([k, v]) => d[k] === v))
+      const idx = store.findIndex((d) => matches(d, filter))
       if (idx >= 0) store.splice(idx, 1)
       return { deletedCount: idx >= 0 ? 1 : 0 }
     },
@@ -52,7 +58,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
   }
 })
 
-const { POST, PUT } = await import('./route')
+const { GET, POST, PUT, DELETE } = await import('./route')
 
 function req(method: string, body: unknown): Request {
   return new Request('https://example.com/api/expenses', {
@@ -69,7 +75,6 @@ function budgetFor(month: string) {
 beforeEach(() => {
   stores.expenses = []
   stores.budgets = []
-  nextId = 1
 })
 
 describe('PUT /api/expenses — credit-card envelope rebalance (C1)', () => {
@@ -149,5 +154,51 @@ describe('PUT /api/expenses — credit-card envelope rebalance (C1)', () => {
       }),
     )
     expect(stores.budgets).toHaveLength(0)
+  })
+})
+
+describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
+  it('GET includes a real id alongside the CSV-shaped fields', async () => {
+    await POST(
+      req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }),
+    )
+    const res = await GET(new Request('https://example.com/api/expenses'))
+    const body = (await res.json()) as { rows: Array<{ id: string; item: string }> }
+    expect(body.rows).toHaveLength(1)
+    expect(ObjectId.isValid(body.rows[0].id)).toBe(true)
+    expect(body.rows[0].item).toBe('Coffee')
+  })
+
+  it('PUT updates by id even when two rows share the same timestamp/item/amount', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'dup', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'dup', date: '2026-06-01' }))
+    const [first, second] = stores.expenses
+
+    const res = await PUT(req('PUT', { id: second._id.toString(), category: 'Dining' }))
+    expect(res.status).toBe(200)
+    expect(first.category).toBe('Food')
+    expect(second.category).toBe('Dining')
+  })
+
+  it('DELETE by id removes exactly that row', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }))
+    const [row] = stores.expenses
+
+    const res = await DELETE(req('DELETE', { id: row._id.toString() }))
+    expect(res.status).toBe(200)
+    expect(stores.expenses).toHaveLength(0)
+  })
+
+  it('still falls back to the timestamp/item/amount triple when no id is sent (old client compatibility)', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'ts-1', date: '2026-06-01' }))
+
+    const res = await PUT(req('PUT', { timestamp: 'ts-1', item: 'Coffee', amount_inr: '150', category: 'Dining' }))
+    expect(res.status).toBe(200)
+    expect(stores.expenses[0].category).toBe('Dining')
+  })
+
+  it('rejects a malformed id instead of throwing', async () => {
+    const res = await PUT(req('PUT', { id: 'not-an-object-id', category: 'X' }))
+    expect(res.status).toBe(404)
   })
 })

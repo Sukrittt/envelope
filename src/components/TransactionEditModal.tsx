@@ -4,6 +4,7 @@ import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {
+  id?: string
   timestamp: string
   item: string
   amountInr: number
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function TransactionEditModal({
+  id,
   timestamp,
   item: initialItem,
   amountInr,
@@ -39,7 +41,7 @@ export function TransactionEditModal({
     setError('')
     start()
     try {
-      await updateExpense(timestamp, initialItem, amountInr, {
+      await updateExpense(id, timestamp, initialItem, amountInr, {
         new_item: item.trim(),
         new_amount_inr: String(amt),
         new_date: date,
