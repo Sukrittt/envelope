@@ -23,14 +23,26 @@ export async function POST(req: Request) {
   }
 
   const coll = await getCollection('budgets', auth)
-  await coll.insertOne({
-    month: String(body.month),
-    category: String(body.category),
-    assigned: String(body.assigned),
-    rolled_over: String(body.rolled_over ?? 0),
-  })
+  try {
+    await coll.insertOne({
+      month: String(body.month),
+      category: String(body.category),
+      assigned: String(body.assigned),
+      rolled_over: String(body.rolled_over ?? 0),
+    })
+  } catch (err) {
+    // The unique index on {user_id, month, category} (scripts/ensure-indexes.mjs)
+    // throws E11000 on a repeat POST for the same envelope/month — that's a
+    // client error (use PUT to update), not a server failure.
+    if (isDuplicateKeyError(err)) return error('a budget row for this month and category already exists', 409)
+    throw err
+  }
   invalidate('budgets', auth.userId)
   return json({ ok: true })
+}
+
+function isDuplicateKeyError(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 11000
 }
 
 export async function PUT(req: Request) {
