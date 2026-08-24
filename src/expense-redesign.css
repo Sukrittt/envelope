@@ -2394,6 +2394,14 @@
   max-width: 340px;
 }
 
+.auth-error {
+  font-size: 13px;
+  color: var(--coral);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 340px;
+}
+
 .auth-actions {
   display: flex;
   flex-direction: column;

@@ -2,7 +2,12 @@ import Link from 'next/link'
 
 export const metadata = { title: 'Sign in — Mission Control' }
 
-export default function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ authError?: string }>
+}) {
+  const { authError } = await searchParams
   return (
     <div className="auth-card">
       <div className="auth-logo" aria-hidden="true">
@@ -16,6 +21,11 @@ export default function SignInPage() {
       <p className="auth-subhead">
         Sign in with a one-time code or Google. No passwords to remember, ever.
       </p>
+      {authError && (
+        <p className="auth-error" role="alert">
+          That sign-in link expired or was invalid. Please try again.
+        </p>
+      )}
 
       <div className="auth-actions">
         <a href="/api/auth/google" className="auth-btn auth-btn--outline">
