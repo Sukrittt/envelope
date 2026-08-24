@@ -79,3 +79,31 @@ export async function buildCategoryMap(
 
   return { words, updatedAt: new Date().toISOString() }
 }
+
+// ponytail: unbounded Map on a personal app with a handful of users; swap for
+// an LRU if the user count ever makes that a memory concern.
+const cache = new Map<string, CategoryMap>()
+
+/** Cached per-user map, built on first request per serverless instance. */
+export async function getCachedCategoryMap(
+  userId: string,
+  collection: ScopedCollection,
+  overridesCollection?: ScopedCollection,
+): Promise<CategoryMap> {
+  let map = cache.get(userId)
+  if (!map) {
+    map = await buildCategoryMap(collection, overridesCollection)
+    cache.set(userId, map)
+  }
+  return map
+}
+
+/**
+ * Bust one user's cached map — call after anything that changes its inputs:
+ * a new/edited expense (item/category feed the word-frequency scan) or a new
+ * override (from /api/category-map/suggest). Without this the map only ever
+ * refreshes when the serverless instance recycles.
+ */
+export function invalidateCategoryMap(userId: string): void {
+  cache.delete(userId)
+}

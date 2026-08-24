@@ -3,6 +3,7 @@ import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { cachedRead, invalidate } from '@/lib/cache'
+import { invalidateCategoryMap } from '@/lib/categoryMap'
 import type { ScopedCollection } from '@/lib/scoped'
 
 export const dynamic = 'force-dynamic'
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
+  invalidateCategoryMap(auth.userId)
   return json({ ok: true })
 }
 
@@ -141,6 +143,7 @@ export async function PUT(req: Request) {
   await coll.updateOne({ _id: found._id }, { $set: update })
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
+  invalidateCategoryMap(auth.userId)
   return json({ ok: true })
 }
 
@@ -194,5 +197,6 @@ export async function DELETE(req: Request) {
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
+  invalidateCategoryMap(auth.userId)
   return json({ ok: true })
 }

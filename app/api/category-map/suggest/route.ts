@@ -3,6 +3,7 @@ import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { generateJSON } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
+import { invalidateCategoryMap } from '@/lib/categoryMap'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
           ),
         ),
     )
+    invalidateCategoryMap(auth.userId)
   }
 
   return json({ category })

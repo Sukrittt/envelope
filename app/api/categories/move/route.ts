@@ -1,5 +1,6 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,5 +32,6 @@ export async function POST(req: Request) {
       updateOne: { filter: { name }, update: { $set: { order: minOrder + i } } },
     })),
   )
+  invalidate('categories', auth.userId)
   return json({ ok: true })
 }

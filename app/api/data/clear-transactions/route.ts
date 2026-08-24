@@ -16,5 +16,9 @@ export async function POST(req: Request) {
   const result = await expenses.deleteMany({})
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
+  // Every envelope's `spent` figure is derived from expenses, so clearing
+  // them all changes every envelope's numbers even though budgets itself
+  // wasn't written to.
+  invalidate('budgets', auth.userId)
   return json({ ok: true, deleted: result.deletedCount })
 }

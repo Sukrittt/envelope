@@ -1,5 +1,6 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,5 +24,6 @@ export async function POST(req: Request) {
 
   await coll.updateOne({ name: String(current.name) }, { $set: { order: target.order } })
   await coll.updateOne({ name: String(target.name) }, { $set: { order: currentOrder } })
+  invalidate('categories', auth.userId)
   return json({ ok: true })
 }
