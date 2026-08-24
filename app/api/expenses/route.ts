@@ -45,24 +45,7 @@ export async function POST(req: Request) {
   if (paymentMethod === 'credit_card') {
     const amountNum = Number(body.amount_inr)
     if (!Number.isNaN(amountNum) && amountNum > 0) {
-      const month = date.slice(0, 7)
-      const budgetColl = await getCollection('budgets', auth)
-      const existing = await budgetColl.findOne({ month, category: '__credit_card__' })
-      if (existing) {
-        const current = Number(existing.assigned) || 0
-        await budgetColl.updateOne(
-          { month, category: '__credit_card__' },
-          { $set: { assigned: String(current + amountNum) } },
-        )
-      } else {
-        await budgetColl.insertOne({
-          month,
-          category: '__credit_card__',
-          assigned: String(amountNum),
-          rolled_over: '0',
-        })
-      }
-      invalidate('budgets', auth.userId)
+      await adjustCreditCardEnvelope(auth, date.slice(0, 7), amountNum)
     }
   }
 
@@ -110,14 +93,17 @@ export async function PUT(req: Request) {
     update.timestamp = `${String(body.new_date)}${suffix}`
   }
 
-  // Rebalance the Credit Card envelope when a CC expense's amount or month
-  // changes (POST bumps it on add; DELETE unwinds it on remove).
+  // Rebalance the Credit Card envelope when a CC expense's amount and/or
+  // month changes (POST bumps it on add; DELETE unwinds it on remove). Must
+  // trigger on EITHER changing, not just amount — moving a CC expense to a
+  // different month at the same amount used to leave the old month's
+  // envelope stale and never touch the new month's at all.
   const isCC = String(found.payment_method ?? '') === 'credit_card'
   const oldMonth = String(found.date ?? '').slice(0, 7)
   const newMonth = String(body.new_date ?? found.date ?? '').slice(0, 7)
   const oldAmount = Number(found.amount_inr) || 0
   const newAmount = body.new_amount_inr !== undefined ? Number(body.new_amount_inr) : oldAmount
-  if (isCC && oldAmount !== newAmount) {
+  if (isCC && (oldAmount !== newAmount || oldMonth !== newMonth)) {
     if (oldMonth === newMonth) {
       await adjustCreditCardEnvelope(auth, oldMonth, newAmount - oldAmount)
     } else {
@@ -189,16 +175,7 @@ export async function DELETE(req: Request) {
     const amountNum = Number(found.amount_inr)
     const month = String(found.date ?? '').slice(0, 7)
     if (!Number.isNaN(amountNum) && amountNum > 0 && month) {
-      const budgetColl = await getCollection('budgets', auth)
-      const existing = await budgetColl.findOne({ month, category: '__credit_card__' })
-      if (existing) {
-        const current = Number(existing.assigned) || 0
-        await budgetColl.updateOne(
-          { _id: existing._id },
-          { $set: { assigned: String(Math.max(0, current - amountNum)) } },
-        )
-      }
-      invalidate('budgets', auth.userId)
+      await adjustCreditCardEnvelope(auth, month, -amountNum)
     }
   }
 
