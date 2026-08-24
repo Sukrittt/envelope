@@ -16,6 +16,8 @@ export function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 /** Parse a JSON request body, tolerating empty/malformed bodies (as the legacy middleware did). */
 export async function readBody(req: Request): Promise<Record<string, string | number>> {
   try {

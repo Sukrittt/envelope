@@ -6,8 +6,10 @@ import { buildSystemPrompt } from '@/lib/ai/moneyBrainPrompt'
 import { streamText } from '@/lib/ai/gemini'
 import { makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
 import { COLLECTIONS } from '@/lib/models'
+import { isRateLimited } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 const MAX_MESSAGE_LEN = 500
 const HISTORY_LIMIT = 8
@@ -15,25 +17,11 @@ const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const DEMO_LIMIT = 20
 
-// ponytail: in-memory buckets per user id. Resets on redeploy/cold start and
-// isn't shared across instances — not durable, but an accepted tradeoff for a
-// personal-use app. Note the demo user is a single shared bucket, so its limit
-// covers all signed-out traffic at once. Swap for a real store (Mongo/Upstash)
-// if traffic/abuse ever becomes a problem.
-const requestTimestamps = new Map<string, number[]>()
-
-function rateLimited(auth: Auth): boolean {
-  let bucket = requestTimestamps.get(auth.userId)
-  if (!bucket) {
-    bucket = []
-    requestTimestamps.set(auth.userId, bucket)
-  }
-  const now = Date.now()
-  const cutoff = now - RATE_WINDOW_MS
-  while (bucket.length && bucket[0] < cutoff) bucket.shift()
-  if (bucket.length >= (auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT)) return true
-  bucket.push(now)
-  return false
+function rateLimited(auth: Auth): Promise<boolean> {
+  return isRateLimited(`ai-chat:${auth.userId}`, {
+    windowMs: RATE_WINDOW_MS,
+    limit: auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT,
+  })
 }
 
 type ModelContents = Array<{ role: 'user' | 'model'; parts: [{ text: string }] }>
@@ -200,7 +188,7 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
 export async function POST(req: Request) {
   const auth = await getAuth(req)
 
-  if (rateLimited(auth)) {
+  if (await rateLimited(auth)) {
     return error('rate limited', 429)
   }
 

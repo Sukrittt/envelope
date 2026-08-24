@@ -1,10 +1,24 @@
-import { NextResponse } from 'next/server'
+import { json, error, readBody, EMAIL_RE } from '@/lib/http'
 import { getWorkOSClient } from '@/lib/workosClient'
+import { isRateLimited, clientIp } from '@/lib/rateLimit'
+
+export const dynamic = 'force-dynamic'
+
+const WINDOW_MS = 60 * 60 * 1000
+const PER_EMAIL_LIMIT = 5
+const PER_IP_LIMIT = 20
 
 export async function POST(req: Request) {
-  const { email } = await req.json()
-  if (!email) return NextResponse.json({ error: 'email required' }, { status: 400 })
+  const body = await readBody(req)
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+  if (!email || !EMAIL_RE.test(email)) return error('a valid email is required')
+
+  const [emailLimited, ipLimited] = await Promise.all([
+    isRateLimited(`magic-auth-send:email:${email}`, { windowMs: WINDOW_MS, limit: PER_EMAIL_LIMIT }),
+    isRateLimited(`magic-auth-send:ip:${clientIp(req)}`, { windowMs: WINDOW_MS, limit: PER_IP_LIMIT }),
+  ])
+  if (emailLimited || ipLimited) return error('rate limited', 429)
 
   await getWorkOSClient().userManagement.createMagicAuth({ email })
-  return NextResponse.json({ ok: true })
+  return json({ ok: true })
 }

@@ -1,10 +1,23 @@
 import { Type } from '@google/genai'
 import { json, error } from '@/lib/http'
-import { getAuth } from '@/lib/access'
+import { getAuth, type Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { generateJSON } from '@/lib/ai/gemini'
+import { isRateLimited } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
+
+const RATE_WINDOW_MS = 60 * 60 * 1000
+const SIGNED_IN_LIMIT = 30
+const DEMO_LIMIT = 10
+
+function rateLimited(auth: Auth): Promise<boolean> {
+  return isRateLimited(`ai-brief:${auth.userId}`, {
+    windowMs: RATE_WINDOW_MS,
+    limit: auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT,
+  })
+}
 
 interface BriefCard {
   icon: string
@@ -23,6 +36,10 @@ interface Brief {
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+
+  if (await rateLimited(auth)) {
+    return error('rate limited', 429)
+  }
 
   try {
     const { facts, meta } = await buildExpenseContext(auth)

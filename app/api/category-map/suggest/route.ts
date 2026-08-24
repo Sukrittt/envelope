@@ -2,8 +2,16 @@ import { Type } from '@google/genai'
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { generateJSON } from '@/lib/ai/gemini'
+import { isRateLimited } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
+
+const RATE_WINDOW_MS = 60 * 60 * 1000
+const SIGNED_IN_LIMIT = 60
+const MAX_ITEM_LEN = 200
+const MAX_CATEGORIES = 100
+const MAX_CATEGORY_LEN = 60
 
 interface SuggestResult {
   category: string
@@ -14,12 +22,21 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
+  if (await isRateLimited(`category-suggest:${auth.userId}`, { windowMs: RATE_WINDOW_MS, limit: SIGNED_IN_LIMIT })) {
+    return error('rate limited', 429)
+  }
+
   const body = (await readBody(req)) as Record<string, unknown>
-  const item = typeof body.item === 'string' ? body.item.trim() : ''
+  const item = typeof body.item === 'string' ? body.item.trim().slice(0, MAX_ITEM_LEN) : ''
   const rawCategories = Array.isArray(body.categories) ? body.categories : null
 
   if (!item) return error('item required')
-  if (!rawCategories || rawCategories.length === 0 || !rawCategories.every((c) => typeof c === 'string' && c))
+  if (
+    !rawCategories ||
+    rawCategories.length === 0 ||
+    rawCategories.length > MAX_CATEGORIES ||
+    !rawCategories.every((c) => typeof c === 'string' && c && c.length <= MAX_CATEGORY_LEN)
+  )
     return error('categories must be a non-empty string array')
 
   const categoryList = rawCategories as string[]
