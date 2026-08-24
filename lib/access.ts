@@ -14,9 +14,20 @@ export interface Auth {
   sessionId: string | null
 }
 
-/** The user id every unauthenticated request is served as. */
+/**
+ * The user id every unauthenticated request is served as. In production this
+ * must be explicitly set — silently defaulting to the literal 'demo' would
+ * make the fallback tenant a guessable, world-readable bucket rather than a
+ * loud, obvious deployment mistake. Local dev (and any other NODE_ENV) keeps
+ * the 'demo' default, since that's the documented, expected value there.
+ */
 export function demoUserId(): string {
-  return process.env.DEMO_USER_ID || 'demo'
+  const id = process.env.DEMO_USER_ID
+  if (id) return id
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('DEMO_USER_ID is not set — required in production. See .env.example.')
+  }
+  return 'demo'
 }
 
 /**

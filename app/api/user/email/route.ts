@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
-  const body = (await readBody(req)) as Record<string, unknown>
+  const body = await readBody(req)
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
   if (!EMAIL_RE.test(email)) return error('valid email required')
 

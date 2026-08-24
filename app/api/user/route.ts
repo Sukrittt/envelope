@@ -26,7 +26,7 @@ export async function PATCH(req: Request) {
   const auth = await getAuth(req)
   if (auth.readOnly) return error('unauthorized', 401)
 
-  const body = (await readBody(req)) as Record<string, unknown>
+  const body = await readBody(req)
   const name = typeof body.name === 'string' ? body.name.trim() : undefined
 
   const updates: Partial<Pick<UserDoc, 'name' | 'onboardedAt' | 'notifyCadence'>> = {}
@@ -51,7 +51,7 @@ export async function DELETE(req: Request) {
   const auth = await getAuth(req)
   if (auth.readOnly) return error('unauthorized', 401)
 
-  const body = (await readBody(req)) as Record<string, unknown>
+  const body = await readBody(req)
   const confirmEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
 
   const db = await getDb()

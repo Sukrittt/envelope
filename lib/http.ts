@@ -18,8 +18,16 @@ export function escapeRegExp(value: string): string {
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-/** Parse a JSON request body, tolerating empty/malformed bodies (as the legacy middleware did). */
-export async function readBody(req: Request): Promise<Record<string, string | number>> {
+/**
+ * Parse a JSON request body, tolerating empty/malformed bodies (as the legacy
+ * middleware did). Typed as `Record<string, unknown>` — the old
+ * `Record<string, string | number>` return type was a lie: `req.json()` can
+ * return an array, a nested object, or anything else JSON allows, so callers
+ * got false static assurance about the shape. Every call site already
+ * `String(...)`-coerces before using a value (or explicitly narrows with a
+ * `typeof` check), so this widening doesn't change behavior.
+ */
+export async function readBody(req: Request): Promise<Record<string, unknown>> {
   try {
     const parsed = await req.json()
     return parsed && typeof parsed === 'object' ? parsed : {}

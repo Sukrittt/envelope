@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     return error('rate limited', 429)
   }
 
-  const body = (await readBody(req)) as Record<string, unknown>
+  const body = await readBody(req)
   const item = typeof body.item === 'string' ? body.item.trim().slice(0, MAX_ITEM_LEN) : ''
   const rawCategories = Array.isArray(body.categories) ? body.categories : null
 

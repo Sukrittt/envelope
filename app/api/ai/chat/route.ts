@@ -200,7 +200,7 @@ export async function POST(req: Request) {
     return error('rate limited', 429)
   }
 
-  const body = (await readBody(req)) as Record<string, unknown>
+  const body = await readBody(req)
 
   return auth.readOnly ? handleDemo(auth, body) : handlePersisted(auth, body)
 }
