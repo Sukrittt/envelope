@@ -119,7 +119,15 @@ function handleDemo(auth: Auth, body: Record<string, unknown>): Response {
     return error('invalid body', 400)
   }
 
-  const trimmed = messages.slice(-HISTORY_LIMIT)
+  // The client is untrusted here (stateless demo, no server-side session to
+  // rebuild history from) — a forged 'model' turn could inject fake assistant
+  // output to defeat the SCOPE LOCK in the system prompt, so only user-authored
+  // turns are forwarded. Every turn is length-capped too, not just the last —
+  // isValidMessages only checks shape, not length, on the rest of the array.
+  const userTurns = messages.filter((m) => m.role === 'user')
+  if (userTurns.some((m) => m.text.length > MAX_MESSAGE_LEN)) return error('invalid body', 400)
+
+  const trimmed = userTurns.slice(-HISTORY_LIMIT)
   const contents: ModelContents = trimmed.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
   return streamReply(auth, contents, null, () => {})
 }

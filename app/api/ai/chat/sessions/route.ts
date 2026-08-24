@@ -6,6 +6,7 @@ import { makeTitle } from '@/lib/ai/chatSessions'
 export const dynamic = 'force-dynamic'
 
 const DEFAULT_LIMIT = 10
+const MAX_LIMIT = 100
 
 interface FacetResult {
   [key: string]: unknown
@@ -22,8 +23,8 @@ export async function GET(req: Request) {
   const sessions = await getCollection(COLLECTIONS.chatSessions, auth)
 
   const url = new URL(req.url)
-  const page = Math.max(1, Number(url.searchParams.get('page')) || 1)
-  const limit = Math.max(1, Number(url.searchParams.get('limit')) || DEFAULT_LIMIT)
+  const page = Math.max(1, Math.floor(Number(url.searchParams.get('page'))) || 1)
+  const limit = Math.min(MAX_LIMIT, Math.max(1, Math.floor(Number(url.searchParams.get('limit'))) || DEFAULT_LIMIT))
   const q = url.searchParams.get('q')?.trim()
 
   const [result] = await sessions
