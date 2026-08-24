@@ -13,6 +13,11 @@ export const maxDuration = 60
 
 const MAX_MESSAGE_LEN = 500
 const HISTORY_LIMIT = 8
+// A session's persisted `messages` array is otherwise unbounded — a
+// long-lived session would eventually hit Mongo's 16MB document limit and
+// every further turn would fail. $slice keeps this atomic with the $push
+// rather than a separate read-modify-write.
+const MAX_SESSION_MESSAGES = 100
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const DEMO_LIMIT = 20
@@ -178,7 +183,10 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
 
   const now = new Date()
   const userMsg: StoredChatMessage = { role: 'user', text: message, createdAt: now }
-  await sessions.updateOne({ _id: objectId }, { $push: { messages: userMsg }, $set: { updatedAt: now } } as never)
+  await sessions.updateOne(
+    { _id: objectId },
+    { $push: { messages: { $each: [userMsg], $slice: -MAX_SESSION_MESSAGES } }, $set: { updatedAt: now } } as never,
+  )
 
   const trimmed = [...history, userMsg].slice(-HISTORY_LIMIT)
   const contents: ModelContents = trimmed.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
@@ -188,7 +196,10 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
     const modelMsg: StoredChatMessage = { role: 'model', text: fullText, createdAt: new Date() }
     await sessions.updateOne(
       { _id: objectId },
-      { $push: { messages: modelMsg }, $set: { updatedAt: new Date() } } as never,
+      {
+        $push: { messages: { $each: [modelMsg], $slice: -MAX_SESSION_MESSAGES } },
+        $set: { updatedAt: new Date() },
+      } as never,
     )
   })
 }

@@ -1,7 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ObjectId } from 'mongodb'
 
+interface FakeAuth {
+  userId: string
+  readOnly: boolean
+  sessionId: string | null
+}
+
+const getAuthMock = vi.fn<() => Promise<FakeAuth>>(async () => ({
+  userId: 'demo',
+  readOnly: true,
+  sessionId: null,
+}))
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'demo', readOnly: true, sessionId: null })),
+  getAuth: getAuthMock,
 }))
 
 vi.mock('@/lib/rateLimit', () => ({
@@ -22,6 +34,22 @@ vi.mock('@/lib/ai/gemini', () => ({
   streamText: streamTextMock,
 }))
 
+const sessionUpdateOneMock = vi.fn(async (_filter: unknown, _update: unknown) => ({ matchedCount: 1 }))
+const sessionInsertOneMock = vi.fn(async () => ({ insertedId: new ObjectId() }))
+const sessionFindOneMock = vi.fn(async () => null)
+
+vi.mock('@/lib/http', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/http')>()
+  return {
+    ...actual,
+    getCollection: vi.fn(async () => ({
+      findOne: sessionFindOneMock,
+      insertOne: sessionInsertOneMock,
+      updateOne: sessionUpdateOneMock,
+    })),
+  }
+})
+
 const { POST } = await import('./route')
 
 function jsonRequest(body: unknown): Request {
@@ -34,6 +62,11 @@ function jsonRequest(body: unknown): Request {
 
 beforeEach(() => {
   streamTextMock.mockClear()
+  getAuthMock.mockReset()
+  getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+  sessionUpdateOneMock.mockClear()
+  sessionInsertOneMock.mockClear()
+  sessionFindOneMock.mockClear()
 })
 
 describe('POST /api/ai/chat (demo path)', () => {
@@ -74,5 +107,31 @@ describe('POST /api/ai/chat (demo path)', () => {
     expect(res.status).toBe(200)
     await res.text()
     expect(streamTextMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('POST /api/ai/chat (persisted path) — session message cap (C6)', () => {
+  beforeEach(() => {
+    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1' })
+  })
+
+  it('caps the persisted messages array via $push + $slice instead of letting it grow unbounded', async () => {
+    const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'How much did I spend?' }] }))
+    expect(res.status).toBe(200)
+    await res.text()
+
+    // First updateOne call persists the user's message.
+    const [, userUpdate] = sessionUpdateOneMock.mock.calls[0]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userPush = (userUpdate as any).$push.messages
+    expect(userPush.$each).toHaveLength(1)
+    expect(userPush.$slice).toBeLessThan(0) // negative = keep the last N
+
+    // Second updateOne call persists the model's reply, same shape.
+    const [, modelUpdate] = sessionUpdateOneMock.mock.calls[1]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const modelPush = (modelUpdate as any).$push.messages
+    expect(modelPush.$each).toHaveLength(1)
+    expect(modelPush.$slice).toBe(userPush.$slice)
   })
 })
