@@ -6,13 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev           # dev server
-npm run build          # type-checks (lint is deferred, see below); production build
-npm run lint            # eslint (not run during build)
+npm run build          # type-checks AND lints (next.config.ts no longer ignores ESLint); production build
+npm run lint            # eslint only
+npm run typecheck      # tsc --noEmit only
+npm test               # vitest run
 npm run db:migrate    # seed MongoDB from local CSVs (scripts/migrate-to-mongo.mjs), needs MONGODB_URI
 npm run sync:expenses  # sync expense CSVs (scripts/sync_expenses.mjs)
 ```
 
-No test runner is configured. `next.config.ts` sets `eslint.ignoreDuringBuilds: true`, so `npm run build` only type-checks — run `npm run lint` separately.
+Tests: Vitest + `@testing-library/react`, config in `vitest.config.ts` (jsdom, `@/*` aliased same as
+`tsconfig.json`). Co-locate as `*.test.ts(x)` next to the file under test — see `lib/scoped.test.ts`
+and `src/services/budgetLoader.test.ts`. `scripts/check-scoping.mjs`'s offline wrapper-logic half now
+lives in `lib/scoped.test.ts`; the script itself only does the live-data half (needs `MONGODB_URI`).
 
 ## Architecture
 
