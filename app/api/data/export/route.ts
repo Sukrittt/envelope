@@ -2,6 +2,7 @@ import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
+import { toCsv } from '@/lib/csv'
 import {
   COLLECTIONS,
   toRow,
@@ -24,17 +25,6 @@ const HEADERS: Partial<Record<keyof typeof COLLECTIONS, string[]>> = {
   subscriptions: SUBSCRIPTION_HEADERS,
   holdings: HOLDING_HEADERS,
   holdingEvents: HOLDING_EVENT_HEADERS,
-}
-
-/** Quote a CSV field only when it contains a comma, quote, or newline. */
-function csvField(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
-}
-
-function toCsv(headers: string[], rows: Record<string, string>[]): string {
-  const lines = [headers.join(',')]
-  for (const row of rows) lines.push(headers.map((h) => csvField(row[h] ?? '')).join(','))
-  return lines.join('\n')
 }
 
 export async function GET(req: Request) {
