@@ -158,6 +158,12 @@ export function ExpensePage() {
   const [reactivatingSub, setReactivatingSub] = useState<string | null>(null);
   const [showSubModal, setShowSubModal] = useState(false);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!actionError) return;
+    const t = setTimeout(() => setActionError(null), 4000);
+    return () => clearTimeout(t);
+  }, [actionError]);
   const [payCreditCardAmount, setPayCreditCardAmount] = useState<number | null>(
     null,
   );
@@ -190,7 +196,7 @@ export function ExpensePage() {
     try {
       await mutatePanel();
     } catch {
-      // silent
+      setActionError("Couldn't refresh — check your connection.");
     }
     setCancellingSub(null);
     setReactivatingSub(null);
@@ -226,14 +232,15 @@ export function ExpensePage() {
     const month = envelopeState?.month;
     const income = Math.round(newIncome) || 0;
     if (month) {
+      // PUT /api/budgets already upserts server-side — no need for a
+      // fallback POST here. A real failure (network, read-only demo, 500)
+      // is surfaced instead of being misread as "row doesn't exist" and
+      // retried against a different endpoint.
       try {
         await updateBudget(month, "__income__", { assigned: String(income) });
       } catch {
-        await addBudget({
-          month,
-          category: "__income__",
-          assigned: String(income),
-        });
+        setActionError("Couldn't save income — check your connection.");
+        return;
       }
     }
     localStorage.removeItem("expense-income-override");
@@ -377,17 +384,16 @@ export function ExpensePage() {
   }
 
   async function confirmPayCreditCard(amount: number) {
-    try {
-      await addExpense({
-        item: "Credit Card Payment",
-        amount_inr: String(amount),
-        category: "__credit_card__",
-        payment_method: "bank",
-      });
-      await refreshPanel();
-    } catch {
-      // silent
-    }
+    // Deliberately not caught here — the caller drives the button's
+    // saving/success/fail phase and must know whether this actually worked
+    // before showing a success checkmark.
+    await addExpense({
+      item: "Credit Card Payment",
+      amount_inr: String(amount),
+      category: "__credit_card__",
+      payment_method: "bank",
+    });
+    await refreshPanel();
   }
 
   const categoryMenuRef = useRef<HTMLDivElement | null>(null);
@@ -402,16 +408,15 @@ export function ExpensePage() {
     const value = Math.round(Number(override)) || 0;
     const month = panel.month;
     (async () => {
+      // PUT /api/budgets already upserts server-side — see handleIncomeChange
+      // for why the old catch-as-control-flow fallback to addBudget was
+      // redundant (and, on a real failure, misleading).
       try {
         await updateBudget(month, "__income__", { assigned: String(value) });
+        localStorage.removeItem("expense-income-override");
       } catch {
-        await addBudget({
-          month,
-          category: "__income__",
-          assigned: String(value),
-        });
+        setActionError("Couldn't save income — check your connection.");
       }
-      localStorage.removeItem("expense-income-override");
     })();
   }, [panel]);
 
@@ -1697,6 +1702,11 @@ export function ExpensePage() {
 
   return (
     <section className="expense-redesign">
+      {actionError && (
+        <div className="erd-action-error" role="alert">
+          {actionError}
+        </div>
+      )}
       <button
         type="button"
         className="erd-theme-toggle"
@@ -2597,8 +2607,13 @@ export function ExpensePage() {
                     onClick={async () => {
                       if (payPhase.saving || payPhase.success || payCreditCardAmount == null) return;
                       payPhase.start();
-                      await confirmPayCreditCard(payCreditCardAmount);
-                      payPhase.succeed(() => setPayCreditCardAmount(null));
+                      try {
+                        await confirmPayCreditCard(payCreditCardAmount);
+                        payPhase.succeed(() => setPayCreditCardAmount(null));
+                      } catch {
+                        payPhase.fail();
+                        setActionError("Couldn't record the payment — check your connection.");
+                      }
                     }}
                   >
                     Pay {formatCurrency(payCreditCardAmount)}

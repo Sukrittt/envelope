@@ -284,6 +284,25 @@
   transform: scale(1.08) rotate(-8deg);
 }
 
+.erd-action-error {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 400;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--coral);
+  background: var(--coral-soft);
+  backdrop-filter: blur(16px);
+  color: var(--coral);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 8px 24px -8px oklch(0% 0 0 / 0.6);
+}
+
 /* ── Loading skeleton ──────────────────────────────────────── */
 
 .erd-skeleton {
