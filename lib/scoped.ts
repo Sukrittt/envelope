@@ -18,8 +18,147 @@ import type {
   UpdateResult,
   WithId,
 } from 'mongodb'
+import { encrypt, decrypt, isEncrypted } from './crypto'
 
 type Doc = Record<string, unknown>
+
+/**
+ * Collection name -> encrypted field names. `'messages.text'` means "the
+ * `text` field inside each element of the `messages` array" — the one
+ * nested case in the app, handled specially in encDoc/decDoc/encPush.
+ *
+ * Deliberately not encrypted, because each is a filter/sort/index key: on
+ * `expenses` — date, category, payment_method, timestamp, ai_scanned*; on
+ * `budgets` — month, category; `categories`/`groups`/`category_map_overrides`
+ * entirely (name/word are unique-index filter keys); `subscriptions.service`
+ * and `holdings.name` (also filter keys — a future re-key to `_id` could move
+ * them into this list); `chat_sessions.updatedAt` (sort + index).
+ */
+const ENCRYPTED_FIELDS: Record<string, string[]> = {
+  expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
+  budgets: ['assigned', 'rolled_over'],
+  subscriptions: ['amount_inr', 'notes'],
+  holdings: ['value'],
+  holding_events: ['amount', 'previous_value', 'new_value'],
+  chat_sessions: ['title', 'messages.text'],
+}
+
+function fieldsFor(collectionName: string): string[] {
+  return ENCRYPTED_FIELDS[collectionName] ?? []
+}
+
+function aad(userId: string, collectionName: string, field: string): string {
+  return `${userId}:${collectionName}:${field}`
+}
+
+/** Encrypts a doc's encrypted fields before insert/replace. Idempotent — skips a value already `enc:`. */
+function encDoc(doc: Doc, fields: string[], userId: string, collectionName: string): Doc {
+  if (fields.length === 0) return doc
+  const out: Doc = { ...doc }
+  for (const field of fields) {
+    if (field === 'messages.text') {
+      if (Array.isArray(out.messages)) {
+        out.messages = (out.messages as Doc[]).map((m) =>
+          typeof m.text === 'string' && !isEncrypted(m.text)
+            ? { ...m, text: encrypt(m.text, aad(userId, collectionName, field)) }
+            : m,
+        )
+      }
+      continue
+    }
+    const value = out[field]
+    if (typeof value === 'string' && !isEncrypted(value)) {
+      out[field] = encrypt(value, aad(userId, collectionName, field))
+    }
+  }
+  return out
+}
+
+/** Decrypts a doc's encrypted fields after read. `decrypt()` itself passes plaintext through untouched. */
+function decDoc(doc: Doc, fields: string[], userId: string, collectionName: string): Doc {
+  if (fields.length === 0) return doc
+  const out: Doc = { ...doc }
+  for (const field of fields) {
+    if (field === 'messages.text') {
+      if (Array.isArray(out.messages)) {
+        out.messages = (out.messages as Doc[]).map((m) =>
+          typeof m.text === 'string' ? { ...m, text: decrypt(m.text, aad(userId, collectionName, field)) } : m,
+        )
+      }
+      continue
+    }
+    if (typeof out[field] === 'string') {
+      out[field] = decrypt(out[field], aad(userId, collectionName, field))
+    }
+  }
+  return out
+}
+
+/** Throws if `filter` names an encrypted field — non-deterministic ciphertext can never match one. */
+function assertFilterSafe(filter: Doc, fields: string[]): void {
+  for (const key of Object.keys(filter)) {
+    if (fields.includes(key)) {
+      throw new Error(`scoped(): cannot filter on encrypted field "${key}" — use _id or a plaintext field instead`)
+    }
+  }
+}
+
+/** Encrypts the encrypted fields named in an update's $set/$setOnInsert/$push; rejects $inc/$mul/$unset on one. */
+function encUpdate(update: Doc, fields: string[], userId: string, collectionName: string): Doc {
+  if (fields.length === 0) return update
+  const out: Doc = { ...update }
+
+  for (const op of ['$set', '$setOnInsert'] as const) {
+    const opDoc = out[op]
+    if (opDoc && typeof opDoc === 'object') {
+      const flat: Doc = { ...(opDoc as Doc) }
+      for (const field of fields) {
+        if (field.includes('.')) continue // handled via $push below
+        const value = flat[field]
+        if (typeof value === 'string' && !isEncrypted(value)) {
+          flat[field] = encrypt(value, aad(userId, collectionName, field))
+        }
+      }
+      out[op] = flat
+    }
+  }
+
+  if (out.$push && typeof out.$push === 'object') {
+    const push: Doc = {}
+    for (const [key, rawValue] of Object.entries(out.$push as Doc)) {
+      const nestedField = `${key}.text`
+      if (!fields.includes(nestedField)) {
+        push[key] = rawValue
+        continue
+      }
+      const aadStr = aad(userId, collectionName, nestedField)
+      const encItem = (item: unknown): unknown =>
+        item && typeof item === 'object' && typeof (item as Doc).text === 'string' && !isEncrypted((item as Doc).text)
+          ? { ...(item as Doc), text: encrypt((item as Doc).text as string, aadStr) }
+          : item
+      if (rawValue && typeof rawValue === 'object' && '$each' in (rawValue as Doc)) {
+        const each = (rawValue as Doc).$each
+        push[key] = { ...(rawValue as Doc), $each: Array.isArray(each) ? each.map(encItem) : each }
+      } else {
+        push[key] = encItem(rawValue)
+      }
+    }
+    out.$push = push
+  }
+
+  for (const op of ['$inc', '$mul', '$unset'] as const) {
+    const opDoc = out[op]
+    if (opDoc && typeof opDoc === 'object') {
+      for (const key of Object.keys(opDoc as Doc)) {
+        if (fields.includes(key)) {
+          throw new Error(`scoped(): ${op} on encrypted field "${key}" is not supported — read, decrypt, and $set instead`)
+        }
+      }
+    }
+  }
+
+  return out
+}
 
 /**
  * Ownership-scoped view of a Mongo collection.
@@ -29,30 +168,47 @@ type Doc = Record<string, unknown>
  * if it forgets to think about tenancy. The check lives here instead of in the
  * ~50 `getCollection` call sites that would each otherwise have to remember it.
  *
+ * Also the one choke point for field-level encryption (see ENCRYPTED_FIELDS
+ * above and lib/crypto.ts): inserts/replaces/$set/$push encrypt on the way
+ * in, find/findOne/aggregate decrypt on the way out, and any filter/distinct
+ * naming an encrypted field throws rather than silently matching nothing.
+ *
  * Method signatures mirror the driver's, so existing handler code (including
  * `.find(...).sort(...).limit(...).toArray()` chains) works unchanged.
  *
- * Upserts need no special handling: Mongo copies equality conditions from the
- * filter into the document it creates, and `user_id` is always one of them.
+ * Upserts need no special handling for tenancy OR encryption: Mongo copies
+ * equality conditions from the filter into the document it creates, and
+ * `user_id` is always one of them — and the filter guard above already
+ * proves every filter equality is a plaintext field, since an encrypted one
+ * would have thrown.
  *
  * ponytail: enforcement is application-side, not row-level security in the
- * database — a raw `db.collection(...)` handle still sees every user's rows.
- * Move to per-user databases only if that ever stops being acceptable.
+ * database — a raw `db.collection(...)` handle still sees every user's rows
+ * (and ciphertext, unreadable without the key). Move to per-user databases
+ * only if that ever stops being acceptable.
  */
 export function scoped(coll: Collection<Doc>, userId: string) {
-  const own = (filter: Filter<Doc> = {}): Filter<Doc> => ({ ...filter, user_id: userId })
-  const stamp = (doc: Doc): Doc => ({ ...doc, user_id: userId })
+  const collectionName = coll.collectionName
+  const fields = fieldsFor(collectionName)
+
+  const own = (filter: Filter<Doc> = {}): Filter<Doc> => {
+    assertFilterSafe(filter as Doc, fields)
+    return { ...filter, user_id: userId }
+  }
+  const stamp = (doc: Doc): Doc => ({ ...encDoc(doc, fields, userId, collectionName), user_id: userId })
+  const decode = (doc: Doc): Doc => decDoc(doc, fields, userId, collectionName)
 
   return {
     /** The user this view is scoped to. */
     userId,
 
     find(filter: Filter<Doc> = {}, options?: FindOptions): FindCursor<WithId<Doc>> {
-      return coll.find(own(filter), options)
+      return coll.find(own(filter), options).map((d) => decode(d) as WithId<Doc>)
     },
 
-    findOne(filter: Filter<Doc> = {}, options?: FindOptions): Promise<WithId<Doc> | null> {
-      return coll.findOne(own(filter), options)
+    async findOne(filter: Filter<Doc> = {}, options?: FindOptions): Promise<WithId<Doc> | null> {
+      const doc = await coll.findOne(own(filter), options)
+      return doc ? (decode(doc) as WithId<Doc>) : null
     },
 
     countDocuments(filter: Filter<Doc> = {}, options?: CountDocumentsOptions): Promise<number> {
@@ -60,12 +216,15 @@ export function scoped(coll: Collection<Doc>, userId: string) {
     },
 
     distinct(key: string, filter: Filter<Doc> = {}): Promise<unknown[]> {
+      if (fields.includes(key)) {
+        throw new Error(`scoped(): cannot distinct() on encrypted field "${key}" — every value is unique under random IVs`)
+      }
       return coll.distinct(key, own(filter))
     },
 
-    /** Aggregation with an ownership `$match` forced as the first stage. */
+    /** Aggregation with an ownership `$match` forced as the first stage. Decrypts top-level output fields by name. */
     aggregate<T extends Doc = Doc>(pipeline: Doc[] = []) {
-      return coll.aggregate<T>([{ $match: { user_id: userId } }, ...pipeline])
+      return coll.aggregate<T>([{ $match: { user_id: userId } }, ...pipeline]).map((d) => decode(d as Doc) as T)
     },
 
     insertOne(doc: Doc, options?: InsertOneOptions): Promise<InsertOneResult<Doc>> {
@@ -81,7 +240,7 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       update: UpdateFilter<Doc>,
       options?: UpdateOptions,
     ): Promise<UpdateResult<Doc>> {
-      return coll.updateOne(own(filter), update, options)
+      return coll.updateOne(own(filter), encUpdate(update as Doc, fields, userId, collectionName) as never, options)
     },
 
     updateMany(
@@ -89,7 +248,7 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       update: UpdateFilter<Doc>,
       options?: UpdateOptions,
     ): Promise<UpdateResult<Doc>> {
-      return coll.updateMany(own(filter), update, options)
+      return coll.updateMany(own(filter), encUpdate(update as Doc, fields, userId, collectionName) as never, options)
     },
 
     replaceOne(
@@ -112,27 +271,43 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       ops: AnyBulkWriteOperation<Doc>[],
       options?: BulkWriteOptions,
     ): Promise<BulkWriteResult> {
-      return coll.bulkWrite(ops.map((op) => scopeBulkOp(op, own, stamp)), options)
+      return coll.bulkWrite(
+        ops.map((op) => scopeBulkOp(op, own, stamp, (u) => encUpdate(u, fields, userId, collectionName))),
+        options,
+      )
     },
   }
 }
 
 export type ScopedCollection = ReturnType<typeof scoped>
 
-/** Apply the same filter/stamp rules to one operation inside a bulkWrite. */
+/** Apply the same filter/stamp/encryption rules to one operation inside a bulkWrite. */
 function scopeBulkOp(
   op: AnyBulkWriteOperation<Doc>,
   own: (filter?: Filter<Doc>) => Filter<Doc>,
   stamp: (doc: Doc) => Doc,
+  encUpdateFn: (update: Doc) => Doc,
 ): AnyBulkWriteOperation<Doc> {
   if ('insertOne' in op) {
     return { insertOne: { document: stamp(op.insertOne.document as Doc) as never } }
   }
   if ('updateOne' in op) {
-    return { updateOne: { ...op.updateOne, filter: own(op.updateOne.filter) } }
+    return {
+      updateOne: {
+        ...op.updateOne,
+        filter: own(op.updateOne.filter),
+        update: encUpdateFn(op.updateOne.update as Doc) as never,
+      },
+    }
   }
   if ('updateMany' in op) {
-    return { updateMany: { ...op.updateMany, filter: own(op.updateMany.filter) } }
+    return {
+      updateMany: {
+        ...op.updateMany,
+        filter: own(op.updateMany.filter),
+        update: encUpdateFn(op.updateMany.update as Doc) as never,
+      },
+    }
   }
   if ('replaceOne' in op) {
     return {
