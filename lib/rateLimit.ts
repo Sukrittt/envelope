@@ -4,6 +4,8 @@ const RATE_LIMIT_COLLECTION = 'rate_limit_hits'
 
 type RateLimitHit = { key: string; ts: Date }
 
+export type RateLimitTier = { windowMs: number; limit: number }
+
 /**
  * Sliding-window rate limiter backed by Mongo, so it survives cold starts and
  * is shared across serverless instances — unlike a per-instance in-memory Map
@@ -14,20 +16,29 @@ type RateLimitHit = { key: string; ts: Date }
  * so there's no pruning logic here — `countDocuments` with a `$gte` cutoff is
  * always correct regardless of how stale the TTL cleanup is running behind.
  *
+ * `opts` accepts one tier or several checked against the same hit log (e.g. a
+ * short burst window plus a longer hourly one) — every hit is one real event,
+ * so all tiers share a single insert rather than each tier maintaining its
+ * own count and multiplying the insert rate.
+ *
  * Not perfectly atomic under concurrent requests for the same key (a count
  * then an insert, not a single atomic op) — a burst of parallel requests can
  * overshoot the limit by a few. Accepted: this is an abuse-rate control on a
  * low-traffic personal app, not a hard billing quota.
  */
-export async function isRateLimited(key: string, opts: { windowMs: number; limit: number }): Promise<boolean> {
+export async function isRateLimited(key: string, opts: RateLimitTier | RateLimitTier[]): Promise<boolean> {
   const db = await getDb()
   const coll = db.collection<RateLimitHit>(RATE_LIMIT_COLLECTION)
-  const cutoff = new Date(Date.now() - opts.windowMs)
+  const tiers = Array.isArray(opts) ? opts : [opts]
+  const now = new Date()
 
-  const count = await coll.countDocuments({ key, ts: { $gte: cutoff } })
-  if (count >= opts.limit) return true
+  for (const tier of tiers) {
+    const cutoff = new Date(now.getTime() - tier.windowMs)
+    const count = await coll.countDocuments({ key, ts: { $gte: cutoff } })
+    if (count >= tier.limit) return true
+  }
 
-  await coll.insertOne({ key, ts: new Date() })
+  await coll.insertOne({ key, ts: now })
   return false
 }
 

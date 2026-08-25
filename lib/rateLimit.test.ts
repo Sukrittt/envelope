@@ -44,4 +44,37 @@ describe('isRateLimited', () => {
     hits.push({ key: 'user_a', ts: new Date(Date.now() - 120_000) })
     expect(await isRateLimited('user_a', { windowMs: 60_000, limit: 1 })).toBe(false)
   })
+
+  describe('multiple tiers', () => {
+    it('trips on the tighter burst tier before the looser hourly tier is reached', async () => {
+      const tiers = [
+        { windowMs: 60_000, limit: 2 }, // burst: 2/min
+        { windowMs: 3_600_000, limit: 100 }, // hourly: 100/hr
+      ]
+      expect(await isRateLimited('user_a', tiers)).toBe(false)
+      expect(await isRateLimited('user_a', tiers)).toBe(false)
+      expect(await isRateLimited('user_a', tiers)).toBe(true)
+    })
+
+    it('records exactly one hit per allowed request regardless of tier count', async () => {
+      const tiers = [
+        { windowMs: 60_000, limit: 10 },
+        { windowMs: 3_600_000, limit: 10 },
+      ]
+      await isRateLimited('user_a', tiers)
+      await isRateLimited('user_a', tiers)
+      expect(hits.filter((h) => h.key === 'user_a')).toHaveLength(2)
+    })
+
+    it('trips on the hourly tier once the burst window has passed but the hourly cap is hit', async () => {
+      for (let i = 0; i < 5; i++) {
+        hits.push({ key: 'user_a', ts: new Date(Date.now() - 120_000) })
+      }
+      const tiers = [
+        { windowMs: 60_000, limit: 10 }, // burst window empty (hits are 2min old)
+        { windowMs: 3_600_000, limit: 5 }, // hourly cap already hit
+      ]
+      expect(await isRateLimited('user_a', tiers)).toBe(true)
+    })
+  })
 })

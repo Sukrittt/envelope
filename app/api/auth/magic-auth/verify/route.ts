@@ -10,6 +10,9 @@ export const dynamic = 'force-dynamic'
 const WINDOW_MS = 60 * 60 * 1000
 const PER_EMAIL_LIMIT = 10
 const PER_IP_LIMIT = 30
+const BURST_WINDOW_MS = 60 * 1000
+const BURST_PER_EMAIL_LIMIT = 5
+const BURST_PER_IP_LIMIT = 10
 
 /**
  * Shared by both clients: web relies on the cookie saveSession() sets;
@@ -24,8 +27,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'email and code required' }, { status: 400 })
 
   const [emailLimited, ipLimited] = await Promise.all([
-    isRateLimited(`magic-auth-verify:email:${email}`, { windowMs: WINDOW_MS, limit: PER_EMAIL_LIMIT }),
-    isRateLimited(`magic-auth-verify:ip:${clientIp(req)}`, { windowMs: WINDOW_MS, limit: PER_IP_LIMIT }),
+    isRateLimited(`magic-auth-verify:email:${email}`, [
+      { windowMs: BURST_WINDOW_MS, limit: BURST_PER_EMAIL_LIMIT },
+      { windowMs: WINDOW_MS, limit: PER_EMAIL_LIMIT },
+    ]),
+    isRateLimited(`magic-auth-verify:ip:${clientIp(req)}`, [
+      { windowMs: BURST_WINDOW_MS, limit: BURST_PER_IP_LIMIT },
+      { windowMs: WINDOW_MS, limit: PER_IP_LIMIT },
+    ]),
   ])
   if (emailLimited || ipLimited) return NextResponse.json({ error: 'rate limited' }, { status: 429 })
 

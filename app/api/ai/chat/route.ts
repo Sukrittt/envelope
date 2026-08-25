@@ -21,6 +21,9 @@ const MAX_SESSION_MESSAGES = 100
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const DEMO_LIMIT = 20
+const BURST_WINDOW_MS = 60 * 1000
+const BURST_SIGNED_IN_LIMIT = 1
+const BURST_DEMO_LIMIT = 1
 // Caps Gemini calls per session independent of the hourly per-user limit above
 // (a single long-lived session could otherwise burn the whole hourly budget).
 // Well under MAX_SESSION_MESSAGES so the stored-array cap is never the thing
@@ -28,10 +31,10 @@ const DEMO_LIMIT = 20
 const SESSION_MESSAGE_LIMIT = 40
 
 function rateLimited(auth: Auth): Promise<boolean> {
-  return isRateLimited(`ai-chat:${auth.userId}`, {
-    windowMs: RATE_WINDOW_MS,
-    limit: auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT,
-  })
+  return isRateLimited(`ai-chat:${auth.userId}`, [
+    { windowMs: BURST_WINDOW_MS, limit: auth.readOnly ? BURST_DEMO_LIMIT : BURST_SIGNED_IN_LIMIT },
+    { windowMs: RATE_WINDOW_MS, limit: auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT },
+  ])
 }
 
 type ModelContents = Array<{ role: 'user' | 'model'; parts: [{ text: string }] }>

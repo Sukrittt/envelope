@@ -9,6 +9,8 @@ export const dynamic = 'force-dynamic'
 
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const RATE_LIMIT = 5
+const BURST_WINDOW_MS = 60 * 1000
+const BURST_LIMIT = 2
 
 /**
  * Changes the account email. WorkOS has no pending-email concept — the change
@@ -20,7 +22,12 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
-  if (await isRateLimited(`user-email-change:${auth.userId}`, { windowMs: RATE_WINDOW_MS, limit: RATE_LIMIT })) {
+  if (
+    await isRateLimited(`user-email-change:${auth.userId}`, [
+      { windowMs: BURST_WINDOW_MS, limit: BURST_LIMIT },
+      { windowMs: RATE_WINDOW_MS, limit: RATE_LIMIT },
+    ])
+  ) {
     return error('rate limited', 429)
   }
 

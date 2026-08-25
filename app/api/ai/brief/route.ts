@@ -11,12 +11,15 @@ export const maxDuration = 30
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 30
 const DEMO_LIMIT = 10
+const BURST_WINDOW_MS = 60 * 1000
+const BURST_SIGNED_IN_LIMIT = 5
+const BURST_DEMO_LIMIT = 3
 
 function rateLimited(auth: Auth): Promise<boolean> {
-  return isRateLimited(`ai-brief:${auth.userId}`, {
-    windowMs: RATE_WINDOW_MS,
-    limit: auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT,
-  })
+  return isRateLimited(`ai-brief:${auth.userId}`, [
+    { windowMs: BURST_WINDOW_MS, limit: auth.readOnly ? BURST_DEMO_LIMIT : BURST_SIGNED_IN_LIMIT },
+    { windowMs: RATE_WINDOW_MS, limit: auth.readOnly ? DEMO_LIMIT : SIGNED_IN_LIMIT },
+  ])
 }
 
 interface BriefCard {

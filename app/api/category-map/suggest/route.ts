@@ -10,6 +10,8 @@ export const maxDuration = 30
 
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
+const BURST_WINDOW_MS = 60 * 1000
+const BURST_LIMIT = 10
 const MAX_ITEM_LEN = 200
 const MAX_CATEGORIES = 100
 const MAX_CATEGORY_LEN = 60
@@ -23,7 +25,12 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
-  if (await isRateLimited(`category-suggest:${auth.userId}`, { windowMs: RATE_WINDOW_MS, limit: SIGNED_IN_LIMIT })) {
+  if (
+    await isRateLimited(`category-suggest:${auth.userId}`, [
+      { windowMs: BURST_WINDOW_MS, limit: BURST_LIMIT },
+      { windowMs: RATE_WINDOW_MS, limit: SIGNED_IN_LIMIT },
+    ])
+  ) {
     return error('rate limited', 429)
   }
 
