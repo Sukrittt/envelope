@@ -22,8 +22,8 @@ const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const DEMO_LIMIT = 20
 const BURST_WINDOW_MS = 60 * 1000
-const BURST_SIGNED_IN_LIMIT = 1
-const BURST_DEMO_LIMIT = 1
+const BURST_SIGNED_IN_LIMIT = 10
+const BURST_DEMO_LIMIT = 5
 // Caps Gemini calls per session independent of the hourly per-user limit above
 // (a single long-lived session could otherwise burn the whole hourly budget).
 // Well under MAX_SESSION_MESSAGES so the stored-array cap is never the thing
@@ -223,7 +223,7 @@ export async function POST(req: Request) {
   const auth = await getAuth(req)
 
   if (await rateLimited(auth)) {
-    return error('rate limited', 429)
+    return error('Too many messages. Try again in a bit.', 429)
   }
 
   const body = await readBody(req)
