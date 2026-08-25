@@ -2,9 +2,13 @@ import { json, error, readBody, EMAIL_RE } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
+import { isRateLimited } from '@/lib/rateLimit'
 import type { UserDoc } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
+
+const RATE_WINDOW_MS = 60 * 60 * 1000
+const RATE_LIMIT = 5
 
 /**
  * Changes the account email. WorkOS has no pending-email concept — the change
@@ -15,6 +19,10 @@ export async function POST(req: Request) {
   const auth = await getAuth(req)
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
+
+  if (await isRateLimited(`user-email-change:${auth.userId}`, { windowMs: RATE_WINDOW_MS, limit: RATE_LIMIT })) {
+    return error('rate limited', 429)
+  }
 
   const body = await readBody(req)
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''

@@ -36,7 +36,7 @@ vi.mock('@/lib/ai/gemini', () => ({
 
 const sessionUpdateOneMock = vi.fn(async (_filter: unknown, _update: unknown) => ({ matchedCount: 1 }))
 const sessionInsertOneMock = vi.fn(async () => ({ insertedId: new ObjectId() }))
-const sessionFindOneMock = vi.fn(async () => null)
+const sessionFindOneMock = vi.fn<() => Promise<unknown>>(async () => null)
 
 vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
@@ -108,6 +108,13 @@ describe('POST /api/ai/chat (demo path)', () => {
     await res.text()
     expect(streamTextMock).toHaveBeenCalledTimes(1)
   })
+
+  it('rejects once the client-supplied history exceeds the session message cap', async () => {
+    const messages = Array.from({ length: 41 }, (_, i) => ({ role: 'user' as const, text: `msg ${i}` }))
+    const res = await POST(jsonRequest({ messages }))
+    expect(res.status).toBe(429)
+    expect(streamTextMock).not.toHaveBeenCalled()
+  })
 })
 
 describe('POST /api/ai/chat (persisted path) — session message cap (C6)', () => {
@@ -133,5 +140,23 @@ describe('POST /api/ai/chat (persisted path) — session message cap (C6)', () =
     const modelPush = (modelUpdate as any).$push.messages
     expect(modelPush.$each).toHaveLength(1)
     expect(modelPush.$slice).toBe(userPush.$slice)
+  })
+
+  it('rejects once an existing session already has SESSION_MESSAGE_LIMIT user turns', async () => {
+    const now = new Date()
+    sessionFindOneMock.mockResolvedValueOnce({
+      _id: new (await import('mongodb')).ObjectId(),
+      messages: Array.from({ length: 40 }, () => ({ role: 'user', text: 'hi', createdAt: now })),
+    })
+
+    const res = await POST(
+      jsonRequest({
+        sessionId: '507f1f77bcf86cd799439011',
+        messages: [{ role: 'user', text: 'one more?' }],
+      }),
+    )
+    expect(res.status).toBe(429)
+    expect(streamTextMock).not.toHaveBeenCalled()
+    expect(sessionUpdateOneMock).not.toHaveBeenCalled()
   })
 })

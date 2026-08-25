@@ -21,6 +21,11 @@ const MAX_SESSION_MESSAGES = 100
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const DEMO_LIMIT = 20
+// Caps Gemini calls per session independent of the hourly per-user limit above
+// (a single long-lived session could otherwise burn the whole hourly budget).
+// Well under MAX_SESSION_MESSAGES so the stored-array cap is never the thing
+// that actually stops a session.
+const SESSION_MESSAGE_LIMIT = 40
 
 function rateLimited(auth: Auth): Promise<boolean> {
   return isRateLimited(`ai-chat:${auth.userId}`, {
@@ -131,6 +136,9 @@ function handleDemo(auth: Auth, body: Record<string, unknown>): Response {
   // isValidMessages only checks shape, not length, on the rest of the array.
   const userTurns = messages.filter((m) => m.role === 'user')
   if (userTurns.some((m) => m.text.length > MAX_MESSAGE_LEN)) return error('invalid body', 400)
+  if (userTurns.length > SESSION_MESSAGE_LIMIT) {
+    return error('session message limit reached — start a new chat', 429)
+  }
 
   const trimmed = userTurns.slice(-HISTORY_LIMIT)
   const contents: ModelContents = trimmed.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
@@ -170,6 +178,10 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
     if (!existing) return error('session not found', 404)
     objectId = existing._id as ObjectId
     history = (existing.messages as StoredChatMessage[] | undefined) ?? []
+    const userTurnCount = history.filter((m) => m.role === 'user').length
+    if (userTurnCount >= SESSION_MESSAGE_LIMIT) {
+      return error('session message limit reached — start a new chat', 429)
+    }
   } else {
     const now = new Date()
     const inserted = await sessions.insertOne({
