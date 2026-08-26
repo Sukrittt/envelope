@@ -155,6 +155,47 @@ describe('PUT /api/expenses — credit-card envelope rebalance (C1)', () => {
     )
     expect(stores.budgets).toHaveLength(0)
   })
+
+  it('updates notes and payment method, unwinding and reapplying the CC envelope on a bank<->credit_card switch', async () => {
+    await POST(
+      req('POST', {
+        item: 'Taxi',
+        amount_inr: '400',
+        category: 'Transport',
+        date: '2026-07-01',
+        timestamp: '2026-07-01T10:00:00',
+        payment_method: 'bank',
+      }),
+    )
+    expect(stores.budgets).toHaveLength(0)
+
+    // Switch to credit_card: envelope should pick it up.
+    let res = await PUT(
+      req('PUT', {
+        timestamp: '2026-07-01T10:00:00',
+        item: 'Taxi',
+        amount_inr: '400',
+        new_notes: 'Airport run',
+        new_payment_method: 'credit_card',
+      }),
+    )
+    expect(res.status).toBe(200)
+    expect(stores.expenses[0].notes).toBe('Airport run')
+    expect(stores.expenses[0].payment_method).toBe('credit_card')
+    expect(budgetFor('2026-07')?.assigned).toBe('400')
+
+    // Switch back to bank: envelope should unwind.
+    res = await PUT(
+      req('PUT', {
+        timestamp: '2026-07-01T10:00:00',
+        item: 'Taxi',
+        amount_inr: '400',
+        new_payment_method: 'bank',
+      }),
+    )
+    expect(res.status).toBe(200)
+    expect(budgetFor('2026-07')?.assigned).toBe('0')
+  })
 })
 
 describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {

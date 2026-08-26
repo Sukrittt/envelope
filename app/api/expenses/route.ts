@@ -112,6 +112,8 @@ export async function PUT(req: Request) {
   if (body.new_item !== undefined) update.item = String(body.new_item)
   if (body.new_amount_inr !== undefined) update.amount_inr = String(body.new_amount_inr)
   if (body.new_date !== undefined) update.date = String(body.new_date)
+  if (body.new_notes !== undefined) update.notes = String(body.new_notes)
+  if (body.new_payment_method !== undefined) update.payment_method = String(body.new_payment_method)
   if (Object.keys(update).length === 0) return error('no fields to update')
 
   // Keep the timestamp (date + time) in sync when only the date changes.
@@ -121,26 +123,30 @@ export async function PUT(req: Request) {
     update.timestamp = `${String(body.new_date)}${suffix}`
   }
 
-  // Rebalance the Credit Card envelope when a CC expense's amount and/or
-  // month changes (POST bumps it on add; DELETE unwinds it on remove). Must
-  // trigger on EITHER changing, not just amount — moving a CC expense to a
-  // different month at the same amount used to leave the old month's
-  // envelope stale and never touch the new month's at all.
-  const isCC = String(found.payment_method ?? '') === 'credit_card'
+  // Rebalance the Credit Card envelope when a CC expense's amount, month,
+  // and/or payment method changes (POST bumps it on add; DELETE unwinds it
+  // on remove). Unwind whatever the old state contributed, then reapply
+  // whatever the new state should contribute — handles amount-only changes,
+  // month moves, and bank<->credit_card switches uniformly.
+  const oldIsCC = String(found.payment_method ?? '') === 'credit_card'
+  const newIsCC = String(body.new_payment_method ?? found.payment_method ?? '') === 'credit_card'
   const oldMonth = String(found.date ?? '').slice(0, 7)
   const newMonth = String(body.new_date ?? found.date ?? '').slice(0, 7)
   const oldAmount = Number(found.amount_inr) || 0
   const newAmount = body.new_amount_inr !== undefined ? Number(body.new_amount_inr) : oldAmount
-  if (isCC && (oldAmount !== newAmount || oldMonth !== newMonth)) {
-    if (oldMonth === newMonth) {
-      await adjustCreditCardEnvelope(auth, oldMonth, newAmount - oldAmount)
-    } else {
-      await adjustCreditCardEnvelope(auth, oldMonth, -oldAmount)
-      await adjustCreditCardEnvelope(auth, newMonth, newAmount)
-    }
+  if (oldIsCC && newIsCC && oldMonth === newMonth) {
+    if (oldAmount !== newAmount) await adjustCreditCardEnvelope(auth, oldMonth, newAmount - oldAmount)
+  } else {
+    if (oldIsCC) await adjustCreditCardEnvelope(auth, oldMonth, -oldAmount)
+    if (newIsCC) await adjustCreditCardEnvelope(auth, newMonth, newAmount)
   }
 
-  await coll.updateOne({ _id: found._id }, { $set: update })
+  // updateOne on a wrong/stale _id silently no-ops (matchedCount 0) rather than
+  // throwing — without this check the API still answers 200 and the client
+  // invalidates + refetches into what looks like "the edit didn't take".
+  const result = await coll.updateOne({ _id: found._id }, { $set: update })
+  if (result.matchedCount === 0) return error('expense row not found', 404)
+
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
   invalidateCategoryMap(auth.userId)
