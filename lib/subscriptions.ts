@@ -76,10 +76,23 @@ export function getEffectiveDueDate(sub: DueDateInput): string {
   return ''
 }
 
+/**
+ * Whole calendar days between today and `dateStr`, both compared at UTC
+ * midnight — not a raw millisecond diff, which would round differently
+ * depending on what time of day "now" happens to be (a bill "3 days out"
+ * checked at 11pm and the same bill checked at 6am should both say 3).
+ */
+function calendarDaysUntil(dateStr: string): number {
+  const due = new Date(`${dateStr}T00:00:00Z`).getTime()
+  const now = new Date()
+  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  return Math.round((due - todayUTC) / 86400000)
+}
+
 /** Human-readable "renews in Nd" label, or '' if the date is missing or already past. */
 export function daysUntil(dateStr: string): string {
   if (!dateStr) return ''
-  const diff = Math.round((new Date(dateStr).getTime() - new Date().getTime()) / 86400000)
+  const diff = calendarDaysUntil(dateStr)
   if (diff < 0) return ''
   if (diff === 0) return 'renews today'
   if (diff === 1) return 'renews tomorrow'
@@ -91,5 +104,5 @@ export function renewalDays(sub: DueDateInput & { billingCycle: string }): numbe
   if (/one-time/i.test(sub.billingCycle)) return Infinity
   const due = getEffectiveDueDate(sub)
   if (!due) return Infinity
-  return Math.round((new Date(due).getTime() - new Date().getTime()) / 86400000)
+  return calendarDaysUntil(due)
 }

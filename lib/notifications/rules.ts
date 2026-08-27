@@ -1,6 +1,7 @@
 import type { Envelope } from '@/src/types/expense'
 import type { CategoryDocRow, SubscriptionDocRow, SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
 import { getEffectiveDueDate, renewalDays } from '@/lib/subscriptions'
+import type { UserDoc } from '@/lib/users'
 
 /**
  * Pure decision logic for Smart Notifications: given a user's current
@@ -27,6 +28,17 @@ export interface Notification {
   title: string
   body: string
   data?: Record<string, unknown>
+}
+
+/** Resolves a user's notification prefs, defaulting fields never set on the doc. */
+export function prefsFor(user: UserDoc): NotificationPrefs {
+  return {
+    cadence: user.notifyCadence === 'weekly' || user.notifyCadence === 'daily' ? user.notifyCadence : 'off',
+    thresholdPct: typeof user.notifyThresholdPct === 'number' ? user.notifyThresholdPct : 80,
+    bills: user.notifyBills ?? true,
+    billLeadDays: typeof user.notifyBillLeadDays === 'number' ? user.notifyBillLeadDays : 3,
+    coach: user.notifyCoach ?? true,
+  }
 }
 
 const INACTIVE_STATUSES = new Set(['cancelled', 'canceled', 'ended', 'paused'])

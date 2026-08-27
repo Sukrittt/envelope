@@ -5,6 +5,7 @@ import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import type { ScopedCollection } from '@/lib/scoped'
+import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,6 +93,11 @@ export async function POST(req: Request) {
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
   invalidateCategoryMap(auth.userId)
+  // Awaited (not fire-and-forget): a serverless function can be frozen the
+  // instant the response is sent, so a background call here could just never
+  // run. notifyThresholdCrossed never throws, so this only adds latency, not
+  // failure risk.
+  await notifyThresholdCrossed(auth, String(body.category))
   // The id and the server-generated timestamp go back to the caller so it can
   // address the row it just created — mobile's post-log success screen needs
   // both to offer Undo without re-fetching the whole list to find the row.
@@ -153,6 +159,9 @@ export async function PUT(req: Request) {
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
   invalidateCategoryMap(auth.userId)
+  // The category that could newly be over its threshold: wherever the edit
+  // landed the expense, not where it used to be.
+  await notifyThresholdCrossed(auth, update.category ?? String(found.category ?? ''))
   return json({ ok: true })
 }
 
