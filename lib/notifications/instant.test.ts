@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const USER = { _id: 'user_a', notifyCadence: 'weekly' }
+const USER: { _id: string; notifyCadence?: string; notifyThresholds?: boolean } = { _id: 'user_a', notifyCadence: 'weekly' }
 
 const usersFindOneMock = vi.fn(async () => USER)
 const logInsertOneMock = vi.fn(async () => ({ insertedId: 'x' }))
@@ -53,11 +53,17 @@ describe('notifyThresholdCrossed', () => {
     expect(sendPushNotificationMock).not.toHaveBeenCalled()
   })
 
-  it('does nothing when notifications are off', async () => {
-    usersFindOneMock.mockResolvedValue({ _id: 'user_a', notifyCadence: 'off' })
+  it('does nothing when category limit alerts are off', async () => {
+    usersFindOneMock.mockResolvedValue({ _id: 'user_a', notifyThresholds: false })
     await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
     expect(buildExpenseContextMock).not.toHaveBeenCalled()
     expect(sendPushNotificationMock).not.toHaveBeenCalled()
+  })
+
+  it('still fires when the digest cadence is off, since thresholds are independent', async () => {
+    usersFindOneMock.mockResolvedValue({ _id: 'user_a', notifyCadence: 'off' })
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    expect(sendPushNotificationMock).toHaveBeenCalled()
   })
 
   it('sends one push per crossed threshold when a category has multiple triggers', async () => {

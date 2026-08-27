@@ -26,7 +26,7 @@ export async function notifyThresholdCrossed(auth: Auth, category: string): Prom
     if (!user) return
 
     const prefs = prefsFor(user)
-    if (prefs.cadence === 'off') return
+    if (!prefs.thresholds) return
 
     const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth)
     const { date: today } = nowIST()

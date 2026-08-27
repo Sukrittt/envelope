@@ -16,6 +16,8 @@ export interface UserDoc {
   createdAt: Date
   onboardedAt?: string | null
   notifyCadence?: 'off' | 'weekly' | 'daily'
+  /** Category limit alerts (threshold + overspent) — independent of `notifyCadence`, which only gates the digest. */
+  notifyThresholds?: boolean
   notifyBills?: boolean
   notifyBillLeadDays?: number
   notifyCoach?: boolean

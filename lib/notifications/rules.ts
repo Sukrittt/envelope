@@ -13,6 +13,8 @@ import type { UserDoc } from '@/lib/users'
 
 export interface NotificationPrefs {
   cadence: 'off' | 'weekly' | 'daily'
+  /** Category limit alerts (threshold + overspent) — independent of `cadence`, which only gates the digest. */
+  thresholds: boolean
   bills: boolean
   billLeadDays: number
   coach: boolean
@@ -36,6 +38,7 @@ export interface Notification {
 export function prefsFor(user: UserDoc): NotificationPrefs {
   return {
     cadence: user.notifyCadence === 'weekly' || user.notifyCadence === 'daily' ? user.notifyCadence : 'off',
+    thresholds: user.notifyThresholds ?? true,
     bills: user.notifyBills ?? true,
     billLeadDays: typeof user.notifyBillLeadDays === 'number' ? user.notifyBillLeadDays : 3,
     coach: user.notifyCoach ?? true,
@@ -175,18 +178,22 @@ export function buildNotifications(input: {
   month: string // 'YYYY-MM'
 }): Notification[] {
   const { envelopes, subscriptions, categories, meta, prefs, today, month } = input
-  if (prefs.cadence === 'off') return []
 
-  const notifications: Notification[] = [
-    ...thresholdNotifications(envelopes, categories, month),
-    ...billNotifications(subscriptions, prefs),
-  ]
+  const notifications: Notification[] = []
+  if (prefs.thresholds) notifications.push(...thresholdNotifications(envelopes, categories, month))
 
-  const digest = digestNotification(meta, prefs, today)
-  if (digest) notifications.push(digest)
+  // Cadence is the digest's own on/off switch — it no longer gates category
+  // limit alerts (those have `prefs.thresholds`), but still gates bills and
+  // the coaching nudge alongside the digest itself.
+  if (prefs.cadence !== 'off') {
+    notifications.push(...billNotifications(subscriptions, prefs))
 
-  const coach = coachNotification(envelopes, meta, prefs, today)
-  if (coach) notifications.push(coach)
+    const digest = digestNotification(meta, prefs, today)
+    if (digest) notifications.push(digest)
+
+    const coach = coachNotification(envelopes, meta, prefs, today)
+    if (coach) notifications.push(coach)
+  }
 
   return notifications
 }

@@ -32,6 +32,7 @@ function meta(overrides: Partial<SummarizeExpensesMeta> = {}): SummarizeExpenses
 function prefs(overrides: Partial<NotificationPrefs> = {}): NotificationPrefs {
   return {
     cadence: 'weekly',
+    thresholds: true,
     bills: true,
     billLeadDays: 3,
     coach: true,
@@ -294,7 +295,7 @@ describe('buildNotifications — coach', () => {
 })
 
 describe('buildNotifications — cadence off', () => {
-  it('suppresses every kind, including thresholds and bills', () => {
+  it('suppresses the digest, bills, and coach, but not category limit alerts', () => {
     const due = isoDaysFromNow(3)
     const notifs = buildNotifications({
       envelopes: [envelope({ spentPct: 100, isOverspent: true })],
@@ -305,6 +306,22 @@ describe('buildNotifications — cadence off', () => {
       today: TODAY,
       month: MONTH,
     })
-    expect(notifs).toHaveLength(0)
+    expect(notifs.filter((n) => n.kind !== 'overspent')).toHaveLength(0)
+    expect(notifs.filter((n) => n.kind === 'overspent')).toHaveLength(1)
+  })
+})
+
+describe('buildNotifications — thresholds off', () => {
+  it('suppresses category limit alerts regardless of cadence', () => {
+    const notifs = buildNotifications({
+      envelopes: [envelope({ spentPct: 95, spent: 950 }), envelope({ category: 'Rent', spentPct: 100, isOverspent: true })],
+      subscriptions: [],
+      categories: [],
+      meta: meta(),
+      prefs: prefs({ cadence: 'daily', thresholds: false, bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    })
+    expect(notifs.filter((n) => n.kind === 'threshold' || n.kind === 'overspent')).toHaveLength(0)
   })
 })
