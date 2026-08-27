@@ -1,7 +1,7 @@
 import { computeEnvelopes } from '@/src/services/budgetLoader'
 import { getCollection, nowIST } from '@/lib/http'
 import type { Auth } from '@/lib/access'
-import type { BudgetRow } from '@/src/types/expense'
+import type { BudgetRow, Envelope } from '@/src/types/expense'
 
 /**
  * Builds the plain-text "FACTS" context fed to the money-brain Gemini
@@ -35,6 +35,7 @@ export interface BudgetDocRow {
 export interface CategoryDocRow {
   name: string
   group?: string
+  alertPct?: number
 }
 
 export interface GroupDocRow {
@@ -45,6 +46,9 @@ export interface SubscriptionDocRow {
   service: string
   amount_inr: number
   billing_cycle?: string
+  next_due_date?: string
+  renewal_or_end_month?: string
+  timestamp?: string
   status?: string
 }
 
@@ -71,11 +75,16 @@ export interface SummarizeExpensesMeta {
   totalSpent: number
   totalAssigned: number
   daysLeft: number
+  daysElapsed: number
+  totalDaysInMonth: number
 }
 
 export interface SummarizeExpensesResult {
   facts: string
   meta: SummarizeExpensesMeta
+  envelopes: Envelope[]
+  subscriptions: SubscriptionDocRow[]
+  categories: CategoryDocRow[]
 }
 
 function round(n: number): number {
@@ -264,7 +273,12 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
       totalSpent: round(envelopeState.totalSpent),
       totalAssigned: round(envelopeState.totalAssigned),
       daysLeft,
+      daysElapsed,
+      totalDaysInMonth,
     },
+    envelopes: envelopeState.envelopes,
+    subscriptions,
+    categories,
   }
 }
 
@@ -306,7 +320,11 @@ export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpenses
   }))
 
   const categories: CategoryDocRow[] = categoryDocs
-    .map((d) => ({ name: String(d.name ?? ''), group: d.group ? String(d.group) : '' }))
+    .map((d) => ({
+      name: String(d.name ?? ''),
+      group: d.group ? String(d.group) : '',
+      alertPct: typeof d.alertPct === 'number' ? d.alertPct : undefined,
+    }))
     .filter((c) => c.name)
 
   const groups: GroupDocRow[] = groupDocs.map((d) => ({ name: String(d.name ?? '') })).filter((g) => g.name)
@@ -315,6 +333,9 @@ export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpenses
     service: String(d.service ?? ''),
     amount_inr: Number(d.amount_inr) || 0,
     billing_cycle: d.billing_cycle ? String(d.billing_cycle) : undefined,
+    next_due_date: d.next_due_date ? String(d.next_due_date) : undefined,
+    renewal_or_end_month: d.renewal_or_end_month ? String(d.renewal_or_end_month) : undefined,
+    timestamp: d.timestamp ? String(d.timestamp) : undefined,
     status: d.status ? String(d.status) : undefined,
   }))
 

@@ -16,6 +16,11 @@ export interface UserDoc {
   createdAt: Date
   onboardedAt?: string | null
   notifyCadence?: 'off' | 'weekly' | 'daily'
+  /** Default per-category alert threshold (% of assigned) when a category has no `alertPct` of its own. */
+  notifyThresholdPct?: number
+  notifyBills?: boolean
+  notifyBillLeadDays?: number
+  notifyCoach?: boolean
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null

@@ -12,7 +12,7 @@ const PUBLIC_PAGE_PATHS = ['/sign-in', '/email', '/code']
 // `Authorization: Bearer ${CRON_SECRET}` — a shared secret, not a WorkOS JWT —
 // so the Bearer gate below must not try to verify it. Each handler does its own
 // constant-time secret check before doing anything.
-const CRON_PATHS = ['/api/ai/scan-transactions', '/api/notifications/weekly']
+const CRON_PATHS = ['/api/notifications/run']
 
 /**
  * Refreshes the sealed AuthKit session cookie, then gates every other *page*

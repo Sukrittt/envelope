@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "crons": [
-    { "path": "/api/ai/scan-transactions", "schedule": "0 13 * * *" },
-    { "path": "/api/notifications/weekly", "schedule": "0 9 * * 1" }
+    { "path": "/api/notifications/run", "schedule": "0 3 * * *" }
   ]
 }

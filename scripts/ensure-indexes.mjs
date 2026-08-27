@@ -13,10 +13,7 @@ import { loadEnv } from './lib/env.mjs'
 loadEnv()
 
 const INDEXES = {
-  expenses: [
-    [{ user_id: 1, date: -1 }, {}],
-    [{ user_id: 1, ai_scanned: 1 }, {}],
-  ],
+  expenses: [[{ user_id: 1, date: -1 }, {}]],
   budgets: [[{ user_id: 1, month: 1, category: 1 }, { unique: true }]],
   categories: [
     [{ user_id: 1, name: 1 }, { unique: true }],
@@ -38,6 +35,14 @@ const INDEXES = {
   rate_limit_hits: [
     [{ key: 1, ts: -1 }, {}],
     [{ ts: 1 }, { expireAfterSeconds: 3600 }],
+  ],
+  // Send-log dedupe for Smart Notifications: the unique compound index is
+  // what makes a repeat `insertOne` throw E11000 for an already-sent key.
+  // The TTL index reclaims rows after 90 days — well past any lead-day or
+  // digest window, so nothing correctness-relevant depends on its timing.
+  notification_log: [
+    [{ user_id: 1, key: 1 }, { unique: true }],
+    [{ sentAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }],
   ],
 }
 

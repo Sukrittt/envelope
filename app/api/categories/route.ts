@@ -10,7 +10,11 @@ export async function GET(req: Request) {
   const docs = await coll.find({}).sort({ order: 1 }).toArray()
   return json(
     docs
-      .map((d) => ({ name: d.name ?? '', group: d.group ?? '' }))
+      .map((d) => ({
+        name: d.name ?? '',
+        group: d.group ?? '',
+        ...(typeof d.alertPct === 'number' ? { alertPct: d.alertPct } : {}),
+      }))
       .filter((c) => c.name),
   )
 }
@@ -65,6 +69,12 @@ export async function PUT(req: Request) {
 
   if (body.group !== undefined) {
     await coll.updateOne({ name: effectiveName }, { $set: { group: String(body.group) } })
+  }
+
+  if (body.alertPct === null) {
+    await coll.updateOne({ name: effectiveName }, { $unset: { alertPct: '' } })
+  } else if (typeof body.alertPct === 'number' && body.alertPct >= 0 && body.alertPct <= 100) {
+    await coll.updateOne({ name: effectiveName }, { $set: { alertPct: body.alertPct } })
   }
 
   invalidate('categories', auth.userId)

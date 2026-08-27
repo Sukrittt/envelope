@@ -17,6 +17,7 @@ import { Scrim, Sheet } from "../components/MotionSheet";
 import { CalendarBody, parseISO, toISO, key as dateKey, monthStart as dateMonthStart } from "../components/DatePicker";
 import { SpendingInsights } from "../components/SpendingInsights";
 import { LoadingCaption } from "../components/LoadingCaption";
+import { getEffectiveDueDate, daysUntil, renewalDays } from "@/lib/subscriptions";
 import {
   cancelSubscription,
   reactivateSubscription,
@@ -2215,96 +2216,6 @@ export function ExpensePage() {
                     if (/quarterly/i.test(cycle)) return "quarterly";
                     if (/weekly/i.test(cycle)) return "weekly";
                     return cycle;
-                  }
-
-                  function rollForward(dateStr: string, cycle: string): string {
-                    const d = new Date(dateStr);
-                    if (Number.isNaN(d.getTime())) return "";
-                    if (/yearly|annual/i.test(cycle))
-                      d.setFullYear(d.getFullYear() + 1);
-                    else if (/quarterly/i.test(cycle))
-                      d.setMonth(d.getMonth() + 3);
-                    else if (/weekly/i.test(cycle)) d.setDate(d.getDate() + 7);
-                    else d.setMonth(d.getMonth() + 1);
-                    return d.toISOString().slice(0, 10);
-                  }
-
-                  function getEffectiveDueDate(
-                    sub: ActiveSubscription,
-                  ): string {
-                    if (sub.nextDueDate) {
-                      let d = new Date(sub.nextDueDate);
-                      if (Number.isNaN(d.getTime())) return "";
-                      const now = new Date();
-                      while (d <= now) {
-                        const rolled = rollForward(
-                          d.toISOString().slice(0, 10),
-                          sub.billingCycle,
-                        );
-                        if (!rolled) break;
-                        d = new Date(rolled);
-                      }
-                      return d.toISOString().slice(0, 10);
-                    }
-                    if (sub.renewalOrEndMonth) {
-                      const months = [
-                        "January",
-                        "February",
-                        "March",
-                        "April",
-                        "May",
-                        "June",
-                        "July",
-                        "August",
-                        "September",
-                        "October",
-                        "November",
-                        "December",
-                      ];
-                      const parts = sub.renewalOrEndMonth.split(" ");
-                      if (parts.length >= 2) {
-                        const m = months.indexOf(parts[0]);
-                        const y = parseInt(parts[1]);
-                        if (m >= 0 && !Number.isNaN(y))
-                          return new Date(y, m, 1).toISOString().slice(0, 10);
-                      }
-                    }
-                    if (sub.timestamp && /monthly/i.test(sub.billingCycle)) {
-                      const start = new Date(sub.timestamp);
-                      if (!Number.isNaN(start.getTime())) {
-                        const now = new Date();
-                        const next = new Date(
-                          now.getFullYear(),
-                          now.getMonth() + 1,
-                          start.getDate(),
-                        );
-                        if (next <= now) next.setMonth(next.getMonth() + 1);
-                        return next.toISOString().slice(0, 10);
-                      }
-                    }
-                    return "";
-                  }
-
-                  function daysUntil(dateStr: string): string {
-                    if (!dateStr) return "";
-                    const diff = Math.round(
-                      (new Date(dateStr).getTime() - new Date().getTime()) /
-                        86400000,
-                    );
-                    if (diff < 0) return "";
-                    if (diff === 0) return "renews today";
-                    if (diff === 1) return "renews tomorrow";
-                    return `renews in ${diff}d`;
-                  }
-
-                  function renewalDays(sub: ActiveSubscription): number {
-                    if (/one-time/i.test(sub.billingCycle)) return Infinity;
-                    const due = getEffectiveDueDate(sub);
-                    if (!due) return Infinity;
-                    return Math.round(
-                      (new Date(due).getTime() - new Date().getTime()) /
-                        86400000,
-                    );
                   }
 
                   function renewalText(sub: ActiveSubscription): string {

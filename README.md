@@ -34,7 +34,7 @@ Data lives in MongoDB. The API route handlers under `app/api/` read and write th
 | Expenses & budgeting | `expenses`, `budgets`, `categories`, `groups` |
 | Subscriptions | `subscriptions` |
 | Investments | `holdings`, `holding_events` |
-| Accounts & devices | `users`, `push_tokens` |
+| Accounts & devices | `users`, `push_tokens`, `notification_log` |
 
 Every document carries a `user_id` (a WorkOS user id) — there are no separate `demo_*`
 mirror collections; the demo account is just another `user_id` (`DEMO_USER_ID`).
@@ -92,10 +92,8 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/api/wrapped` | GET | Year-in-review recap payload (mobile Wrapped screen) |
 | `/api/ai/brief` | POST | AI daily brief cards from recent spending |
 | `/api/ai/chat` | POST | Money Brain chat (streamed, rate-limited) |
-| `/api/ai/scan-transactions` | GET | Cron-only (`CRON_SECRET`); AI anomaly scan + push alert |
 | `/api/notifications/register` | POST | Store an Expo push token for a device |
-| `/api/notifications/send` | POST | Send a push notification |
-| `/api/notifications/weekly` | GET | Cron-only (`CRON_SECRET`); sends the weekly spend digest |
+| `/api/notifications/run` | GET | Cron-only (`CRON_SECRET`); Smart Notifications — envelope thresholds, bill reminders, digest, AI coaching nudge |
 | `/api/auth/google`, `/api/auth/magic-auth/*` | GET/POST | Sign-in |
 | `/logout` | GET | Sign out (clears session, ends WorkOS session) |
 
@@ -125,7 +123,7 @@ Envelopes guard against duplicate category/group names, and the default **Archiv
 | `WORKOS_COOKIE_PASSWORD` | Encrypts the AuthKit session cookie. 32+ chars. |
 | `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Callback URL, also registered in the WorkOS dashboard. |
 | `DEMO_USER_ID` | Owner of the sample data served to unauthenticated API requests. |
-| `CRON_SECRET` | Bearer token Vercel Cron sends when invoking `/api/ai/scan-transactions` and `/api/notifications/weekly`. |
+| `CRON_SECRET` | Bearer token Vercel Cron sends when invoking `/api/notifications/run`. |
 | `GEMINI_API_KEY` | LLM-assisted category suggestions and AI transaction scan. |
 
 ## Data migration

@@ -13,11 +13,13 @@
  * map is consumed.
  *
  * Deliberately not encrypted, because each is a filter/sort/index key: on
- * `expenses` — date, category, payment_method, timestamp, ai_scanned*; on
+ * `expenses` — date, category, payment_method, timestamp; on
  * `budgets` — month, category; `categories`/`groups`/`category_map_overrides`
- * entirely (name/word are unique-index filter keys); `subscriptions.service`
- * and `holdings.name` (also filter keys — a future re-key to `_id` could move
- * them into this list); `chat_sessions.updatedAt` (sort + index).
+ * entirely (name/word are unique-index filter keys, and `categories.alertPct`
+ * needs no encryption either — it's a threshold, not money); `subscriptions.service`,
+ * `.next_due_date`, `.billing_cycle`, `.status` (also filter/sort keys) and
+ * `holdings.name` (a future re-key to `_id` could move it into this list);
+ * `chat_sessions.updatedAt` (sort + index).
  */
 export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],

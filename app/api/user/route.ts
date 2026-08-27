@@ -29,12 +29,25 @@ export async function PATCH(req: Request) {
   const body = await readBody(req)
   const name = typeof body.name === 'string' ? body.name.trim() : undefined
 
-  const updates: Partial<Pick<UserDoc, 'name' | 'onboardedAt' | 'notifyCadence'>> = {}
+  const updates: Partial<
+    Pick<
+      UserDoc,
+      'name' | 'onboardedAt' | 'notifyCadence' | 'notifyThresholdPct' | 'notifyBills' | 'notifyBillLeadDays' | 'notifyCoach'
+    >
+  > = {}
   if (name !== undefined) updates.name = name || null
   if (typeof body.onboardedAt === 'string' || body.onboardedAt === null) updates.onboardedAt = body.onboardedAt as string | null
   if (body.notifyCadence === 'off' || body.notifyCadence === 'weekly' || body.notifyCadence === 'daily') {
     updates.notifyCadence = body.notifyCadence
   }
+  if (typeof body.notifyThresholdPct === 'number' && body.notifyThresholdPct >= 0 && body.notifyThresholdPct <= 100) {
+    updates.notifyThresholdPct = body.notifyThresholdPct
+  }
+  if (typeof body.notifyBills === 'boolean') updates.notifyBills = body.notifyBills
+  if (typeof body.notifyBillLeadDays === 'number' && body.notifyBillLeadDays >= 0 && body.notifyBillLeadDays <= 30) {
+    updates.notifyBillLeadDays = body.notifyBillLeadDays
+  }
+  if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
   if (Object.keys(updates).length === 0) return error('no valid fields')
 
   if (name !== undefined) {
