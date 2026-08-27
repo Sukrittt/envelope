@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { formatCurrency } from '@/lib/currency'
 
 interface Props {
   currentMonth: string
@@ -14,10 +15,6 @@ const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
-
-function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString('en-IN')}`
-}
 
 function monthLabel(monthKey: string): string {
   const [y, m] = monthKey.split('-')

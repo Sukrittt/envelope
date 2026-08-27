@@ -11,6 +11,7 @@ import {
   deleteExpense,
 } from "../services/api";
 import { suggestCategory } from "../services/autoCategory";
+import { formatCurrency } from "@/lib/currency";
 import { LoadingCaption } from "./LoadingCaption";
 import { getCategoryColor } from "../data/categoryColors";
 import { TransactionEditModal } from "./TransactionEditModal";
@@ -68,10 +69,6 @@ function getCategoryIcon(category: string): string {
   return (
     CATEGORY_ICONS[category] ?? CATEGORY_ICONS[category.toLowerCase()] ?? ""
   );
-}
-
-function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString("en-IN")}`;
 }
 
 function toDateInput(d: Date): string {

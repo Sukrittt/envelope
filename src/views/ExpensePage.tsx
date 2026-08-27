@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence } from "motion/react";
 import { Fredoka, Nunito } from "next/font/google";
 import { useAppearance } from "../../components/AppearanceProvider";
+import { formatCurrency } from "@/lib/currency";
 import { SparkBars } from "../components/SparkBars";
 import { FluidDemo } from "../components/FluidDemo";
 import { ReadyToAssignBanner } from "../components/ReadyToAssignBanner";
@@ -54,10 +55,6 @@ type ActiveSubscription = ExpensePanelData["subscriptions"]["active"][number];
 
 function toDateInputValue(value: Date): string {
   return value.toISOString().slice(0, 10);
-}
-
-function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString("en-IN")}`;
 }
 
 function weekKey(input: string): string {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clearAccess, useAccessMode } from "../services/accessMode";
+import { formatCurrency } from "@/lib/currency";
 
 interface Props {
   onMoveMoney?: () => void;
@@ -9,10 +10,6 @@ interface Props {
   month?: string;
   income?: number;
   totalSpent?: number;
-}
-
-function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString("en-IN")}`;
 }
 
 export function ExpenseSidebar({

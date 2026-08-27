@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatCurrency } from '@/lib/currency'
 
 interface Props {
   income: number
@@ -9,11 +10,6 @@ interface Props {
   sparkData?: Array<{ date: string; value: number }>
   overspentCount: number
   totalEnvelopes: number
-}
-
-function formatCurrency(value: number): string {
-  const rounded = Math.round(value)
-  return `₹${(rounded === 0 ? 0 : rounded).toLocaleString('en-IN')}`
 }
 
 export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOverAssigned, onIncomeChange, sparkData, overspentCount, totalEnvelopes }: Props) {

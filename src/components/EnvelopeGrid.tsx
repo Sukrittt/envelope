@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Envelope } from '../types/expense'
+import { formatCurrency } from '@/lib/currency'
 
 interface Props {
   envelopes: Envelope[]
@@ -16,10 +17,6 @@ interface Props {
 }
 
 const UNGROUPED_LABEL = 'Other'
-
-function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString('en-IN')}`
-}
 
 function usedPct(e: Envelope): number {
   if (e.assigned > 0) return Math.round((e.spent / e.assigned) * 100)

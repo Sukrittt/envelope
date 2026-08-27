@@ -1,13 +1,10 @@
 import type { Envelope } from '../types/expense'
+import { formatCurrency } from '@/lib/currency'
 
 interface Props {
   envelope: Envelope
   hideAmounts: boolean
   onMoveMoney: (category: string) => void
-}
-
-function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString('en-IN')}`
 }
 
 export function BudgetEnvelopeCard({ envelope, hideAmounts, onMoveMoney }: Props) {

@@ -5,6 +5,7 @@ import { getHoldings, addHolding, deleteHolding, performHoldingAction, getHoldin
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
+import { formatCurrency } from '@/lib/currency'
 
 interface Holding {
   name: string
@@ -33,10 +34,6 @@ const ASSET_COLORS: Record<string, string> = {
 
 function assetColor(type: string): string {
   return ASSET_COLORS[type] ?? '#6b7a8b'
-}
-
-function formatCurrency(value: number): string {
-  return `₹${Math.round(value).toLocaleString('en-IN')}`
 }
 
 function formatTime(ts: string): string {
