@@ -26,7 +26,7 @@ const buildExpenseContextMock = vi.fn(async () => ({
     { category: 'Travel', group: '', assigned: 1000, spent: 100, available: 900, rolledOver: 0, isOverspent: false, spentPct: 10 },
   ],
   subscriptions: [],
-  categories: [],
+  categories: [] as { name: string; alertPcts?: number[] }[],
 }))
 vi.mock('@/lib/ai/expenseContext', () => ({ buildExpenseContext: buildExpenseContextMock }))
 
@@ -41,8 +41,10 @@ describe('notifyThresholdCrossed', () => {
   })
 
   it('sends a push for the category that just crossed its threshold', async () => {
+    // Food is at 90% with no alertPcts of its own, so it falls back to the
+    // default set [50, 90, 100] — both 50 and 90 are crossed.
     await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
-    expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
     expect(sendPushNotificationMock.mock.calls[0][0]).toMatchObject({ userId: 'user_a' })
   })
 
@@ -56,6 +58,20 @@ describe('notifyThresholdCrossed', () => {
     await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
     expect(buildExpenseContextMock).not.toHaveBeenCalled()
     expect(sendPushNotificationMock).not.toHaveBeenCalled()
+  })
+
+  it('sends one push per crossed threshold when a category has multiple triggers', async () => {
+    buildExpenseContextMock.mockResolvedValueOnce({
+      facts: 'FACTS',
+      meta: { txnCountThisMonth: 1, totalSpent: 950, totalAssigned: 1000, daysLeft: 5, daysElapsed: 25, totalDaysInMonth: 30 },
+      envelopes: [
+        { category: 'Food', group: '', assigned: 1000, spent: 950, available: 50, rolledOver: 0, isOverspent: false, spentPct: 95 },
+      ],
+      subscriptions: [],
+      categories: [{ name: 'Food', alertPcts: [50, 90, 100] }],
+    })
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
   })
 
   it('does not re-send once the key is already claimed', async () => {

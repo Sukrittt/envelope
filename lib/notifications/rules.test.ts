@@ -32,7 +32,6 @@ function meta(overrides: Partial<SummarizeExpensesMeta> = {}): SummarizeExpenses
 function prefs(overrides: Partial<NotificationPrefs> = {}): NotificationPrefs {
   return {
     cadence: 'weekly',
-    thresholdPct: 80,
     bills: true,
     billLeadDays: 3,
     coach: true,
@@ -50,26 +49,26 @@ const MONTH = '2026-08'
 const TODAY = '2026-08-15'
 
 describe('buildNotifications — thresholds', () => {
-  it('does not fire below the threshold', () => {
+  it('does not fire below any configured threshold', () => {
     const notifs = buildNotifications({
-      envelopes: [envelope({ spentPct: 70 })],
+      envelopes: [envelope({ spentPct: 40 })],
       subscriptions: [],
-      categories: [],
+      categories: [{ name: 'Food', alertPcts: [50, 90] }],
       meta: meta(),
-      prefs: prefs({ thresholdPct: 80, bills: false, coach: false }),
+      prefs: prefs({ bills: false, coach: false }),
       today: TODAY,
       month: MONTH,
     })
     expect(notifs.filter((n) => n.kind === 'threshold')).toHaveLength(0)
   })
 
-  it('fires once exactly at the threshold', () => {
+  it('fires once exactly at a configured threshold', () => {
     const notifs = buildNotifications({
       envelopes: [envelope({ spentPct: 80, spent: 800 })],
       subscriptions: [],
-      categories: [],
+      categories: [{ name: 'Food', alertPcts: [80] }],
       meta: meta(),
-      prefs: { ...prefs({ thresholdPct: 80, bills: false, coach: false }), cadence: 'weekly' },
+      prefs: prefs({ bills: false, coach: false }),
       today: TODAY,
       month: MONTH,
     })
@@ -78,27 +77,53 @@ describe('buildNotifications — thresholds', () => {
     expect(thresholds[0].key).toBe(`thr:${MONTH}:Food:80`)
   })
 
-  it('per-category alertPct overrides the global default', () => {
+  it('falls back to the default set [50, 90, 100] when a category has no alertPcts', () => {
     const notifs = buildNotifications({
-      envelopes: [envelope({ spentPct: 60, spent: 600 })],
+      envelopes: [envelope({ spentPct: 95, spent: 950 })],
       subscriptions: [],
-      categories: [{ name: 'Food', alertPct: 50 }],
+      categories: [],
       meta: meta(),
-      prefs: prefs({ thresholdPct: 80, bills: false, coach: false }),
+      prefs: prefs({ bills: false, coach: false }),
       today: TODAY,
       month: MONTH,
     })
-    const thresholds = notifs.filter((n) => n.kind === 'threshold')
-    expect(thresholds).toHaveLength(1)
-    expect(thresholds[0].key).toBe(`thr:${MONTH}:Food:50`)
+    const thresholds = notifs.filter((n) => n.kind === 'threshold').map((n) => n.key)
+    expect(thresholds.sort()).toEqual([`thr:${MONTH}:Food:50`, `thr:${MONTH}:Food:90`].sort())
   })
 
-  it('raising the threshold mid-month produces a new key so it can fire again', () => {
+  it('fires every crossed threshold in one pass, not just the highest', () => {
+    const notifs = buildNotifications({
+      envelopes: [envelope({ spentPct: 95, spent: 950 })],
+      subscriptions: [],
+      categories: [{ name: 'Food', alertPcts: [50, 90, 100] }],
+      meta: meta(),
+      prefs: prefs({ bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    })
+    const thresholds = notifs.filter((n) => n.kind === 'threshold').map((n) => n.key)
+    expect(thresholds.sort()).toEqual([`thr:${MONTH}:Food:50`, `thr:${MONTH}:Food:90`].sort())
+  })
+
+  it('an empty alertPcts opts a category out of threshold alerts entirely', () => {
+    const notifs = buildNotifications({
+      envelopes: [envelope({ spentPct: 99, spent: 990 })],
+      subscriptions: [],
+      categories: [{ name: 'Food', alertPcts: [] }],
+      meta: meta(),
+      prefs: prefs({ bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    })
+    expect(notifs.filter((n) => n.kind === 'threshold')).toHaveLength(0)
+  })
+
+  it('raising a threshold mid-month produces a new key so it can fire again', () => {
     const build = (pct: number) =>
       buildNotifications({
         envelopes: [envelope({ spentPct: 90, spent: 900 })],
         subscriptions: [],
-        categories: [{ name: 'Food', alertPct: pct }],
+        categories: [{ name: 'Food', alertPcts: [pct] }],
         meta: meta(),
         prefs: prefs({ bills: false, coach: false }),
         today: TODAY,

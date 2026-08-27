@@ -15,8 +15,8 @@
  * Deliberately not encrypted, because each is a filter/sort/index key: on
  * `expenses` — date, category, payment_method, timestamp; on
  * `budgets` — month, category; `categories`/`groups`/`category_map_overrides`
- * entirely (name/word are unique-index filter keys, and `categories.alertPct`
- * needs no encryption either — it's a threshold, not money); `subscriptions.service`,
+ * entirely (name/word are unique-index filter keys, and `categories.alertPcts`
+ * needs no encryption either — thresholds, not money); `subscriptions.service`,
  * `.next_due_date`, `.billing_cycle`, `.status` (also filter/sort keys) and
  * `holdings.name` (a future re-key to `_id` could move it into this list);
  * `chat_sessions.updatedAt` (sort + index).

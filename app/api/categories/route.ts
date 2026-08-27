@@ -13,7 +13,7 @@ export async function GET(req: Request) {
       .map((d) => ({
         name: d.name ?? '',
         group: d.group ?? '',
-        ...(typeof d.alertPct === 'number' ? { alertPct: d.alertPct } : {}),
+        ...(Array.isArray(d.alertPcts) ? { alertPcts: d.alertPcts } : {}),
       }))
       .filter((c) => c.name),
   )
@@ -71,10 +71,16 @@ export async function PUT(req: Request) {
     await coll.updateOne({ name: effectiveName }, { $set: { group: String(body.group) } })
   }
 
-  if (body.alertPct === null) {
-    await coll.updateOne({ name: effectiveName }, { $unset: { alertPct: '' } })
-  } else if (typeof body.alertPct === 'number' && body.alertPct >= 0 && body.alertPct <= 100) {
-    await coll.updateOne({ name: effectiveName }, { $set: { alertPct: body.alertPct } })
+  if (body.alertPcts === null) {
+    await coll.updateOne({ name: effectiveName }, { $unset: { alertPcts: '' } })
+  } else if (Array.isArray(body.alertPcts)) {
+    const pcts = body.alertPcts
+    const valid =
+      pcts.length <= 5 &&
+      pcts.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100) &&
+      new Set(pcts).size === pcts.length
+    if (!valid) return error('alertPcts must be at most 5 unique integers between 0 and 100')
+    await coll.updateOne({ name: effectiveName }, { $set: { alertPcts: [...pcts].sort((a, b) => a - b) } })
   }
 
   invalidate('categories', auth.userId)

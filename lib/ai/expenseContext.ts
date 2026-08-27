@@ -35,7 +35,7 @@ export interface BudgetDocRow {
 export interface CategoryDocRow {
   name: string
   group?: string
-  alertPct?: number
+  alertPcts?: number[]
 }
 
 export interface GroupDocRow {
@@ -323,7 +323,7 @@ export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpenses
     .map((d) => ({
       name: String(d.name ?? ''),
       group: d.group ? String(d.group) : '',
-      alertPct: typeof d.alertPct === 'number' ? d.alertPct : undefined,
+      alertPcts: Array.isArray(d.alertPcts) ? d.alertPcts.filter((v): v is number => typeof v === 'number') : undefined,
     }))
     .filter((c) => c.name)
 

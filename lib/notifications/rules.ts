@@ -13,11 +13,13 @@ import type { UserDoc } from '@/lib/users'
 
 export interface NotificationPrefs {
   cadence: 'off' | 'weekly' | 'daily'
-  thresholdPct: number
   bills: boolean
   billLeadDays: number
   coach: boolean
 }
+
+/** Trigger percentages applied to any category that hasn't customized its own. */
+export const DEFAULT_ALERT_PCTS = [50, 90, 100]
 
 export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach'
 
@@ -34,7 +36,6 @@ export interface Notification {
 export function prefsFor(user: UserDoc): NotificationPrefs {
   return {
     cadence: user.notifyCadence === 'weekly' || user.notifyCadence === 'daily' ? user.notifyCadence : 'off',
-    thresholdPct: typeof user.notifyThresholdPct === 'number' ? user.notifyThresholdPct : 80,
     bills: user.notifyBills ?? true,
     billLeadDays: typeof user.notifyBillLeadDays === 'number' ? user.notifyBillLeadDays : 3,
     coach: user.notifyCoach ?? true,
@@ -56,9 +57,9 @@ function isoWeekKey(dateStr: string): string {
   return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
-function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRow[], prefs: NotificationPrefs, month: string): Notification[] {
-  const alertPctByCategory = new Map(
-    categories.filter((c) => typeof c.alertPct === 'number').map((c) => [c.name, c.alertPct as number]),
+function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRow[], month: string): Notification[] {
+  const alertPctsByCategory = new Map(
+    categories.filter((c) => Array.isArray(c.alertPcts)).map((c) => [c.name, c.alertPcts as number[]]),
   )
   const out: Notification[] = []
 
@@ -76,15 +77,21 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
       continue
     }
 
-    const pct = alertPctByCategory.get(env.category) ?? prefs.thresholdPct
-    if (pct > 0 && env.assigned > 0 && env.spentPct >= pct) {
-      out.push({
-        key: `thr:${month}:${env.category}:${pct}`,
-        kind: 'threshold',
-        title: `${env.category} is at ${Math.round(env.spentPct)}%`,
-        body: `₹${inr(env.spent)} of ₹${inr(env.assigned)} spent in ${env.category}.`,
-        data: { category: env.category },
-      })
+    if (env.assigned <= 0) continue
+    const pcts = alertPctsByCategory.get(env.category) ?? DEFAULT_ALERT_PCTS
+    // Every crossed threshold fires, not just the highest — a jump from 10% to
+    // 95% in one expense should surface both the 50% and 90% milestones, each
+    // deduped independently via its own key.
+    for (const pct of pcts) {
+      if (pct > 0 && env.spentPct >= pct) {
+        out.push({
+          key: `thr:${month}:${env.category}:${pct}`,
+          kind: 'threshold',
+          title: `${env.category} is at ${Math.round(env.spentPct)}%`,
+          body: `₹${inr(env.spent)} of ₹${inr(env.assigned)} spent in ${env.category}.`,
+          data: { category: env.category },
+        })
+      }
     }
   }
 
@@ -171,7 +178,7 @@ export function buildNotifications(input: {
   if (prefs.cadence === 'off') return []
 
   const notifications: Notification[] = [
-    ...thresholdNotifications(envelopes, categories, prefs, month),
+    ...thresholdNotifications(envelopes, categories, month),
     ...billNotifications(subscriptions, prefs),
   ]
 
