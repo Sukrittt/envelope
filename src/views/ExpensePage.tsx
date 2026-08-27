@@ -2455,10 +2455,7 @@ export function ExpensePage() {
                                             await cancelSubscription(
                                               sub.service,
                                             );
-                                            setTimeout(
-                                              () => refreshPanel(),
-                                              500,
-                                            );
+                                            await refreshPanel();
                                           } catch {
                                             setCancellingSub(null);
                                           }
@@ -2525,10 +2522,7 @@ export function ExpensePage() {
                                             await reactivateSubscription(
                                               sub.service,
                                             );
-                                            setTimeout(
-                                              () => refreshPanel(),
-                                              500,
-                                            );
+                                            await refreshPanel();
                                           } catch {
                                             setReactivatingSub(null);
                                           }
@@ -2574,7 +2568,7 @@ export function ExpensePage() {
               onSaved={() => {
                 setShowSubModal(false);
                 setEditSub(null);
-                setTimeout(() => refreshPanel(), 500);
+                refreshPanel();
               }}
               editData={editSub ?? undefined}
             />

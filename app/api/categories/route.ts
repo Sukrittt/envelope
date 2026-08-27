@@ -1,13 +1,13 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { cachedRead, invalidate } from '@/lib/cache'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('categories', auth)
-  const docs = await cachedRead('categories', auth.userId, () => coll.find({}).sort({ order: 1 }).toArray())
+  const docs = await coll.find({}).sort({ order: 1 }).toArray()
   return json(
     docs
       .map((d) => ({ name: d.name ?? '', group: d.group ?? '' }))

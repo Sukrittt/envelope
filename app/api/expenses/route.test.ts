@@ -7,7 +7,6 @@ vi.mock('@/lib/access', () => ({
 }))
 
 vi.mock('@/lib/cache', () => ({
-  cachedRead: vi.fn(async (_base: string, _userId: string, fn: () => Promise<unknown>) => fn()),
   invalidate: vi.fn(),
 }))
 

@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
-import { cachedRead, invalidate } from '@/lib/cache'
+import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import type { ScopedCollection } from '@/lib/scoped'
 
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('expenses', auth)
-  const docs = await cachedRead('expenses', auth.userId, () => coll.find({}).toArray())
+  const docs = await coll.find({}).toArray()
   // `id` rides alongside the CSV-shaped headers/row rather than joining
   // EXPENSE_HEADERS itself, since that array is also the CSV export's column
   // set — this keeps the export unchanged while giving JSON callers a real
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   const paymentMethod = String(body.payment_method ?? 'bank')
 
   const coll = await getCollection('expenses', auth)
-  await coll.insertOne({
+  const inserted = await coll.insertOne({
     timestamp,
     date,
     item: String(body.item),
@@ -92,7 +92,10 @@ export async function POST(req: Request) {
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
   invalidateCategoryMap(auth.userId)
-  return json({ ok: true })
+  // The id and the server-generated timestamp go back to the caller so it can
+  // address the row it just created — mobile's post-log success screen needs
+  // both to offer Undo without re-fetching the whole list to find the row.
+  return json({ ok: true, id: String(inserted.insertedId), timestamp })
 }
 
 export async function PUT(req: Request) {

@@ -1,6 +1,6 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { cachedRead, invalidate } from '@/lib/cache'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +9,7 @@ const ARCHIVED_GROUP = 'Archived'
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('groups', auth)
-  const docs = await cachedRead('groups', auth.userId, () => coll.find({}).sort({ order: 1 }).toArray())
+  const docs = await coll.find({}).sort({ order: 1 }).toArray()
   return json(docs.map((d) => d.name).filter(Boolean))
 }
 

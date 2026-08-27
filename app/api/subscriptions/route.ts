@@ -1,14 +1,14 @@
 import { json, error, readBody, getCollection, escapeRegExp, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { SUBSCRIPTION_HEADERS, toRow } from '@/lib/models'
-import { cachedRead, invalidate } from '@/lib/cache'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('subscriptions', auth)
-  const docs = await cachedRead('subscriptions', auth.userId, () => coll.find({}).toArray())
+  const docs = await coll.find({}).toArray()
   return json({ headers: SUBSCRIPTION_HEADERS, rows: docs.map((d) => toRow(SUBSCRIPTION_HEADERS, d)) })
 }
 
@@ -48,8 +48,11 @@ export async function PUT(req: Request) {
   const body = await readBody(req)
   if (!body.service) return error('service required')
 
+  // Case-insensitive match, consistent with the POST duplicate check and DELETE below.
   const coll = await getCollection('subscriptions', auth)
-  const existing = await coll.findOne({ service: String(body.service) })
+  const existing = await coll.findOne({
+    service: { $regex: new RegExp(`^${escapeRegExp(String(body.service))}$`, 'i') },
+  })
   if (!existing) return error('subscription not found', 404)
 
   const update: Record<string, string> = {}
@@ -70,7 +73,7 @@ export async function PUT(req: Request) {
     update.renewal_or_end_month = ''
   }
 
-  await coll.updateOne({ service: String(body.service) }, { $set: update })
+  await coll.updateOne({ _id: existing._id }, { $set: update })
   invalidate('subscriptions', auth.userId)
   return json({ ok: true })
 }

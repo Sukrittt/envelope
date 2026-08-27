@@ -1,14 +1,14 @@
 import { json, error, readBody, getCollection, escapeRegExp } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { HOLDING_HEADERS, toRow } from '@/lib/models'
-import { cachedRead, invalidate } from '@/lib/cache'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('holdings', auth)
-  const docs = await cachedRead('holdings', auth.userId, () => coll.find({}).toArray())
+  const docs = await coll.find({}).toArray()
   return json({ headers: HOLDING_HEADERS, rows: docs.map((d) => toRow(HOLDING_HEADERS, d)) })
 }
 

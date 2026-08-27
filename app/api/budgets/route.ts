@@ -1,14 +1,14 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { BUDGET_HEADERS, toRow } from '@/lib/models'
-import { cachedRead, invalidate } from '@/lib/cache'
+import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('budgets', auth)
-  const docs = await cachedRead('budgets', auth.userId, () => coll.find({}).toArray())
+  const docs = await coll.find({}).toArray()
   return json({ headers: BUDGET_HEADERS, rows: docs.map((d) => toRow(BUDGET_HEADERS, d)) })
 }
 
