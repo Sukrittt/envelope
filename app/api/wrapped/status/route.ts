@@ -6,7 +6,14 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
-  const month = currentEdition(nowIST().date)
-  const status = await editionStatus(auth, month)
-  return json(status)
+  const today = nowIST().date
+  const [status, inProgress] = await Promise.all([
+    editionStatus(auth, currentEdition(today)),
+    editionStatus(auth, today.slice(0, 7)),
+  ])
+  return json({
+    ...status,
+    currentMonth: inProgress.month,
+    currentMonthCount: inProgress.transactionCount,
+  })
 }
