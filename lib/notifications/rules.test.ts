@@ -89,21 +89,22 @@ describe('buildNotifications — thresholds', () => {
       month: MONTH,
     })
     const thresholds = notifs.filter((n) => n.kind === 'threshold').map((n) => n.key)
-    expect(thresholds.sort()).toEqual([`thr:${MONTH}:Food:50`, `thr:${MONTH}:Food:90`].sort())
+    expect(thresholds).toEqual([`thr:${MONTH}:Food:90`])
   })
 
-  it('fires every crossed threshold in one pass, not just the highest', () => {
+  it('fires only the highest crossed threshold, so one jump sends one notification', () => {
     const notifs = buildNotifications({
-      envelopes: [envelope({ spentPct: 95, spent: 950 })],
+      envelopes: [envelope({ spentPct: 98, spent: 980 })],
       subscriptions: [],
-      categories: [{ name: 'Food', alertPcts: [50, 90, 100] }],
+      categories: [{ name: 'Food', alertPcts: [25, 50, 90, 100] }],
       meta: meta(),
       prefs: prefs({ bills: false, coach: false }),
       today: TODAY,
       month: MONTH,
     })
-    const thresholds = notifs.filter((n) => n.kind === 'threshold').map((n) => n.key)
-    expect(thresholds.sort()).toEqual([`thr:${MONTH}:Food:50`, `thr:${MONTH}:Food:90`].sort())
+    const thresholds = notifs.filter((n) => n.kind === 'threshold')
+    expect(thresholds).toHaveLength(1)
+    expect(thresholds[0].key).toBe(`thr:${MONTH}:Food:90`)
   })
 
   it('an empty alertPcts opts a category out of threshold alerts entirely', () => {

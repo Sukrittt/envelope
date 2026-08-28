@@ -42,9 +42,10 @@ describe('notifyThresholdCrossed', () => {
 
   it('sends a push for the category that just crossed its threshold', async () => {
     // Food is at 90% with no alertPcts of its own, so it falls back to the
-    // default set [50, 90, 100] — both 50 and 90 are crossed.
+    // default set [50, 90, 100]; 50 and 90 are both crossed, but only the
+    // highest sends.
     await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
-    expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
     expect(sendPushNotificationMock.mock.calls[0][0]).toMatchObject({ userId: 'user_a' })
   })
 
@@ -66,7 +67,7 @@ describe('notifyThresholdCrossed', () => {
     expect(sendPushNotificationMock).toHaveBeenCalled()
   })
 
-  it('sends one push per crossed threshold when a category has multiple triggers', async () => {
+  it("sends a single push when several of a category's triggers are crossed at once", async () => {
     buildExpenseContextMock.mockResolvedValueOnce({
       facts: 'FACTS',
       meta: { txnCountThisMonth: 1, totalSpent: 950, totalAssigned: 1000, daysLeft: 5, daysElapsed: 25, totalDaysInMonth: 30 },
@@ -77,7 +78,7 @@ describe('notifyThresholdCrossed', () => {
       categories: [{ name: 'Food', alertPcts: [50, 90, 100] }],
     })
     await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
-    expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
   })
 
   it('does not re-send once the key is already claimed', async () => {

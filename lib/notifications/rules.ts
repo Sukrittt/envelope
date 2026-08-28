@@ -82,19 +82,21 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
 
     if (env.assigned <= 0) continue
     const pcts = alertPctsByCategory.get(env.category) ?? DEFAULT_ALERT_PCTS
-    // Every crossed threshold fires, not just the highest — a jump from 10% to
-    // 95% in one expense should surface both the 50% and 90% milestones, each
-    // deduped independently via its own key.
-    for (const pct of pcts) {
-      if (pct > 0 && env.spentPct >= pct) {
-        out.push({
-          key: `thr:${month}:${env.category}:${pct}`,
-          kind: 'threshold',
-          title: `${env.category} is at ${Math.round(env.spentPct)}%`,
-          body: `₹${inr(env.spent)} of ₹${inr(env.assigned)} spent in ${env.category}.`,
-          data: { category: env.category },
-        })
-      }
+    // Only the highest crossed threshold fires. The title reports *current* spend,
+    // not the threshold, so a jump from 10% to 98% crossing 25/50/90 at once would
+    // otherwise send three pushes reading identically ("Utilities is at 98%").
+    // Lower thresholds keep their own keys, so a smaller move that only clears one
+    // of them still fires that one.
+    const crossed = pcts.filter((pct) => pct > 0 && env.spentPct >= pct)
+    if (crossed.length > 0) {
+      const pct = Math.max(...crossed)
+      out.push({
+        key: `thr:${month}:${env.category}:${pct}`,
+        kind: 'threshold',
+        title: `${env.category} is at ${Math.round(env.spentPct)}%`,
+        body: `₹${inr(env.spent)} of ₹${inr(env.assigned)} spent in ${env.category}.`,
+        data: { category: env.category },
+      })
     }
   }
 
