@@ -1,6 +1,7 @@
 import type { Row } from '@/lib/models'
 
 export interface WrappedData {
+  month: string
   range: { startDate: string; endDate: string; daysTracked: number }
   totalSpent: number
   totalTransactions: number
@@ -9,27 +10,36 @@ export interface WrappedData {
   topWeekday: { day: string; total: number; count: number } | null
   longestStreak: { days: number; startDate: string; endDate: string } | null
   longestGap: { days: number; startDate: string; endDate: string } | null
-  monthlyTotals: Array<{ month: string; label: string; total: number }>
+  weeklyTotals: Array<{ label: string; total: number }>
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-const EMPTY_WRAPPED: WrappedData = {
-  range: { startDate: '', endDate: '', daysTracked: 0 },
-  totalSpent: 0,
-  totalTransactions: 0,
-  topCategories: [],
-  biggestPurchase: null,
-  topWeekday: null,
-  longestStreak: null,
-  longestGap: null,
-  monthlyTotals: [],
+function emptyWrapped(month: string): WrappedData {
+  return {
+    month,
+    range: { startDate: '', endDate: '', daysTracked: 0 },
+    totalSpent: 0,
+    totalTransactions: 0,
+    topCategories: [],
+    biggestPurchase: null,
+    topWeekday: null,
+    longestStreak: null,
+    longestGap: null,
+    weeklyTotals: [],
+  }
 }
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+/** Fixed day-of-month buckets — always 4 bars, no partial-week edge cases. */
+const WEEK_BUCKETS = [
+  { label: '1-7', from: 1, to: 7 },
+  { label: '8-14', from: 8, to: 14 },
+  { label: '15-21', from: 15, to: 21 },
+  { label: '22-end', from: 22, to: 31 },
+]
 
-/** Compute the all-time "Wrapped" recap from raw expense docs (real spend only, refunds excluded). */
-export function computeWrapped(docs: Row[]): WrappedData {
+/** Compute a single month's "Wrapped" recap from raw expense docs (real spend only, refunds excluded). */
+export function computeWrapped(docs: Row[], month: string): WrappedData {
   const rows = docs
     .map((r) => ({
       date: r.date,
@@ -38,10 +48,10 @@ export function computeWrapped(docs: Row[]): WrappedData {
       amountInr: Number(r.amount_inr) || 0,
       parsedDate: new Date(r.date),
     }))
-    .filter((r) => !Number.isNaN(r.parsedDate.getTime()) && r.amountInr > 0)
+    .filter((r) => !Number.isNaN(r.parsedDate.getTime()) && r.amountInr > 0 && r.date.slice(0, 7) === month)
     .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
 
-  if (rows.length === 0) return EMPTY_WRAPPED
+  if (rows.length === 0) return emptyWrapped(month)
 
   const distinctDates = [...new Set(rows.map((r) => r.date))].sort()
   const startDate = distinctDates[0]
@@ -108,16 +118,18 @@ export function computeWrapped(docs: Row[]): WrappedData {
     }
   }
 
-  const monthlyMap = new Map<string, number>()
-  for (const r of rows) {
-    const month = r.date.slice(0, 7)
-    monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + r.amountInr)
-  }
-  const monthlyTotals = [...monthlyMap.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([month, total]) => ({ month, label: MONTH_LABELS[Number(month.slice(5, 7)) - 1] ?? month, total }))
+  const weeklyTotals = WEEK_BUCKETS.map((bucket) => ({
+    label: bucket.label,
+    total: rows
+      .filter((r) => {
+        const day = Number(r.date.slice(8, 10))
+        return day >= bucket.from && day <= bucket.to
+      })
+      .reduce((s, r) => s + r.amountInr, 0),
+  }))
 
   return {
+    month,
     range: { startDate, endDate, daysTracked: distinctDates.length },
     totalSpent,
     totalTransactions: rows.length,
@@ -126,6 +138,6 @@ export function computeWrapped(docs: Row[]): WrappedData {
     topWeekday,
     longestStreak,
     longestGap,
-    monthlyTotals,
+    weeklyTotals,
   }
 }
