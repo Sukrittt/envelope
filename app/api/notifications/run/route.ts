@@ -4,8 +4,9 @@ import { json, nowIST } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import type { Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
-import { buildNotifications, prefsFor } from '@/lib/notifications/rules'
+import { buildNotifications, prefsFor, wrappedNotification } from '@/lib/notifications/rules'
 import { claimAndSend } from '@/lib/notifications/deliver'
+import { currentEdition, editionStatus } from '@/lib/wrapped'
 import type { UserDoc } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,29 @@ async function runForUser(db: Db, user: UserDoc): Promise<number> {
   return sent
 }
 
+/**
+ * Separate pass, not folded into `runForUser`: that function bails out entirely
+ * for `cadence === 'off'` users before doing anything, which would silently
+ * swallow the one notification meant to re-engage exactly them. It also builds
+ * the full AI expense context (envelopes, subscriptions, categories) per user —
+ * wrapped only needs a transaction count, so running it inside that path would
+ * do the expensive work for the entire user base daily instead of once a month.
+ *
+ * ponytail: one count per user. Upgrade to a single grouped aggregation over
+ * `expenses` if the user base grows large enough for N queries to matter.
+ */
+async function runWrappedForUser(db: Db, user: UserDoc, month: string): Promise<number> {
+  const prefs = prefsFor(user)
+  const notification = wrappedNotification(month, prefs)
+  if (!notification) return 0
+
+  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const status = await editionStatus(auth, month)
+  if (!status.available) return 0
+
+  return (await claimAndSend(db, user._id, notification, '')) ? 1 : 0
+}
+
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
   const header = req.headers.get('authorization')
@@ -62,6 +86,20 @@ export async function GET(req: Request) {
       sent += await runForUser(db, user)
     } catch (err) {
       console.error('notifications/run: failed for', user._id, err)
+    }
+  }
+
+  const wrappedMonth = currentEdition(nowIST().date)
+  const wrappedUsers = await db
+    .collection<UserDoc>('users')
+    .find({ notifyWrapped: { $ne: false } })
+    .toArray()
+
+  for (const user of wrappedUsers) {
+    try {
+      sent += await runWrappedForUser(db, user, wrappedMonth)
+    } catch (err) {
+      console.error('notifications/run: wrapped failed for', user._id, err)
     }
   }
 

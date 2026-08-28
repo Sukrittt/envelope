@@ -36,6 +36,7 @@ function prefs(overrides: Partial<NotificationPrefs> = {}): NotificationPrefs {
     bills: true,
     billLeadDays: 3,
     coach: true,
+    wrapped: true,
     ...overrides,
   }
 }

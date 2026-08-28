@@ -1,6 +1,6 @@
 import type { Envelope } from '@/src/types/expense'
 import type { CategoryDocRow, SubscriptionDocRow, SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
-import { getEffectiveDueDate, renewalDays } from '@/lib/subscriptions'
+import { getEffectiveDueDate, renewalDays, MONTH_NAMES } from '@/lib/subscriptions'
 import type { UserDoc } from '@/lib/users'
 
 /**
@@ -18,12 +18,14 @@ export interface NotificationPrefs {
   bills: boolean
   billLeadDays: number
   coach: boolean
+  /** New monthly Wrapped edition unlocked — independent of `cadence`. */
+  wrapped: boolean
 }
 
 /** Trigger percentages applied to any category that hasn't customized its own. */
 export const DEFAULT_ALERT_PCTS = [50, 90, 100]
 
-export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach'
+export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'wrapped'
 
 export interface Notification {
   /** Dedupe key claimed in `notification_log`; stable across runs until the underlying fact changes. */
@@ -42,6 +44,7 @@ export function prefsFor(user: UserDoc): NotificationPrefs {
     bills: user.notifyBills ?? true,
     billLeadDays: typeof user.notifyBillLeadDays === 'number' ? user.notifyBillLeadDays : 3,
     coach: user.notifyCoach ?? true,
+    wrapped: user.notifyWrapped ?? true,
   }
 }
 
@@ -167,6 +170,26 @@ function coachNotification(
     kind: 'coach',
     title: 'Heads up on this month',
     body,
+  }
+}
+
+/**
+ * The monthly Wrapped-unlock nudge. Run as its own pass by the cron route
+ * (`app/api/notifications/run`), not folded into `buildNotifications` — that
+ * function's caller only fetches expense-context data for users with
+ * `cadence !== 'off'`, which would silently exclude exactly the users this
+ * notification exists to re-engage.
+ */
+export function wrappedNotification(month: string, prefs: NotificationPrefs): Notification | null {
+  if (!prefs.wrapped) return null
+  const [, m] = month.split('-')
+  const label = MONTH_NAMES[Number(m) - 1]
+  return {
+    key: `wrapped:${month}`,
+    kind: 'wrapped',
+    title: 'Your Wrapped is ready',
+    body: `Your ${label} Expense Wrapped just unlocked.`,
+    data: { route: '/wrapped' },
   }
 }
 

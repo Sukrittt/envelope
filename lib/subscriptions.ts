@@ -12,7 +12,7 @@ export interface DueDateInput {
   timestamp: string
 }
 
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
   'January',
   'February',
   'March',
