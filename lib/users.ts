@@ -21,6 +21,8 @@ export interface UserDoc {
   notifyBills?: boolean
   notifyBillLeadDays?: number
   notifyCoach?: boolean
+  /** Push when a new monthly Wrapped edition unlocks — independent of `notifyCadence`. */
+  notifyWrapped?: boolean
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null

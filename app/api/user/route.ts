@@ -30,7 +30,17 @@ export async function PATCH(req: Request) {
   const name = typeof body.name === 'string' ? body.name.trim() : undefined
 
   const updates: Partial<
-    Pick<UserDoc, 'name' | 'onboardedAt' | 'notifyCadence' | 'notifyThresholds' | 'notifyBills' | 'notifyBillLeadDays' | 'notifyCoach'>
+    Pick<
+      UserDoc,
+      | 'name'
+      | 'onboardedAt'
+      | 'notifyCadence'
+      | 'notifyThresholds'
+      | 'notifyBills'
+      | 'notifyBillLeadDays'
+      | 'notifyCoach'
+      | 'notifyWrapped'
+    >
   > = {}
   if (name !== undefined) updates.name = name || null
   if (typeof body.onboardedAt === 'string' || body.onboardedAt === null) updates.onboardedAt = body.onboardedAt as string | null
@@ -43,6 +53,7 @@ export async function PATCH(req: Request) {
     updates.notifyBillLeadDays = body.notifyBillLeadDays
   }
   if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
+  if (typeof body.notifyWrapped === 'boolean') updates.notifyWrapped = body.notifyWrapped
   if (Object.keys(updates).length === 0) return error('no valid fields')
 
   if (name !== undefined) {
