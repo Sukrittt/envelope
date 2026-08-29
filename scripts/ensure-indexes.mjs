@@ -44,6 +44,11 @@ const INDEXES = {
     [{ user_id: 1, key: 1 }, { unique: true }],
     [{ sentAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }],
   ],
+  // Current crossed-threshold level per user+month+category for Smart
+  // Notifications — replaces "claimed forever" dedupe for threshold/overspend
+  // pushes with a level that can drop (spending edited down) and rise again
+  // (re-fires), see lib/notifications/thresholdState.ts.
+  notification_threshold_state: [[{ user_id: 1, month: 1, category: 1 }, { unique: true }]],
 }
 
 async function main() {

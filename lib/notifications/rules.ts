@@ -25,6 +25,9 @@ export interface NotificationPrefs {
 /** Trigger percentages applied to any category that hasn't customized its own. */
 export const DEFAULT_ALERT_PCTS = [50, 90, 100]
 
+/** Sentinel level for an overspent envelope — always above any realistic alertPct, since `spentPct` is capped at 100. */
+export const OVER_LEVEL = 101
+
 export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'wrapped'
 
 export interface Notification {
@@ -63,10 +66,28 @@ function isoWeekKey(dateStr: string): string {
   return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
+function alertPctsMap(categories: CategoryDocRow[]): Map<string, number[]> {
+  return new Map(categories.filter((c) => Array.isArray(c.alertPcts)).map((c) => [c.name, c.alertPcts as number[]]))
+}
+
+/** Current crossed level for one envelope: 0 (nothing crossed) up to the highest crossed alertPct, or `OVER_LEVEL` if overspent. */
+function levelFor(env: Envelope, alertPctsByCategory: Map<string, number[]>): number {
+  if (env.isOverspent) return OVER_LEVEL
+  if (env.assigned <= 0) return 0
+  const pcts = alertPctsByCategory.get(env.category) ?? DEFAULT_ALERT_PCTS
+  const crossed = pcts.filter((pct) => pct > 0 && env.spentPct >= pct)
+  return crossed.length > 0 ? Math.max(...crossed) : 0
+}
+
+/** One category's current level, e.g. to sync state for a category whose level dropped and produced no notification candidate. */
+export function categoryLevel(envelopes: Envelope[], categories: CategoryDocRow[], category: string): number {
+  const env = envelopes.find((e) => !e.isCreditCardPayment && e.category === category)
+  if (!env) return 0
+  return levelFor(env, alertPctsMap(categories))
+}
+
 function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRow[], month: string): Notification[] {
-  const alertPctsByCategory = new Map(
-    categories.filter((c) => Array.isArray(c.alertPcts)).map((c) => [c.name, c.alertPcts as number[]]),
-  )
+  const alertPctsByCategory = alertPctsMap(categories)
   const out: Notification[] = []
 
   for (const env of envelopes) {
@@ -78,27 +99,24 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
         kind: 'overspent',
         title: `${env.category} is over budget`,
         body: `You've overspent ₹${inr(-env.available)} in ${env.category} this month.`,
-        data: { category: env.category },
+        data: { category: env.category, month, level: OVER_LEVEL },
       })
       continue
     }
 
-    if (env.assigned <= 0) continue
-    const pcts = alertPctsByCategory.get(env.category) ?? DEFAULT_ALERT_PCTS
     // Only the highest crossed threshold fires. The title reports *current* spend,
     // not the threshold, so a jump from 10% to 98% crossing 25/50/90 at once would
     // otherwise send three pushes reading identically ("Utilities is at 98%").
-    // Lower thresholds keep their own keys, so a smaller move that only clears one
-    // of them still fires that one.
-    const crossed = pcts.filter((pct) => pct > 0 && env.spentPct >= pct)
-    if (crossed.length > 0) {
-      const pct = Math.max(...crossed)
+    // The level (not the key) now drives dedupe — see lib/notifications/thresholdState.ts
+    // — so a drop below a threshold and a later re-cross fires again.
+    const level = levelFor(env, alertPctsByCategory)
+    if (level > 0) {
       out.push({
-        key: `thr:${month}:${env.category}:${pct}`,
+        key: `thr:${month}:${env.category}:${level}`,
         kind: 'threshold',
         title: `${env.category} is at ${Math.round(env.spentPct)}%`,
         body: `₹${inr(env.spent)} of ₹${inr(env.assigned)} spent in ${env.category}.`,
-        data: { category: env.category },
+        data: { category: env.category, month, level },
       })
     }
   }

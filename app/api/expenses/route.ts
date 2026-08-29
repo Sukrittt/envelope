@@ -216,5 +216,10 @@ export async function DELETE(req: Request) {
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
   invalidateCategoryMap(auth.userId)
+
+  // Deleting can drop a category back below a threshold it had crossed —
+  // sync that the same way an edit-down does, so a later re-cross fires again.
+  await notifyThresholdCrossed(auth, String(found.category ?? ''))
+
   return json({ ok: true })
 }

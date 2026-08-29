@@ -4,6 +4,7 @@ import { generateJSON } from '@/lib/ai/gemini'
 import { sendPushNotification } from '@/lib/push'
 import { COLLECTIONS } from '@/lib/models'
 import type { Notification } from './rules'
+import { syncLevel } from './thresholdState'
 
 /**
  * Claim-then-send plumbing shared by the daily cron
@@ -66,9 +67,18 @@ async function enrichCoachNotification(notification: Notification, facts: string
  * Claims `notification.key`; if this call wins the claim, sends it (enriching
  * a 'coach' notification with Gemini first). Returns whether it was actually
  * sent — false for an already-claimed key or a push failure, never throws.
+ *
+ * 'threshold' and 'overspent' don't use the permanent key claim — spending
+ * can drop below a threshold and rise past it again in the same month, and a
+ * one-time claim would block that re-fire forever. Instead they gate on
+ * `syncLevel`: did the category's level just rise above where it was last
+ * recorded (see thresholdState.ts).
  */
 export async function claimAndSend(db: Db, userId: string, notification: Notification, facts: string): Promise<boolean> {
-  if (!(await claim(db, userId, notification.key))) return false
+  if (notification.kind === 'threshold' || notification.kind === 'overspent') {
+    const { month, category, level } = notification.data as { month: string; category: string; level: number }
+    if (!(await syncLevel(db, userId, month, category, level))) return false
+  } else if (!(await claim(db, userId, notification.key))) return false
 
   const toSend = notification.kind === 'coach' ? await enrichCoachNotification(notification, facts) : notification
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildNotifications, type NotificationPrefs } from './rules'
+import { buildNotifications, categoryLevel, OVER_LEVEL, type NotificationPrefs } from './rules'
 import type { Envelope } from '@/src/types/expense'
 import type { SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
 
@@ -151,6 +151,39 @@ describe('buildNotifications — thresholds', () => {
     const overspent = notifs.filter((n) => n.kind === 'overspent')
     expect(overspent).toHaveLength(1)
     expect(overspent[0].key).toBe(`over:${MONTH}:Food`)
+  })
+
+  it('carries the current level in data, for state-based dedupe downstream', () => {
+    const notifs = buildNotifications({
+      envelopes: [envelope({ spentPct: 80, spent: 800 })],
+      subscriptions: [],
+      categories: [{ name: 'Food', alertPcts: [80] }],
+      meta: meta(),
+      prefs: prefs({ bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    })
+    const threshold = notifs.find((n) => n.kind === 'threshold')
+    expect(threshold?.data).toMatchObject({ category: 'Food', month: MONTH, level: 80 })
+
+    const overspent = buildNotifications({
+      envelopes: [envelope({ spentPct: 100, available: -50, isOverspent: true })],
+      subscriptions: [],
+      categories: [],
+      meta: meta(),
+      prefs: prefs({ bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    }).find((n) => n.kind === 'overspent')
+    expect(overspent?.data).toMatchObject({ category: 'Food', month: MONTH, level: OVER_LEVEL })
+  })
+
+  it('categoryLevel reports the current level without building a notification', () => {
+    const envelopes = [envelope({ spentPct: 95, spent: 950 })]
+    const categories = [{ name: 'Food', alertPcts: [50, 90] }]
+    expect(categoryLevel(envelopes, categories, 'Food')).toBe(90)
+    expect(categoryLevel(envelopes, categories, 'Nonexistent')).toBe(0)
+    expect(categoryLevel([envelope({ spentPct: 30 })], [{ name: 'Food', alertPcts: [50, 90] }], 'Food')).toBe(0)
   })
 
   it('skips the credit-card sentinel envelope', () => {
