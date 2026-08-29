@@ -1,129 +1,325 @@
-# Mission Control Dashboard — Knowledge Graph Report
+# Graph Report - .  (2026-08-29)
 
-## Overview
+## Corpus Check
+- 0 files · ~99,999 words
+- Verdict: corpus is large enough that graph structure adds value.
 
-**Corpus:** 115 files · ~57K words
-- Code: 83 files (.ts, .tsx, .mjs)
-- Docs: 24 files (.md)
-- Images: 6 files
+## Summary
+- 792 nodes · 1521 edges · 59 communities detected
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.68)
+- Token cost: 4,280 input · 4,120 output
+- Edge kinds: contains: 576 · imports: 442 · imports_from: 274 · calls: 147 · conceptually_related_to: 26 · references: 13 · shares_data_with: 12 · implements: 5 · uses: 5 · includes: 4 · targets: 3 · queries: 2 · semantically_similar_to: 2 · applies: 1 · based_on: 1 · created_by: 1 · displays: 1 · enables: 1 · follows: 1 · inherits: 1 · provides_context: 1 · renders: 1 · specifies: 1
 
-**Graph:** 29 nodes · 27 edges · 4 communities
+## God Nodes (most connected - your core abstractions)
+1. `getAuth()` - 32 edges
+2. `apiFetch()` - 32 edges
+3. `json()` - 31 edges
+4. `error()` - 26 edges
+5. `getCollection()` - 21 edges
+6. `readBody()` - 19 edges
+7. `readOnlyGuard()` - 18 edges
+8. `Mission Control` - 17 edges
+9. `invalidate()` - 11 edges
+10. `getWorkOSClient()` - 11 edges
 
----
-
-## God Nodes (Highest Influence)
-
-1. **Mission Control Dashboard** (degree: 8)
-   - Central hub connecting all subsystems
-   - Anchors: financial envelope budgeting, fluid interactions design, privacy-first architecture, guest demo mode
-
-2. **Fluid Interactions** (degree: 5)
-   - Design system spanning animation, motion library, spring physics, interruptibility
-   - Surfaces: SparkBars, Heatmap, SparkLine components
-   - Drives: Plans 007–009 animation improvements
-
-3. **Next.js 15 + MongoDB** (degree: 3 each)
-   - Technology choices enabling layered architecture and persistent data model
-
----
+## Surprising Connections (you probably didn't know these)
+- `SparkBars` --implements--> `Fluid Interactions`  [EXTRACTED]
+  src/components/SparkBars.tsx → FLUID_INTERACTIONS.md
+- `Heatmap` --implements--> `Fluid Interactions`  [EXTRACTED]
+  src/components/SpendingInsights.tsx → FLUID_INTERACTIONS.md
+- `SparkLine` --implements--> `Fluid Interactions`  [EXTRACTED]
+  src/components/SparkLine.tsx → FLUID_INTERACTIONS.md
+- `Plan 007: Heatmap Border Transition` --targets--> `Heatmap`  [EXTRACTED]
+  plans/007-heatmap-day-border-transition.md → src/components/SpendingInsights.tsx
+- `Plan 008: Tooltip Animation` --targets--> `Heatmap`  [EXTRACTED]
+  plans/008-heatmap-tooltip-entrance.md → src/components/SpendingInsights.tsx
 
 ## Communities
 
-### Community 0: Product & User Model (Sukrit)
-- **Mission Control Dashboard**, Sukrit (user), envelope budgeting, privacy, guest demo mode, Mac (assistant)
-- Focus: Financial cockpit, user-centered design, data ownership
+### Community 0 - "Envelope Category Map"
+Cohesion: 0.06
+Nodes (35): buildCategoryMap(), cache, CategoryMap, CategoryMapOverride, getCachedCategoryMap(), invalidateCategoryMap(), assertRoundTrips(), decrypt() (+27 more)
 
-### Community 1: Technology Stack
-- **Next.js 15**, **MongoDB**, DashboardProvider, expenses/budgets APIs
-- Focus: Backend infrastructure, data persistence, server-side request handling
+### Community 1 - "Account Page & Theme"
+Cohesion: 0.06
+Nodes (32): NotifyCadence, UserDoc, AppearanceContext, AppearanceProvider(), AppearanceValue, Density, Theme, useAppearance() (+24 more)
 
-### Community 2: Interaction & Animation Design
-- **Fluid Interactions**, Apple design principles, spring physics, interruptibility
-- Components: SparkBars, Heatmap, SparkLine
-- Plans: 007 (heatmap border), 008 (tooltip), 009 (sparkline fill)
-- Focus: Motion-driven UX, Apple-like responsiveness, GPU-friendly animations
+### Community 2 - "Category Manager API"
+Cohesion: 0.08
+Nodes (39): Props, addBudget(), addCategory(), addGroup(), addHolding(), apiFetch(), BudgetRow, cancelSubscription() (+31 more)
 
-### Community 3: Fitness Dashboard (Emerging)
-- **Fitness Dashboard Spec**, Data Contract, KPI Definitions
-- FitnessPage view integrates SparkLine
-- Status: Experiment on bundled sample data; not wired to real backend yet
+### Community 3 - "Expense Context Models"
+Cohesion: 0.08
+Nodes (32): BudgetDocRow, CategoryDocRow, cycleMonths(), daysInMonth(), ExpenseRow, GroupDocRow, HoldingDocRow, lastNMonths() (+24 more)
 
----
+### Community 4 - "API CRUD Route Handlers"
+Cohesion: 0.12
+Nodes (8): invalidateMock, invalidate(), error(), getCollection(), json(), readBody(), Session, SuggestResult
 
-## Surprising Connections
+### Community 5 - "AI Chat Backend"
+Cohesion: 0.09
+Nodes (27): ChatSessionDoc, makeTitle(), StoredChatMessage, generateJSON(), getGeminiClient(), streamText(), buildSystemPrompt(), ClientMessage (+19 more)
 
-1. **Heatmap ← Plan 008 ← Fitness Dashboard**
-   - Plan 008 animates tooltip in SpendingInsights heatmap
-   - Same heatmap design pattern appears in fitness dashboard (calendar view)
-   - Implication: Fitness dashboard could reuse tooltip animation work without duplicating motion logic
+### Community 6 - "Rate Limiting & Guards"
+Cohesion: 0.11
+Nodes (15): readOnlyGuard(), clientIp(), isRateLimited(), RateLimitHit, RateLimitTier, hits, displayName(), ensureUser() (+7 more)
 
-2. **SparkBars ← Interruptibility ← Spring Physics**
-   - Core strength of fluid interactions (velocity handoff + interruptibility)
-   - Plans 001–009 incrementally refine animation delivery without regressions
-   - Hidden coupling: all 9 animation plans assume motion library availability; migration would block entire animation roadmap
+### Community 7 - "Date Picker UI"
+Cohesion: 0.08
+Nodes (26): CategoryManager(), buildCells(), CalendarBody(), Cell, DatePicker(), DatePickerProps, fmt(), fmtShort() (+18 more)
 
-3. **Privacy Principle ← Guest Demo Mode ← API Scope Model**
-   - Three-layer isolation: auth token → scope (real/guest) → collection routing
-   - Single point of failure: if scope resolution breaks, demos leak real financial data
-   - Opportunity: audit guestWriteGuard implementation in every mutation route
+### Community 8 - "Brief & Expense Context"
+Cohesion: 0.12
+Nodes (18): buildExpenseContext(), Brief, BriefCard, GET(), rateLimited(), Auth, cachedRead(), nowIST() (+10 more)
 
----
+### Community 9 - "Rollover Banner UI"
+Cohesion: 0.12
+Nodes (21): MONTH_NAMES, monthLabel(), MonthRolloverBanner(), Props, FADE, MotionSheetProps, Scrim(), Sheet() (+13 more)
+
+### Community 10 - "Data API Routes"
+Cohesion: 0.12
+Nodes (10): HEADERS, escapeRegExp(), BUDGET_HEADERS, CATEGORY_HEADERS, EXPENSE_HEADERS, GROUP_HEADERS, HOLDING_EVENT_HEADERS, HOLDING_HEADERS (+2 more)
+
+### Community 11 - "Animation Plans & Docs"
+Cohesion: 0.12
+Nodes (17): Animation Plans (001-009), Apple Design Principles, DashboardProvider, fredoka, nunito, FitnessPage View, Fluid Interactions, Heatmap (+9 more)
+
+### Community 12 - "Fluid Spark Charts"
+Cohesion: 0.14
+Nodes (13): FluidDemo(), smoothPath(), SparkBarDatum, SparkBars(), SparkBarsProps, CATEGORY_COLORS, ExpensePage(), formatCurrency() (+5 more)
+
+### Community 13 - "Expense Entry Flow"
+Cohesion: 0.18
+Nodes (14): LogExpenseModal(), Props, toDateInputValue(), Props, addExpense(), getCategoryMap(), ensureMap(), fuzzyMatch() (+6 more)
+
+### Community 14 - "Transactions Editing"
+Cohesion: 0.14
+Nodes (11): Props, TransactionEditModal(), CATEGORY_ICONS, INCOME_CATEGORIES, PeriodKey, TimelineItem, getBudgets(), updateExpense() (+3 more)
+
+### Community 15 - "Envelope Compute Scripts"
+Cohesion: 0.15
+Nodes (15): budgets, capResult, categories, computeEnvelopes(), cycleMonths(), daysInMonth(), expenses, groups (+7 more)
+
+### Community 16 - "Envelope Grid UI"
+Cohesion: 0.18
+Nodes (6): Props, EnvelopeGrid(), Props, Props, ReadyToAssignBanner(), formatCurrency()
+
+### Community 17 - "OAuth Callbacks"
+Cohesion: 0.26
+Nodes (6): clearStateCookie(), generateNonce(), readCookie(), safeEqual(), setStateCookie(), verifyState()
+
+### Community 18 - "Product Concepts"
+Cohesion: 0.20
+Nodes (11): subscriptions collection, Mission Control, Next.js 15 App Router, Onboarding Tour, Principle: Answer the money question in seconds, Route vs View Layer Split, Spending Insights, Subscriptions (+3 more)
+
+### Community 19 - "Spending Insights Charts"
+Cohesion: 0.25
+Nodes (9): buildHeatmap(), buildReview(), DAY_HEADERS, fmt(), LEVEL_COLORS, monthLabel(), Props, SpendingInsights() (+1 more)
+
+### Community 20 - "Auth Resolution"
+Cohesion: 0.29
+Nodes (8): bearerToken(), demoUserId(), getAuth(), getJwks(), readOnlyResponse(), verifyBearerToken(), isPlatform(), POST()
+
+### Community 21 - "Budget & Holdings Concepts"
+Cohesion: 0.22
+Nodes (10): budgets collection, groups collection, holding_events collection, holdings collection, Envelope Budgeting, Fitness & Learnings Pages, INR Monthly Money Cycle, Investments (+2 more)
+
+### Community 22 - "CSV Migration Scripts"
+Cohesion: 0.29
+Nodes (9): buildFilter(), COLLECTION_MAP, __dirname, __filename, main(), parseCsv(), readCsvAsObjects(), seedCollection() (+1 more)
+
+### Community 23 - "Fitness Page"
+Cohesion: 0.29
+Nodes (9): capitalize(), DAY_TO_SPLIT, FitnessPage(), FitnessTab, formatDate(), getTodaySplit(), panel, SplitFilter (+1 more)
+
+### Community 24 - "Account Security Concepts"
+Cohesion: 0.28
+Nodes (9): Account & Security, app/api Route Handlers, users collection, Read-only Demo Account, getAuth Resolver, middleware.ts Session Gating, ScopedCollection Choke Point, user_id Data Scoping (+1 more)
+
+### Community 25 - "Expense CRUD Routes"
+Cohesion: 0.36
+Nodes (7): adjustCreditCardEnvelope(), DELETE(), ExpenseDoc, findExpense(), POST(), PUT(), notifyThresholdCrossed()
+
+### Community 26 - "Wrapped Recap"
+Cohesion: 0.31
+Nodes (6): Row, computeWrapped(), DAY_NAMES, emptyWrapped(), WEEK_BUCKETS, WrappedData
+
+### Community 27 - "User API Tests"
+Cohesion: 0.22
+Nodes (6): deleteManyMock, deleteUserMock, updateUserMock, usersDeleteOneMock, usersFindOneMock, usersUpdateOneMock
+
+### Community 28 - "Architecture & Positioning"
+Cohesion: 0.25
+Nodes (8): budgets API, expenses API, Guest Demo Mode, Mission Control Dashboard, MongoDB, Next.js 15, Privacy by Design, Sukrit (User)
+
+### Community 29 - "Collection CRUD Routes"
+Cohesion: 0.29
+Nodes (3): isDuplicateKeyError(), POST(), insertOneMock
+
+### Community 30 - "Backfill Scripts"
+Cohesion: 0.32
+Nodes (7): APPLY, backfillCollection(), correctedTimestamp(), __dirname, __filename, main(), workspace
+
+### Community 31 - "Notifications Concepts"
+Cohesion: 0.29
+Nodes (7): Auto-categorization, categories collection, notification_log collection, push_tokens collection, Google Gemini, Money Brain (AI), Push Notifications
+
+### Community 32 - "Email Resend Tests"
+Cohesion: 0.29
+Nodes (5): isRateLimitedMock, listUsersMock, sendVerificationEmailMock, updateUserMock, usersUpdateOneMock
+
+### Community 33 - "Notification Run Tests"
+Cohesion: 0.29
+Nodes (5): buildExpenseContextMock, logInsertOneMock, sendPushNotificationMock, USER, usersFindMock
+
+### Community 34 - "Chat History UI"
+Cohesion: 0.40
+Nodes (3): ChatMessage, SessionDetail, SessionSummary
+
+### Community 35 - "Middleware Gating"
+Cohesion: 0.40
+Nodes (5): config, CRON_PATHS, middleware(), PUBLIC_PAGE_PATHS, refreshSession
+
+### Community 36 - "Instant Notif Tests"
+Cohesion: 0.33
+Nodes (5): buildExpenseContextMock, logInsertOneMock, sendPushNotificationMock, USER, usersFindOneMock
+
+### Community 37 - "Onboarding UI"
+Cohesion: 0.33
+Nodes (3): fredoka, nunito, SLIDES
+
+### Community 38 - "Security Page UI"
+Cohesion: 0.33
+Nodes (2): SessionRow, UserDoc
+
+### Community 39 - "Account Layout"
+Cohesion: 0.40
+Nodes (3): fredoka, NAV, nunito
+
+### Community 40 - "Data Export Page"
+Cohesion: 0.50
+Nodes (3): downloadBlob(), exportData(), Summary
+
+### Community 41 - "Scoped Collection Tests"
+Cohesion: 0.40
+Nodes (2): Doc, stores
+
+### Community 42 - "CSV Serialization"
+Cohesion: 0.80
+Nodes (3): csvField(), defangFormula(), toCsv()
+
+### Community 43 - "Collection Mocks Tests"
+Cohesion: 0.40
+Nodes (2): Doc, store
+
+### Community 44 - "Auth Layout"
+Cohesion: 0.50
+Nodes (2): fredoka, nunito
+
+### Community 45 - "Update Route Tests"
+Cohesion: 0.50
+Nodes (2): Doc, invalidateMock
+
+### Community 46 - "Self-hosting Principles"
+Cohesion: 0.50
+Nodes (4): CSV to MongoDB Migration, MongoDB Data Layer, Principle: Privacy by default, Principle: Self-hosted independence
+
+### Community 47 - "Reorder Route Tests"
+Cohesion: 0.50
+Nodes (2): docs, invalidateMock
+
+### Community 48 - "Move Route Tests"
+Cohesion: 0.50
+Nodes (2): isRateLimitedMock, sendVerificationEmailMock
+
+### Community 49 - "AI Chat Tests"
+Cohesion: 0.67
+Nodes (2): FakeAuth, ModelContents
+
+### Community 51 - "Expense & Transactions Concepts"
+Cohesion: 0.67
+Nodes (3): expenses collection, Principle: Direct manipulation over workflow, Transactions
+
+### Community 52 - "Fitness Dashboard Spec"
+Cohesion: 0.67
+Nodes (3): Fitness Data Contract, Fitness KPI Definitions, Fitness Dashboard Specification
+
+### Community 53 - "Invalidate Cache Tests"
+Cohesion: 0.67
+Nodes (2): docs, invalidateMock
+
+### Community 54 - "Budget Loader Tests"
+Cohesion: 0.67
+Nodes (2): categories, groups
+
+### Community 55 - "Sign-In Page"
+Cohesion: 0.67
+Nodes (1): metadata
+
+### Community 57 - "ESLint Config"
+Cohesion: 1.00
+Nodes (1): compat
+
+### Community 60 - "Next Config"
+Cohesion: 1.00
+Nodes (1): nextConfig
+
+### Community 62 - "Mac Assistant"
+Cohesion: 1.00
+Nodes (1): Mac (Assistant)
+
+### Community 63 - "Motion Library"
+Cohesion: 1.00
+Nodes (1): motion/react Library
+
+## Knowledge Gaps
+- **225 isolated node(s):** `Sukrit (User)`, `Next.js 15`, `Apple Design Principles`, `Spring Physics (motion/react)`, `Interruptibility` (+220 more)
+  These have ≤1 connection - possible missing edges or undocumented components.
+- **Thin community `Security Page UI`** (2 nodes): `SessionRow`, `UserDoc`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Scoped Collection Tests`** (2 nodes): `Doc`, `stores`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Collection Mocks Tests`** (2 nodes): `Doc`, `store`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Auth Layout`** (2 nodes): `fredoka`, `nunito`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Update Route Tests`** (2 nodes): `Doc`, `invalidateMock`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Reorder Route Tests`** (2 nodes): `docs`, `invalidateMock`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Move Route Tests`** (2 nodes): `isRateLimitedMock`, `sendVerificationEmailMock`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `AI Chat Tests`** (2 nodes): `FakeAuth`, `ModelContents`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Invalidate Cache Tests`** (2 nodes): `docs`, `invalidateMock`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Budget Loader Tests`** (2 nodes): `categories`, `groups`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Sign-In Page`** (1 nodes): `metadata`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `ESLint Config`** (1 nodes): `compat`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Next Config`** (1 nodes): `nextConfig`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Mac Assistant`** (1 nodes): `Mac (Assistant)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Motion Library`** (1 nodes): `motion/react Library`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
+_Questions this graph is uniquely positioned to answer:_
 
-1. **What animation improvements have been completed, and what's the next priority?**
-   - Graph traversal would show: plans 001–006 DONE (via commit f481763), 007–009 DONE (via commit 59ce0d4)
-   - Only 003 (token consolidation) remains, pending decision
-
-2. **How is the fitness dashboard evolving, and what dependencies does it have on shared components?**
-   - Fitness dashboard (community 3) currently isolated with bundled sample data
-   - Could expose SparkLine reuse opportunity (already uses it for weight/protein trends)
-   - Data contract ready; needs real data integration + settlement of KPI formulas
-
-3. **Which components implement fluid interactions, and are there motion-debt risks?**
-   - SparkBars, Heatmap, SparkLine all use motion/react + spring physics
-   - High-risk areas: animation cleanup on unmount, interruptibility during route transitions, reduced-motion fallback coverage
-   - Cross-cutting concern: all 9 plans rely on same motion tokens (--ease-standard, --dur-fast, --dur-med)
-
-4. **What prevents the guest demo from leaking real data?**
-   - Auth scope model creates guest scope via Bearer token check
-   - Collections hardcoded to demo_* collection names on guest scope
-   - Risk point: if a route forgets to call guestWriteGuard, mutations on guest scope write to demo collections (read-only, but misleading behavior)
-
----
-
-## Structural Notes
-
-- **Temporal markers:** Plans 007–009 delivered in commit f481763 (Mar 11); all animation audit (001–006) completed earlier
-- **Architecture split:** app/ (routing) ↔ src/ (views/components/context/services) ↔ lib/ (server helpers) — enforced separation means mutations on app/api/* routes always route through lib/access, lib/http, lib/models
-- **Implicit constraint:** CSV data seeding (migrate-to-mongo.mjs) must run before dev server starts; collections must exist or API calls fail
-- **Scope integrity:** Bearer token strategy (NEXT_PUBLIC_DASHBOARD_PASSWORD) is simple but sufficient for self-hosted context; no OAuth overhead
-
----
-
-## Recommended Next Investigations
-
-1. **Motion regression risk:** Audit all 9 plans for CSS property conflict (e.g., inline `width` animate vs Plan 002's `scaleX`)
-2. **Fitness backend:** Identify data source for real fitness daily logs and decide whether to use existing Joe integration or custom sync
-3. **Guest mode audit:** Grep for `guestWriteGuard` calls in every POST/PUT/DELETE route; ensure none skip it
-4. **Animation cleanup:** Verify motion library subscription cleanup in component unmount paths; memory leak risk on route transitions
-
----
-
-## Graph Statistics
-
-| Metric | Value |
-|--------|-------|
-| Nodes | 29 |
-| Edges | 27 |
-| Communities | 4 |
-| Avg. degree | 1.9 |
-| Max degree (hub) | Mission Control Dashboard (8) |
-| Density | 0.065 |
-| EXTRACTED edges | 22 (81%) |
-| INFERRED edges | 5 (19%) |
-| AMBIGUOUS edges | 0 |
-
----
-
-Generated: 2026-08-07 | Corpus: committed files only (auto scope)
+- **Why does `getEffectiveDueDate()` connect `Expense Context Models` to `Date Picker UI`?**
+  _High betweenness centrality (0.127) - this node is a cross-community bridge._
+- **Why does `renewalDays()` connect `Expense Context Models` to `Date Picker UI`?**
+  _High betweenness centrality (0.127) - this node is a cross-community bridge._
+- **Why does `Fluid Interactions` connect `Animation Plans & Docs` to `Architecture & Positioning`?**
+  _High betweenness centrality (0.121) - this node is a cross-community bridge._
+- **What connects `Sukrit (User)`, `Next.js 15`, `Apple Design Principles` to the rest of the system?**
+  _225 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Envelope Category Map` be split into smaller, more focused modules?**
+  _Cohesion score 0.05593220338983051 - nodes in this community are weakly interconnected._
+- **Should `Account Page & Theme` be split into smaller, more focused modules?**
+  _Cohesion score 0.061170212765957445 - nodes in this community are weakly interconnected._
+- **Should `Category Manager API` be split into smaller, more focused modules?**
+  _Cohesion score 0.08048103607770583 - nodes in this community are weakly interconnected._
