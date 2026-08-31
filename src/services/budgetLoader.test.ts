@@ -46,6 +46,28 @@ describe('computeEnvelopes', () => {
     expect(state.income).toBe(10000)
   })
 
+  it("carries a category's last assigned amount into a month with no row of its own", () => {
+    const budgets: BudgetRow[] = [{ month: '2025-12', category: 'Groceries', assigned: 9000, rolledOver: 0 }]
+
+    const state = computeEnvelopes(budgets, [], '2026-01', categories, groups)
+    const groceries = state.envelopes.find((e) => e.category === 'Groceries')
+
+    expect(groceries?.assigned).toBe(9000)
+    expect(groceries?.available).toBe(9000)
+  })
+
+  it('an explicit row for this month, even assigned 0, overrides the carried amount', () => {
+    const budgets: BudgetRow[] = [
+      { month: '2025-12', category: 'Groceries', assigned: 9000, rolledOver: 0 },
+      { month: '2026-01', category: 'Groceries', assigned: 0, rolledOver: 0 },
+    ]
+
+    const state = computeEnvelopes(budgets, [], '2026-01', categories, groups)
+    const groceries = state.envelopes.find((e) => e.category === 'Groceries')
+
+    expect(groceries?.assigned).toBe(0)
+  })
+
   it('flags an envelope as overspent when available drops below zero', () => {
     const budgets: BudgetRow[] = [
       { month: '2026-01', category: 'Groceries', assigned: 1000, rolledOver: 0 },
