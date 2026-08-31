@@ -39,6 +39,30 @@ export async function generateJSON<T>(prompt: string, responseSchema: Schema): P
 }
 
 /**
+ * Same structured-output call as generateJSON, but with an image part attached
+ * ahead of the prompt text — used by the bill-scan route. `image.data` is raw
+ * base64 (no `data:` prefix).
+ */
+export async function generateJSONFromImage<T>(
+  prompt: string,
+  image: { data: string; mimeType: string },
+  responseSchema: Schema,
+): Promise<T> {
+  const ai = getGeminiClient()
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }],
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema,
+    },
+  })
+  const text = response.text
+  if (!text) throw new Error('Gemini returned an empty response')
+  return JSON.parse(text) as T
+}
+
+/**
  * Streaming chat call for the money-brain chat route. Returns the async
  * iterable stream directly — callers `for await` over it and read `.text`
  * off each chunk (same shape as the non-streaming response's `.text`).
