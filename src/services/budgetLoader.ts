@@ -43,11 +43,14 @@ export function computeEnvelopes(
   // No "start new month" flow exists — a category (income included) with no
   // row yet this month carries forward the most recent prior month's assigned
   // amount, until the user changes it. An explicit row for this month (even
-  // assigned: 0) always wins over the carried value.
+  // assigned: 0) always wins over the carried value. Credit Card Payment is
+  // excluded: it's money set aside to pay off *last* month's card spending,
+  // not a recurring budget target, so it always starts at 0 for a new month.
   function carriedAssigned(category: string): number {
     const rows = budgetsByCategory.get(category) ?? []
     const curr = rows.find((b) => b.month === currentMonth)
     if (curr) return curr.assigned
+    if (category === '__credit_card__') return 0
     const prior = rows.filter((b) => b.month < currentMonth).sort((a, b) => b.month.localeCompare(a.month))[0]
     return prior?.assigned ?? 0
   }

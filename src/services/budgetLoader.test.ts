@@ -81,6 +81,15 @@ describe('computeEnvelopes', () => {
     expect(groceries?.isOverspent).toBe(true)
   })
 
+  it('does not carry the credit-card payment envelope forward into a new month', () => {
+    const budgets: BudgetRow[] = [{ month: '2025-12', category: '__credit_card__', assigned: 432.25, rolledOver: 0 }]
+
+    const state = computeEnvelopes(budgets, [], '2026-01', categories, groups)
+    const cc = state.envelopes.find((e) => e.category === '__credit_card__')
+
+    expect(cc?.assigned).toBe(0)
+  })
+
   it('excludes the credit-card envelope from totalAssigned/totalSpent', () => {
     const budgets: BudgetRow[] = [
       { month: '2026-01', category: 'Groceries', assigned: 1000, rolledOver: 0 },
