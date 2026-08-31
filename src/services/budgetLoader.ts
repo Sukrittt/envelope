@@ -34,14 +34,12 @@ export function computeEnvelopes(
   const monthBudgets = budgets.filter((b) => b.month === currentMonth)
   const prevMonthBudgets = budgets.filter((b) => b.month < currentMonth)
 
-  const prevMonthMap = new Map<string, BudgetRow[]>()
-  for (const b of prevMonthBudgets) {
-    const arr = prevMonthMap.get(b.category) ?? []
-    arr.push(b)
-    prevMonthMap.set(b.category, arr)
-  }
-
-  const incomeRow = monthBudgets.find((b) => b.category === '__income__')
+  const incomeRows = budgets.filter((b) => b.category === '__income__')
+  // No income entered yet this month (no "start new month" flow exists) — carry
+  // forward the most recent prior month's income until the user changes it.
+  const incomeRow =
+    incomeRows.find((b) => b.month === currentMonth) ??
+    incomeRows.filter((b) => b.month < currentMonth).sort((a, b) => b.month.localeCompare(a.month))[0]
   const income = incomeRow?.assigned ?? 0
 
   const monthSpending = getMonthSpendingByCategory(expenses, currentMonth)
@@ -64,24 +62,12 @@ export function computeEnvelopes(
 
   for (const category of allCategories) {
     const curr = monthBudgets.find((b) => b.category === category)
-    const prevMonths = prevMonthMap.get(category) ?? []
-    const prevSorted = prevMonths.sort((a, b) => b.month.localeCompare(a.month))
-    const prev = prevSorted[0]
-
-    let prevSpent = 0
-    if (prev) {
-      const prevExpenses = expenses.filter(
-        (e) => e.date.startsWith(prev.month) && e.category === category,
-      )
-      prevSpent = prevExpenses.reduce((s, e) => s + e.amountInr, 0)
-    }
 
     const isCC = category === '__credit_card__'
     const assigned = curr?.assigned ?? 0
-    const rolledOver = curr?.rolledOver ?? 0
-    const computedRollover = prev
-      ? Math.max(0, prev.assigned + prev.rolledOver - prevSpent)
-      : rolledOver
+    // Clean slate every month: unspent money does not carry forward. Prior
+    // months' own assigned/spent stay untouched in their own rows.
+    const computedRollover = 0
 
     const spent = monthSpending.get(category) ?? 0
     const available = assigned + computedRollover - spent

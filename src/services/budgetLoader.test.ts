@@ -21,7 +21,7 @@ describe('computeEnvelopes', () => {
     expect(groceries?.isOverspent).toBe(false)
   })
 
-  it('rolls over unspent balance from the previous month', () => {
+  it('does not carry unspent balance into the next month', () => {
     const budgets: BudgetRow[] = [
       { month: '2025-12', category: 'Groceries', assigned: 5000, rolledOver: 0 },
       { month: '2026-01', category: 'Groceries', assigned: 5000, rolledOver: 0 },
@@ -31,22 +31,19 @@ describe('computeEnvelopes', () => {
     const state = computeEnvelopes(budgets, expenses, '2026-01', categories, groups)
     const groceries = state.envelopes.find((e) => e.category === 'Groceries')
 
-    // 5000 assigned in Dec, 3000 spent -> 2000 rolls into Jan on top of Jan's 5000.
-    expect(groceries?.rolledOver).toBe(2000)
-    expect(groceries?.available).toBe(7000)
+    expect(groceries?.rolledOver).toBe(0)
+    expect(groceries?.available).toBe(5000)
   })
 
-  it('floors rollover at 0 when the previous month overspent', () => {
+  it('carries forward the last month with an income row when the current month has none', () => {
     const budgets: BudgetRow[] = [
-      { month: '2025-12', category: 'Groceries', assigned: 1000, rolledOver: 0 },
+      { month: '2025-12', category: '__income__', assigned: 10000, rolledOver: 0 },
       { month: '2026-01', category: 'Groceries', assigned: 5000, rolledOver: 0 },
     ]
-    const expenses = [{ date: '2025-12-10', amountInr: 4000, category: 'Groceries' }]
 
-    const state = computeEnvelopes(budgets, expenses, '2026-01', categories, groups)
-    const groceries = state.envelopes.find((e) => e.category === 'Groceries')
+    const state = computeEnvelopes(budgets, [], '2026-01', categories, groups)
 
-    expect(groceries?.rolledOver).toBe(0)
+    expect(state.income).toBe(10000)
   })
 
   it('flags an envelope as overspent when available drops below zero', () => {
