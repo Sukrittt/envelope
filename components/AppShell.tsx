@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, type ReactNode } from 'react'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Sun, Moon, Github } from 'lucide-react'
 import { useAppearance } from './AppearanceProvider'
@@ -97,7 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 rel="noreferrer"
                 className="app-footer-link"
               >
-                <img
+                <Image
                   className="app-footer-claude"
                   src="/claude_code.webp"
                   alt=""

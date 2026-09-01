@@ -165,8 +165,9 @@ export function SparkBars({
 
   // Cleanup animations on unmount
   useEffect(() => {
+    const refs = animationRefs.current;
     return () => {
-      animationRefs.current.forEach((ref) => {
+      refs.forEach((ref) => {
         ref.animation?.cancel();
       });
     };

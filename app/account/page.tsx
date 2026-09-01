@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
@@ -47,7 +48,15 @@ export default function AccountPage() {
     <>
       <div className="account-profile-card">
         {doc?.avatarUrl ? (
-          <img className="account-avatar" src={doc.avatarUrl} alt="" style={{ objectFit: 'cover' }} />
+          <Image
+            className="account-avatar"
+            src={doc.avatarUrl}
+            alt=""
+            width={52}
+            height={52}
+            unoptimized
+            style={{ objectFit: 'cover' }}
+          />
         ) : (
           <div className="account-avatar" aria-hidden="true">
             {initial}

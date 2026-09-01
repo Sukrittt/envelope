@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 
 interface UserDoc {
@@ -171,7 +172,15 @@ function SecurityContent() {
     <>
       <div className="account-profile-card">
         {doc?.avatarUrl ? (
-          <img className="account-avatar" src={doc.avatarUrl} alt="" style={{ objectFit: 'cover' }} />
+          <Image
+            className="account-avatar"
+            src={doc.avatarUrl}
+            alt=""
+            width={52}
+            height={52}
+            unoptimized
+            style={{ objectFit: 'cover' }}
+          />
         ) : (
           <div className="account-avatar" aria-hidden="true">
             {initial}
