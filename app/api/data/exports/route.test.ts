@@ -68,4 +68,25 @@ describe('GET /api/data/exports', () => {
     const res = await GET(req())
     expect(res.status).toBe(401)
   })
+
+  it('surfaces the stored failure reason for a failed export', async () => {
+    store.push({
+      _id: new ObjectId(),
+      status: 'failed',
+      created_at: '2026-09-01T10:00:00+05:30',
+      error: 'Vercel Blob: No blob credentials found.',
+    } as Doc)
+
+    const res = await GET(req())
+    const body = (await res.json()) as { exports: Array<{ status: string; error: string | null }> }
+    expect(body.exports[0].error).toBe('Vercel Blob: No blob credentials found.')
+  })
+
+  it('returns null error for a ready export', async () => {
+    store.push({ _id: new ObjectId(), status: 'ready', created_at: '2026-09-01T10:00:00+05:30', blob_url: 'https://blob/a.xlsx' } as Doc)
+
+    const res = await GET(req())
+    const body = (await res.json()) as { exports: Array<{ error: string | null }> }
+    expect(body.exports[0].error).toBeNull()
+  })
 })

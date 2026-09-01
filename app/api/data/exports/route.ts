@@ -18,6 +18,7 @@ export async function GET(req: Request) {
       status: d.status,
       created_at: d.created_at,
       blob_url: d.blob_url ?? null,
+      error: d.error ?? null,
     })),
     usedThisMonth,
     limit: EXPORT_LIMIT,
