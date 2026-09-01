@@ -14,7 +14,17 @@ type Doc = Record<string, unknown> & { _id: ObjectId }
 const stores: Record<string, Doc[]> = { expenses: [], budgets: [], exports: [] }
 
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
-  return Object.entries(filter).every(([k, v]) => (k === '_id' && v instanceof ObjectId ? doc._id.equals(v) : doc[k] === v))
+  return Object.entries(filter).every(([k, v]) => {
+    if (k === '_id' && v instanceof ObjectId) return doc._id.equals(v)
+    if (v && typeof v === 'object' && !(v instanceof ObjectId)) {
+      return Object.entries(v as Record<string, unknown>).every(([op, val]) => {
+        if (op === '$gte') return (doc[k] as string) >= (val as string)
+        if (op === '$lt') return (doc[k] as string) < (val as string)
+        return true
+      })
+    }
+    return doc[k] === v
+  })
 }
 
 function fakeCollection(name: string) {
@@ -22,11 +32,24 @@ function fakeCollection(name: string) {
   return {
     collectionName: name,
     find: (filter: Record<string, unknown> = {}) => {
-      const results = store.filter((d) => matches(d, filter))
-      return {
+      let results = store.filter((d) => matches(d, filter))
+      const cursor = {
+        sort: (spec: Record<string, 1 | -1>) => {
+          const [[field, dir]] = Object.entries(spec)
+          results = [...results].sort((a, b) => ((a[field] as string) < (b[field] as string) ? -1 : (a[field] as string) > (b[field] as string) ? 1 : 0) * dir)
+          return cursor
+        },
+        limit: (n: number) => {
+          results = results.slice(0, n)
+          return cursor
+        },
+        map: (fn: (d: Doc) => unknown) => {
+          results = results.map(fn) as Doc[]
+          return cursor
+        },
         toArray: async () => results,
-        map: (fn: (d: Doc) => unknown) => ({ toArray: async () => results.map(fn) }),
       }
+      return cursor
     },
     updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
       const doc = store.find((d) => matches(d, filter))
@@ -55,7 +78,7 @@ describe('buildAndStoreExport', () => {
     const exportId = new ObjectId()
     stores.exports.push({ _id: exportId, user_id: 'user_a', status: 'pending', month: '2026-09', created_at: 'x' } as Doc)
     stores.expenses.push(
-      { _id: new ObjectId(), user_id: 'user_a', item: 'Coffee', amount_inr: '150', category: 'Food' } as Doc,
+      { _id: new ObjectId(), user_id: 'user_a', item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-09-01' } as Doc,
     )
     stores.budgets.push({ _id: new ObjectId(), user_id: 'user_a', month: '2026-09', category: 'Food', assigned: '5000' } as Doc)
 
@@ -81,6 +104,23 @@ describe('buildAndStoreExport', () => {
     expect(sendPushNotification).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user_a', title: 'Your export is ready' }),
     )
+  })
+
+  it('fetches expenses month by month, covering every month between the earliest and latest', async () => {
+    const exportId = new ObjectId()
+    stores.exports.push({ _id: exportId, user_id: 'user_a', status: 'pending', month: '2026-09', created_at: 'x' } as Doc)
+    stores.expenses.push(
+      { _id: new ObjectId(), user_id: 'user_a', item: 'July', amount_inr: '1', category: 'Food', date: '2026-07-15' } as Doc,
+      { _id: new ObjectId(), user_id: 'user_a', item: 'August', amount_inr: '2', category: 'Food', date: '2026-08-02' } as Doc,
+      { _id: new ObjectId(), user_id: 'user_a', item: 'September', amount_inr: '3', category: 'Food', date: '2026-09-01' } as Doc,
+    )
+
+    await buildAndStoreExport('user_a', exportId.toString())
+
+    const [, buffer] = put.mock.calls[0]
+    const wb = XLSX.read(buffer as Buffer, { type: 'buffer' })
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets.expenses) as Array<Record<string, unknown>>
+    expect(rows.map((r) => r.item).sort()).toEqual(['August', 'July', 'September'])
   })
 
   it('marks the doc failed and sends a failure push when upload throws', async () => {

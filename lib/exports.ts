@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb'
 import { put } from '@vercel/blob'
 import * as XLSX from 'xlsx'
 import { getDb } from '@/lib/mongodb'
-import { scoped } from '@/lib/scoped'
+import { scoped, type ScopedCollection } from '@/lib/scoped'
 import { getCollection, nowIST } from '@/lib/http'
 import { sendPushNotification } from '@/lib/push'
 import type { Auth } from '@/lib/access'
@@ -38,6 +38,36 @@ export function currentMonthKey(): string {
   return nowIST().date.slice(0, 7)
 }
 
+function nextMonthKey(ym: string): string {
+  const [y, m] = ym.split('-').map(Number)
+  const d = new Date(Date.UTC(y, m, 1)) // m is 1-indexed 'YYYY-MM', so this already rolls to next month
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+/**
+ * Expenses are the only collection that grows unbounded (months/years of
+ * transactions), so fetch them one calendar month at a time instead of a
+ * single `find({}).toArray()` that scans and buffers the whole history.
+ * Every other collection (categories, budgets, holdings, ...) stays small
+ * and bounded, so it keeps the plain single-query fetch.
+ */
+async function fetchExpensesByMonth(coll: ScopedCollection): Promise<Record<string, unknown>[]> {
+  const [earliest] = await coll.find({}).sort({ date: 1 }).limit(1).toArray()
+  if (!earliest) return []
+  const [latest] = await coll.find({}).sort({ date: -1 }).limit(1).toArray()
+
+  const docs: Record<string, unknown>[] = []
+  let ym = String(earliest.date).slice(0, 7)
+  const lastYm = String(latest.date).slice(0, 7)
+  while (ym <= lastYm) {
+    const nextYm = nextMonthKey(ym)
+    const batch = await coll.find({ date: { $gte: `${ym}-01`, $lt: `${nextYm}-01` } }).toArray()
+    docs.push(...batch)
+    ym = nextYm
+  }
+  return docs
+}
+
 export async function countReadyExportsThisMonth(auth: Auth): Promise<number> {
   const coll = await getCollection('exports', auth)
   return coll.countDocuments({ status: 'ready', month: currentMonthKey() })
@@ -61,7 +91,7 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
       if (!headers) continue
 
       const coll = scoped(db.collection(name), userId)
-      const docs = await coll.find({}).toArray()
+      const docs = key === 'expenses' ? await fetchExpensesByMonth(coll) : await coll.find({}).toArray()
       const rows = docs.map((d) => toRow(headers, d))
       const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map((r) => headers.map((h) => r[h]))])
       XLSX.utils.book_append_sheet(wb, sheet, name.slice(0, 31)) // Excel tab-name length limit
