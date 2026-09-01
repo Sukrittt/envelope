@@ -387,7 +387,6 @@ export async function performHoldingAction(params: {
   name: string
   action: 'market_update' | 'contribution' | 'withdrawal'
   amount: number
-  month: string
 }): Promise<{ previousValue: number; newValue: number }> {
   const resp = await apiFetch('/api/holdings/action', {
     method: 'POST',

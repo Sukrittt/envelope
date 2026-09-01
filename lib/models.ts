@@ -36,7 +36,16 @@ export const SUBSCRIPTION_HEADERS = [
   'notes',
 ]
 
-export const HOLDING_HEADERS = ['name', 'type', 'value', 'updated_at']
+export const HOLDING_HEADERS = [
+  'name',
+  'type',
+  'value',
+  'updated_at',
+  'is_recurring',
+  'recurring_amount',
+  'recurring_day',
+  'recurring_last_run',
+]
 
 export const HOLDING_EVENT_HEADERS = [
   'holding_name',
@@ -60,6 +69,7 @@ export const COLLECTIONS = {
   categoryMapOverrides: 'category_map_overrides',
   chatSessions: 'chat_sessions',
   notificationLog: 'notification_log',
+  exports: 'exports',
 } as const
 
 /** One CSV-ish row; every value is a string so it round-trips exactly. */

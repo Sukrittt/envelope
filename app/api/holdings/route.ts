@@ -1,4 +1,4 @@
-import { json, error, readBody, getCollection, escapeRegExp } from '@/lib/http'
+import { json, error, readBody, getCollection, escapeRegExp, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { HOLDING_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
@@ -26,11 +26,21 @@ export async function POST(req: Request) {
   })
   if (exists) return error('holding already exists', 409)
 
+  const isRecurring = body.is_recurring === true || body.is_recurring === 'true'
+  const { date: today } = nowIST()
+
   await coll.insertOne({
     name: String(body.name),
     type: String(body.type ?? ''),
     value: String(body.value),
     updated_at: String(body.updated_at || new Date().toISOString()),
+    is_recurring: String(isRecurring),
+    recurring_amount: isRecurring ? String(Number(body.recurring_amount) || 0) : '',
+    // Snapshotted once at creation, not user-editable — the next auto-contribution
+    // fires next month, not immediately, so recurring_last_run starts on the
+    // current month.
+    recurring_day: isRecurring ? String(Number(today.slice(8, 10))) : '',
+    recurring_last_run: isRecurring ? today.slice(0, 7) : '',
   })
   invalidate('holdings', auth.userId)
   return json({ ok: true })

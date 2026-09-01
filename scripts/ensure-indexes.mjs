@@ -49,6 +49,13 @@ const INDEXES = {
   // pushes with a level that can drop (spending edited down) and rise again
   // (re-fires), see lib/notifications/thresholdState.ts.
   notification_threshold_state: [[{ user_id: 1, month: 1, category: 1 }, { unique: true }]],
+  // User-visible export records — no TTL, these are a download history, not
+  // a rate-limit ledger. One index for the monthly-quota count, one for the
+  // past-exports list.
+  exports: [
+    [{ user_id: 1, month: 1, status: 1 }, {}],
+    [{ user_id: 1, created_at: -1 }, {}],
+  ],
 }
 
 async function main() {

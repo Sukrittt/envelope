@@ -7,31 +7,23 @@ interface Summary {
   envelopeCount: number
 }
 
-function downloadBlob(content: string, filename: string, type: string) {
-  const blob = new Blob([content], { type })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+interface ExportRow {
+  id: string
+  status: 'pending' | 'ready' | 'failed'
+  created_at: string
+  blob_url: string | null
 }
 
-async function exportData(format: 'csv' | 'json') {
-  const res = await fetch(`/api/data/export?format=${format}`)
-  if (!res.ok) return
-  const data: Record<string, unknown> = await res.json()
+interface ExportsResponse {
+  exports: ExportRow[]
+  usedThisMonth: number
+  limit: number
+}
 
-  if (format === 'json') {
-    downloadBlob(JSON.stringify(data, null, 2), 'mission-control-export.json', 'application/json')
-    return
-  }
-
-  // Each key is a collection's CSV text; join into one readable multi-section file.
-  const sections = Object.entries(data).map(([name, csv]) => `# ${name}\n${String(csv)}`)
-  downloadBlob(sections.join('\n\n'), 'mission-control-export.csv', 'text/csv')
+async function fetchExports(): Promise<ExportsResponse | null> {
+  const res = await fetch('/api/data/exports')
+  if (!res.ok) return null
+  return res.json()
 }
 
 export default function DataPage() {
@@ -39,6 +31,9 @@ export default function DataPage() {
   const [confirmingClear, setConfirmingClear] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState<number | null>(null)
+  const [exports, setExports] = useState<ExportsResponse | null>(null)
+  const [starting, setStarting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     void (async () => {
@@ -47,6 +42,36 @@ export default function DataPage() {
       setSummary(await res.json())
     })()
   }, [])
+
+  useEffect(() => {
+    void fetchExports().then(setExports)
+  }, [])
+
+  // Poll only while something's still building — the push notification is
+  // the real "it's done" signal, this just catches the UI up if the user is
+  // still looking at the screen.
+  useEffect(() => {
+    if (!exports?.exports.some((e) => e.status === 'pending')) return
+    const id = setInterval(() => void fetchExports().then(setExports), 4000)
+    return () => clearInterval(id)
+  }, [exports])
+
+  async function startExport() {
+    setStarting(true)
+    setExportError(null)
+    const res = await fetch('/api/data/export', { method: 'POST' })
+    setStarting(false)
+    if (res.status === 429) {
+      // The atLimit banner below already covers this once the refetch lands.
+      void fetchExports().then(setExports)
+      return
+    }
+    if (!res.ok) {
+      setExportError('Could not start export. Try again.')
+      return
+    }
+    void fetchExports().then(setExports)
+  }
 
   async function clearTransactions() {
     setClearing(true)
@@ -64,21 +89,45 @@ export default function DataPage() {
     }
   }
 
+  const atLimit = exports ? exports.usedThisMonth >= exports.limit : false
+  const pending = exports?.exports.some((e) => e.status === 'pending') ?? false
+
   return (
     <>
       <div className="account-export-row">
         <div className="account-export-title">Export</div>
         <div className="account-export-meta">
           {summary ? `${summary.transactionCount} transactions · ${summary.envelopeCount} envelopes` : '—'}
+          {exports ? ` · ${exports.usedThisMonth} of ${exports.limit} exports used this month` : ''}
         </div>
         <div className="account-export-actions">
-          <button type="button" onClick={() => exportData('csv')}>
-            CSV
-          </button>
-          <button type="button" onClick={() => exportData('json')}>
-            JSON
+          <button type="button" onClick={startExport} disabled={starting || pending || atLimit}>
+            {pending ? 'Building…' : starting ? 'Starting…' : 'Export'}
           </button>
         </div>
+        {exportError ? <div className="account-confirm-copy">{exportError}</div> : null}
+        {atLimit && !exportError ? (
+          <div className="account-confirm-copy">
+            You&apos;ve used all {exports?.limit} exports this month. Resets next month.
+          </div>
+        ) : null}
+        {exports && exports.exports.length > 0 ? (
+          <ul className="account-export-list">
+            {exports.exports.map((e) => (
+              <li key={e.id}>
+                {e.status === 'ready' && e.blob_url ? (
+                  <a href={e.blob_url} download>
+                    {e.created_at}
+                  </a>
+                ) : (
+                  <span>
+                    {e.created_at} — {e.status}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <button type="button" className="account-clear-btn" onClick={() => setConfirmingClear(true)}>

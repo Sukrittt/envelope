@@ -1,0 +1,54 @@
+import { describe, it, expect } from 'vitest'
+import { isDueToday, isDueTomorrow, tomorrowOf } from './holdingRecurrence'
+
+const base = { is_recurring: 'true', recurring_day: '15', recurring_last_run: '2026-08' }
+
+describe('isDueToday', () => {
+  it('fires when recurring_day matches today and this month has not run yet', () => {
+    expect(isDueToday(base, '2026-09-15')).toBe(true)
+  })
+
+  it('does not fire on a different day of the month', () => {
+    expect(isDueToday(base, '2026-09-14')).toBe(false)
+  })
+
+  it('does not fire twice in the same month', () => {
+    expect(isDueToday({ ...base, recurring_last_run: '2026-09' }, '2026-09-15')).toBe(false)
+  })
+
+  it('does not fire for a holding that is not marked recurring', () => {
+    expect(isDueToday({ ...base, is_recurring: 'false' }, '2026-09-15')).toBe(false)
+  })
+
+  it('clamps a day-31 holding to the last real day of a shorter month', () => {
+    const day31 = { ...base, recurring_day: '31' }
+    expect(isDueToday(day31, '2026-02-28')).toBe(true) // Feb 2026 has 28 days
+    expect(isDueToday(day31, '2026-04-30')).toBe(true) // April has 30 days
+  })
+})
+
+describe('isDueTomorrow', () => {
+  it('fires when recurring_day matches tomorrow, regardless of recurring_last_run', () => {
+    expect(isDueTomorrow(base, '2026-09-14')).toBe(true)
+    expect(isDueTomorrow({ ...base, recurring_last_run: '2026-09' }, '2026-09-14')).toBe(true)
+  })
+
+  it('does not fire when tomorrow is not the recurring day', () => {
+    expect(isDueTomorrow(base, '2026-09-15')).toBe(false)
+  })
+
+  it('rolls across a month boundary', () => {
+    const day1 = { ...base, recurring_day: '1' }
+    expect(isDueTomorrow(day1, '2026-08-31')).toBe(true)
+  })
+})
+
+describe('tomorrowOf', () => {
+  it('advances one calendar day', () => {
+    expect(tomorrowOf('2026-09-14')).toBe('2026-09-15')
+  })
+
+  it('rolls across a month boundary', () => {
+    expect(tomorrowOf('2026-08-31')).toBe('2026-09-01')
+  })
+})

@@ -1,56 +1,38 @@
-import { json, error } from '@/lib/http'
-import { getAuth } from '@/lib/access'
-import { getDb } from '@/lib/mongodb'
-import { scoped } from '@/lib/scoped'
-import { toCsv } from '@/lib/csv'
-import {
-  COLLECTIONS,
-  toRow,
-  EXPENSE_HEADERS,
-  BUDGET_HEADERS,
-  CATEGORY_HEADERS,
-  GROUP_HEADERS,
-  SUBSCRIPTION_HEADERS,
-  HOLDING_HEADERS,
-  HOLDING_EVENT_HEADERS,
-} from '@/lib/models'
+import { after } from 'next/server'
+import { json, error, getCollection, nowIST } from '@/lib/http'
+import { getAuth, readOnlyGuard } from '@/lib/access'
+import { EXPORT_LIMIT, countReadyExportsThisMonth, currentMonthKey, buildAndStoreExport } from '@/lib/exports'
 
 export const dynamic = 'force-dynamic'
 
-const HEADERS: Partial<Record<keyof typeof COLLECTIONS, string[]>> = {
-  expenses: EXPENSE_HEADERS,
-  budgets: BUDGET_HEADERS,
-  categories: CATEGORY_HEADERS,
-  groups: GROUP_HEADERS,
-  subscriptions: SUBSCRIPTION_HEADERS,
-  holdings: HOLDING_HEADERS,
-  holdingEvents: HOLDING_EVENT_HEADERS,
-}
-
-export async function GET(req: Request) {
+/**
+ * Kicks off a background export instead of building it inline: workbook
+ * generation is a fire-and-forget `after()` call (lib/exports.ts) so this
+ * responds immediately, and the user is notified via push when it's ready.
+ */
+export async function POST(req: Request) {
   const auth = await getAuth(req)
-  if (auth.readOnly) return error('unauthorized', 401)
+  const guard = readOnlyGuard(auth, 'POST')
+  if (guard) return guard
 
-  const url = new URL(req.url)
-  const format = url.searchParams.get('format') === 'csv' ? 'csv' : 'json'
-
-  const db = await getDb()
-  const out: Record<string, unknown> = {}
-
-  for (const [key, name] of Object.entries(COLLECTIONS) as [keyof typeof COLLECTIONS, string][]) {
-    if (key === 'pushTokens' || key === 'notificationLog') continue // device/notification plumbing, not user data
-
-    const docs = await scoped(db.collection(name), auth.userId).find({}).toArray()
-    const cleaned = docs.map(({ _id: _drop1, user_id: _drop2, ...rest }) => rest)
-    const headers = HEADERS[key]
-
-    if (!headers) {
-      out[key] = cleaned
-      continue
-    }
-    const rows = cleaned.map((d) => toRow(headers, d))
-    out[key] = format === 'csv' ? toCsv(headers, rows) : rows
+  const usedThisMonth = await countReadyExportsThisMonth(auth)
+  if (usedThisMonth >= EXPORT_LIMIT) {
+    return error('monthly export limit reached', 429)
   }
 
-  return json(out)
+  const exports = await getCollection('exports', auth)
+  const { insertedId } = await exports.insertOne({
+    status: 'pending',
+    month: currentMonthKey(),
+    created_at: nowIST().timestamp,
+  })
+
+  after(() => buildAndStoreExport(auth.userId, insertedId.toString()))
+
+  // Not decremented for this pending export: quota only counts `ready` exports
+  // (a failed one shouldn't have looked like it used a slot).
+  return json(
+    { id: insertedId.toString(), status: 'pending', remaining: EXPORT_LIMIT - usedThisMonth },
+    { status: 202 },
+  )
 }

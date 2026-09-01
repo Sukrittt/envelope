@@ -89,8 +89,6 @@ export function InvestmentsPage() {
   const addPhase = useButtonPhase()
   const [showHistory, setShowHistory] = useState(false)
 
-  const month = useMemo(() => new Date().toISOString().slice(0, 7), [])
-
   const netWorth = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings])
 
   async function handleAdd() {
@@ -131,8 +129,7 @@ export function InvestmentsPage() {
       await performHoldingAction({
         name: activeAction.holding,
         action: activeAction.type,
-        amount: activeAction.type === 'market_update' ? parsed : parsed,
-        month,
+        amount: parsed,
       })
       actionPhase.succeed(() => {
         setActionMenuHolding(null)
@@ -430,8 +427,8 @@ export function InvestmentsPage() {
                                 {activeAction.type === 'market_update'
                                   ? 'Set new current value:'
                                   : activeAction.type === 'contribution'
-                                    ? 'Amount being invested (deducted from Ready to Assign):'
-                                    : 'Amount to withdraw (added to Ready to Assign):'}
+                                    ? 'Amount being invested (tracked here only):'
+                                    : 'Amount to withdraw (tracked here only):'}
                               </span>
                               <div className="inv-action-input-row">
                                 <span className="inv-action-currency">₹</span>

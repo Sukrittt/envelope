@@ -1,13 +1,16 @@
 import { timingSafeEqual, createHash } from 'node:crypto'
 import type { Db } from 'mongodb'
-import { json, nowIST } from '@/lib/http'
+import { json, nowIST, getCollection } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import type { Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { buildNotifications, prefsFor, wrappedNotification } from '@/lib/notifications/rules'
-import { claimAndSend } from '@/lib/notifications/deliver'
+import { claim, claimAndSend } from '@/lib/notifications/deliver'
 import { currentEdition, editionStatus } from '@/lib/wrapped'
 import type { UserDoc } from '@/lib/users'
+import { applyHoldingAction } from '@/lib/holdings'
+import { isDueToday, isDueTomorrow, tomorrowOf } from '@/lib/holdingRecurrence'
+import { sendPushNotification } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,6 +70,74 @@ async function runWrappedForUser(db: Db, user: UserDoc, month: string): Promise<
   return (await claimAndSend(db, user._id, notification, '')) ? 1 : 0
 }
 
+function inr(n: number): string {
+  return Math.round(n).toLocaleString('en-IN')
+}
+
+/**
+ * Auto-applies today's due monthly contributions (SIP/PF) and sends a
+ * day-before reminder for tomorrow's — both keyed off the holding's own
+ * `recurring_day`/`recurring_last_run`, not `notifyCadence` (a user who
+ * turned off the digest may still have a recurring investment running).
+ * Runs for every user rather than a cadence-filtered subset for that reason.
+ */
+async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const holdingsColl = await getCollection('holdings', auth)
+  const recurring = await holdingsColl.find({ is_recurring: 'true' }).toArray()
+
+  let sent = 0
+  for (const holding of recurring) {
+    const name = String(holding.name)
+    const amount = Number(holding.recurring_amount) || 0
+    if (amount <= 0) continue
+    const recurrence = {
+      is_recurring: String(holding.is_recurring),
+      recurring_day: String(holding.recurring_day),
+      recurring_last_run: String(holding.recurring_last_run),
+    }
+
+    if (isDueToday(recurrence, today)) {
+      const result = await applyHoldingAction(auth, { name, action: 'contribution', amount })
+      if (result.ok) {
+        await holdingsColl.updateOne({ name }, { $set: { recurring_last_run: today.slice(0, 7) } })
+        if (await claim(db, user._id, `invest:${name}:${today}`)) {
+          try {
+            await sendPushNotification({
+              userId: user._id,
+              title: 'SIP added',
+              body: `₹${inr(amount)} added to ${name}.`,
+              data: { route: '/investments' },
+            })
+            sent++
+          } catch (err) {
+            console.error('notifications/run: investment push failed for', user._id, name, err)
+          }
+        }
+      }
+    }
+
+    if (isDueTomorrow(recurrence, today)) {
+      const tomorrow = tomorrowOf(today)
+      if (await claim(db, user._id, `invest-reminder:${name}:${tomorrow}`)) {
+        try {
+          await sendPushNotification({
+            userId: user._id,
+            title: 'SIP tomorrow',
+            body: `₹${inr(amount)} will be added to ${name} tomorrow.`,
+            data: { route: '/investments' },
+          })
+          sent++
+        } catch (err) {
+          console.error('notifications/run: investment reminder failed for', user._id, name, err)
+        }
+      }
+    }
+  }
+
+  return sent
+}
+
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
   const header = req.headers.get('authorization')
@@ -100,6 +171,18 @@ export async function GET(req: Request) {
       sent += await runWrappedForUser(db, user, wrappedMonth)
     } catch (err) {
       console.error('notifications/run: wrapped failed for', user._id, err)
+    }
+  }
+
+  // Not filtered by notifyCadence — a recurring investment is its own opt-in,
+  // set per-holding, independent of the digest.
+  const investmentUsers = await db.collection<UserDoc>('users').find({}).toArray()
+  const { date: today } = nowIST()
+  for (const user of investmentUsers) {
+    try {
+      sent += await runRecurringInvestmentsForUser(db, user, today)
+    } catch (err) {
+      console.error('notifications/run: investments failed for', user._id, err)
     }
   }
 

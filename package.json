@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@google/genai": "^2.17.1",
+    "@vercel/blob": "^2.8.0",
     "@workos-inc/authkit-nextjs": "^4.3.1",
     "@workos-inc/node": "^10.10.0",
     "jose": "^6.2.9",
@@ -30,7 +31,8 @@
     "next": "^15.5.22",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "swr": "^2.5.1"
+    "swr": "^2.5.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
