@@ -17,7 +17,6 @@ export async function GET(req: Request) {
       id: d._id.toString(),
       status: d.status,
       created_at: d.created_at,
-      blob_url: d.blob_url ?? null,
       error: d.error ?? null,
     })),
     usedThisMonth,

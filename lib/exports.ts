@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb'
-import { put } from '@vercel/blob'
+import { put, issueSignedToken, presignUrl } from '@vercel/blob'
 import * as XLSX from 'xlsx'
 import { getDb } from '@/lib/mongodb'
 import { scoped, type ScopedCollection } from '@/lib/scoped'
@@ -73,6 +73,24 @@ export async function countReadyExportsThisMonth(auth: Auth): Promise<number> {
   return coll.countDocuments({ status: 'ready', month: currentMonthKey() })
 }
 
+const EXPORT_DOWNLOAD_TTL_MS = 5 * 60 * 1000
+
+/**
+ * The store is private-only, so a ready export's blob isn't fetchable by a
+ * plain URL — mints a short-lived signed GET URL (CDN-verified, no bearer
+ * token needed to fetch it) scoped to this one export's pathname.
+ */
+export async function getExportDownloadUrl(userId: string, exportId: string): Promise<string> {
+  const pathname = `exports/${userId}/${exportId}.xlsx`
+  const signed = await issueSignedToken({
+    pathname,
+    operations: ['get'],
+    validUntil: Date.now() + EXPORT_DOWNLOAD_TTL_MS,
+  })
+  const { presignedUrl } = await presignUrl(signed, { operation: 'get', pathname, access: 'private' })
+  return presignedUrl
+}
+
 /**
  * Builds the multi-tab workbook, uploads it to Blob storage, and notifies the
  * user. Runs inside `after()` — the kick-off POST has already responded, so
@@ -99,7 +117,7 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
     const blob = await put(`exports/${userId}/${exportId}.xlsx`, buffer, {
-      access: 'public',
+      access: 'private',
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
 

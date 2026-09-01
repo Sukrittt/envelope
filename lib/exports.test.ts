@@ -87,7 +87,7 @@ describe('buildAndStoreExport', () => {
     expect(put).toHaveBeenCalledTimes(1)
     const [pathname, buffer, opts] = put.mock.calls[0]
     expect(pathname).toBe(`exports/user_a/${exportId.toString()}.xlsx`)
-    expect(opts).toMatchObject({ access: 'public' })
+    expect(opts).toMatchObject({ access: 'private' })
 
     // Round-trip the uploaded buffer to confirm both collections became tabs.
     const wb = XLSX.read(buffer as Buffer, { type: 'buffer' })

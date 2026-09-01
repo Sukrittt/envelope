@@ -55,10 +55,8 @@ describe('GET /api/data/exports', () => {
 
     const res = await GET(req())
     expect(res.status).toBe(200)
-    const body = (await res.json()) as { exports: Array<{ status: string; blob_url: string | null }>; usedThisMonth: number; limit: number }
+    const body = (await res.json()) as { exports: Array<{ status: string }>; usedThisMonth: number; limit: number }
     expect(body.exports.map((e) => e.status)).toEqual(['pending', 'ready'])
-    expect(body.exports[1].blob_url).toBe('https://blob/a.xlsx')
-    expect(body.exports[0].blob_url).toBeNull()
     expect(body.usedThisMonth).toBe(1)
     expect(body.limit).toBe(3)
   })
