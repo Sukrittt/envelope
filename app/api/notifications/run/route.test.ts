@@ -4,12 +4,26 @@ const USER: { _id: string; notifyCadence: string } = { _id: 'user_a', notifyCade
 
 const usersFindMock = vi.fn(() => ({ toArray: async () => [USER] }))
 const logInsertOneMock = vi.fn(async () => ({ insertedId: 'x' }))
+// Envelope in buildExpenseContextMock below is fixed at level 90 — resolving the same
+// level here simulates "already recorded this cross", so threshold notifications are a
+// no-op by default and don't interfere with the digest/coach assertions these tests care
+// about. Override per-test to exercise an actual level rise.
+const thresholdFindOneAndUpdateMock = vi.fn(async () => ({ level: 90 }))
+
+function fakeCursor(docs: unknown[]): { map: (fn: (d: unknown) => unknown) => ReturnType<typeof fakeCursor>; toArray: () => Promise<unknown[]> } {
+  return {
+    map: (fn) => fakeCursor(docs.map(fn)),
+    toArray: async () => docs,
+  }
+}
 
 vi.mock('@/lib/mongodb', () => ({
   getDb: vi.fn(async () => ({
     collection: (name: string) => {
       if (name === 'users') return { find: usersFindMock }
       if (name === 'notification_log') return { insertOne: logInsertOneMock }
+      if (name === 'notification_threshold_state') return { findOneAndUpdate: thresholdFindOneAndUpdateMock }
+      if (name === 'expenses') return { collectionName: name, find: () => fakeCursor([]) }
       throw new Error(`unexpected collection: ${name}`)
     },
   })),
@@ -60,6 +74,7 @@ describe('GET /api/notifications/run', () => {
     logInsertOneMock.mockReset().mockResolvedValue({ insertedId: 'x' })
     sendPushNotificationMock.mockReset().mockResolvedValue(undefined)
     usersFindMock.mockReset().mockReturnValue({ toArray: async () => [USER] })
+    thresholdFindOneAndUpdateMock.mockReset().mockResolvedValue({ level: 90 })
     buildExpenseContextMock.mockClear()
   })
 
