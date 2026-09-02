@@ -66,11 +66,18 @@ describe('DELETE /api/user', () => {
     expect(usersDeleteOneMock).not.toHaveBeenCalled()
   })
 
-  it('proceeds when the supplied email matches, case-insensitively', async () => {
+  it('proceeds when the supplied email matches, case-insensitively — soft-deletes, does not touch WorkOS yet', async () => {
     const res = await DELETE(deleteRequest({ email: 'Real-Owner@Example.com' }))
     expect(res.status).toBe(200)
-    expect(deleteUserMock).toHaveBeenCalledWith('user_a')
-    expect(usersDeleteOneMock).toHaveBeenCalled()
+    // Account deletion is soft too: the WorkOS user and the local `users` row
+    // are removed by the GC cron once the grace window passes, not here.
+    expect(deleteUserMock).not.toHaveBeenCalled()
+    expect(usersDeleteOneMock).not.toHaveBeenCalled()
+    expect(usersUpdateOneMock).toHaveBeenCalledWith(
+      { _id: 'user_a' },
+      { $set: { deleted_at: expect.any(String) } },
+    )
+    expect(deleteManyMock).toHaveBeenCalled()
   })
 
   it('no longer accepts the old confirm:true shortcut without an email', async () => {

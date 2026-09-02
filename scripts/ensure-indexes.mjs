@@ -7,20 +7,34 @@
 // per month+category) correct per-account rather than globally.
 //
 // Usage: node scripts/ensure-indexes.mjs
+//
+// Note: createIndex() only creates a NEW index — it errors (caught, logged as
+// FAILED below) rather than reshaping an existing index whose options changed,
+// e.g. the LIVE_ONLY partial filter added below. On a DB that already has the
+// old plain-unique versions of budgets/categories/groups/holdings, drop them
+// first (`db.<collection>.dropIndex(<name>)`) so this script can recreate them
+// as partial indexes.
 import { MongoClient } from 'mongodb'
 import { loadEnv } from './lib/env.mjs'
 
 loadEnv()
 
+// Unique-except-archived: a soft-deleted row (lib/scoped.ts sets `deleted_at`
+// instead of removing it, see PLAN.md "Soft Delete with Garbage Collection")
+// must not hold its slot in a uniqueness check forever — a `partialFilterExpression`
+// scopes the constraint to live rows only, so recreating a budget/category/
+// group/holding after archiving the old one doesn't throw E11000.
+const LIVE_ONLY = { partialFilterExpression: { deleted_at: null } }
+
 const INDEXES = {
   expenses: [[{ user_id: 1, date: -1 }, {}]],
-  budgets: [[{ user_id: 1, month: 1, category: 1 }, { unique: true }]],
+  budgets: [[{ user_id: 1, month: 1, category: 1 }, { unique: true, ...LIVE_ONLY }]],
   categories: [
-    [{ user_id: 1, name: 1 }, { unique: true }],
+    [{ user_id: 1, name: 1 }, { unique: true, ...LIVE_ONLY }],
     [{ user_id: 1, group: 1, order: 1 }, {}],
   ],
-  groups: [[{ user_id: 1, name: 1 }, { unique: true }]],
-  holdings: [[{ user_id: 1, name: 1 }, { unique: true }]],
+  groups: [[{ user_id: 1, name: 1 }, { unique: true, ...LIVE_ONLY }]],
+  holdings: [[{ user_id: 1, name: 1 }, { unique: true, ...LIVE_ONLY }]],
   holding_events: [[{ user_id: 1, timestamp: -1 }, {}]],
   subscriptions: [[{ user_id: 1, service: 1 }, {}]],
   push_tokens: [

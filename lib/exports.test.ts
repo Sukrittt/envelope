@@ -16,6 +16,10 @@ const stores: Record<string, Doc[]> = { expenses: [], budgets: [], exports: [] }
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
   return Object.entries(filter).every(([k, v]) => {
     if (k === '_id' && v instanceof ObjectId) return doc._id.equals(v)
+    // `null` matches a missing field too (real Mongo semantics) — needed for
+    // scoped()'s default `deleted_at: null` "live" filter on docs that
+    // predate the field.
+    if (v === null) return doc[k] == null
     if (v && typeof v === 'object' && !(v instanceof ObjectId)) {
       return Object.entries(v as Record<string, unknown>).every(([op, val]) => {
         if (op === '$gte') return (doc[k] as string) >= (val as string)
@@ -91,11 +95,15 @@ describe('buildAndStoreExport', () => {
 
     // Round-trip the uploaded buffer to confirm both collections became tabs.
     const wb = XLSX.read(buffer as Buffer, { type: 'buffer' })
-    expect(wb.SheetNames).toContain('expenses')
-    expect(wb.SheetNames).toContain('budgets')
-    const expenseRows = XLSX.utils.sheet_to_json(wb.Sheets.expenses)
+    expect(wb.SheetNames).toContain('Expenses')
+    expect(wb.SheetNames).toContain('Budgets')
+    const expenseRows = XLSX.utils.sheet_to_json(wb.Sheets.Expenses) as Array<Record<string, unknown>>
     expect(expenseRows).toHaveLength(1)
-    expect((expenseRows[0] as Record<string, unknown>).item).toBe('Coffee')
+    expect(expenseRows[0].Item).toBe('Coffee')
+    expect(expenseRows[0]['Amount (INR)']).toBe('₹150')
+    expect(expenseRows[0]).not.toHaveProperty('source')
+    expect(expenseRows[0]).not.toHaveProperty('description')
+    expect(expenseRows[0]).not.toHaveProperty('timestamp')
 
     const doc = stores.exports[0]
     expect(doc.status).toBe('ready')
@@ -119,8 +127,8 @@ describe('buildAndStoreExport', () => {
 
     const [, buffer] = put.mock.calls[0]
     const wb = XLSX.read(buffer as Buffer, { type: 'buffer' })
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets.expenses) as Array<Record<string, unknown>>
-    expect(rows.map((r) => r.item).sort()).toEqual(['August', 'July', 'September'])
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets.Expenses) as Array<Record<string, unknown>>
+    expect(rows.map((r) => r.Item).sort()).toEqual(['August', 'July', 'September'])
   })
 
   it('marks the doc failed and sends a failure push when upload throws', async () => {

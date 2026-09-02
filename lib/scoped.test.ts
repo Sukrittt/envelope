@@ -41,7 +41,10 @@ function fakeMongoCollection(collectionName: string) {
   let nextId = 1
 
   function matches(doc: StoredDoc, filter: Record<string, unknown>): boolean {
-    return Object.entries(filter).every(([k, v]) => doc[k] === v)
+    // `null` matches a missing field too, mirroring real Mongo equality semantics —
+    // needed since `deleted_at: null` is the default "live" filter and old docs
+    // predating the field are missing it entirely.
+    return Object.entries(filter).every(([k, v]) => (v === null ? doc[k] == null : doc[k] === v))
   }
 
   function applyUpdate(doc: StoredDoc, update: Record<string, unknown>): void {
@@ -101,6 +104,12 @@ function fakeMongoCollection(collectionName: string) {
         return { matchedCount: 0, upsertedId: created._id }
       }
       return { matchedCount: 0 }
+    },
+    async deleteOne(filter: Record<string, unknown>) {
+      const index = store.findIndex((d) => matches(d, filter))
+      if (index === -1) return { acknowledged: true, deletedCount: 0 }
+      store.splice(index, 1)
+      return { acknowledged: true, deletedCount: 1 }
     },
     async distinct(key: string, filter: Record<string, unknown> = {}) {
       const results = store.filter((d) => matches(d, filter))
@@ -185,7 +194,58 @@ describe('scoped()', () => {
     scoped(s as any, 'user_alice').aggregate([{ $group: { _id: '$category' } }])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pipeline = s.calls[0].args[0] as any[]
-    expect(pipeline[0]).toEqual({ $match: { user_id: 'user_alice' } })
+    expect(pipeline[0]).toEqual({ $match: { user_id: 'user_alice', deleted_at: null } })
+  })
+})
+
+describe('scoped() soft delete', () => {
+  it('deleteOne stamps deleted_at instead of removing the document, and deletedCount reflects the match', async () => {
+    const coll = fakeMongoCollection('categories')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ name: 'Groceries' })
+
+    const result = await view.deleteOne({ name: 'Groceries' })
+    expect(result.deletedCount).toBe(1)
+    expect(coll.store).toHaveLength(1) // still there, just archived
+    expect(coll.store[0].deleted_at).not.toBeNull()
+
+    expect(await view.findOne({ name: 'Groceries' })).toBeNull() // hidden from the live view
+  })
+
+  it('restore clears deleted_at, making the document live again', async () => {
+    const coll = fakeMongoCollection('categories')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ name: 'Groceries' })
+    await view.deleteOne({ name: 'Groceries' })
+
+    await view.restore({ name: 'Groceries' })
+    expect(coll.store[0].deleted_at).toBeNull()
+    expect((await view.findOne({ name: 'Groceries' }))?.name).toBe('Groceries')
+  })
+
+  it('purge removes an archived document for real', async () => {
+    const coll = fakeMongoCollection('categories')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ name: 'Groceries' })
+    await view.deleteOne({ name: 'Groceries' })
+
+    await view.purge({ name: 'Groceries' })
+    expect(coll.store).toHaveLength(0)
+  })
+
+  it('a soft-deleted document does not block creating a new live one with the same natural key', async () => {
+    const coll = fakeMongoCollection('categories')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ name: 'Groceries' })
+    await view.deleteOne({ name: 'Groceries' })
+
+    expect(await view.findOne({ name: 'Groceries' })).toBeNull()
+    await view.insertOne({ name: 'Groceries' })
+    expect(coll.store.filter((d) => d.name === 'Groceries')).toHaveLength(2)
   })
 })
 

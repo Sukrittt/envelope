@@ -1,16 +1,22 @@
-import { json, error, readBody } from '@/lib/http'
+import { json, error, readBody, nowIST } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { scoped } from '@/lib/scoped'
 import { COLLECTIONS } from '@/lib/models'
 import { displayName, type UserDoc } from '@/lib/users'
+import { purgesAt } from '@/lib/archive'
 
 export const dynamic = 'force-dynamic'
 
 function serialize(user: UserDoc | null) {
   if (!user) return null
-  return { ...user, name: displayName(user), emailVerified: user.emailVerified ?? true }
+  return {
+    ...user,
+    name: displayName(user),
+    emailVerified: user.emailVerified ?? true,
+    deletionScheduledFor: user.deleted_at ? purgesAt(user.deleted_at) : null,
+  }
 }
 
 export async function GET(req: Request) {
@@ -83,11 +89,15 @@ export async function DELETE(req: Request) {
     return error('email confirmation required', 400)
   }
 
+  // Soft delete, same as every other DELETE route (lib/scoped.ts) — a
+  // recoverable grace window, not an immediate wipe. The GC cron purges the
+  // archived rows and the WorkOS user once `GRACE_DAYS` has passed
+  // (app/api/cron/gc/route.ts), not here.
   for (const name of Object.values(COLLECTIONS)) {
     await scoped(db.collection(name), auth.userId).deleteMany({})
   }
-  await db.collection<UserDoc>('users').deleteOne({ _id: auth.userId })
-  await getWorkOSClient().userManagement.deleteUser(auth.userId)
+  const deletedAt = nowIST().timestamp
+  await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: { deleted_at: deletedAt } })
 
-  return json({ ok: true })
+  return json({ ok: true, deletionScheduledFor: purgesAt(deletedAt) })
 }

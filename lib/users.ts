@@ -26,6 +26,8 @@ export interface UserDoc {
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null
+  /** Set when the account is soft-deleted; the GC cron purges the account (and its WorkOS user) `GRACE_DAYS` after this. Null/absent = active. */
+  deleted_at?: string | null
 }
 
 interface WorkOSUserLike {

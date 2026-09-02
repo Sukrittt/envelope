@@ -160,32 +160,39 @@ function encUpdate(update: Doc, fields: string[], userId: string, collectionName
  * (and ciphertext, unreadable without the key). Move to per-user databases
  * only if that ever stops being acceptable.
  */
+/** Extra behavior for read/delete methods, beyond the driver's own options. */
+interface ScopeOpts {
+  /** Include soft-deleted (archived) docs instead of the default live-only view. */
+  includeDeleted?: boolean
+}
+
 export function scoped(coll: Collection<Doc>, userId: string) {
   const collectionName = coll.collectionName
   const fields = fieldsFor(collectionName)
+  const nowIso = () => new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString()
 
-  const own = (filter: Filter<Doc> = {}): Filter<Doc> => {
+  const own = (filter: Filter<Doc> = {}, opts: ScopeOpts = {}): Filter<Doc> => {
     assertFilterSafe(filter as Doc, fields)
-    return { ...filter, user_id: userId }
+    return { ...filter, user_id: userId, ...(opts.includeDeleted ? {} : { deleted_at: null }) }
   }
-  const stamp = (doc: Doc): Doc => ({ ...encDoc(doc, fields, userId, collectionName), user_id: userId })
+  const stamp = (doc: Doc): Doc => ({ ...encDoc(doc, fields, userId, collectionName), user_id: userId, deleted_at: null })
   const decode = (doc: Doc): Doc => decDoc(doc, fields, userId, collectionName)
 
   return {
     /** The user this view is scoped to. */
     userId,
 
-    find(filter: Filter<Doc> = {}, options?: FindOptions): FindCursor<WithId<Doc>> {
-      return coll.find(own(filter), options).map((d) => decode(d) as WithId<Doc>)
+    find(filter: Filter<Doc> = {}, options?: FindOptions, scopeOpts?: ScopeOpts): FindCursor<WithId<Doc>> {
+      return coll.find(own(filter, scopeOpts), options).map((d) => decode(d) as WithId<Doc>)
     },
 
-    async findOne(filter: Filter<Doc> = {}, options?: FindOptions): Promise<WithId<Doc> | null> {
-      const doc = await coll.findOne(own(filter), options)
+    async findOne(filter: Filter<Doc> = {}, options?: FindOptions, scopeOpts?: ScopeOpts): Promise<WithId<Doc> | null> {
+      const doc = await coll.findOne(own(filter, scopeOpts), options)
       return doc ? (decode(doc) as WithId<Doc>) : null
     },
 
-    countDocuments(filter: Filter<Doc> = {}, options?: CountDocumentsOptions): Promise<number> {
-      return coll.countDocuments(own(filter), options)
+    countDocuments(filter: Filter<Doc> = {}, options?: CountDocumentsOptions, scopeOpts?: ScopeOpts): Promise<number> {
+      return coll.countDocuments(own(filter, scopeOpts), options)
     },
 
     distinct(key: string, filter: Filter<Doc> = {}): Promise<unknown[]> {
@@ -195,9 +202,9 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       return coll.distinct(key, own(filter))
     },
 
-    /** Aggregation with an ownership `$match` forced as the first stage. Decrypts top-level output fields by name. */
+    /** Aggregation with an ownership+live `$match` forced as the first stage. Decrypts top-level output fields by name. */
     aggregate<T extends Doc = Doc>(pipeline: Doc[] = []) {
-      return coll.aggregate<T>([{ $match: { user_id: userId } }, ...pipeline]).map((d) => decode(d as Doc) as T)
+      return coll.aggregate<T>([{ $match: { user_id: userId, deleted_at: null } }, ...pipeline]).map((d) => decode(d as Doc) as T)
     },
 
     insertOne(doc: Doc, options?: InsertOneOptions): Promise<InsertOneResult<Doc>> {
@@ -232,12 +239,31 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       return coll.replaceOne(own(filter), stamp(replacement), options) as Promise<UpdateResult<Doc>>
     },
 
-    deleteOne(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      return coll.deleteOne(own(filter), options)
+    /** Soft delete: stamps `deleted_at` rather than removing the document. See `purge` for a real delete. */
+    async deleteOne(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
+      const result = await coll.updateOne(own(filter), { $set: { deleted_at: nowIso() } } as never, options)
+      return { acknowledged: result.acknowledged, deletedCount: result.matchedCount }
     },
 
-    deleteMany(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      return coll.deleteMany(own(filter), options)
+    /** Soft delete: stamps `deleted_at` on every match rather than removing them. See `purgeMany` for a real delete. */
+    async deleteMany(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
+      const result = await coll.updateMany(own(filter), { $set: { deleted_at: nowIso() } } as never, options)
+      return { acknowledged: result.acknowledged, deletedCount: result.matchedCount }
+    },
+
+    /** Un-does a soft delete: clears `deleted_at` on a previously archived document. */
+    restore(filter: Filter<Doc>, options?: UpdateOptions): Promise<UpdateResult<Doc>> {
+      return coll.updateOne(own(filter, { includeDeleted: true }), { $set: { deleted_at: null } } as never, options)
+    },
+
+    /** Real, unrecoverable delete of an archived document — only the GC cron should call this. */
+    purge(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
+      return coll.deleteOne(own(filter, { includeDeleted: true }), options)
+    },
+
+    /** Real, unrecoverable delete of every matching document — only the GC cron should call this. */
+    purgeMany(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
+      return coll.deleteMany(own(filter, { includeDeleted: true }), options)
     },
 
     bulkWrite(
