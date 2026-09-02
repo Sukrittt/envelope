@@ -5573,6 +5573,12 @@ summary:focus-visible,
   color: var(--text-secondary);
 }
 
+.subscription-modal-hint {
+  font-size: var(--fs-12);
+  color: var(--muted);
+  margin: 0;
+}
+
 .subscription-modal-actions {
   display: flex;
   justify-content: flex-end;

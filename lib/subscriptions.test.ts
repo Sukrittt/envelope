@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rollForward, getEffectiveDueDate, daysUntil, renewalDays } from './subscriptions'
+import { rollForward, getEffectiveDueDate, daysUntil, renewalDays, isSubscriptionDueToday } from './subscriptions'
 
 function isoDaysFromNow(days: number): string {
   const d = new Date()
@@ -65,6 +65,23 @@ describe('getEffectiveDueDate', () => {
   it('returns empty string with no usable field', () => {
     expect(getEffectiveDueDate({ nextDueDate: '', billingCycle: 'one-time', timestamp: '' })).toBe('')
   })
+
+  // Regression: a nextDueDate <= "now" (a live instant) used to be treated as
+  // already past even when it fell on today's own calendar date, so a
+  // subscription due today always rolled straight to next cycle instead of
+  // resolving to today. `today` is passed explicitly here so the test is not
+  // sensitive to the moment it happens to run.
+  it('resolves a nextDueDate that is exactly today to today, not the next cycle', () => {
+    expect(getEffectiveDueDate({ nextDueDate: '2026-09-02', billingCycle: 'monthly', timestamp: '2026-01-01' }, '2026-09-02')).toBe(
+      '2026-09-02',
+    )
+  })
+
+  it('rolls a nextDueDate that is exactly one cycle before today forward to today', () => {
+    expect(getEffectiveDueDate({ nextDueDate: '2026-08-02', billingCycle: 'monthly', timestamp: '2026-01-01' }, '2026-09-02')).toBe(
+      '2026-09-02',
+    )
+  })
 })
 
 describe('daysUntil', () => {
@@ -99,5 +116,42 @@ describe('renewalDays', () => {
 
   it('counts days to a future due date', () => {
     expect(renewalDays({ nextDueDate: isoDaysFromNow(7), billingCycle: 'monthly', timestamp: '2026-01-01' })).toBe(7)
+  })
+
+  it('is 0 for a subscription due exactly today', () => {
+    expect(
+      renewalDays({ nextDueDate: '2026-09-02', billingCycle: 'monthly', timestamp: '2026-01-01' }, '2026-09-02'),
+    ).toBe(0)
+  })
+})
+
+describe('isSubscriptionDueToday', () => {
+  const today = '2026-09-02'
+
+  it('is true for an active monthly subscription due today', () => {
+    expect(
+      isSubscriptionDueToday({ nextDueDate: today, billingCycle: 'monthly', timestamp: '2026-01-01' }, today),
+    ).toBe(true)
+  })
+
+  it('is false for a subscription due on a different day', () => {
+    expect(
+      isSubscriptionDueToday({ nextDueDate: '2026-09-15', billingCycle: 'monthly', timestamp: '2026-01-01' }, today),
+    ).toBe(false)
+  })
+
+  it('is false for a cancelled subscription due today', () => {
+    expect(
+      isSubscriptionDueToday(
+        { nextDueDate: today, billingCycle: 'monthly', timestamp: '2026-01-01', status: 'cancelled' },
+        today,
+      ),
+    ).toBe(false)
+  })
+
+  it('is false for a one-time subscription, even if due today', () => {
+    expect(
+      isSubscriptionDueToday({ nextDueDate: today, billingCycle: 'one-time', timestamp: '2026-01-01' }, today),
+    ).toBe(false)
   })
 })

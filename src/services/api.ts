@@ -257,6 +257,7 @@ export interface SubscriptionRow {
   status: string
   renewal_or_end_month: string
   notes: string
+  category: string
 }
 
 export async function getSubscriptions(): Promise<SubscriptionRow[]> {
@@ -275,6 +276,7 @@ export async function updateSubscription(
     next_due_date?: string
     notes?: string
     status?: string
+    category?: string
   },
 ): Promise<void> {
   const resp = await apiFetch('/api/subscriptions', {
@@ -302,6 +304,7 @@ export async function addSubscription(row: {
   billing_cycle?: string
   next_due_date?: string
   notes?: string
+  category?: string
 }): Promise<void> {
   const resp = await apiFetch('/api/subscriptions', {
     method: 'POST',

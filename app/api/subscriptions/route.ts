@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     status: 'active',
     renewal_or_end_month: String(body.renewal_or_end_month ?? ''),
     notes: String(body.notes ?? ''),
+    category: String(body.category ?? ''),
   })
   invalidate('subscriptions', auth.userId)
   return json({ ok: true })
@@ -63,6 +64,7 @@ export async function PUT(req: Request) {
   if (body.notes !== undefined) update.notes = String(body.notes)
   if (body.status !== undefined) update.status = String(body.status)
   if (body.renewalOrEndMonth !== undefined) update.renewal_or_end_month = String(body.renewalOrEndMonth)
+  if (body.category !== undefined) update.category = String(body.category)
 
   if (body.status === 'cancelled' && body.renewalOrEndMonth === undefined) {
     const expiry = new Date()

@@ -38,18 +38,31 @@ export function rollForward(dateStr: string, cycle: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** Today as 'YYYY-MM-DD', UTC. */
+function todayUTC(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 /**
  * Resolves the next date a subscription is due, in three tiers: a stored
- * `nextDueDate` rolled forward past today, then `renewalOrEndMonth`, then a
+ * `nextDueDate` rolled forward past `today`, then `renewalOrEndMonth`, then a
  * monthly cycle derived from the first-charge `timestamp`. Returns `''` if
  * none apply.
+ *
+ * `today` defaults to the real today ('YYYY-MM-DD', UTC) and only needs
+ * overriding by a deterministic caller (the cron, tests). Comparisons are
+ * calendar-date-only (`today`'s UTC midnight), not a live instant — a `d <=
+ * new Date()` comparison would treat a subscription due *today* as already
+ * past (today's midnight is always <= any later moment same day) and skip
+ * straight to the next cycle, which is exactly the day this function most
+ * needs to get right.
  */
-export function getEffectiveDueDate(sub: DueDateInput): string {
+export function getEffectiveDueDate(sub: DueDateInput, today: string = todayUTC()): string {
+  const todayMidnight = new Date(`${today}T00:00:00Z`).getTime()
   if (sub.nextDueDate) {
     let d = new Date(sub.nextDueDate)
     if (Number.isNaN(d.getTime())) return ''
-    const now = new Date()
-    while (d <= now) {
+    while (d.getTime() < todayMidnight) {
       const rolled = rollForward(d.toISOString().slice(0, 10), sub.billingCycle)
       if (!rolled) break
       d = new Date(rolled)
@@ -61,15 +74,15 @@ export function getEffectiveDueDate(sub: DueDateInput): string {
     if (parts.length >= 2) {
       const m = MONTH_NAMES.indexOf(parts[0])
       const y = parseInt(parts[1])
-      if (m >= 0 && !Number.isNaN(y)) return new Date(y, m, 1).toISOString().slice(0, 10)
+      if (m >= 0 && !Number.isNaN(y)) return new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10)
     }
   }
   if (sub.timestamp && /monthly/i.test(sub.billingCycle)) {
     const start = new Date(sub.timestamp)
     if (!Number.isNaN(start.getTime())) {
-      const now = new Date()
-      const next = new Date(now.getFullYear(), now.getMonth() + 1, start.getDate())
-      if (next <= now) next.setMonth(next.getMonth() + 1)
+      const now = new Date(`${today}T00:00:00Z`)
+      const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, start.getUTCDate()))
+      if (next.getTime() <= todayMidnight) next.setUTCMonth(next.getUTCMonth() + 1)
       return next.toISOString().slice(0, 10)
     }
   }
@@ -82,11 +95,10 @@ export function getEffectiveDueDate(sub: DueDateInput): string {
  * depending on what time of day "now" happens to be (a bill "3 days out"
  * checked at 11pm and the same bill checked at 6am should both say 3).
  */
-function calendarDaysUntil(dateStr: string): number {
+function calendarDaysUntil(dateStr: string, today: string = todayUTC()): number {
   const due = new Date(`${dateStr}T00:00:00Z`).getTime()
-  const now = new Date()
-  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  return Math.round((due - todayUTC) / 86400000)
+  const todayMidnight = new Date(`${today}T00:00:00Z`).getTime()
+  return Math.round((due - todayMidnight) / 86400000)
 }
 
 /** Human-readable "renews in Nd" label, or '' if the date is missing or already past. */
@@ -100,9 +112,25 @@ export function daysUntil(dateStr: string): string {
 }
 
 /** Days until the subscription's effective due date; `Infinity` for one-time or undated subscriptions. */
-export function renewalDays(sub: DueDateInput & { billingCycle: string }): number {
+export function renewalDays(sub: DueDateInput & { billingCycle: string }, today: string = todayUTC()): number {
   if (/one-time/i.test(sub.billingCycle)) return Infinity
-  const due = getEffectiveDueDate(sub)
+  const due = getEffectiveDueDate(sub, today)
   if (!due) return Infinity
-  return calendarDaysUntil(due)
+  return calendarDaysUntil(due, today)
+}
+
+/** Statuses that should be treated as no-longer-billing — excluded from bill reminders and auto-added expenses. */
+export const INACTIVE_STATUSES = new Set(['cancelled', 'canceled', 'ended', 'paused'])
+
+/**
+ * Whether `sub`'s next charge lands exactly on `today` — false for an
+ * inactive status or a `one-time` billing cycle, neither of which should
+ * ever auto-fire a recurring charge.
+ */
+export function isSubscriptionDueToday(
+  sub: DueDateInput & { billingCycle: string; status?: string },
+  today: string,
+): boolean {
+  if (sub.status && INACTIVE_STATUSES.has(sub.status.toLowerCase())) return false
+  return renewalDays(sub, today) === 0
 }

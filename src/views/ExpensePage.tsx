@@ -174,6 +174,7 @@ export function ExpensePage() {
     billing_cycle: string;
     next_due_date: string;
     notes: string;
+    category: string;
   } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [chartType, setChartType] = useState<"area" | "bar">("area");
@@ -2343,6 +2344,7 @@ export function ExpensePage() {
                                           billing_cycle: sub.billingCycle,
                                           next_due_date: sub.nextDueDate,
                                           notes: sub.notes,
+                                          category: sub.category,
                                         });
                                         setShowSubModal(true);
                                       }}
@@ -2410,6 +2412,7 @@ export function ExpensePage() {
                                           billing_cycle: sub.billingCycle,
                                           next_due_date: sub.nextDueDate,
                                           notes: sub.notes,
+                                          category: sub.category,
                                         });
                                         setShowSubModal(true);
                                       }}

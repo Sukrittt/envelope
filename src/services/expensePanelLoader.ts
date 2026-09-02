@@ -20,6 +20,7 @@ interface SubscriptionRow {
   status: string
   renewalOrEndMonth: string
   notes: string
+  category: string
 }
 
 const ESSENTIAL_CATEGORIES = new Set(['Bills', 'Food', 'Travel', 'Personal care'])
@@ -70,6 +71,7 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
     status: r.status,
     renewalOrEndMonth: r.renewal_or_end_month,
     notes: r.notes ?? '',
+    category: r.category ?? '',
   }))
   const budgets = budgetRows.map((r) => ({
     month: r.month,
@@ -157,6 +159,7 @@ export async function loadExpensePanelContract(): Promise<ExpensePanelContract> 
       status: s.status,
       renewalOrEndMonth: s.renewalOrEndMonth,
       notes: s.notes,
+      category: s.category,
     })),
   }
 }

@@ -1,6 +1,6 @@
 import type { Envelope } from '@/src/types/expense'
 import type { CategoryDocRow, SubscriptionDocRow, SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
-import { getEffectiveDueDate, renewalDays, MONTH_NAMES } from '@/lib/subscriptions'
+import { getEffectiveDueDate, renewalDays, INACTIVE_STATUSES, MONTH_NAMES } from '@/lib/subscriptions'
 import type { UserDoc } from '@/lib/users'
 
 /**
@@ -50,8 +50,6 @@ export function prefsFor(user: UserDoc): NotificationPrefs {
     wrapped: user.notifyWrapped ?? true,
   }
 }
-
-const INACTIVE_STATUSES = new Set(['cancelled', 'canceled', 'ended', 'paused'])
 
 function inr(n: number): string {
   return Math.round(n).toLocaleString('en-IN')

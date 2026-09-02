@@ -36,6 +36,7 @@ export interface ExpensePanelContract {
     status: string
     renewalOrEndMonth?: string
     notes: string
+    category: string
   }>
 }
 
@@ -67,8 +68,8 @@ export interface ExpensePanelData {
     nextWeek: string
   }
   subscriptions: {
-    active: Array<{ timestamp: string; service: string; amountInr: number; billingCycle: string; nextDueDate: string; status: string; renewalOrEndMonth?: string; notes: string }>
-    cancelled: Array<{ timestamp: string; service: string; amountInr: number; billingCycle: string; nextDueDate: string; status: string; renewalOrEndMonth?: string; notes: string }>
+    active: Array<{ timestamp: string; service: string; amountInr: number; billingCycle: string; nextDueDate: string; status: string; renewalOrEndMonth?: string; notes: string; category: string }>
+    cancelled: Array<{ timestamp: string; service: string; amountInr: number; billingCycle: string; nextDueDate: string; status: string; renewalOrEndMonth?: string; notes: string; category: string }>
   }
 }
 

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { addSubscription, updateSubscription } from '../services/api'
+import { useEffect, useState } from 'react'
+import { addSubscription, getCategories, updateSubscription, type CategoryRow } from '../services/api'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
@@ -10,6 +10,7 @@ interface SubscriptionEdit {
   billing_cycle: string
   next_due_date: string
   notes: string
+  category: string
 }
 
 interface Props {
@@ -33,8 +34,14 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
   const [billingCycle, setBillingCycle] = useState(editData?.billing_cycle ?? 'monthly')
   const [dueDate, setDueDate] = useState(toDateInput(editData?.next_due_date ?? ''))
   const [notes, setNotes] = useState(editData?.notes ?? '')
+  const [category, setCategory] = useState(editData?.category ?? '')
+  const [categories, setCategories] = useState<CategoryRow[]>([])
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => setCategories([]))
+  }, [])
 
   const amt = parseFloat(amount)
   const canSave = service.trim() !== '' && amount.trim() !== '' && !Number.isNaN(amt) && amt > 0
@@ -50,6 +57,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
         if (billingCycle !== editData!.billing_cycle) updates.billing_cycle = billingCycle
         if (dueDate !== toDateInput(editData!.next_due_date)) updates.next_due_date = dueDate || ''
         if (notes !== editData!.notes) updates.notes = notes.trim()
+        if (category !== editData!.category) updates.category = category
         await updateSubscription(editData!.service, updates)
       } else {
         await addSubscription({
@@ -58,6 +66,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
           billing_cycle: billingCycle,
           next_due_date: dueDate || undefined,
           notes: notes.trim(),
+          category,
         })
       }
       onSaved()
@@ -135,6 +144,25 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
                 onKeyDown={(e) => { if (e.key === 'Enter' && canSave) handleSave() }}
                 placeholder="Optional"
               />
+            </label>
+
+            <label className="subscription-modal-field">
+              <span>Category</span>
+              <select
+                className="txn-entry-input"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="">No category linked</option>
+                {categories.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+              {category && (
+                <p className="subscription-modal-hint">
+                  We&apos;ll auto-add an expense for this subscription in {category} on its due date.
+                </p>
+              )}
             </label>
           </div>
         </div>

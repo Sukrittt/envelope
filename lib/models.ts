@@ -34,6 +34,7 @@ export const SUBSCRIPTION_HEADERS = [
   'status',
   'renewal_or_end_month',
   'notes',
+  'category',
 ]
 
 export const HOLDING_HEADERS = [
