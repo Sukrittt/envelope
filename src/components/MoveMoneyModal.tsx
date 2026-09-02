@@ -9,7 +9,7 @@ interface Props {
   envelopes: Envelope[]
   readyToAssign: number
   onClose: () => void
-  onTransfer: (from: string, to: string, amount: number) => void
+  onTransfer: (from: string, to: string, amount: number) => Promise<void>
 }
 
 const RTA_SENTINEL = '__ready_to_assign__'
@@ -22,7 +22,8 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
 
   const [selectedSource, setSelectedSource] = useState(RTA_SENTINEL)
   const [amount, setAmount] = useState(String(isOverspent ? Math.abs(targetAvail) : ''))
-  const { saving, success, succeed } = useButtonPhase()
+  const [submitError, setSubmitError] = useState('')
+  const { saving, success, start, succeed, fail } = useButtonPhase()
 
   const maxAvailable = useMemo(() => {
     if (selectedSource === RTA_SENTINEL) return readyToAssign
@@ -38,13 +39,18 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
     return maxAvailable - parsedAmount
   }, [parsedAmount, maxAvailable])
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedSource || !parsedAmount || parsedAmount <= 0 || isOverLimit || saving || success) return
-    const from = selectedSource
-    const to = targetCategory
-    const transferAmount = parsedAmount
-    succeed(() => onTransfer(from, to, transferAmount))
+    setSubmitError('')
+    start()
+    try {
+      await onTransfer(selectedSource, targetCategory, parsedAmount)
+      succeed(onClose)
+    } catch {
+      fail()
+      setSubmitError('Could not move money. Check your connection and try again.')
+    }
   }
 
   if (!target || (envelopeSources.length === 0 && readyToAssign <= 0)) {
@@ -118,6 +124,8 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
               step={1}
             />
           </label>
+
+          {submitError && <p className="txn-entry-error">{submitError}</p>}
 
           <div className="move-money-actions">
             <button type="button" className="action-button" onClick={onClose} disabled={saving || success}>

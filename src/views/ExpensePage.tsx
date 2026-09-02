@@ -24,6 +24,7 @@ import {
   reactivateSubscription,
   addBudget,
   updateBudget,
+  transferBudget,
   getBudgets,
   getCategories,
   addExpense,
@@ -2550,31 +2551,30 @@ export function ExpensePage() {
               envelopes={envelopeState.envelopes}
               readyToAssign={envelopeState.readyToAssign}
               onClose={() => setMoveMoneyTarget(null)}
-              onTransfer={(from, to, amount) => {
+              onTransfer={async (from, to, amount) => {
+                if (!envelopeState) return;
+                // Server computes the transfer from current DB state in one
+                // transaction — local state below only mirrors the result,
+                // it doesn't drive it. Awaited first: a failed transfer must
+                // never touch local state or look like it moved money.
+                await transferBudget(envelopeState.month, to, from, amount);
                 setEnvelopeState((prev) => {
                   if (!prev) return prev;
                   if (from === "__ready_to_assign__") {
-                    const updated = prev.envelopes.map((e) => {
-                      if (e.category === to)
-                        return {
-                          ...e,
-                          assigned: e.assigned + amount,
-                          available: e.available + amount,
-                        };
-                      return e;
-                    });
+                    const updated = prev.envelopes.map((e) =>
+                      e.category === to
+                        ? {
+                            ...e,
+                            assigned: e.assigned + amount,
+                            available: e.available + amount,
+                          }
+                        : e,
+                    );
                     const totalAssigned = updated.reduce(
                       (s, e) => s + e.assigned,
                       0,
                     );
                     const rta = Math.round(prev.income - totalAssigned) || 0;
-                    const current = prev.envelopes.find(
-                      (e) => e.category === to,
-                    );
-                    const newAssigned = (current?.assigned ?? 0) + amount;
-                    updateBudget(prev.month, to, {
-                      assigned: String(newAssigned),
-                    }).catch(() => {});
                     return {
                       ...prev,
                       envelopes: updated,
@@ -2583,7 +2583,6 @@ export function ExpensePage() {
                       isOverAssigned: rta < 0,
                     };
                   }
-                  // Envelope-to-envelope transfer: persist both changes
                   const updated = prev.envelopes.map((e) => {
                     if (e.category === from)
                       return {
@@ -2604,21 +2603,6 @@ export function ExpensePage() {
                     0,
                   );
                   const rta = Math.round(prev.income - totalAssigned) || 0;
-
-                  // Persist both envelope updates to the database
-                  const fromEnv = updated.find((e) => e.category === from);
-                  const toEnv = updated.find((e) => e.category === to);
-                  if (fromEnv) {
-                    updateBudget(prev.month, from, {
-                      assigned: String(fromEnv.assigned),
-                    }).catch(() => {});
-                  }
-                  if (toEnv) {
-                    updateBudget(prev.month, to, {
-                      assigned: String(toEnv.assigned),
-                    }).catch(() => {});
-                  }
-
                   return {
                     ...prev,
                     envelopes: updated,
@@ -2627,7 +2611,6 @@ export function ExpensePage() {
                     isOverAssigned: rta < 0,
                   };
                 });
-                setMoveMoneyTarget(null);
               }}
             />
           )}

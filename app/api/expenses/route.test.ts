@@ -10,6 +10,13 @@ vi.mock('@/lib/cache', () => ({
   invalidate: vi.fn(),
 }))
 
+// withTx just runs the callback with an undefined "session" — fakeCollection
+// below accepts and ignores an options argument, so this is enough to
+// exercise the same code paths without a real Mongo transaction.
+vi.mock('@/lib/mongodb', () => ({
+  withTx: async (fn: (session: undefined) => Promise<unknown>) => fn(undefined),
+}))
+
 type Doc = Record<string, unknown> & { _id: ObjectId }
 
 const stores: Record<string, Doc[]> = { expenses: [], budgets: [] }

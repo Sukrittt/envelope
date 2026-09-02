@@ -1,4 +1,4 @@
-import { MongoClient, type Db } from 'mongodb'
+import { MongoClient, type Db, type ClientSession } from 'mongodb'
 
 const globalWithMongo = globalThis as typeof globalThis & {
   _mongoClientPromise?: Promise<MongoClient>
@@ -26,4 +26,24 @@ export async function getClient(): Promise<MongoClient> {
 export async function getDb(): Promise<Db> {
   const client = await getClient()
   return client.db()
+}
+
+/**
+ * Runs `fn` inside a multi-document transaction. `withTransaction` retries
+ * the whole callback on a transient error (e.g. write conflict), so `fn`
+ * must be pure DB writes — no cache invalidation, no push notifications,
+ * nothing with a side effect outside Mongo. Run those after this resolves.
+ */
+export async function withTx<T>(fn: (session: ClientSession) => Promise<T>): Promise<T> {
+  const client = await getClient()
+  const session = client.startSession()
+  try {
+    let result: T
+    await session.withTransaction(async () => {
+      result = await fn(session)
+    })
+    return result!
+  } finally {
+    await session.endSession()
+  }
 }

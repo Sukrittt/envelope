@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb'
+import { ObjectId, type ClientSession } from 'mongodb'
 import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
@@ -6,6 +6,8 @@ import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import type { ScopedCollection } from '@/lib/scoped'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
+import { withTx } from '@/lib/mongodb'
+import { casRetry } from '@/lib/cas'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,29 +71,40 @@ export async function POST(req: Request) {
   const paymentMethod = String(body.payment_method ?? 'bank')
 
   const coll = await getCollection('expenses', auth)
-  const inserted = await coll.insertOne({
-    timestamp,
-    date,
-    item: String(body.item),
-    amount_inr: String(body.amount_inr),
-    category: String(body.category),
-    notes: String(body.notes ?? ''),
-    source: 'manual',
-    amount: '',
-    description: '',
-    payment_method: paymentMethod,
-  })
 
-  // Auto-transfer to the Credit Card envelope for CC purchases.
-  if (paymentMethod === 'credit_card') {
-    const amountNum = Number(body.amount_inr)
-    if (!Number.isNaN(amountNum) && amountNum > 0) {
-      await adjustCreditCardEnvelope(auth, date.slice(0, 7), amountNum)
+  // The expense insert and its Credit Card envelope bump must land together —
+  // a partial write here leaves an expense with no matching envelope bump.
+  const insertedId = await withTx(async (session) => {
+    const inserted = await coll.insertOne(
+      {
+        timestamp,
+        date,
+        item: String(body.item),
+        amount_inr: String(body.amount_inr),
+        category: String(body.category),
+        notes: String(body.notes ?? ''),
+        source: 'manual',
+        amount: '',
+        description: '',
+        payment_method: paymentMethod,
+      },
+      { session },
+    )
+
+    // Auto-transfer to the Credit Card envelope for CC purchases.
+    if (paymentMethod === 'credit_card') {
+      const amountNum = Number(body.amount_inr)
+      if (!Number.isNaN(amountNum) && amountNum > 0) {
+        await adjustCreditCardEnvelope(auth, date.slice(0, 7), amountNum, session)
+      }
     }
-  }
+
+    return inserted.insertedId
+  })
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
+  if (paymentMethod === 'credit_card') invalidate('budgets', auth.userId)
   invalidateCategoryMap(auth.userId)
   // Awaited (not fire-and-forget): a serverless function can be frozen the
   // instant the response is sent, so a background call here could just never
@@ -101,7 +114,7 @@ export async function POST(req: Request) {
   // The id and the server-generated timestamp go back to the caller so it can
   // address the row it just created — mobile's post-log success screen needs
   // both to offer Undo without re-fetching the whole list to find the row.
-  return json({ ok: true, id: String(inserted.insertedId), timestamp })
+  return json({ ok: true, id: String(insertedId), timestamp })
 }
 
 export async function PUT(req: Request) {
@@ -143,21 +156,28 @@ export async function PUT(req: Request) {
   const newMonth = String(body.new_date ?? found.date ?? '').slice(0, 7)
   const oldAmount = Number(found.amount_inr) || 0
   const newAmount = body.new_amount_inr !== undefined ? Number(body.new_amount_inr) : oldAmount
-  if (oldIsCC && newIsCC && oldMonth === newMonth) {
-    if (oldAmount !== newAmount) await adjustCreditCardEnvelope(auth, oldMonth, newAmount - oldAmount)
-  } else {
-    if (oldIsCC) await adjustCreditCardEnvelope(auth, oldMonth, -oldAmount)
-    if (newIsCC) await adjustCreditCardEnvelope(auth, newMonth, newAmount)
-  }
+
+  // The row edit and its envelope rebalance must land together — same
+  // reasoning as POST.
+  const matchedCount = await withTx(async (session) => {
+    if (oldIsCC && newIsCC && oldMonth === newMonth) {
+      if (oldAmount !== newAmount) await adjustCreditCardEnvelope(auth, oldMonth, newAmount - oldAmount, session)
+    } else {
+      if (oldIsCC) await adjustCreditCardEnvelope(auth, oldMonth, -oldAmount, session)
+      if (newIsCC) await adjustCreditCardEnvelope(auth, newMonth, newAmount, session)
+    }
+
+    return (await coll.updateOne({ _id: found._id }, { $set: update }, { session })).matchedCount
+  })
 
   // updateOne on a wrong/stale _id silently no-ops (matchedCount 0) rather than
   // throwing — without this check the API still answers 200 and the client
   // invalidates + refetches into what looks like "the edit didn't take".
-  const result = await coll.updateOne({ _id: found._id }, { $set: update })
-  if (result.matchedCount === 0) return error('expense row not found', 404)
+  if (matchedCount === 0) return error('expense row not found', 404)
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
+  if (oldIsCC || newIsCC) invalidate('budgets', auth.userId)
   invalidateCategoryMap(auth.userId)
   // The category that could newly be over its threshold: wherever the edit
   // landed the expense, not where it used to be.
@@ -165,26 +185,45 @@ export async function PUT(req: Request) {
   return json({ ok: true })
 }
 
-/** Nudge the __credit_card__ envelope for a month by an amount delta, floor 0. */
-async function adjustCreditCardEnvelope(auth: Auth, month: string, delta: number) {
+/**
+ * Nudge the __credit_card__ envelope for a month by an amount delta, floor 0.
+ * Always called from inside a caller's `withTx` — takes that transaction's
+ * session rather than starting its own. Guards its update on the `assigned`
+ * value it just read (money fields are strings, so `$inc` isn't available)
+ * and retries on a lost race; a concurrent insert for the same month is
+ * caught via the unique partial index and retried as an update.
+ */
+async function adjustCreditCardEnvelope(auth: Auth, month: string, delta: number, session: ClientSession) {
   if (!month || delta === 0) return
   const budgetColl = await getCollection('budgets', auth)
-  const existing = await budgetColl.findOne({ month, category: '__credit_card__' })
-  if (existing) {
-    const current = Number(existing.assigned) || 0
-    await budgetColl.updateOne(
-      { _id: existing._id },
-      { $set: { assigned: String(Math.max(0, current + delta)) } },
-    )
-  } else if (delta > 0) {
-    await budgetColl.insertOne({
-      month,
-      category: '__credit_card__',
-      assigned: String(delta),
-      rolled_over: '0',
-    })
-  }
-  invalidate('budgets', auth.userId)
+
+  await casRetry<'done'>(async () => {
+    const existing = await budgetColl.findOne({ month, category: '__credit_card__' }, { session })
+    if (existing) {
+      const current = Number(existing.assigned) || 0
+      const result = await budgetColl.updateOne(
+        { _id: existing._id, assigned: existing.assigned },
+        { $set: { assigned: String(Math.max(0, current + delta)) } },
+        { session },
+      )
+      return result.matchedCount === 0 ? 'retry' : 'done'
+    }
+    if (delta <= 0) return 'done'
+    try {
+      await budgetColl.insertOne(
+        { month, category: '__credit_card__', assigned: String(delta), rolled_over: '0' },
+        { session },
+      )
+      return 'done'
+    } catch (err) {
+      if (isDuplicateKeyError(err)) return 'retry'
+      throw err
+    }
+  })
+}
+
+function isDuplicateKeyError(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 11000
 }
 
 export async function DELETE(req: Request) {
@@ -202,19 +241,24 @@ export async function DELETE(req: Request) {
   if (!found) return error('expense row not found', 404)
 
   const paymentMethod = String(found.payment_method ?? '')
-  await coll.deleteOne({ _id: found._id })
 
-  // Reverse the Credit Card envelope bump that POST applied for CC purchases.
-  if (paymentMethod === 'credit_card') {
-    const amountNum = Number(found.amount_inr)
-    const month = String(found.date ?? '').slice(0, 7)
-    if (!Number.isNaN(amountNum) && amountNum > 0 && month) {
-      await adjustCreditCardEnvelope(auth, month, -amountNum)
+  // The delete and its envelope unwind must land together — same reasoning as POST/PUT.
+  await withTx(async (session) => {
+    await coll.deleteOne({ _id: found._id }, { session })
+
+    // Reverse the Credit Card envelope bump that POST applied for CC purchases.
+    if (paymentMethod === 'credit_card') {
+      const amountNum = Number(found.amount_inr)
+      const month = String(found.date ?? '').slice(0, 7)
+      if (!Number.isNaN(amountNum) && amountNum > 0 && month) {
+        await adjustCreditCardEnvelope(auth, month, -amountNum, session)
+      }
     }
-  }
+  })
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
+  if (paymentMethod === 'credit_card') invalidate('budgets', auth.userId)
   invalidateCategoryMap(auth.userId)
 
   // Deleting can drop a category back below a threshold it had crossed —

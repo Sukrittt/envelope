@@ -1,5 +1,7 @@
 import { getCollection } from '@/lib/http'
 import { invalidate } from '@/lib/cache'
+import { withTx } from '@/lib/mongodb'
+import { casRetry } from '@/lib/cas'
 import type { Auth } from '@/lib/access'
 
 /**
@@ -10,6 +12,10 @@ import type { Auth } from '@/lib/access'
  * (a manual action) and the recurring-investment cron pass in
  * `app/api/notifications/run` (an automatic contribution) — one code path
  * for both instead of the cron calling the route over HTTP.
+ *
+ * The value update and the event insert happen in one transaction: a
+ * partial write here would otherwise mean a balance moved with no audit
+ * event, or an event for a move that never happened.
  */
 
 export type HoldingActionResult =
@@ -23,38 +29,56 @@ export async function applyHoldingAction(
   const { name, action, amount } = params
 
   const holdingsColl = await getCollection('holdings', auth)
-  const holding = await holdingsColl.findOne({ name })
-  if (!holding) return { ok: false, error: 'holding not found', status: 404 }
+  const eventsColl = await getCollection('holding_events', auth)
 
-  const prevValue = Number(holding.value) || 0
-  let newValue: number
-  switch (action) {
-    case 'market_update':
-      newValue = Math.max(0, amount)
-      break
-    case 'contribution':
-      newValue = prevValue + amount
-      break
-    case 'withdrawal':
-      newValue = Math.max(0, prevValue - amount)
-      break
-    default:
-      return { ok: false, error: 'invalid action', status: 400 }
+  const result = await withTx((session) =>
+    casRetry<HoldingActionResult>(async () => {
+      const holding = await holdingsColl.findOne({ name }, { session })
+      if (!holding) return { ok: false, error: 'holding not found', status: 404 }
+
+      const prevValue = Number(holding.value) || 0
+      let newValue: number
+      switch (action) {
+        case 'market_update':
+          newValue = Math.max(0, amount)
+          break
+        case 'contribution':
+          newValue = prevValue + amount
+          break
+        case 'withdrawal':
+          newValue = Math.max(0, prevValue - amount)
+          break
+        default:
+          return { ok: false, error: 'invalid action', status: 400 }
+      }
+
+      const updateResult = await holdingsColl.updateOne(
+        { name, value: holding.value },
+        { $set: { value: String(newValue), updated_at: new Date().toISOString() } },
+        { session },
+      )
+      if (updateResult.matchedCount === 0) return 'retry'
+
+      await eventsColl.insertOne(
+        {
+          holding_name: name,
+          event_type: action,
+          amount: String(amount),
+          previous_value: String(prevValue),
+          new_value: String(newValue),
+          timestamp: new Date().toISOString(),
+        },
+        { session },
+      )
+
+      return { ok: true, previousValue: prevValue, newValue }
+    }),
+  )
+
+  if (result.ok) {
+    invalidate('holdings', auth.userId)
+    invalidate('holdingEvents', auth.userId)
   }
 
-  await holdingsColl.updateOne({ name }, { $set: { value: String(newValue), updated_at: new Date().toISOString() } })
-  invalidate('holdings', auth.userId)
-
-  const eventsColl = await getCollection('holding_events', auth)
-  await eventsColl.insertOne({
-    holding_name: name,
-    event_type: action,
-    amount: String(amount),
-    previous_value: String(prevValue),
-    new_value: String(newValue),
-    timestamp: new Date().toISOString(),
-  })
-  invalidate('holdingEvents', auth.userId)
-
-  return { ok: true, previousValue: prevValue, newValue }
+  return result
 }

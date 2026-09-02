@@ -1,4 +1,5 @@
 import type {
+  AggregateOptions,
   AnyBulkWriteOperation,
   BulkWriteOptions,
   BulkWriteResult,
@@ -6,6 +7,7 @@ import type {
   CountDocumentsOptions,
   DeleteOptions,
   DeleteResult,
+  DistinctOptions,
   Filter,
   FindCursor,
   FindOptions,
@@ -195,16 +197,18 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       return coll.countDocuments(own(filter, scopeOpts), options)
     },
 
-    distinct(key: string, filter: Filter<Doc> = {}): Promise<unknown[]> {
+    distinct(key: string, filter: Filter<Doc> = {}, options: DistinctOptions = {}): Promise<unknown[]> {
       if (fields.includes(key)) {
         throw new Error(`scoped(): cannot distinct() on encrypted field "${key}" — every value is unique under random IVs`)
       }
-      return coll.distinct(key, own(filter))
+      return coll.distinct(key, own(filter), options)
     },
 
     /** Aggregation with an ownership+live `$match` forced as the first stage. Decrypts top-level output fields by name. */
-    aggregate<T extends Doc = Doc>(pipeline: Doc[] = []) {
-      return coll.aggregate<T>([{ $match: { user_id: userId, deleted_at: null } }, ...pipeline]).map((d) => decode(d as Doc) as T)
+    aggregate<T extends Doc = Doc>(pipeline: Doc[] = [], options?: AggregateOptions) {
+      return coll
+        .aggregate<T>([{ $match: { user_id: userId, deleted_at: null } }, ...pipeline], options)
+        .map((d) => decode(d as Doc) as T)
     },
 
     insertOne(doc: Doc, options?: InsertOneOptions): Promise<InsertOneResult<Doc>> {
