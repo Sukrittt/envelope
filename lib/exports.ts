@@ -6,32 +6,10 @@ import { scoped, type ScopedCollection } from '@/lib/scoped'
 import { getCollection, nowIST } from '@/lib/http'
 import { sendPushNotification } from '@/lib/push'
 import type { Auth } from '@/lib/access'
-import {
-  COLLECTIONS,
-  toRow,
-  EXPENSE_HEADERS,
-  BUDGET_HEADERS,
-  CATEGORY_HEADERS,
-  GROUP_HEADERS,
-  SUBSCRIPTION_HEADERS,
-  HOLDING_HEADERS,
-  HOLDING_EVENT_HEADERS,
-} from '@/lib/models'
+import { COLLECTIONS } from '@/lib/models'
+import { EXPORT_COLUMNS, readableSheetName } from '@/lib/exportFormat'
 
 export const EXPORT_LIMIT = 3
-
-// Only the collections with a fixed CSV-era header shape become a tab.
-// ponytail: skips categoryMapOverrides/chatSessions (no fixed columns, not
-// user-facing budget data) — add a dynamic-header tab if users need those too.
-const HEADERS: Partial<Record<keyof typeof COLLECTIONS, string[]>> = {
-  expenses: EXPENSE_HEADERS,
-  budgets: BUDGET_HEADERS,
-  categories: CATEGORY_HEADERS,
-  groups: GROUP_HEADERS,
-  subscriptions: SUBSCRIPTION_HEADERS,
-  holdings: HOLDING_HEADERS,
-  holdingEvents: HOLDING_EVENT_HEADERS,
-}
 
 /** 'YYYY-MM' for the current instant, IST — same convention as lib/wrapped.ts. */
 export function currentMonthKey(): string {
@@ -105,14 +83,15 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
     const wb = XLSX.utils.book_new()
 
     for (const [key, name] of Object.entries(COLLECTIONS) as [keyof typeof COLLECTIONS, string][]) {
-      const headers = HEADERS[key]
-      if (!headers) continue
+      const columns = EXPORT_COLUMNS[key]
+      if (!columns) continue
 
       const coll = scoped(db.collection(name), userId)
       const docs = key === 'expenses' ? await fetchExpensesByMonth(coll) : await coll.find({}).toArray()
-      const rows = docs.map((d) => toRow(headers, d))
-      const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map((r) => headers.map((h) => r[h]))])
-      XLSX.utils.book_append_sheet(wb, sheet, name.slice(0, 31)) // Excel tab-name length limit
+      const headerRow = columns.map((c) => c.label)
+      const dataRows = docs.map((d) => columns.map((c) => (c.format ? c.format(d[c.key]) : String(d[c.key] ?? ''))))
+      const sheet = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows])
+      XLSX.utils.book_append_sheet(wb, sheet, readableSheetName(name).slice(0, 31)) // Excel tab-name length limit
     }
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
