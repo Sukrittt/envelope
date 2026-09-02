@@ -24,6 +24,22 @@ function labelFor(collection: ArchivableCollection, doc: Record<string, unknown>
   }
 }
 
+/** The amount a row represents, where the collection has one — omitted for categories/groups. */
+function amountFor(collection: ArchivableCollection, doc: Record<string, unknown>): number | undefined {
+  switch (collection) {
+    case 'expenses':
+    case 'subscriptions':
+      return typeof doc.amount_inr === 'number' ? doc.amount_inr : undefined
+    case 'budgets':
+      return typeof doc.assigned === 'number' ? doc.assigned : undefined
+    case 'holdings':
+      return typeof doc.value === 'number' ? doc.value : undefined
+    case 'categories':
+    case 'groups':
+      return undefined
+  }
+}
+
 /**
  * The natural-key filter that would collide with a restored row — mirrors
  * each collection's own DELETE route. `expenses` has no natural key (matched
@@ -76,12 +92,14 @@ async function listArchive(auth: Awaited<ReturnType<typeof getAuth>>, names: rea
     const docs = await coll.find({ deleted_at: { $ne: null } }, {}, { includeDeleted: true }).toArray()
     for (const doc of docs) {
       const deletedAt = String(doc.deleted_at)
+      const amount = amountFor(name, doc)
       items.push({
         id: String(doc._id),
         collection: name,
         label: labelFor(name, doc),
         deletedAt,
         purgesAt: purgesAt(deletedAt),
+        ...(amount !== undefined ? { amount } : {}),
       })
     }
   }
@@ -117,6 +135,27 @@ export async function POST(req: Request) {
   invalidate(collection, auth.userId)
   for (const tag of extraInvalidations(collection)) invalidate(tag, auth.userId)
   if (collection === 'expenses') invalidateCategoryMap(auth.userId)
+
+  return json({ ok: true })
+}
+
+/** Manual "delete forever" — purges an already-archived row before the GC cron would. */
+export async function DELETE(req: Request) {
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'DELETE')
+  if (guard) return guard
+
+  const body = await readBody(req)
+  const collection = typeof body.collection === 'string' ? body.collection : ''
+  const id = typeof body.id === 'string' ? body.id : ''
+  if (!isArchivableCollection(collection)) return error('unknown collection', 400)
+  if (!id || !ObjectId.isValid(id)) return error('id required', 400)
+
+  const coll: ScopedCollection = await getCollection(collection, auth)
+  const archived = await coll.findOne({ _id: new ObjectId(id) }, {}, { includeDeleted: true })
+  if (!archived || !archived.deleted_at) return error('archived item not found', 404)
+
+  await coll.purge({ _id: new ObjectId(id) })
 
   return json({ ok: true })
 }

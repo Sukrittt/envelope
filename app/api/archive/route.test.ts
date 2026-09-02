@@ -10,7 +10,7 @@ vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
 
 type Doc = Record<string, unknown> & { _id: ObjectId }
-const stores: Record<string, Doc[]> = { expenses: [], categories: [] }
+const stores: Record<string, Doc[]> = { expenses: [], categories: [], budgets: [], holdings: [] }
 
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
   return Object.entries(filter).every(([k, v]) => {
@@ -36,6 +36,11 @@ function fakeCollection(base: string) {
       if (doc) doc.deleted_at = null
       return { matchedCount: doc ? 1 : 0 }
     },
+    purge: async (filter: Record<string, unknown>) => {
+      const idx = store.findIndex((d) => matches(d, filter))
+      if (idx >= 0) store.splice(idx, 1)
+      return { acknowledged: true, deletedCount: idx >= 0 ? 1 : 0 }
+    },
   }
 }
 
@@ -44,7 +49,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
   return { ...actual, getCollection: vi.fn(async (base: string) => fakeCollection(base)) }
 })
 
-const { GET, POST } = await import('./route')
+const { GET, POST, DELETE } = await import('./route')
 
 function getReq(qs = ''): Request {
   return new Request(`https://example.com/api/archive${qs}`)
@@ -56,10 +61,19 @@ function postReq(body: unknown): Request {
     body: JSON.stringify(body),
   })
 }
+function deleteReq(body: unknown): Request {
+  return new Request('https://example.com/api/archive', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
 
 beforeEach(() => {
   stores.expenses = []
   stores.categories = []
+  stores.budgets = []
+  stores.holdings = []
 })
 
 describe('GET /api/archive', () => {
@@ -78,6 +92,21 @@ describe('GET /api/archive', () => {
   it('rejects an unknown collection', async () => {
     const res = await GET(getReq('?collection=nonsense'))
     expect(res.status).toBe(400)
+  })
+
+  it('includes amount for collections that have one, omits it for categories', async () => {
+    stores.budgets.push({ _id: new ObjectId(), category: 'Food', month: '2026-01', assigned: 5000, deleted_at: '2026-01-01T00:00:00.000Z' })
+    stores.holdings.push({ _id: new ObjectId(), name: 'Index Fund', value: 12000, deleted_at: '2026-01-01T00:00:00.000Z' })
+    stores.categories.push({ _id: new ObjectId(), name: 'Groceries', deleted_at: '2026-01-01T00:00:00.000Z' })
+
+    const res = await GET(getReq())
+    const body = (await res.json()) as { items: Array<{ collection: string; amount?: number }> }
+    const budget = body.items.find((i) => i.collection === 'budgets')
+    const holding = body.items.find((i) => i.collection === 'holdings')
+    const category = body.items.find((i) => i.collection === 'categories')
+    expect(budget?.amount).toBe(5000)
+    expect(holding?.amount).toBe(12000)
+    expect(category?.amount).toBeUndefined()
   })
 })
 
@@ -108,5 +137,30 @@ describe('POST /api/archive (restore)', () => {
 
     const res = await POST(postReq({ collection: 'categories', id: id.toString() }))
     expect(res.status).toBe(404)
+  })
+})
+
+describe('DELETE /api/archive (purge)', () => {
+  it('permanently removes an archived item', async () => {
+    const id = new ObjectId()
+    stores.categories.push({ _id: id, name: 'Groceries', deleted_at: '2026-01-01T00:00:00.000Z' })
+
+    const res = await DELETE(deleteReq({ collection: 'categories', id: id.toString() }))
+    expect(res.status).toBe(200)
+    expect(stores.categories).toHaveLength(0)
+  })
+
+  it('404s when the id is not actually archived', async () => {
+    const id = new ObjectId()
+    stores.categories.push({ _id: id, name: 'Groceries', deleted_at: null })
+
+    const res = await DELETE(deleteReq({ collection: 'categories', id: id.toString() }))
+    expect(res.status).toBe(404)
+    expect(stores.categories).toHaveLength(1)
+  })
+
+  it('rejects an unknown collection', async () => {
+    const res = await DELETE(deleteReq({ collection: 'nonsense', id: new ObjectId().toString() }))
+    expect(res.status).toBe(400)
   })
 })
