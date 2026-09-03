@@ -188,10 +188,12 @@ export async function PUT(req: Request) {
 /**
  * Nudge the __credit_card__ envelope for a month by an amount delta, floor 0.
  * Always called from inside a caller's `withTx` — takes that transaction's
- * session rather than starting its own. Guards its update on the `assigned`
- * value it just read (money fields are strings, so `$inc` isn't available)
- * and retries on a lost race; a concurrent insert for the same month is
- * caught via the unique partial index and retried as an update.
+ * session rather than starting its own; concurrent writes to the same
+ * document within a transaction abort with a retryable conflict that
+ * `withTransaction` already retries, so the update itself needs no CAS guard
+ * (`assigned` is also field-level encrypted, so it can't be used as a filter
+ * anyway). A concurrent insert for the same month is caught via the unique
+ * partial index and retried as an update.
  */
 async function adjustCreditCardEnvelope(auth: Auth, month: string, delta: number, session: ClientSession) {
   if (!month || delta === 0) return
@@ -201,12 +203,12 @@ async function adjustCreditCardEnvelope(auth: Auth, month: string, delta: number
     const existing = await budgetColl.findOne({ month, category: '__credit_card__' }, { session })
     if (existing) {
       const current = Number(existing.assigned) || 0
-      const result = await budgetColl.updateOne(
-        { _id: existing._id, assigned: existing.assigned },
+      await budgetColl.updateOne(
+        { _id: existing._id },
         { $set: { assigned: String(Math.max(0, current + delta)) } },
         { session },
       )
-      return result.matchedCount === 0 ? 'retry' : 'done'
+      return 'done'
     }
     if (delta <= 0) return 'done'
     try {

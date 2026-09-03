@@ -1,7 +1,6 @@
 import { getCollection } from '@/lib/http'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
-import { casRetry } from '@/lib/cas'
 import type { Auth } from '@/lib/access'
 
 /**
@@ -15,7 +14,10 @@ import type { Auth } from '@/lib/access'
  *
  * The value update and the event insert happen in one transaction: a
  * partial write here would otherwise mean a balance moved with no audit
- * event, or an event for a move that never happened.
+ * event, or an event for a move that never happened. No CAS guard on the
+ * update — `value` is field-level encrypted so it can't be a filter field,
+ * and a concurrent write to the same document within a transaction aborts
+ * with a retryable conflict that `withTransaction` already retries.
  */
 
 export type HoldingActionResult =
@@ -31,49 +33,46 @@ export async function applyHoldingAction(
   const holdingsColl = await getCollection('holdings', auth)
   const eventsColl = await getCollection('holding_events', auth)
 
-  const result = await withTx((session) =>
-    casRetry<HoldingActionResult>(async () => {
-      const holding = await holdingsColl.findOne({ name }, { session })
-      if (!holding) return { ok: false, error: 'holding not found', status: 404 }
+  const result = await withTx(async (session): Promise<HoldingActionResult> => {
+    const holding = await holdingsColl.findOne({ name }, { session })
+    if (!holding) return { ok: false, error: 'holding not found', status: 404 }
 
-      const prevValue = Number(holding.value) || 0
-      let newValue: number
-      switch (action) {
-        case 'market_update':
-          newValue = Math.max(0, amount)
-          break
-        case 'contribution':
-          newValue = prevValue + amount
-          break
-        case 'withdrawal':
-          newValue = Math.max(0, prevValue - amount)
-          break
-        default:
-          return { ok: false, error: 'invalid action', status: 400 }
-      }
+    const prevValue = Number(holding.value) || 0
+    let newValue: number
+    switch (action) {
+      case 'market_update':
+        newValue = Math.max(0, amount)
+        break
+      case 'contribution':
+        newValue = prevValue + amount
+        break
+      case 'withdrawal':
+        newValue = Math.max(0, prevValue - amount)
+        break
+      default:
+        return { ok: false, error: 'invalid action', status: 400 }
+    }
 
-      const updateResult = await holdingsColl.updateOne(
-        { name, value: holding.value },
-        { $set: { value: String(newValue), updated_at: new Date().toISOString() } },
-        { session },
-      )
-      if (updateResult.matchedCount === 0) return 'retry'
+    await holdingsColl.updateOne(
+      { _id: holding._id },
+      { $set: { value: String(newValue), updated_at: new Date().toISOString() } },
+      { session },
+    )
 
-      await eventsColl.insertOne(
-        {
-          holding_name: name,
-          event_type: action,
-          amount: String(amount),
-          previous_value: String(prevValue),
-          new_value: String(newValue),
-          timestamp: new Date().toISOString(),
-        },
-        { session },
-      )
+    await eventsColl.insertOne(
+      {
+        holding_name: name,
+        event_type: action,
+        amount: String(amount),
+        previous_value: String(prevValue),
+        new_value: String(newValue),
+        timestamp: new Date().toISOString(),
+      },
+      { session },
+    )
 
-      return { ok: true, previousValue: prevValue, newValue }
-    }),
-  )
+    return { ok: true, previousValue: prevValue, newValue }
+  })
 
   if (result.ok) {
     invalidate('holdings', auth.userId)

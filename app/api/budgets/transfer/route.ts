@@ -66,34 +66,35 @@ export async function POST(req: Request) {
   }
 
   await withTx(async (session) => {
-    // Debit every non-RTA source, guarded on the value just read (money
-    // fields are strings, so $inc isn't available) and retried on a lost race.
+    // Debit every non-RTA source. `assigned` is field-level encrypted so it
+    // can't be a filter field; concurrent writes to the same document within
+    // a transaction abort with a retryable conflict that `withTransaction`
+    // already retries, so no CAS guard is needed here.
     for (const source of sources) {
       if (source.category === RTA_SENTINEL) continue
-      await casRetry<'done'>(async () => {
-        const existing = await budgetColl.findOne({ month, category: source.category }, { session })
-        if (!existing) return 'done' // vanished between pre-check and here — nothing to debit
-        const current = Number(existing.assigned) || 0
-        const result = await budgetColl.updateOne(
-          { _id: existing._id, assigned: existing.assigned },
-          { $set: { assigned: String(current - source.amount) } },
-          { session },
-        )
-        return result.matchedCount === 0 ? 'retry' : 'done'
-      })
+      const existing = await budgetColl.findOne({ month, category: source.category }, { session })
+      if (!existing) continue // vanished between pre-check and here — nothing to debit
+      const current = Number(existing.assigned) || 0
+      await budgetColl.updateOne(
+        { _id: existing._id },
+        { $set: { assigned: String(current - source.amount) } },
+        { session },
+      )
     }
 
-    // Credit the target, upserting a row if this is its first assignment.
+    // Credit the target, upserting a row if this is its first assignment. A
+    // concurrent insert for the same category is caught via the unique
+    // partial index and retried as an update.
     await casRetry<'done'>(async () => {
       const existing = await budgetColl.findOne({ month, category: to }, { session })
       if (existing) {
         const current = Number(existing.assigned) || 0
-        const result = await budgetColl.updateOne(
-          { _id: existing._id, assigned: existing.assigned },
+        await budgetColl.updateOne(
+          { _id: existing._id },
           { $set: { assigned: String(current + totalAmount) } },
           { session },
         )
-        return result.matchedCount === 0 ? 'retry' : 'done'
+        return 'done'
       }
       try {
         await budgetColl.insertOne({ month, category: to, assigned: String(totalAmount), rolled_over: '0' }, { session })
