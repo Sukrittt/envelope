@@ -10,6 +10,10 @@ vi.mock('@/lib/cache', () => ({
   invalidate: vi.fn(),
 }))
 
+vi.mock('@/lib/notifications/instant', () => ({
+  notifyThresholdCrossed: vi.fn(async () => {}),
+}))
+
 // withTx just runs the callback with an undefined "session" — fakeCollection
 // below accepts and ignores an options argument, so this is enough to
 // exercise the same code paths without a real Mongo transaction.
@@ -247,5 +251,63 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
   it('rejects a malformed id instead of throwing', async () => {
     const res = await PUT(req('PUT', { id: 'not-an-object-id', category: 'X' }))
     expect(res.status).toBe(404)
+  })
+})
+
+describe('POST /api/expenses — client_id idempotency (offline sync §5)', () => {
+  it('a repeated client_id returns the same id, inserts nothing, and leaves the CC envelope unchanged', async () => {
+    const body = {
+      item: 'Flight',
+      amount_inr: '3000',
+      category: 'Travel',
+      date: '2026-01-15',
+      timestamp: '2026-01-15T10:00:00',
+      payment_method: 'credit_card',
+      client_id: 'client-uuid-1',
+    }
+    const first = await POST(req('POST', body))
+    const firstJson = (await first.json()) as { id: string }
+    expect(stores.expenses).toHaveLength(1)
+    expect(budgetFor('2026-01')?.assigned).toBe('3000')
+
+    const second = await POST(req('POST', body))
+    const secondJson = (await second.json()) as { id: string; duplicate?: boolean }
+
+    expect(second.status).toBe(200)
+    expect(secondJson.id).toBe(firstJson.id)
+    expect(secondJson.duplicate).toBe(true)
+    expect(stores.expenses).toHaveLength(1)
+    expect(budgetFor('2026-01')?.assigned).toBe('3000')
+  })
+
+  it('the duplicate path does not call notifyThresholdCrossed', async () => {
+    const { notifyThresholdCrossed } = await import('@/lib/notifications/instant')
+    const body = { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01', client_id: 'client-uuid-2' }
+
+    await POST(req('POST', body))
+    vi.mocked(notifyThresholdCrossed).mockClear()
+    await POST(req('POST', body))
+
+    expect(notifyThresholdCrossed).not.toHaveBeenCalled()
+  })
+
+  it('POST without a client_id still works unchanged (web clients)', async () => {
+    const res = await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food', date: '2026-06-02' }))
+    expect(res.status).toBe(200)
+    expect(stores.expenses).toHaveLength(1)
+    expect(stores.expenses[0].client_id).toBeUndefined()
+  })
+
+  it('a body timestamp is preserved, not overwritten by nowIST()', async () => {
+    await POST(
+      req('POST', {
+        item: 'Snack',
+        amount_inr: '20',
+        category: 'Food',
+        date: '2026-01-01',
+        timestamp: '2026-01-01T09:00:00',
+      }),
+    )
+    expect(stores.expenses[0].timestamp).toBe('2026-01-01T09:00:00')
   })
 })

@@ -27,7 +27,14 @@ loadEnv()
 const LIVE_ONLY = { partialFilterExpression: { deleted_at: null } }
 
 const INDEXES = {
-  expenses: [[{ user_id: 1, date: -1 }, {}]],
+  expenses: [
+    [{ user_id: 1, date: -1 }, {}],
+    // Offline-created expenses carry a client-minted `client_id`; this makes a
+    // retried create idempotent. Partial (not sparse) on purpose: every row has
+    // user_id, so a sparse compound index would still index every legacy row
+    // as client_id: null and the second one would violate uniqueness.
+    [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
+  ],
   budgets: [[{ user_id: 1, month: 1, category: 1 }, { unique: true, ...LIVE_ONLY }]],
   categories: [
     [{ user_id: 1, name: 1 }, { unique: true, ...LIVE_ONLY }],

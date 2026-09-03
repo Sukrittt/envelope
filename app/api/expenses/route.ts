@@ -69,8 +69,25 @@ export async function POST(req: Request) {
   const date = String(body.date || ist.date)
   const timestamp = String(body.timestamp || `${date}T${ist.timestamp.slice(11)}`)
   const paymentMethod = String(body.payment_method ?? 'bank')
+  const clientId = typeof body.client_id === 'string' ? body.client_id : undefined
 
   const coll = await getCollection('expenses', auth)
+
+  // A queued offline create can be retried (lost response, killed app, retried
+  // request) without the client ever knowing whether the first attempt landed.
+  // `client_id` names the intent so a retry is recognized before it can insert
+  // a second row or double the Credit Card envelope bump below.
+  if (clientId) {
+    const existing = (await coll.findOne({ client_id: clientId })) as ExpenseDoc | null
+    if (existing) {
+      return json({
+        ok: true,
+        id: String(existing._id),
+        timestamp: String(existing.timestamp),
+        duplicate: true,
+      })
+    }
+  }
 
   // The expense insert and its Credit Card envelope bump must land together —
   // a partial write here leaves an expense with no matching envelope bump.
@@ -87,6 +104,7 @@ export async function POST(req: Request) {
         amount: '',
         description: '',
         payment_method: paymentMethod,
+        ...(clientId ? { client_id: clientId } : {}),
       },
       { session },
     )

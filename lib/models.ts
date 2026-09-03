@@ -19,6 +19,13 @@ export const EXPENSE_HEADERS = [
   'payment_method',
 ]
 
+// An expense document may also carry `client_id` (a UUID minted on the device
+// that created it), so a retried offline create is recognized before it
+// inserts a second row. Deliberately not in EXPENSE_HEADERS above — that
+// array doubles as the CSV export's column set, and adding a field would
+// change every export. Guarded by a partial unique index on
+// `{ user_id, client_id }` (scripts/ensure-indexes.mjs), optional on legacy rows.
+
 export const BUDGET_HEADERS = ['month', 'category', 'assigned', 'rolled_over']
 
 export const CATEGORY_HEADERS = ['name', 'group']
