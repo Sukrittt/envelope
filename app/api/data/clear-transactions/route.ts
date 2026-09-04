@@ -1,6 +1,7 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { invalidate } from '@/lib/cache'
+import { invalidateCategoryMap } from '@/lib/categoryMap'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,5 +21,6 @@ export async function POST(req: Request) {
   // them all changes every envelope's numbers even though budgets itself
   // wasn't written to.
   invalidate('budgets', auth.userId)
+  invalidateCategoryMap(auth.userId)
   return json({ ok: true, deleted: result.deletedCount })
 }

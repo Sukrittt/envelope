@@ -19,6 +19,11 @@ interface SessionRow {
   current: boolean
 }
 
+interface ProofDoc {
+  fields: string[]
+  sample: Record<string, string> | null
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function sessionLabel(s: SessionRow): string {
@@ -33,6 +38,8 @@ function SecurityContent() {
   const [doc, setDoc] = useState<UserDoc | null>(null)
   const [sessions, setSessions] = useState<SessionRow[] | null>(null)
   const [googleLinked, setGoogleLinked] = useState<boolean | null>(null)
+  const [proof, setProof] = useState<ProofDoc | null>(null)
+  const [showProof, setShowProof] = useState(false)
 
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
@@ -73,10 +80,15 @@ function SecurityContent() {
     const body: { providers: string[] } = await res.json()
     setGoogleLinked(body.providers.includes('GoogleOAuth'))
   }
+  const loadProof = async () => {
+    const res = await fetch('/api/privacy/proof')
+    if (!res.ok) return
+    setProof(await res.json())
+  }
 
   useEffect(() => {
     void (async () => {
-      await Promise.all([loadUser(), loadSessions(), loadIdentities()])
+      await Promise.all([loadUser(), loadSessions(), loadIdentities(), loadProof()])
     })()
   }, [])
 
@@ -353,6 +365,56 @@ function SecurityContent() {
           )}
         </div>
       </div>
+
+      {proof && (
+        <div>
+          <div className="account-section-label" style={{ marginBottom: 10 }}>
+            Your data, encrypted
+          </div>
+          <div className="account-card account-proof-card">
+            <p className="account-proof-copy">
+              Before an expense, budget number or Money Brain chat reaches our database, we encrypt
+              it with AES-256-GCM. A leaked database backup or an open connection string only turns
+              up ciphertext, never your amounts, item names or notes.
+            </p>
+            <p className="account-proof-copy">
+              Dates, categories and payment methods stay readable so search and filtering still work.
+            </p>
+            <p className="account-proof-copy">
+              This isn&apos;t end-to-end encryption, and we won&apos;t call it that. Our server still
+              decrypts your data to run your budget, digests and Money Brain, so it protects you if
+              the database leaks, not if the app server itself is compromised.
+            </p>
+            <button
+              type="button"
+              className="account-pill-btn"
+              style={{ marginTop: 12 }}
+              onClick={() => setShowProof((v) => !v)}
+            >
+              {showProof ? 'Hide proof' : 'Show me'}
+            </button>
+            {showProof && (
+              <div style={{ marginTop: 8 }}>
+                {proof.sample ? (
+                  Object.entries(proof.sample).map(([key, value]) => (
+                    <div className="account-proof-row" key={key}>
+                      <span className="account-proof-row-key">
+                        {key}
+                        {proof.fields.includes(key) ? ' (encrypted)' : ''}
+                      </span>
+                      <span className="account-proof-row-value">{value || '—'}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="account-proof-row">
+                    <span className="account-proof-row-key">Log an expense to see this in action.</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div>
         {confirmingSignOutAll ? (

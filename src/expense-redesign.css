@@ -2972,6 +2972,41 @@ button.account-row:hover {
   cursor: pointer;
 }
 
+.account-proof-card {
+  padding: 18px;
+}
+
+.account-proof-copy {
+  font-size: 12px;
+  color: var(--erd-text2);
+  line-height: 1.5;
+}
+
+.account-proof-copy + .account-proof-copy {
+  margin-top: 10px;
+}
+
+.account-proof-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--erd-border);
+  font-size: 12px;
+}
+
+.account-proof-row-key {
+  color: var(--erd-text2);
+  flex-shrink: 0;
+}
+
+.account-proof-row-value {
+  font-family: monospace;
+  color: var(--erd-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 .account-danger-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;

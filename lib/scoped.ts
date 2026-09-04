@@ -193,6 +193,12 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       return doc ? (decode(doc) as WithId<Doc>) : null
     },
 
+    /** Same tenancy + live-only filter as findOne, but returns the document exactly
+     *  as stored, ciphertext and all. Only the privacy proof endpoint uses this. */
+    async findOneRaw(filter: Filter<Doc> = {}, options?: FindOptions, scopeOpts?: ScopeOpts): Promise<WithId<Doc> | null> {
+      return coll.findOne(own(filter, scopeOpts), options)
+    },
+
     countDocuments(filter: Filter<Doc> = {}, options?: CountDocumentsOptions, scopeOpts?: ScopeOpts): Promise<number> {
       return coll.countDocuments(own(filter, scopeOpts), options)
     },

@@ -36,6 +36,18 @@ Confirmed capabilities:
 - Subscriptions: track services and amounts, cancel/reactivate, next-due dates.
 - Investments: holdings and net worth, market updates, contributions/withdrawals, event log.
 - Appearance: light/dark theme and comfortable/compact density, persisted to localStorage.
+- Field-level encryption at rest: sensitive fields (expense item/notes/description/amounts, budget
+  assigned/rolled_over, subscription amount/notes, holding value, chat messages) are AES-256-GCM
+  encrypted before hitting MongoDB (`lib/crypto.ts`, `lib/encryptedFields.ts`, enforced in
+  `lib/scoped.ts`). One static key in Vercel env, shared across users — this is **not** end-to-end:
+  the server decrypts on every read to run Money Brain, digests and reports. Never market it as E2E,
+  zero-knowledge, or "only you can see it" — those claims are false. `/account/security` shows the
+  user their own row as actually stored (`GET /api/privacy/proof`), ciphertext included, as the
+  honest proof surface instead of a slogan.
+- Offline (Mobile only, not Web): logging a new expense while offline queues locally
+  (`Mobile/src/lib/pendingExpenses.ts`) and syncs automatically once back online
+  (`Mobile/src/sync/flush.ts`). Editing/deleting an expense offline, and every other screen, still
+  requires a connection — don't claim broader offline support than that.
 
 Constraints and boundaries:
 

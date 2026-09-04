@@ -8,6 +8,9 @@ vi.mock('@/lib/access', () => ({
 const invalidateMock = vi.fn()
 vi.mock('@/lib/cache', () => ({ invalidate: invalidateMock }))
 
+const invalidateCategoryMapMock = vi.fn()
+vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: invalidateCategoryMapMock }))
+
 vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
   return {
@@ -33,5 +36,6 @@ describe('POST /api/data/clear-transactions (C5)', () => {
     expect(invalidateMock).toHaveBeenCalledWith('expenses', 'user_a')
     expect(invalidateMock).toHaveBeenCalledWith('wrapped', 'user_a')
     expect(invalidateMock).toHaveBeenCalledWith('budgets', 'user_a')
+    expect(invalidateCategoryMapMock).toHaveBeenCalledWith('user_a')
   })
 })

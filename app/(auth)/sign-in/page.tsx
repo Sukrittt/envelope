@@ -40,7 +40,7 @@ export default async function SignInPage({
         <p className="auth-legal">
           By continuing you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
           <br />
-          Free and open source — your data stays yours.
+          Free and open source. Your amounts and notes are encrypted before they reach our database.
         </p>
       </div>
     </div>

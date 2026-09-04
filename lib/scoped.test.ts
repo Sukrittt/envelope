@@ -394,6 +394,32 @@ describe('scoped() field encryption', () => {
     expect(() => decrypt(ct, 'user_bob:expenses:item')).toThrow()
   })
 
+  it('findOneRaw returns the stored document without decrypting', async () => {
+    const coll = fakeMongoCollection('expenses')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ item: 'Rent', amount_inr: '25000', category: 'Housing' })
+
+    const raw = await view.findOneRaw({ category: 'Housing' })
+    expect(isEncrypted(raw?.item)).toBe(true)
+    expect(isEncrypted(raw?.amount_inr)).toBe(true)
+    expect(raw?.category).toBe('Housing')
+  })
+
+  it('findOneRaw stays scoped to user_id and excludes soft-deleted docs', async () => {
+    const coll = fakeMongoCollection('expenses')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const alice = scoped(coll as any, 'user_alice')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bob = scoped(coll as any, 'user_bob')
+    await alice.insertOne({ item: 'Alice item', amount_inr: '1', category: 'Food' })
+
+    expect(await bob.findOneRaw({ category: 'Food' })).toBeNull()
+
+    await alice.deleteOne({ category: 'Food' })
+    expect(await alice.findOneRaw({ category: 'Food' })).toBeNull()
+  })
+
   it('bulkWrite insertOne encrypts the document', async () => {
     const coll = fakeMongoCollection('expenses')
     const calls: unknown[] = []
