@@ -4,12 +4,13 @@
 
 ## Platform
 
-web
+Web (dashboard) + Android (native app, published to Google Play as **Envelope**, `Web/` is its backend). iOS exists as an unpublished Expo build.
 
 ## Users
 
-- **Sukrit** — the primary and only real user. Opens the dashboard from desktop, typically a few times per week, to track and steer personal money: check envelope balances, assign income, move money between categories, review transactions and subscriptions, and glance at investments.
-- **Demo guests** — visitors who open the deployed app without the password. They see the same interface over read-only sample data. They are evaluators, not users; nothing about the product may require them to have real data or an account.
+- **Sukrit** — the original and heaviest user. Opens the dashboard from desktop, typically a few times per week, to track and steer personal money: check envelope balances, assign income, move money between categories, review transactions and subscriptions, and glance at investments.
+- **Envelope (mobile) users** — anyone who installs the Play Store app and signs in with Google or an emailed code. Since this is a public listing, not a personal tool shared with friends, treat this as the general public: assume no shared context with Sukrit, and that product and privacy decisions apply to strangers' financial data, not just his own.
+- **Demo guests** — visitors who open the deployed web app without signing in. They see the same interface over read-only sample data. They are evaluators, not users; nothing about the product may require them to have real data or an account.
 
 ## Product Purpose
 
@@ -52,16 +53,17 @@ Confirmed capabilities:
 Constraints and boundaries:
 
 - **Fitness and learnings pages are experiments**, running on bundled sample data, not real product surfaces. Do not treat them as first-class until wired to real data.
-- Real accounts are created by anyone who signs in (Google or email code) and data is scoped per `user_id`, so the schema supports multiple accounts — but Sukrit remains the only *intended* real user; there's no multi-user or household model (shared envelopes, invites, permissions) on top of that scoping.
+- Real accounts are created by anyone who signs in (Google or email code) and data is scoped per `user_id`. With the mobile app on Google Play, this is no longer just Sukrit's own data under a schema that happens to support more — the app now has real, unrelated users, each expecting their own financial data kept private from every other account. There's still no multi-user or household model (shared envelopes, invites, permissions) on top of that scoping.
+- The app sends real user data to third parties (Google Gemini for Money Brain/bill scanning, PostHog for analytics, both disclosed in `/legal/privacy`). Any "self-hosted, nothing leaves your machine" framing is no longer accurate and shouldn't appear in product copy.
 - API is route handlers under `app/api/`, each resolving `real` vs `guest` scope from the Bearer token.
 - Personal financial data is private by design and never committed to git.
 - Balance/cashflow reconciliation tracking was paused by Sukrit (2026-03) as too troublesome — not a feature to expand.
 
 ## Brand Commitments
 
-- Name: **Mission Control**. The app is finance-first: budget, expenses, and investments are the product; fitness and learnings are garnish.
-- Working title in layout metadata reads "YNAB Replacement" — a positioning nod, not a committed brand.
-- No binding visual identity, voice, or assets have been committed. (No logo, tagline, or palette constraints are in force.)
+- Public-facing name: **Envelope** — the name on the Play Store listing, the mobile app, and what user-facing copy (sign-in screen, welcome screen) already calls the product ("Every rupee in an envelope").
+- Internal/dev-only names still in the codebase: **Mission Control** (this repo's README and `PRODUCT.md` framing) and "YNAB Replacement" (`Web/app/layout.tsx` metadata, the GitHub repo slug). Neither is user-facing; don't introduce either into new user-facing copy, and prefer replacing them where convenient.
+- No binding visual identity, voice, or assets have been committed beyond the mobile app's icon/splash. (No logo, tagline, or palette constraints are in force for the web dashboard.)
 
 ## Evidence on Hand
 

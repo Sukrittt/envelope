@@ -49,7 +49,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname === '/email' ||
     pathname === '/code' ||
     pathname === '/onboarding' ||
-    pathname.startsWith('/account')
+    pathname.startsWith('/account') ||
+    pathname.startsWith('/legal')
   const skipChrome = isErdRoute || isStandaloneRoute
 
   return (
@@ -107,6 +108,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-hidden="true"
                 />
                 <span>claude-code</span>
+              </a>
+              <span aria-hidden="true">&middot;</span>
+              <a href="/legal/privacy" className="app-footer-link">
+                Privacy
+              </a>
+              <a href="/legal/terms" className="app-footer-link">
+                Terms
               </a>
             </footer>
           )}

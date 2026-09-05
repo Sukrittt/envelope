@@ -9,6 +9,7 @@ interface UserDoc {
   emailVerified: boolean
   name: string | null
   avatarUrl: string | null
+  deletionScheduledFor: string | null
 }
 
 interface SessionRow {
@@ -25,6 +26,13 @@ interface ProofDoc {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Whole days from now until `ts`, floored at 0. */
+function daysUntil(ts: string): number {
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return 0
+  return Math.max(0, Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+}
 
 function sessionLabel(s: SessionRow): string {
   if (s.userAgent) return s.userAgent
@@ -62,6 +70,9 @@ function SecurityContent() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleteEmailDraft, setDeleteEmailDraft] = useState('')
   const [deleting, setDeleting] = useState(false)
+
+  const [restoring, setRestoring] = useState(false)
+  const [restoreError, setRestoreError] = useState(false)
 
   const loadUser = async () => {
     const res = await fetch('/api/user')
@@ -164,6 +175,18 @@ function SecurityContent() {
     window.location.href = '/logout'
   }
 
+  async function restoreAccount() {
+    setRestoring(true)
+    setRestoreError(false)
+    const res = await fetch('/api/user/restore', { method: 'POST' })
+    setRestoring(false)
+    if (res.ok) {
+      await loadUser()
+      return
+    }
+    setRestoreError(true)
+  }
+
   async function deleteAccount() {
     setDeleting(true)
     const res = await fetch('/api/user', {
@@ -230,6 +253,26 @@ function SecurityContent() {
           </button>
         )}
       </div>
+
+      {doc?.deletionScheduledFor && (
+        <div className="account-warn-banner">
+          <div className="account-warn-title">Account scheduled for deletion</div>
+          <div className="account-warn-copy">
+            {daysUntil(doc.deletionScheduledFor)} day{daysUntil(doc.deletionScheduledFor) === 1 ? '' : 's'} left to
+            restore it.
+          </div>
+          {restoreError && (
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--coral)' }}>
+              Could not restore account. Check your connection and try again.
+            </div>
+          )}
+          <div style={{ marginTop: 10 }}>
+            <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={restoreAccount} disabled={restoring}>
+              {restoring ? 'Restoring…' : 'Restore account'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="account-card">
         <div style={{ padding: 16 }}>
@@ -449,12 +492,13 @@ function SecurityContent() {
       <div className="account-danger-card">
         <div className="account-danger-title">Delete account</div>
         <div className="account-danger-copy">
-          Removes envelopes, transactions and recaps. Export your data first — this can&apos;t be undone.
+          Removes envelopes, transactions and recaps. You have 7 days to sign back in and restore before it&apos;s
+          gone for good.
         </div>
         {confirmingDelete ? (
           <div className="account-confirm-panel">
             <div className="account-confirm-copy">
-              This permanently deletes your account and all data. There is no undo. Type <strong>{doc?.email}</strong> to
+              You&apos;ll have 7 days to restore before this is permanent. Type <strong>{doc?.email}</strong> to
               confirm.
             </div>
             <input

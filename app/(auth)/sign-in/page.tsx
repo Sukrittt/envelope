@@ -38,7 +38,8 @@ export default async function SignInPage({
           Continue with email
         </Link>
         <p className="auth-legal">
-          By continuing you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+          By continuing you agree to the <a href="/legal/terms">Terms</a> and{' '}
+          <a href="/legal/privacy">Privacy Policy</a>.
           <br />
           Free and open source. Your amounts and notes are encrypted before they reach our database.
         </p>

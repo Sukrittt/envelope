@@ -6,7 +6,7 @@ const refreshSession = authkitMiddleware()
 
 // Pages reachable without a session. Everything else under the page matcher
 // (below) requires one; /api/* is never gated here (see comment).
-const PUBLIC_PAGE_PATHS = ['/sign-in', '/email', '/code']
+const PUBLIC_PAGE_PATHS = ['/sign-in', '/email', '/code', '/legal']
 
 // Vercel cron targets (mirrors `crons` in vercel.json). These carry
 // `Authorization: Bearer ${CRON_SECRET}` — a shared secret, not a WorkOS JWT —

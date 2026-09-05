@@ -3597,3 +3597,89 @@ button.account-row:hover {
   color: var(--erd-text3);
   cursor: default;
 }
+
+.legal-page {
+  min-height: 100vh;
+  padding: 32px 20px 64px;
+  font-family: var(--font-nunito);
+  color: var(--erd-text);
+}
+
+.legal-shell {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-fredoka);
+  font-size: 16px;
+  color: var(--erd-text);
+  text-decoration: none;
+  margin-bottom: 28px;
+}
+
+.legal-doc {
+  background: var(--erd-card);
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 20px;
+  padding: 32px;
+  line-height: 1.6;
+}
+
+.legal-doc h1 {
+  font-family: var(--font-fredoka);
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.legal-doc h2 {
+  font-family: var(--font-fredoka);
+  font-size: 17px;
+  font-weight: 600;
+  margin: 28px 0 8px;
+}
+
+.legal-doc p,
+.legal-doc li {
+  font-size: 14px;
+  color: var(--erd-text2);
+}
+
+.legal-doc ul {
+  margin: 8px 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legal-doc a {
+  color: var(--gold);
+}
+
+.legal-updated {
+  font-size: 12px;
+  color: var(--erd-text3);
+  margin: 0 0 20px;
+}
+
+.legal-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+  font-size: 13px;
+}
+
+.legal-footer-nav a {
+  color: var(--erd-text3);
+  text-decoration: none;
+}
+
+.legal-footer-nav a:hover {
+  color: var(--gold);
+}
