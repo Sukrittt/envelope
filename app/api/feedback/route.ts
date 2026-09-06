@@ -10,7 +10,7 @@ const DAY_WINDOW_MS = 24 * 60 * 60 * 1000
 const DAY_LIMIT = 8
 
 // Same repo the old Linking.openURL links pointed at (Mobile/app/account/help.tsx).
-const GITHUB_REPO = 'Sukrittt/ynab-replacement'
+const GITHUB_REPO = 'Sukrittt/envelope-mobile'
 
 const TITLE_MAX = 150
 const DESCRIPTION_MAX = 4000

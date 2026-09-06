@@ -1,4 +1,4 @@
-const REPO_URL = 'https://github.com/Sukrittt/ynab-replacement'
+const REPO_URL = 'https://github.com/Sukrittt/envelope-mobile'
 
 const BUG_URL = `${REPO_URL}/issues/new?${new URLSearchParams({
   title: 'Bug: ',

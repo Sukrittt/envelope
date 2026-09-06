@@ -39,7 +39,7 @@ beforeEach(() => {
   isRateLimitedMock.mockClear()
   isRateLimitedMock.mockResolvedValue(false)
   process.env.GITHUB_ISSUES_TOKEN = 'fake-token'
-  fetchMock = vi.fn(async () => new Response(JSON.stringify({ html_url: 'https://github.com/Sukrittt/ynab-replacement/issues/1' }), { status: 201 }))
+  fetchMock = vi.fn(async () => new Response(JSON.stringify({ html_url: 'https://github.com/Sukrittt/envelope-mobile/issues/1' }), { status: 201 }))
   vi.stubGlobal('fetch', fetchMock)
 })
 
