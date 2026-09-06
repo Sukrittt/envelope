@@ -13,16 +13,12 @@ export type PushToken = {
 
 const EXPO_PUSH_TOKEN_RE = /^Expo(?:nent)?PushToken\[[\w-]+\]$/
 
-/**
- * Upsert a device's push token. `createdAt` is set once, `updatedAt` on every
- * call. `user_id` moves with a re-registration under a different account
- * (a device that's signed out and back in on a different account should
- * move, not leave both accounts notified) — but only via an explicit
- * delete+insert once we've confirmed the current owner doesn't already match,
- * not a blind `$set` keyed on `token` alone. Anyone who submits a token
- * string they don't own can't otherwise retarget someone else's device: the
- * scoped update below only succeeds when `user_id` already matches.
- */
+/** A registration belongs to its original account until that account unregisters it. */
+export class PushTokenConflict extends Error {
+  readonly status = 409
+  constructor() { super('push token already registered') }
+}
+
 export async function registerPushToken(
   token: string,
   platform: 'ios' | 'android',
@@ -40,8 +36,20 @@ export async function registerPushToken(
   )
   if (updated.matchedCount > 0) return
 
-  await coll.deleteOne({ token })
-  await coll.insertOne({ token, platform, user_id: userId, createdAt: now, updatedAt: now })
+  const owner = await coll.findOne({ token })
+  if (owner && owner.user_id !== userId) throw new PushTokenConflict()
+  if (owner) return
+  try {
+    await coll.insertOne({ token, platform, user_id: userId, createdAt: now, updatedAt: now })
+  } catch (err) {
+    // The unique token index also closes the concurrent registration race.
+    if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {
+      const winner = await coll.findOne({ token })
+      if (winner?.user_id === userId) return
+      throw new PushTokenConflict()
+    }
+    throw err
+  }
 }
 
 type ExpoPushMessage = {

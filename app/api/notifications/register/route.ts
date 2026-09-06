@@ -1,6 +1,8 @@
+import { getDb } from '@/lib/mongodb'
+import { COLLECTIONS } from '@/lib/models'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { registerPushToken } from '@/lib/push'
+import { registerPushToken, PushTokenConflict } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,8 +23,20 @@ export async function POST(req: Request) {
 
   try {
     await registerPushToken(token, platform, auth.userId)
-  } catch {
+  } catch (err) {
+    if (err instanceof PushTokenConflict) return error(err.message, 409)
     return error('invalid push token')
   }
+  return json({ ok: true })
+}
+
+export async function DELETE(req: Request) {
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard(auth, 'DELETE')
+  if (guard) return guard
+  const body = await readBody(req)
+  if (typeof body.token !== 'string' || !body.token) return error('token required')
+  const db = await getDb()
+  await db.collection(COLLECTIONS.pushTokens).deleteOne({ token: body.token, user_id: auth.userId })
   return json({ ok: true })
 }

@@ -6,6 +6,7 @@ const state = {
 
 function fakeCollection() {
   return {
+    findOne: vi.fn(async (filter: { token: string }) => state.docs.find(d => d.token === filter.token) ?? null),
     updateOne: vi.fn(async (filter: { token: string; user_id: string }, update: { $set: Record<string, unknown> }) => {
       const doc = state.docs.find((d) => d.token === filter.token && d.user_id === filter.user_id)
       if (!doc) return { matchedCount: 0 }
@@ -56,10 +57,10 @@ describe('registerPushToken', () => {
     expect(state.docs[0].platform).toBe('android')
   })
 
-  it('moves a token to a new owner on re-registration under a different account, rather than duplicating it', async () => {
+  it('rejects a different owner without changing the victim registration', async () => {
     await registerPushToken(VALID_TOKEN, 'ios', 'user_a')
-    await registerPushToken(VALID_TOKEN, 'ios', 'user_b')
+    await expect(registerPushToken(VALID_TOKEN, 'ios', 'user_b')).rejects.toMatchObject({ status: 409 })
     expect(state.docs).toHaveLength(1)
-    expect(state.docs[0].user_id).toBe('user_b')
+    expect(state.docs[0].user_id).toBe('user_a')
   })
 })
