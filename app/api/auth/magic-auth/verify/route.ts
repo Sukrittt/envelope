@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     })
     await ensureUser(user)
     await saveSession({ accessToken, refreshToken, user }, req.url)
-    return NextResponse.json({ ok: true, accessToken, refreshToken })
+    return NextResponse.json(typeof device === 'string' && device.trim() ? { ok: true, accessToken, refreshToken } : { ok: true })
   } catch {
     return NextResponse.json({ error: 'invalid or expired code' }, { status: 401 })
   }

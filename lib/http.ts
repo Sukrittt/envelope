@@ -50,6 +50,7 @@ export async function getCollection(base: string, auth: Auth): Promise<ScopedCol
 export const dynamic = 'force-dynamic'
 
 /** Current instant as IST wall-clock date/timestamp strings (always +05:30, regardless of server locale). */
+// Keep in sync with Mobile/src/lib/date.ts.
 export function nowIST(): { date: string; timestamp: string } {
   const iso = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString()
   return { date: iso.slice(0, 10), timestamp: `${iso.slice(0, 19)}+05:30` }
