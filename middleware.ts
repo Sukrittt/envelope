@@ -61,7 +61,7 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 
   const { pathname } = request.nextUrl
   if (pathname.startsWith('/api/')) {
-    const token = CRON_PATHS.includes(pathname) ? null : bearerToken(request)
+    const token = (pathname.startsWith('/api/cron/') || CRON_PATHS.includes(pathname)) ? null : bearerToken(request)
     if (token && !(await verifyBearerToken(token))) {
       return NextResponse.json({ error: 'invalid or expired session' }, { status: 401 })
     }
