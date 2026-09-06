@@ -128,3 +128,7 @@ describe('computeEnvelopes', () => {
     expect(state.isOverAssigned).toBe(true)
   })
 })
+
+it('preserves paise in ready to assign', () => {
+  expect(computeEnvelopes([{month:'2026-01',category:'__income__',assigned:1000,rolledOver:0},{month:'2026-01',category:'Groceries',assigned:600.25,rolledOver:0}], [], '2026-01', categories, groups).readyToAssign).toBe(399.75)
+})

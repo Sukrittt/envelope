@@ -104,7 +104,7 @@ export function computeEnvelopes(
     })
   }
 
-  const readyToAssign = Math.round(income - totalAssigned) || 0
+  const readyToAssign = Math.round((income - totalAssigned) * 100) / 100 || 0
 
   return {
     month: currentMonth,
