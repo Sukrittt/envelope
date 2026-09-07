@@ -145,6 +145,43 @@ describe('PUT', () => {
     expect(store[0].status).toBe('active')
   })
 
+  it('resuming skips the paused stretch instead of backfilling it', async () => {
+    await POST(req('POST', { ...valid, start_date: '2026-01-15' }))
+    const id = String(store[0]._id)
+
+    // Pausing freezes the schedule: the cron only reads active rows, so
+    // next_run_date sits where it was when the user paused.
+    await PUT(req('PUT', { id, status: 'paused' }))
+    store[0].next_run_date = '2026-03-15'
+
+    await PUT(req('PUT', { id, status: 'active' }))
+
+    // Without the recompute this stays 2026-03-15 and the next cron run logs
+    // every occurrence from March through today in one go.
+    expect(store[0].next_run_date).toBe('2026-09-15')
+  })
+
+  it('pausing leaves next_run_date alone', async () => {
+    await POST(req('POST', valid))
+    const id = String(store[0]._id)
+
+    await PUT(req('PUT', { id, status: 'paused' }))
+
+    expect(store[0].next_run_date).toBe('2026-09-15')
+  })
+
+  it('does not reschedule an already-active recurrence sent status: active', async () => {
+    await POST(req('POST', { ...valid, start_date: '2026-01-15' }))
+    const id = String(store[0]._id)
+    store[0].next_run_date = '2026-03-15'
+
+    await PUT(req('PUT', { id, status: 'active' }))
+
+    // Still active, so this isn't a resume — a due date owed since March is a
+    // missed run, and the cron's backfill is exactly what should catch it up.
+    expect(store[0].next_run_date).toBe('2026-03-15')
+  })
+
   it('recomputes next_run_date when the frequency changes', async () => {
     const id = await seed()
     await PUT(req('PUT', { id, frequency: 'weekly' }))

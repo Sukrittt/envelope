@@ -129,9 +129,17 @@ export async function PUT(req: Request) {
   const endDate = update.end_date ?? String(existing.end_date ?? '')
   if (endDate && endDate < startDate) return error('end_date must not precede start_date')
 
-  // Rescheduling changes where the next occurrence lands, so recompute rather
-  // than leaving a `next_run_date` that belongs to the old schedule.
-  if (update.frequency !== undefined || update.start_date !== undefined) {
+  // Resuming means "start again from now", not "make up the time off". The
+  // cron only reads active rows, so `next_run_date` sits frozen for the whole
+  // pause; leaving it there would hand the next run every date in that stretch
+  // and its backfill would dutifully log them all. A run the cron *missed* is
+  // still backfilled, which is why this is keyed to the paused→active
+  // transition rather than to any write of status: 'active'.
+  const resuming = update.status === 'active' && String(existing.status) !== 'active'
+
+  // Rescheduling likewise changes where the next occurrence lands, so recompute
+  // rather than leaving a `next_run_date` that belongs to the old schedule.
+  if (resuming || update.frequency !== undefined || update.start_date !== undefined) {
     const frequency = update.frequency ?? String(existing.frequency)
     update.next_run_date = firstRunOnOrAfter(startDate, frequency, nowIST().date)
   }
