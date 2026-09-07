@@ -66,6 +66,29 @@ export async function PUT(req: Request) {
     update.updated_at = String(body.updated_at || new Date().toISOString())
   }
 
+  // Editing recurring never touches `value` — the base balance stays put and
+  // the monthly amount accrues on top of it (see applyHoldingAction's
+  // additive 'contribution' case), same additive semantics as the cron.
+  if (body.is_recurring !== undefined) {
+    const isRecurring = body.is_recurring === true || body.is_recurring === 'true'
+    update.is_recurring = String(isRecurring)
+    if (isRecurring) {
+      update.recurring_amount = String(Number(body.recurring_amount) || 0)
+      // Only snapshot when there isn't one already — turning recurring on
+      // for the first time needs its cadence set, same as POST, but editing
+      // just the amount on an already-recurring holding must not reset it.
+      if (!existing.recurring_day) {
+        const { date: today } = nowIST()
+        update.recurring_day = String(Number(today.slice(8, 10)))
+        update.recurring_last_run = today.slice(0, 7)
+      }
+    } else {
+      update.recurring_amount = ''
+      update.recurring_day = ''
+      update.recurring_last_run = ''
+    }
+  }
+
   await coll.updateOne({ name: String(body.name) }, { $set: update })
   invalidate('holdings', auth.userId)
   return json({ ok: true })
