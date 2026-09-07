@@ -1,13 +1,13 @@
-import { ObjectId, type ClientSession } from 'mongodb'
-import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
-import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
+import { ObjectId } from 'mongodb'
+import { json, error, readBody, getCollection } from '@/lib/http'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import type { ScopedCollection } from '@/lib/scoped'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
-import { casRetry } from '@/lib/cas'
+import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,74 +65,27 @@ export async function POST(req: Request) {
     return error('item, amount_inr, category required')
   }
 
-  const ist = nowIST()
-  const date = String(body.date || ist.date)
-  const timestamp = String(body.timestamp || `${date}T${ist.timestamp.slice(11)}`)
-  const paymentMethod = String(body.payment_method ?? 'bank')
-  const clientId = typeof body.client_id === 'string' ? body.client_id : undefined
-
-  const coll = await getCollection('expenses', auth)
-
-  // A queued offline create can be retried (lost response, killed app, retried
-  // request) without the client ever knowing whether the first attempt landed.
-  // `client_id` names the intent so a retry is recognized before it can insert
-  // a second row or double the Credit Card envelope bump below.
-  if (clientId) {
-    const existing = (await coll.findOne({ client_id: clientId })) as ExpenseDoc | null
-    if (existing) {
-      return json({
-        ok: true,
-        id: String(existing._id),
-        timestamp: String(existing.timestamp),
-        duplicate: true,
-      })
-    }
-  }
-
-  // The expense insert and its Credit Card envelope bump must land together —
-  // a partial write here leaves an expense with no matching envelope bump.
-  const insertedId = await withTx(async (session) => {
-    const inserted = await coll.insertOne(
-      {
-        timestamp,
-        date,
-        item: String(body.item),
-        amount_inr: String(body.amount_inr),
-        category: String(body.category),
-        notes: String(body.notes ?? ''),
-        source: 'manual',
-        amount: '',
-        description: '',
-        payment_method: paymentMethod,
-        ...(clientId ? { client_id: clientId } : {}),
-      },
-      { session },
-    )
-
-    // Auto-transfer to the Credit Card envelope for CC purchases.
-    if (paymentMethod === 'credit_card') {
-      const amountNum = Number(body.amount_inr)
-      if (!Number.isNaN(amountNum) && amountNum > 0) {
-        await adjustCreditCardEnvelope(auth, date.slice(0, 7), amountNum, session)
-      }
-    }
-
-    return inserted.insertedId
+  // The insert itself lives in `lib/createExpense.ts` so the recurring-expense
+  // cron can reuse it verbatim instead of forking a simplified copy.
+  const result = await createExpense(auth, {
+    item: String(body.item),
+    amount_inr: String(body.amount_inr),
+    category: String(body.category),
+    notes: body.notes === undefined ? undefined : String(body.notes),
+    date: body.date === undefined ? undefined : String(body.date),
+    timestamp: body.timestamp === undefined ? undefined : String(body.timestamp),
+    payment_method: body.payment_method === undefined ? undefined : String(body.payment_method),
+    client_id: typeof body.client_id === 'string' ? body.client_id : undefined,
   })
 
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
-  if (paymentMethod === 'credit_card') invalidate('budgets', auth.userId)
-  invalidateCategoryMap(auth.userId)
-  // Awaited (not fire-and-forget): a serverless function can be frozen the
-  // instant the response is sent, so a background call here could just never
-  // run. notifyThresholdCrossed never throws, so this only adds latency, not
-  // failure risk.
-  await notifyThresholdCrossed(auth, String(body.category))
   // The id and the server-generated timestamp go back to the caller so it can
   // address the row it just created — mobile's post-log success screen needs
   // both to offer Undo without re-fetching the whole list to find the row.
-  return json({ ok: true, id: String(insertedId), timestamp })
+  return json(
+    result.duplicate
+      ? { ok: true, id: result.id, timestamp: result.timestamp, duplicate: true }
+      : { ok: true, id: result.id, timestamp: result.timestamp },
+  )
 }
 
 export async function PUT(req: Request) {
@@ -201,49 +154,6 @@ export async function PUT(req: Request) {
   // landed the expense, not where it used to be.
   await notifyThresholdCrossed(auth, update.category ?? String(found.category ?? ''))
   return json({ ok: true })
-}
-
-/**
- * Nudge the __credit_card__ envelope for a month by an amount delta, floor 0.
- * Always called from inside a caller's `withTx` — takes that transaction's
- * session rather than starting its own; concurrent writes to the same
- * document within a transaction abort with a retryable conflict that
- * `withTransaction` already retries, so the update itself needs no CAS guard
- * (`assigned` is also field-level encrypted, so it can't be used as a filter
- * anyway). A concurrent insert for the same month is caught via the unique
- * partial index and retried as an update.
- */
-async function adjustCreditCardEnvelope(auth: Auth, month: string, delta: number, session: ClientSession) {
-  if (!month || delta === 0) return
-  const budgetColl = await getCollection('budgets', auth)
-
-  await casRetry<'done'>(async () => {
-    const existing = await budgetColl.findOne({ month, category: '__credit_card__' }, { session })
-    if (existing) {
-      const current = Number(existing.assigned) || 0
-      await budgetColl.updateOne(
-        { _id: existing._id },
-        { $set: { assigned: String(Math.max(0, current + delta)) } },
-        { session },
-      )
-      return 'done'
-    }
-    if (delta <= 0) return 'done'
-    try {
-      await budgetColl.insertOne(
-        { month, category: '__credit_card__', assigned: String(delta), rolled_over: '0' },
-        { session },
-      )
-      return 'done'
-    } catch (err) {
-      if (isDuplicateKeyError(err)) return 'retry'
-      throw err
-    }
-  })
-}
-
-function isDuplicateKeyError(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 11000
 }
 
 export async function DELETE(req: Request) {

@@ -44,6 +44,10 @@ const INDEXES = {
   holdings: [[{ user_id: 1, name: 1 }, { unique: true, ...LIVE_ONLY }]],
   holding_events: [[{ user_id: 1, timestamp: -1 }, {}]],
   subscriptions: [[{ user_id: 1, service: 1 }, {}]],
+  // The nightly cron's query: every active recurrence whose next occurrence is
+  // on or before today. No index on `item` — it's encrypted, so it can't be a
+  // filter key; rows are addressed by `_id`.
+  recurring_expenses: [[{ user_id: 1, status: 1, next_run_date: 1 }, {}]],
   push_tokens: [
     [{ token: 1 }, { unique: true }],
     [{ user_id: 1 }, {}],

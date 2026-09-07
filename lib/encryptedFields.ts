@@ -17,7 +17,9 @@
  * `budgets` — month, category; `categories`/`groups`/`category_map_overrides`
  * entirely (name/word are unique-index filter keys, and `categories.alertPcts`
  * needs no encryption either — thresholds, not money); `subscriptions.service`,
- * `.next_due_date`, `.billing_cycle`, `.status` (also filter/sort keys) and
+ * `.next_due_date`, `.billing_cycle`, `.status` (also filter/sort keys);
+ * on `recurring_expenses` — category, payment_method, frequency, the three
+ * dates and status, all of which the nightly cron filters or sorts on;
  * `holdings.name` (a future re-key to `_id` could move it into this list);
  * `chat_sessions.updatedAt` (sort + index).
  */
@@ -25,6 +27,7 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
   budgets: ['assigned', 'rolled_over'],
   subscriptions: ['amount_inr', 'notes'],
+  recurring_expenses: ['item', 'notes', 'amount_inr'],
   holdings: ['value', 'recurring_amount'],
   holding_events: ['amount', 'previous_value', 'new_value'],
   chat_sessions: ['title', 'messages.text'],

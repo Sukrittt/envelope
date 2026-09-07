@@ -12,6 +12,9 @@ import { applyHoldingAction } from '@/lib/holdings'
 import { isDueToday, isDueTomorrow, tomorrowOf } from '@/lib/holdingRecurrence'
 import { isSubscriptionDueToday } from '@/lib/subscriptions'
 import { applySubscriptionExpense } from '@/lib/subscriptionExpense'
+import { occurrencesDue, isExpired, advance } from '@/lib/recurringExpense'
+import { createExpense } from '@/lib/createExpense'
+import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { sendPushNotification } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
@@ -189,6 +192,119 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
   return sent
 }
 
+/**
+ * Auto-adds an expense for every occurrence a user's recurring expenses owe as
+ * of today, then advances each one's schedule. Like subscriptions and
+ * recurring investments, this runs for every user rather than a
+ * cadence-filtered subset — a recurrence's own date isn't a digest preference.
+ *
+ * Unlike either of them, this **backfills**: `occurrencesDue` returns every
+ * date from `next_run_date` through today, so a run the cron missed still gets
+ * logged, on its true date rather than today's. Two consequences that shape
+ * the order below:
+ *
+ * - Idempotency comes from the `client_id` unique index on `expenses`
+ *   (`scripts/ensure-indexes.mjs`), not from `claim` — the notification log
+ *   has a 90-day TTL, so a claim key for an older backfilled date would expire
+ *   and let that date be logged a second time. `client_id` has no TTL.
+ * - The expense is inserted *before* `next_run_date` advances. The
+ *   subscription pass claims first (see `runSubscriptionExpensesForUser`), so
+ *   a crash between claim and insert drops that day for good. Inserting first
+ *   means a crash just leaves the schedule unadvanced and the next run retries
+ *   — which `client_id` makes safe.
+ */
+async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const coll = await getCollection('recurring_expenses', auth)
+  const recurrences = await coll.find({ status: 'active' }).toArray()
+
+  let sent = 0
+  for (const rec of recurrences) {
+    const id = String(rec._id)
+    try {
+      const schedule = {
+        frequency: String(rec.frequency ?? ''),
+        start_date: String(rec.start_date ?? ''),
+        end_date: String(rec.end_date ?? ''),
+        next_run_date: String(rec.next_run_date ?? ''),
+        status: String(rec.status ?? ''),
+      }
+
+      const due = occurrencesDue(schedule, today)
+      if (due.length === 0) {
+        // Nothing owed, but a lapsed end date still needs retiring so the row
+        // stops being scanned every night.
+        if (isExpired(schedule, today)) {
+          await coll.updateOne({ _id: rec._id }, { $set: { status: 'ended' } })
+        }
+        continue
+      }
+
+      const category = String(rec.category ?? '')
+      const amount = String(rec.amount_inr ?? '')
+      // No category means nothing to file the expense under — same skip as the
+      // subscription pass. Leave the schedule untouched so it starts working
+      // the moment the user picks one, rather than silently losing those dates.
+      if (!category) continue
+
+      let logged = 0
+
+      for (const occurrence of due) {
+        const result = await createExpense(auth, {
+          item: String(rec.item ?? ''),
+          amount_inr: amount,
+          category,
+          notes: rec.notes ? `Auto-added from recurring expense · ${String(rec.notes)}` : 'Auto-added from recurring expense',
+          date: occurrence,
+          payment_method: String(rec.payment_method ?? 'bank'),
+          source: 'recurring',
+          client_id: `recur:${id}:${occurrence}`,
+          // One threshold check after the whole backfill, not one per
+          // occurrence — it rebuilds the entire AI expense context per call.
+          notify: false,
+        })
+        if (!result.duplicate) logged++
+      }
+
+      // Advance past the last occurrence logged, and retire the row once its
+      // end date is behind us so it stops being scanned every night.
+      const anchorDay = Number(schedule.start_date.slice(8, 10)) || undefined
+      const nextRun = advance(due[due.length - 1], schedule.frequency, anchorDay)
+      const ended = Boolean(schedule.end_date) && nextRun > schedule.end_date
+      await coll.updateOne(
+        { _id: rec._id },
+        { $set: { next_run_date: nextRun, ...(ended ? { status: 'ended' } : {}) } },
+      )
+
+      if (logged === 0) continue
+
+      await notifyThresholdCrossed(auth, category)
+
+      if (await claim(db, user._id, `recur-expense:${id}:${today}`)) {
+        try {
+          const label = String(rec.item ?? 'recurring expense')
+          await sendPushNotification({
+            userId: user._id,
+            title: `${label} added`,
+            body:
+              logged === 1
+                ? `₹${inr(Number(amount) || 0)} auto-added for ${label}.`
+                : `₹${inr((Number(amount) || 0) * logged)} auto-added for ${label} (${logged} missed dates).`,
+            data: { route: '/activity', category },
+          })
+          sent++
+        } catch (err) {
+          console.error('notifications/run: recurring expense push failed for', user._id, id, err)
+        }
+      }
+    } catch (err) {
+      console.error('notifications/run: recurring expense failed for', user._id, id, err)
+    }
+  }
+
+  return sent
+}
+
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
   const header = req.headers.get('authorization')
@@ -238,13 +354,19 @@ export async function GET(req: Request) {
   }
 
   // Also unfiltered by notifyCadence, same reasoning as investments above —
-  // a subscription's due date isn't a digest preference.
-  const subscriptionUsers = await db.collection<UserDoc>('users').find({ deleted_at: null }).toArray()
-  for (const user of subscriptionUsers) {
+  // a subscription's or a recurrence's own due date isn't a digest preference.
+  // Both share this pass rather than each re-running the identical query.
+  const autoExpenseUsers = await db.collection<UserDoc>('users').find({ deleted_at: null }).toArray()
+  for (const user of autoExpenseUsers) {
     try {
       sent += await runSubscriptionExpensesForUser(db, user, today)
     } catch (err) {
       console.error('notifications/run: subscription expenses failed for', user._id, err)
+    }
+    try {
+      sent += await runRecurringExpensesForUser(db, user, today)
+    } catch (err) {
+      console.error('notifications/run: recurring expenses failed for', user._id, err)
     }
   }
 

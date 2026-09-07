@@ -44,6 +44,23 @@ export const SUBSCRIPTION_HEADERS = [
   'category',
 ]
 
+// Rows are addressed by `_id`, not by name the way `subscriptions` uses
+// `service` — `item` is encrypted (see lib/encryptedFields.ts) and an
+// encrypted field can't be used as a filter.
+export const RECURRING_EXPENSE_HEADERS = [
+  'item',
+  'amount_inr',
+  'category',
+  'notes',
+  'payment_method',
+  'frequency', // daily | weekly | monthly | yearly
+  'start_date', // YYYY-MM-DD, first occurrence
+  'end_date', // YYYY-MM-DD or '' — optional expiry
+  'next_run_date', // YYYY-MM-DD, next occurrence not yet logged
+  'status', // active | paused | ended
+  'created_at',
+]
+
 export const HOLDING_HEADERS = [
   'name',
   'type',
@@ -71,6 +88,7 @@ export const COLLECTIONS = {
   categories: 'categories',
   groups: 'groups',
   subscriptions: 'subscriptions',
+  recurringExpenses: 'recurring_expenses',
   holdings: 'holdings',
   holdingEvents: 'holding_events',
   pushTokens: 'push_tokens',
