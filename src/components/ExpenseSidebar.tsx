@@ -29,7 +29,7 @@ export function ExpenseSidebar({
     <nav className="erd-sidebar">
       <div>
         <div className="erd-greeting">
-          Hey Sukrit <span className="erd-wave">👋</span>
+          Aviary <span className="erd-wave">🕊️</span>
         </div>
         <div className="erd-sidebar-month">
           {month ?? ""} · {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
@@ -63,6 +63,13 @@ export function ExpenseSidebar({
         >
           <span className="erd-nav-dot" />
           Dashboard
+        </Link>
+        <Link
+          href="/expense/envelopes"
+          className={`erd-nav-item ${pathname === "/expense/envelopes" ? "is-active" : ""}`}
+        >
+          <span className="erd-nav-dot" />
+          Envelopes
         </Link>
         <Link
           href="/expense/transactions"

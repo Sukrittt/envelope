@@ -3668,3 +3668,262 @@ button.account-row:hover {
 .legal-footer-nav a:hover {
   color: var(--gold);
 }
+
+/* ── Envelopes screen (/expense/envelopes) ──────────────────── */
+/* Desktop counterpart of Mobile's envelopes tab. The mobile screen is one
+   column of rows with a long-press action sheet; here the actions sit inline
+   on hover, because a pointer can reveal them without a gesture. */
+
+.env-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.env-group {
+  border: 1px solid var(--erd-border);
+  border-radius: 16px;
+  background: var(--erd-card);
+  overflow: hidden;
+}
+
+.env-group.is-reordering {
+  border-style: dashed;
+  border-color: var(--gold);
+}
+
+.env-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.env-group-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--erd-text);
+  font: inherit;
+  font-family: var(--font-nunito);
+  cursor: pointer;
+  text-align: left;
+}
+
+.env-group-toggle svg {
+  color: var(--erd-text3);
+  transition: transform var(--dur-med, 180ms) var(--ease-standard, ease);
+}
+
+.env-group-toggle svg.is-open {
+  transform: rotate(90deg);
+}
+
+.env-group-name {
+  font-family: var(--font-fredoka);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.env-group-count {
+  font-size: 0.7rem;
+  color: var(--erd-text3);
+  background: var(--erd-pill-bg);
+  border: 1px solid var(--erd-border);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.env-group-actions,
+.env-cat-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--dur-fast, 120ms) var(--ease-standard, ease);
+}
+
+.env-group-head:hover .env-group-actions,
+.env-group-head:focus-within .env-group-actions,
+.env-cat:hover .env-cat-actions,
+.env-cat:focus-within .env-cat-actions {
+  opacity: 1;
+}
+
+/* Keyboard users never hover, so the actions must not be reachable-but-invisible. */
+@media (hover: none) {
+  .env-group-actions,
+  .env-cat-actions {
+    opacity: 1;
+  }
+}
+
+.env-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--erd-text2);
+  cursor: pointer;
+}
+
+.env-icon-btn:hover {
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+}
+
+.env-icon-btn--danger:hover {
+  color: var(--coral);
+  background: var(--coral-soft);
+}
+
+.env-drag {
+  display: grid;
+  place-items: center;
+  color: var(--erd-text3);
+  cursor: grab;
+}
+
+.env-drag:active {
+  cursor: grabbing;
+}
+
+.env-cat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 8px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.env-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 4px;
+  border-top: 1px solid var(--erd-border);
+  font-size: 0.85rem;
+}
+
+.env-cat-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.env-cat--empty,
+.env-empty {
+  color: var(--erd-text3);
+  font-style: italic;
+}
+
+.env-cat-alerts {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--erd-text3);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.env-cat-alerts:hover {
+  color: var(--gold-ink);
+  border-color: var(--erd-border);
+}
+
+.env-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--erd-input-bg);
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 8px;
+  color: var(--erd-text);
+  font: inherit;
+  font-family: var(--font-nunito);
+  padding: 4px 8px;
+}
+
+.env-input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.env-sheet {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.env-sheet-title {
+  font-family: var(--font-fredoka);
+  font-size: 1.05rem;
+}
+
+.env-sheet-copy,
+.env-sheet-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--erd-text2);
+}
+
+.env-sheet-hint {
+  color: var(--erd-text3);
+}
+
+.env-pct-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.env-pct {
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.env-pct.is-on {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold-ink);
+}
+
+.env-pct:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.env-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.erd-skeleton-block {
+  padding: 24px;
+  color: var(--erd-text3);
+  font-size: 0.85rem;
+}
