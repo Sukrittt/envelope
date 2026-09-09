@@ -41,6 +41,7 @@ export function LoadingCaption({ className = '', style }: Props) {
   const [shuffledPhrases, setShuffledPhrases] = useState(PHRASES)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time post-mount shuffle to dodge the SSR hydration mismatch noted above, not a sync-with-external-system effect
     setShuffledPhrases(shuffleArray(PHRASES))
   }, [])
 
