@@ -36,7 +36,13 @@ interface Props {
 
 export function LoadingCaption({ className = '', style }: Props) {
   const [phraseIndex, setPhraseIndex] = useState(0)
-  const [shuffledPhrases] = useState(() => shuffleArray(PHRASES))
+  // Shuffling with Math.random() during the initial render would mismatch
+  // the server-rendered order, so start deterministic and shuffle post-mount.
+  const [shuffledPhrases, setShuffledPhrases] = useState(PHRASES)
+
+  useEffect(() => {
+    setShuffledPhrases(shuffleArray(PHRASES))
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {

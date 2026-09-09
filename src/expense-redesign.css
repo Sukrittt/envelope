@@ -2284,6 +2284,7 @@
 
 .auth-page {
   position: relative;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -2305,25 +2306,43 @@
 .auth-blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(30px);
+  filter: blur(clamp(30px, 4vw, 60px));
 }
 
 .auth-blob--gold {
-  top: -140px;
-  right: -110px;
-  width: 340px;
-  height: 340px;
+  top: -120px;
+  right: -120px;
+  width: clamp(320px, 34vw, 520px);
+  height: clamp(320px, 34vw, 520px);
   background: var(--gold-soft);
   animation: auth-drift-1 16s ease-in-out infinite;
 }
 
 .auth-blob--mint {
   bottom: -120px;
-  left: -130px;
-  width: 300px;
-  height: 300px;
+  left: -120px;
+  width: clamp(320px, 34vw, 520px);
+  height: clamp(320px, 34vw, 520px);
   background: var(--mint-soft);
   animation: auth-drift-1 22s ease-in-out infinite reverse;
+}
+
+.auth-blob--gold-2 {
+  bottom: -140px;
+  right: -140px;
+  width: clamp(280px, 30vw, 460px);
+  height: clamp(280px, 30vw, 460px);
+  background: var(--gold-soft);
+  animation: auth-drift-1 19s ease-in-out infinite reverse;
+}
+
+.auth-blob--mint-2 {
+  top: -140px;
+  left: -140px;
+  width: clamp(280px, 30vw, 460px);
+  height: clamp(280px, 30vw, 460px);
+  background: var(--mint-soft);
+  animation: auth-drift-1 25s ease-in-out infinite;
 }
 
 @keyframes auth-drift-1 {
