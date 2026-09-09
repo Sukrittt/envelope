@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { updateExpense } from '../services/api'
+import { updateExpense } from '../api/expenses'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'

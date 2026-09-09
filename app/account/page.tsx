@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
+import { useHideAmounts } from '../../src/hooks/useHideAmounts'
 import { clearLocalPrefs } from '../../src/lib/localPref'
 
 type NotifyCadence = 'off' | 'weekly' | 'daily'
@@ -18,7 +19,8 @@ interface UserDoc {
 
 export default function AccountPage() {
   const { user } = useAuth()
-  const { theme, setTheme } = useAppearance()
+  const { preference, setPreference } = useAppearance()
+  const [hideAmounts, setHideAmounts] = useHideAmounts()
   const [doc, setDoc] = useState<UserDoc | null>(null)
   const [notifyCadence, setNotifyCadence] = useState<NotifyCadence>('off')
 
@@ -113,11 +115,34 @@ export default function AccountPage() {
           <div className="account-row" style={{ cursor: 'default' }}>
             <span className="account-row-label">Appearance</span>
             <div className="account-segmented" role="group" aria-label="Theme">
-              <button type="button" className={theme === 'light' ? 'is-active' : ''} onClick={() => setTheme('light')}>
-                Light
+              {/* Matches Mobile's three options; "Auto" is the 'system'
+                  preference, which web had no way to pick before. */}
+              {(
+                [
+                  { value: 'light', label: 'Light' },
+                  { value: 'dark', label: 'Dark' },
+                  { value: 'system', label: 'Auto' },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={preference === opt.value ? 'is-active' : ''}
+                  onClick={() => setPreference(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="account-row" style={{ cursor: 'default' }}>
+            <span className="account-row-label">Hide amounts</span>
+            <div className="account-segmented" role="group" aria-label="Hide amounts">
+              <button type="button" className={!hideAmounts ? 'is-active' : ''} onClick={() => setHideAmounts(false)}>
+                Show
               </button>
-              <button type="button" className={theme === 'dark' ? 'is-active' : ''} onClick={() => setTheme('dark')}>
-                Dark
+              <button type="button" className={hideAmounts ? 'is-active' : ''} onClick={() => setHideAmounts(true)}>
+                Hide
               </button>
             </div>
           </div>

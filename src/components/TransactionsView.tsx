@@ -4,13 +4,10 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   loadTransactions,
   type Transaction,
-} from "../services/expenseTransactions";
-import {
-  getBudgets,
-  updateExpenseCategory,
-  deleteExpense,
-} from "../services/api";
-import { suggestCategory } from "../services/autoCategory";
+} from "../lib/expenseTransactions";
+import { getBudgets } from "../api/budgets";
+import { updateExpenseCategory, deleteExpense } from "../api/expenses";
+import { suggestCategory } from "../lib/autoCategory";
 import { formatCurrency } from "@/lib/currency";
 import { LoadingCaption } from "./LoadingCaption";
 import { getCategoryColor } from "../data/categoryColors";

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { addExpense } from '../services/api'
-import { suggestCategory, invalidateCategoryCache, getTodayISO } from '../services/autoCategory'
+import { addExpense } from '../api/expenses'
+import { suggestCategory, invalidateCategoryCache, getTodayISO } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
 

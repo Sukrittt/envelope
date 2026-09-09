@@ -1,7 +1,8 @@
-import { computeEnvelopes } from '@/src/services/budgetLoader'
+import { computeEnvelopeState } from '@/src/lib/envelope'
 import { getCollection, nowIST } from '@/lib/http'
 import type { Auth } from '@/lib/access'
-import type { BudgetRow, Envelope } from '@/src/types/expense'
+import type { Envelope } from '@/src/lib/envelope'
+import type { BudgetRow as WireBudgetRow, ExpenseRow as WireExpenseRow } from '@/src/types'
 
 /**
  * Builds the plain-text "FACTS" context fed to the money-brain Gemini
@@ -142,22 +143,35 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     .filter((c) => c.name !== SENTINEL_INCOME && c.name !== SENTINEL_CREDIT_CARD)
     .map((c) => ({ name: c.name, group: c.group ?? '' }))
 
-  const budgetRows: BudgetRow[] = budgets.map((b) => ({
+  // computeEnvelopeState takes the API's wire rows (string fields), which is
+  // what the client hands it. Server-side these come out of Mongo as numbers,
+  // so they are stringified back rather than widening the shared signature and
+  // letting it drift from its mobile twin.
+  const budgetRows: WireBudgetRow[] = budgets.map((b) => ({
     month: b.month,
     category: b.category,
-    assigned: Number(b.assigned) || 0,
-    rolledOver: Number(b.rolled_over) || 0,
+    assigned: String(b.assigned ?? 0),
+    rolled_over: String(b.rolled_over ?? 0),
   }))
 
-  const envelopeExpenseRows = expenses.map((e) => ({
-    date: e.date,
-    amountInr: Number(e.amount_inr) || 0,
-    category: e.category,
-  }))
+  const envelopeExpenseRows = expenses.map(
+    (e): WireExpenseRow => ({
+      timestamp: e.timestamp ?? '',
+      date: e.date,
+      item: e.item ?? '',
+      amount_inr: String(e.amount_inr ?? 0),
+      category: e.category,
+      notes: e.notes ?? '',
+      source: '',
+      amount: '',
+      description: '',
+      payment_method: e.payment_method ?? '',
+    }),
+  )
 
   const groupNames = groups.map((g) => g.name)
 
-  const envelopeState = computeEnvelopes(budgetRows, envelopeExpenseRows, currentMonth, realCategories, groupNames)
+  const envelopeState = computeEnvelopeState(budgetRows, envelopeExpenseRows, currentMonth, realCategories, groupNames)
 
   const income = envelopeState.income
   const ccEnvelope = envelopeState.envelopes.find((e) => e.isCreditCardPayment)

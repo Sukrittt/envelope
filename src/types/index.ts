@@ -1,5 +1,6 @@
-// Row shapes ported verbatim from Web/src/services/api.ts — the deployed API
-// returns these exact field names, so no reshaping happens on the mobile side.
+// Row shapes as the API returns them: these are the exact field names on the
+// wire, so nothing reshapes between the API and the query hooks. Twin of
+// Mobile/src/types/index.ts.
 
 export interface CsvResponse<T> {
   headers: string[]

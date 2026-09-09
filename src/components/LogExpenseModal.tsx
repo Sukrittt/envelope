@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker } from './DatePicker'
-import { addExpense, getCategoryMap } from '../services/api'
-import { suggestCategoryLLM } from '../services/autoCategory'
+import { addExpense } from '../api/expenses'
+import { getCategoryMap } from '../api/categoryMap'
+import { suggestCategoryLLM } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 interface Props {

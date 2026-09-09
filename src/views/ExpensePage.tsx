@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import useSWR from "swr";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { AnimatePresence } from "motion/react";
@@ -20,23 +19,22 @@ import { SpendingInsights } from "../components/SpendingInsights";
 import { LoadingCaption } from "../components/LoadingCaption";
 import { getEffectiveDueDate, daysUntil, renewalDays } from "@/lib/subscriptions";
 import {
-  cancelSubscription,
-  reactivateSubscription,
-  addBudget,
-  updateBudget,
-  transferBudget,
-  getBudgets,
-  getCategories,
-  addExpense,
-} from "../services/api";
-import {
   toExpensePanelData,
   type ExpensePanelData,
 } from "../services/expensePanelAdapter";
+import { buildExpensePanel } from "../lib/expensePanel";
+import { computeEnvelopeState } from "../lib/envelope";
+import { EMPTY } from "../lib/constants";
+import { useBudgets, useAddBudget, useUpdateBudget, useTransferBudget } from "../hooks/useBudgets";
+import { useExpenses, useAddExpense } from "../hooks/useExpenses";
+import { useCategories } from "../hooks/useCategories";
+import { useGroups } from "../hooks/useGroups";
+import { useHideAmounts } from "../hooks/useHideAmounts";
 import {
-  loadExpensePanelContract,
-  loadEnvelopeStateForMonth,
-} from "../services/expensePanelLoader";
+  useSubscriptions,
+  useCancelSubscription,
+  useReactivateSubscription,
+} from "../hooks/useSubscriptions";
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
@@ -109,13 +107,49 @@ function weekRangeLabel(startIso: string): string {
 export function ExpensePage() {
   // TESTING ONLY — set true to pin the page on the loading skeleton.
   const FORCE_LOADING_SKELETON = false;
-  const { data: contract, mutate: mutatePanel } = useSWR(
-    "expense-panel-contract",
-    loadExpensePanelContract,
-  );
-  const panel = useMemo(
-    () => (contract ? toExpensePanelData(contract) : null),
-    [contract],
+  // One query per resource, as Mobile has, with the dashboard's derived panel
+  // recomputed from them. The old single SWR fetcher both fetched and derived;
+  // buildExpensePanel is the derivation half, now pure.
+  const budgetsQuery = useBudgets();
+  const expensesQuery = useExpenses();
+  const categoriesQuery = useCategories();
+  const groupsQuery = useGroups();
+  const subscriptionsQuery = useSubscriptions();
+
+  const addBudgetM = useAddBudget();
+  const updateBudgetM = useUpdateBudget();
+  const transferBudgetM = useTransferBudget();
+  const addExpenseM = useAddExpense();
+  const cancelSubscriptionM = useCancelSubscription();
+  const reactivateSubscriptionM = useReactivateSubscription();
+
+  const budgetRows = budgetsQuery.data ?? EMPTY;
+  const expenseRows = expensesQuery.data ?? EMPTY;
+  const categoryRows = categoriesQuery.data ?? EMPTY;
+  const groupNames = groupsQuery.data ?? EMPTY;
+  const subscriptionRows = subscriptionsQuery.data ?? EMPTY;
+
+  const anyLoading =
+    budgetsQuery.isLoading ||
+    expensesQuery.isLoading ||
+    categoriesQuery.isLoading ||
+    groupsQuery.isLoading ||
+    subscriptionsQuery.isLoading;
+
+  const panel = useMemo<ExpensePanelData | null>(
+    () =>
+      anyLoading
+        ? null
+        : toExpensePanelData(
+            buildExpensePanel({
+              budgets: budgetRows,
+              expenses: expenseRows,
+              subscriptions: subscriptionRows,
+              categories: categoryRows,
+              groups: groupNames,
+            }),
+          ),
+    [anyLoading, budgetRows, expenseRows, subscriptionRows, categoryRows, groupNames],
   );
   // const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
   const [period, setPeriod] = useState<PeriodKey>("mtd");
@@ -132,7 +166,8 @@ export function ExpensePage() {
   } | null>(null);
   const isCategoryMenuOpen = activeMenu === "category";
   const isDateMenuOpen = activeMenu === "date";
-  const [hideAmounts, setHideAmounts] = useState<boolean>(false);
+  // Read-only here: the toggle lives on /account, next to the theme control.
+  const [hideAmounts] = useHideAmounts();
   const [dailyDetailDate, setDailyDetailDate] = useState<string | null>(null);
   const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(
     null,
@@ -183,22 +218,10 @@ export function ExpensePage() {
 
   // Restore the "hide amounts" preference after hydration so the server and
   // client render the same initial output (avoids a hydration mismatch).
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      localStorage.getItem("expense-hide-amounts") === "true"
-    ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setHideAmounts(true);
-    }
-  }, []);
-
-  async function refreshPanel() {
-    try {
-      await mutatePanel();
-    } catch {
-      setActionError("Couldn't refresh — check your connection.");
-    }
+  // The mutation hooks invalidate the queries they touch, so a refresh is no
+  // longer something this page asks for — only the row-level busy flags are
+  // left to clear.
+  function refreshPanel() {
     setCancellingSub(null);
     setReactivatingSub(null);
   }
@@ -207,7 +230,6 @@ export function ExpensePage() {
   // optimistic local updates (handleIncomeChange, handleAssignFromRTA, etc.)
   // to apply in between contract refreshes.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (panel) setEnvelopeState(panel.envelopeState);
   }, [panel]);
 
@@ -221,12 +243,10 @@ export function ExpensePage() {
       envelopeState?.month ?? new Date().toISOString().slice(0, 7);
     if (target > current) return;
     setInsightMonth(target);
-    try {
-      const st = await loadEnvelopeStateForMonth(target);
-      setInsightEnvelopes(st.envelopes);
-    } catch {
-      setInsightEnvelopes(null);
-    }
+    // Previously a second round-trip per month stepped through. Every row is
+    // already in the cache, so this is the same computation over what we hold.
+    const st = computeEnvelopeState(budgetRows, expenseRows, target, categoryRows, groupNames);
+    setInsightEnvelopes(st.envelopes);
   }
 
   async function handleIncomeChange(newIncome: number) {
@@ -238,7 +258,7 @@ export function ExpensePage() {
       // is surfaced instead of being misread as "row doesn't exist" and
       // retried against a different endpoint.
       try {
-        await updateBudget(month, "__income__", { assigned: String(income) });
+        await updateBudgetM.mutateAsync({ month, category: "__income__", updates: { assigned: String(income) } });
       } catch {
         setActionError("Couldn't save income — check your connection.");
         return;
@@ -262,11 +282,11 @@ export function ExpensePage() {
 
       const month = prev.month;
       if (current) {
-        updateBudget(month, category, { assigned: String(newAssigned) }).catch(
+        updateBudgetM.mutateAsync({ month, category, updates: { assigned: String(newAssigned) } }).catch(
           () => {},
         );
       } else {
-        addBudget({ month, category, assigned: String(amount) }).catch(
+        addBudgetM.mutateAsync({ month, category, assigned: String(amount) }).catch(
           () => {},
         );
       }
@@ -315,7 +335,7 @@ export function ExpensePage() {
       });
       const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0);
       const rta = Math.round(prev.income - totalAssigned) || 0;
-      updateBudget(prev.month, category, { assigned: String(assigned) }).catch(
+      updateBudgetM.mutateAsync({ month: prev.month, category, updates: { assigned: String(assigned) } }).catch(
         () => {},
       );
       return {
@@ -338,9 +358,13 @@ export function ExpensePage() {
       const month = prev.month;
       const updated = prev.envelopes.map((e) => {
         if (e.available > 0) {
-          updateBudget(month, e.category, {
-            assigned: String(e.assigned - e.available),
-          }).catch(() => {});
+          updateBudgetM
+            .mutateAsync({
+              month,
+              category: e.category,
+              updates: { assigned: String(e.assigned - e.available) },
+            })
+            .catch(() => {});
           return { ...e, assigned: e.assigned - e.available, available: 0 };
         }
         return e;
@@ -388,7 +412,7 @@ export function ExpensePage() {
     // Deliberately not caught here — the caller drives the button's
     // saving/success/fail phase and must know whether this actually worked
     // before showing a success checkmark.
-    await addExpense({
+    await addExpenseM.mutateAsync({
       item: "Credit Card Payment",
       amount_inr: String(amount),
       category: "__credit_card__",
@@ -413,12 +437,17 @@ export function ExpensePage() {
       // for why the old catch-as-control-flow fallback to addBudget was
       // redundant (and, on a real failure, misleading).
       try {
-        await updateBudget(month, "__income__", { assigned: String(value) });
+        await updateBudgetM.mutateAsync({ month, category: "__income__", updates: { assigned: String(value) } });
         localStorage.removeItem("expense-income-override");
       } catch {
         setActionError("Couldn't save income — check your connection.");
       }
     })();
+    // Deliberately keyed on `panel` alone: this drains a one-shot localStorage
+    // override once the month is known. The mutation object is re-created each
+    // render but stays bound to the same query client, so including it would
+    // only re-run this for no gain.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
   function prevMonth(key: string): string {
@@ -434,14 +463,13 @@ export function ExpensePage() {
     const p = panel;
 
     async function checkRollover() {
-      const budgets: BudgetRow[] = (await getBudgets().catch(() => [])).map(
-        (r) => ({
-          month: r.month,
-          category: r.category,
-          assigned: Number(r.assigned),
-          rolledOver: Number(r.rolled_over),
-        }),
-      );
+      // Already loaded by useBudgets — this used to be a second fetch.
+      const budgets: BudgetRow[] = budgetRows.map((r) => ({
+        month: r.month,
+        category: r.category,
+        assigned: Number(r.assigned),
+        rolledOver: Number(r.rolled_over),
+      }));
 
       const hasCurrentMonthData = budgets.some(
         (r) =>
@@ -465,6 +493,10 @@ export function ExpensePage() {
       setShowRolloverBanner(true);
     }
     checkRollover();
+    // Deliberately keyed on `panel` alone: this asks once per month whether to
+    // offer a rollover. `panel` is null until every query has loaded, so
+    // budgetRows is already populated whenever this runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
   async function handleRolloverConfirm(income: number, copyAssigned: boolean) {
@@ -473,16 +505,13 @@ export function ExpensePage() {
     const month = p.month;
     const lastMonthKey = prevMonth(month);
 
-    const budgets: BudgetRow[] = (await getBudgets().catch(() => [])).map(
-      (r) => ({
-        month: r.month,
-        category: r.category,
-        assigned: Number(r.assigned),
-        rolledOver: Number(r.rolled_over),
-      }),
-    );
-    const categories = await getCategories().catch(() => []);
-    const categoryNames = categories.map((c) => c.name);
+    const budgets: BudgetRow[] = budgetRows.map((r) => ({
+      month: r.month,
+      category: r.category,
+      assigned: Number(r.assigned),
+      rolledOver: Number(r.rolled_over),
+    }));
+    const categoryNames = categoryRows.map((c) => c.name);
 
     const lastMonthRows = budgets.filter(
       (b) => b.month === lastMonthKey && b.category !== "__income__",
@@ -498,11 +527,9 @@ export function ExpensePage() {
     }
 
     const effectiveIncome = Math.max(0, income - totalOverspent);
-    await addBudget({
-      month,
-      category: "__income__",
-      assigned: String(effectiveIncome),
-    }).catch(() => {});
+    await addBudgetM
+      .mutateAsync({ month, category: "__income__", assigned: String(effectiveIncome) })
+      .catch(() => {});
 
     const allCategoryNames = [
       ...new Set([...categoryNames, ...lastMonthRows.map((r) => r.category)]),
@@ -510,11 +537,9 @@ export function ExpensePage() {
     for (const cat of allCategoryNames) {
       const lastRow = lastMonthRows.find((r) => r.category === cat);
       const assigned = copyAssigned && lastRow ? lastRow.assigned : 0;
-      await addBudget({
-        month,
-        category: cat,
-        assigned: String(assigned),
-      }).catch(() => {});
+      await addBudgetM
+        .mutateAsync({ month, category: cat, assigned: String(assigned) })
+        .catch(() => {});
     }
 
     localStorage.setItem("budget-active-month", month);
@@ -2363,7 +2388,7 @@ export function ExpensePage() {
                                         onClick={async () => {
                                           setCancellingSub(sub.service);
                                           try {
-                                            await cancelSubscription(
+                                            await cancelSubscriptionM.mutateAsync(
                                               sub.service,
                                             );
                                             await refreshPanel();
@@ -2431,7 +2456,7 @@ export function ExpensePage() {
                                         onClick={async () => {
                                           setReactivatingSub(sub.service);
                                           try {
-                                            await reactivateSubscription(
+                                            await reactivateSubscriptionM.mutateAsync(
                                               sub.service,
                                             );
                                             await refreshPanel();
@@ -2557,7 +2582,11 @@ export function ExpensePage() {
                 // transaction — local state below only mirrors the result,
                 // it doesn't drive it. Awaited first: a failed transfer must
                 // never touch local state or look like it moved money.
-                await transferBudget(envelopeState.month, to, from, amount);
+                await transferBudgetM.mutateAsync({
+                  month: envelopeState.month,
+                  to,
+                  sources: [{ category: from, amount }],
+                });
                 setEnvelopeState((prev) => {
                   if (!prev) return prev;
                   if (from === "__ready_to_assign__") {

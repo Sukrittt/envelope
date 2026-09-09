@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { getCategories, getGroups, addCategory, updateCategory, deleteCategory, moveCategory, addGroup, updateGroup, deleteGroup } from '../services/api'
+import { getCategories, addCategory, updateCategory, deleteCategory, moveCategory } from '../api/categories'
+import { getGroups, addGroup, updateGroup, deleteGroup } from '../api/groups'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import type { Envelope } from '../types/expense'
-import type { CategoryRow } from '../services/api'
+import type { CategoryRow } from '../types'
 
 interface Props {
   onClose: () => void

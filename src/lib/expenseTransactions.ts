@@ -1,5 +1,6 @@
-import { apiFetch } from './api'
+import { getExpenses } from '@/src/api/expenses'
 
+/** The activity list's view shape, mapped from the wire rows. */
 export interface Transaction {
   id: string
   timestamp: string
@@ -12,11 +13,8 @@ export interface Transaction {
 }
 
 export async function loadTransactions(): Promise<Transaction[]> {
-  const resp = await apiFetch('/api/expenses')
-  if (!resp.ok) throw new Error(`Failed to load expenses: ${resp.status}`)
-  const data = await resp.json()
-  if (!data.rows || !Array.isArray(data.rows)) return []
-  return data.rows.map((r: Record<string, string>) => ({
+  const rows = await getExpenses()
+  return rows.map((r) => ({
     id: r.id ?? '',
     timestamp: r.timestamp ?? '',
     date: r.date ?? '',
