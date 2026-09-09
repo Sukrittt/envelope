@@ -1,0 +1,73 @@
+import { it, expect, vi } from 'vitest'
+import type { Mock } from 'vitest'
+import type { ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderHook, waitFor } from '@testing-library/react'
+import { getExpenses, postExpensePayload, updateExpense } from '@/src/api/expenses'
+import { useExpenses, useAddExpense, useUpdateExpense } from './useExpenses'
+
+vi.mock('@/src/api/expenses', () => ({
+  getExpenses: vi.fn(),
+  mintExpensePayload: vi.fn((row) => ({ ...row, client_id: 'client-1', date: '2026-01-01', timestamp: '2026-01-01T10:00:00+05:30' })),
+  postExpensePayload: vi.fn(),
+  updateExpense: vi.fn(),
+  deleteExpense: vi.fn(),
+}))
+
+
+
+function wrapper(queryClient: QueryClient) {
+  function QueryWrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  }
+  return QueryWrapper
+}
+
+it('useExpenses resolves the query with the API result', async () => {
+  ;(getExpenses as Mock).mockResolvedValue([{ item: 'Coffee' }])
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const { result } = renderHook(() => useExpenses(), { wrapper: wrapper(queryClient) })
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(result.current.data).toEqual([{ item: 'Coffee' }])
+})
+
+it('useAddExpense invalidates both the expenses and ai-brief queries on success', async () => {
+  ;(postExpensePayload as Mock).mockResolvedValue({ id: 'row-1', timestamp: '2026-01-01T10:00:00+05:30' })
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+  const { result } = renderHook(() => useAddExpense(), { wrapper: wrapper(queryClient) })
+
+  result.current.mutate({ item: 'Coffee', amount_inr: '150', category: 'Food' })
+
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] })
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['ai-brief'] })
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['category-map'] })
+})
+
+
+// An edit can flip payment_method or move month, which rebalances the
+// Credit Card envelope server-side — the budgets cache must bust too or
+// Envelopes shows a stale balance until its 30s staleTime lapses.
+it('useUpdateExpense also invalidates the budgets query on success', async () => {
+  ;(updateExpense as Mock).mockResolvedValue(undefined)
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+  const { result } = renderHook(() => useUpdateExpense(), { wrapper: wrapper(queryClient) })
+
+  result.current.mutate({
+    timestamp: '2026-01-01T10:00:00',
+    item: 'Taxi',
+    amountInr: 400,
+    updates: { new_payment_method: 'credit_card' },
+  })
+
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] })
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['ai-brief'] })
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['budgets'] })
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['category-map'] })
+})
+
+// Mobile's "useAddExpense offline" block is deliberately absent: web has no
+// pending-expense queue, so a transport failure rejects rather than enqueuing.

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components'
 import { OnboardingGate } from './OnboardingGate'
+import { QueryProvider } from './QueryProvider'
 import { AppShell } from './AppShell'
 import { AppearanceProvider } from './AppearanceProvider'
 
@@ -11,11 +12,13 @@ import { AppearanceProvider } from './AppearanceProvider'
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
     <AuthKitProvider>
-      <AppearanceProvider>
-        <OnboardingGate>
-          <AppShell>{children}</AppShell>
-        </OnboardingGate>
-      </AppearanceProvider>
+      <QueryProvider>
+        <AppearanceProvider>
+          <OnboardingGate>
+            <AppShell>{children}</AppShell>
+          </OnboardingGate>
+        </AppearanceProvider>
+      </QueryProvider>
     </AuthKitProvider>
   )
 }

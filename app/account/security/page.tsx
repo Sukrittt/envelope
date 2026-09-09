@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { clearLocalPrefs } from '../../../src/lib/localPref'
 
 interface UserDoc {
   email: string
@@ -172,6 +173,7 @@ function SecurityContent() {
   async function signOutEverywhere() {
     setSigningOutAll(true)
     await fetch('/api/user/sessions', { method: 'DELETE' })
+    clearLocalPrefs()
     window.location.href = '/logout'
   }
 

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
+import { clearLocalPrefs } from '../../src/lib/localPref'
 
 type NotifyCadence = 'off' | 'weekly' | 'daily'
 
@@ -182,7 +183,11 @@ export default function AccountPage() {
         </div>
       </div>
 
-      <a href="/logout" className="account-signout-btn">
+      {/* onClick runs before the navigation, so browser-local preferences are
+          dropped on the way out — otherwise the next account signed in here
+          inherits this one's collapsed groups and recent categories. The plain
+          href stays the mechanism, so sign-out still works without JS. */}
+      <a href="/logout" className="account-signout-btn" onClick={() => clearLocalPrefs()}>
         Sign out
       </a>
     </>
