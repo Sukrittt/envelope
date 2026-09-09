@@ -1,6 +1,6 @@
 # 010 — Bring Web to feature parity with Mobile
 
-- **Status**: ACCEPTED. Phases 0 and 1 done; phase 2 next.
+- **Status**: ACCEPTED. Phases 0, 1 and 2 done; phase 3 mostly done (see below); phase 4 next.
 - **Scope**: frontend only. Every endpoint Mobile calls already exists in `app/api/`.
 - **Surveyed**: `Sukrittt/envelope` @ `7cd1127`, `Sukrittt/envelope-mobile` @ `6a393de`
 
@@ -132,7 +132,7 @@ are exactly what Phase 3 rebuilds. Rewiring them to preserve today's UI, then de
 work a phase later, buys nothing a user can see. Their retirement moves to Phase 3, and until
 then two data layers coexist: everything new goes through `src/hooks/`.
 
-### Phase 2 — One design system (M)
+### Phase 2 — One design system (M) — DONE
 Port `tokens.ts` to CSS custom properties with the same names, keeping `ThemeTokens` as the
 shape of record. Retheme to the orange accent including the `accent`/`accentInk` contrast split
 Web has no equivalent of. Add `system` to Web's theme preference (Web is light/dark only). Fold
@@ -140,15 +140,34 @@ Web has no equivalent of. Add `system` to Web's theme preference (Web is light/d
 than to `/expense`. Rename the product to Aviary across Web copy, `PRODUCT.md` and `README.md`.
 **Ships:** Web reads as the same product as the app.
 
-### Phase 3 — Core screens (L)
-Retires `src/services/api.ts`, `budgetLoader.ts`, `expenseTransactions.ts`, `autoCategory.ts`,
-`expensePanelLoader.ts`, `expensePanelAdapter.ts` and `src/types/expense.ts` as the components
-that import them are rebuilt (carried over from Phase 1 — see there for why).
+### Phase 3 — Core screens (L) — MOSTLY DONE
+Done:
 
-Home, envelopes and activity at Mobile's fidelity in the desktop layout of §3: collapsed groups,
-group + category reorder, inline category creation, alert thresholds, split expenses, row hover
-actions, recent categories, category picker, edit-assigned-amount, and the shared `CheckIcon`
-success pattern. `ExpensePage.tsx` (2,758 ln) is decomposed here rather than extended.
+- **`/expense/envelopes`**, net-new: group and category CRUD, drag reorder, inline creation,
+  per-category alert thresholds. Deleting a group re-homes its categories into Archived first,
+  which is why Archived has no delete control.
+- **The service retirement carried over from Phase 1.** `src/services/` is down from 12 files
+  to 4. `budgetLoader` went only after its own 11 tests were re-pointed at the ported
+  `computeEnvelopeState` and passed unchanged — they stay as `src/lib/envelope.web.test.ts`.
+  `expensePanelLoader` split into the pure `buildExpensePanel`; `autoCategory` and
+  `expenseTransactions` moved to `src/lib` and lost their duplicated helpers.
+- **Home and activity are on the query hooks.** Two round-trips went with it: stepping a month
+  in insights recomputes from cached rows, and the rollover check reads `useBudgets`.
+- **`hideAmounts`** became a persisted preference with a control on `/account`, next to a theme
+  control that now offers the `Auto` option Phase 2 made possible.
+- **Shared display helpers** (`envelopeDisplay.ts`, `envelopeGroups.ts`), which fixed a real
+  drift: web compared against the UTC calendar date, so anything logged between 00:00 and
+  05:29 IST read as "Yesterday" on the day it happened.
+
+Not done, and deliberately left:
+
+- **The two-column desktop layout for home.** `ExpensePage` is 2,758 lines with a duplicated
+  loading skeleton, and this environment has no `MONGODB_URI` or WorkOS credentials, so the
+  app cannot be run and a layout change cannot be seen. Reshaping it blind is how a page
+  arrives broken. It needs either a working env or review of the rendered result.
+- **Split expenses, the category picker and recent-category ordering in activity.** The hooks
+  (`useRecentCategories`) and helpers (`split.ts`) are ported and tested; the UI that uses them
+  is not built.
 
 ### Phase 4 — Insights (M)
 `CategoryBreakdown`, `Heatmap`, `TrendChart`, `DonutChart`, `AllocationBar` at `/insights`.

@@ -1,4 +1,4 @@
-import { getExpenses } from '@/src/api/expenses'
+import type { ExpenseRow } from '@/src/types'
 
 /** The activity list's view shape, mapped from the wire rows. */
 export interface Transaction {
@@ -12,8 +12,12 @@ export interface Transaction {
   source: string
 }
 
-export async function loadTransactions(): Promise<Transaction[]> {
-  const rows = await getExpenses()
+/**
+ * Wire rows to the activity list's view shape. Pure: the rows come from
+ * useExpenses, so this no longer fetches — the same split that turned
+ * expensePanelLoader into buildExpensePanel.
+ */
+export function toTransactions(rows: ExpenseRow[]): Transaction[] {
   return rows.map((r) => ({
     id: r.id ?? '',
     timestamp: r.timestamp ?? '',

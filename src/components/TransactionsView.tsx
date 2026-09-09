@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  loadTransactions,
-  type Transaction,
-} from "../lib/expenseTransactions";
-import { getBudgets } from "../api/budgets";
-import { updateExpenseCategory, deleteExpense } from "../api/expenses";
+import { toTransactions, type Transaction } from "../lib/expenseTransactions";
+import { useBudgets } from "../hooks/useBudgets";
+import { useExpenses, useDeleteExpense, useUpdateExpense } from "../hooks/useExpenses";
+import { EMPTY } from "../lib/constants";
 import { suggestCategory } from "../lib/autoCategory";
 import { formatCurrency } from "@/lib/currency";
 import { LoadingCaption } from "./LoadingCaption";
@@ -109,13 +107,26 @@ export function TransactionsView({
 }) {
   // TESTING ONLY — set true to pin the page on the loading skeleton.
   const FORCE_LOADING_SKELETON = false;
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Fetching moved to the shared queries, so a delete here and an edit
+  // elsewhere refresh each other without either knowing about the other.
+  const expensesQuery = useExpenses();
+  const budgetsQuery = useBudgets();
+  const deleteExpenseM = useDeleteExpense();
+  const updateExpenseM = useUpdateExpense();
+  const transactions = useMemo(
+    () => toTransactions(expensesQuery.data ?? EMPTY),
+    [expensesQuery.data],
+  );
+  const loading = expensesQuery.isLoading;
+  const error = expensesQuery.error ? "Couldn't load your transactions." : null;
 
-  const [period, setPeriod] = useState<PeriodKey>("week");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  // Period and the custom range start as derived values and become state only
+  // once the user touches them. Seeding them from an effect instead made them
+  // snap back to the newest row on every refetch, and is what
+  // react-hooks/set-state-in-effect exists to catch.
+  const [periodOverride, setPeriod] = useState<PeriodKey | null>(null);
+  const [customStartOverride, setCustomStart] = useState<string | null>(null);
+  const [customEndOverride, setCustomEnd] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -130,7 +141,13 @@ export function TransactionsView({
   const [editingSuggestedCat, setEditingSuggestedCat] = useState<string>("");
   const [updating, setUpdating] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
-  const [budgetCategories, setBudgetCategories] = useState<string[]>([]);
+  const budgetCategories = useMemo(
+    () =>
+      (budgetsQuery.data ?? EMPTY)
+        .map((b) => b.category)
+        .filter((c) => c !== "__income__" && c !== "__credit_card__"),
+    [budgetsQuery.data],
+  );
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -154,38 +171,29 @@ export function TransactionsView({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [actionsKey]);
 
-  useEffect(() => {
-    Promise.all([
-      loadTransactions(),
-      getBudgets().catch(() => [] as { category: string }[]),
-    ])
-      .then(([rows, budgetRows]) => {
-        setTransactions(rows);
-        setBudgetCategories(
-          budgetRows
-            .map((b) => b.category)
-            .filter((c) => c !== "__income__" && c !== "__credit_card__"),
-        );
-        if (dateParam) {
-          setPeriod("custom");
-          setCustomStart(dateParam);
-          setCustomEnd(dateParam);
-        } else if (rows.length) {
-          let latest = new Date(0);
-          for (const r of rows) {
-            const d = new Date(r.date);
-            if (!Number.isNaN(d.getTime()) && d > latest) latest = d;
-          }
-          if (latest.getTime() === 0) latest = new Date();
-          setCustomStart(
-            toDateInput(new Date(latest.getFullYear(), latest.getMonth(), 1)),
-          );
-          setCustomEnd(toDateInput(latest));
-        }
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [dateParam]);
+  /**
+   * The custom range's default: the day named in ?date=, else the month
+   * containing the newest transaction. Only a default — the moment the user
+   * picks a range, the override below wins.
+   */
+  const seededRange = useMemo(() => {
+    if (dateParam) return { start: dateParam, end: dateParam };
+    let latest = new Date(0);
+    for (const r of transactions) {
+      const d = new Date(r.date);
+      if (!Number.isNaN(d.getTime()) && d > latest) latest = d;
+    }
+    if (latest.getTime() === 0) latest = new Date();
+    return {
+      start: toDateInput(new Date(latest.getFullYear(), latest.getMonth(), 1)),
+      end: toDateInput(latest),
+    };
+  }, [dateParam, transactions]);
+
+  // Arriving with ?date= means the user asked for one specific day.
+  const period: PeriodKey = periodOverride ?? (dateParam ? "custom" : "week");
+  const customStart = customStartOverride ?? seededRange.start;
+  const customEnd = customEndOverride ?? seededRange.end;
 
   // Arriving from an envelope: adopt its category and match its per-month window.
   // Deliberate one-time adoption of an external (URL) value into local filter
@@ -315,29 +323,21 @@ export function TransactionsView({
     setPage(0);
   }
 
-  async function refreshTransactions() {
-    try {
-      const [rows, budgetRows] = await Promise.all([
-        loadTransactions(),
-        getBudgets().catch(() => [] as { category: string }[]),
-      ]);
-      setTransactions(rows);
-      setBudgetCategories(
-        budgetRows
-          .map((b) => b.category)
-          .filter((c) => c !== "__income__" && c !== "__credit_card__"),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to refresh");
-    }
-  }
+  // The mutation hooks invalidate the expense and budget queries themselves,
+  // so there is nothing left for callers to refresh by hand.
+  function refreshTransactions() {}
 
   async function handleDelete(t: Transaction) {
     if (deleting) return;
     setDeleting(true);
     setDeleteError(null);
     try {
-      await deleteExpense(t.id, t.timestamp, t.item, t.amountInr);
+      await deleteExpenseM.mutateAsync({
+        id: t.id,
+        timestamp: t.timestamp,
+        item: t.item,
+        amountInr: t.amountInr,
+      });
       setDeleteKey(null);
       setActionsKey(null);
       await refreshTransactions();
@@ -365,13 +365,13 @@ export function TransactionsView({
       for (const t of monthRows) {
         const suggested = await suggestCategory(t.item, categories);
         if (suggested && suggested !== t.category) {
-          await updateExpenseCategory(
-            t.id,
-            t.timestamp,
-            t.item,
-            t.amountInr,
-            suggested,
-          );
+          await updateExpenseM.mutateAsync({
+            id: t.id,
+            timestamp: t.timestamp,
+            item: t.item,
+            amountInr: t.amountInr,
+            updates: { category: suggested },
+          });
         }
       }
       await refreshTransactions();
@@ -733,13 +733,13 @@ export function TransactionsView({
                           }
                           setUpdating(true);
                           try {
-                            await updateExpenseCategory(
-                              t.id,
-                              t.timestamp,
-                              t.item,
-                              t.amountInr,
-                              newCat,
-                            );
+                            await updateExpenseM.mutateAsync({
+                              id: t.id,
+                              timestamp: t.timestamp,
+                              item: t.item,
+                              amountInr: t.amountInr,
+                              updates: { category: newCat },
+                            });
                             setEditingSuggestedCat("");
                             await refreshTransactions();
                           } catch {
