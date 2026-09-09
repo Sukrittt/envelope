@@ -45,6 +45,10 @@
   --erd-heat-a: color-mix(in oklab, var(--tk-accent) 35%, var(--tk-bg));
   --erd-heat-b: var(--tk-accent);
 
+  /* --gold paints fills, borders and glyph backgrounds; --gold-ink paints
+     text. They differ only in light mode, where the saturated accent on white
+     is 3.5:1 and fails small-text contrast, while the ink is 5.2:1. Anything
+     you set `color:` to wants the ink. */
   --gold: var(--tk-accent);
   --gold-ink: var(--tk-accent-ink);
   --gold-soft: var(--tk-accent-soft);
@@ -761,7 +765,7 @@
   padding: 4px 10px;
   border-radius: 100px;
   background: var(--gold-soft);
-  color: var(--gold);
+  color: var(--gold-ink);
   white-space: nowrap;
 }
 .erd-panel-tools {
@@ -1010,7 +1014,7 @@
 .erd-manage-btn {
   background: none;
   border: none;
-  color: var(--gold);
+  color: var(--gold-ink);
   font-size: 13px;
   cursor: pointer;
   font-family: var(--font-fredoka);
@@ -2470,7 +2474,7 @@
   justify-content: center;
   font-family: var(--font-fredoka);
   font-size: 13px;
-  color: var(--gold);
+  color: var(--gold-ink);
   flex-shrink: 0;
 }
 
@@ -2483,7 +2487,7 @@
 }
 
 .auth-legal a {
-  color: var(--gold);
+  color: var(--gold-ink);
 }
 
 .auth-field {
@@ -2535,7 +2539,7 @@
 .auth-resend {
   background: none;
   border: none;
-  color: var(--gold);
+  color: var(--gold-ink);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -2802,7 +2806,7 @@ button.account-row:hover {
   border-radius: 50%;
   background: var(--gold-soft);
   border: 1px solid var(--gold);
-  color: var(--gold);
+  color: var(--gold-ink);
   font-family: var(--font-fredoka);
   font-size: 20px;
   display: flex;
@@ -3097,7 +3101,7 @@ button.account-row:hover {
 .account-warn-title {
   font-size: 12px;
   font-weight: 800;
-  color: var(--gold);
+  color: var(--gold-ink);
 }
 
 .account-warn-copy {
@@ -3116,7 +3120,7 @@ button.account-row:hover {
 .account-warn-actions button {
   border: none;
   background: none;
-  color: var(--gold);
+  color: var(--gold-ink);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -3281,7 +3285,7 @@ button.account-row:hover {
   height: 26px;
   border-radius: 9px;
   background: var(--gold-soft);
-  color: var(--gold);
+  color: var(--gold-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3643,7 +3647,7 @@ button.account-row:hover {
 }
 
 .legal-doc a {
-  color: var(--gold);
+  color: var(--gold-ink);
 }
 
 .legal-updated {
@@ -3666,7 +3670,7 @@ button.account-row:hover {
 }
 
 .legal-footer-nav a:hover {
-  color: var(--gold);
+  color: var(--gold-ink);
 }
 
 /* ── Envelopes screen (/expense/envelopes) ──────────────────── */

@@ -140,6 +140,16 @@ Web has no equivalent of. Add `system` to Web's theme preference (Web is light/d
 than to `/expense`. Rename the product to Aviary across Web copy, `PRODUCT.md` and `README.md`.
 **Ships:** Web reads as the same product as the app.
 
+Defining the ink tokens was only half the split: the sheets kept painting text with the raw
+accent, which in light mode is 3.5:1 on white and fails small text. Fifteen `color:` rules now
+read the ink instead (`--gold-ink` in `expense-redesign.css`, `--accent-strong` in `App.css`),
+and `src/theme/tokens.test.ts` fails the build if a new one reaches for the raw accent again.
+
+One residue, unfixed on purpose: accent-tinted chips (`--gold-soft`, an 18% accent wash) carry
+ink text at 3.8:1 in light mode, still under 4.5:1. Closing that needs a darker `accentInk`
+(around `#9a3412`), and since the token values are copied from Mobile verbatim, changing it here
+alone re-creates the drift this phase kept finding. It belongs in Mobile's `tokens.ts` first.
+
 ### Phase 3 — Core screens (L) — MOSTLY DONE
 Done:
 

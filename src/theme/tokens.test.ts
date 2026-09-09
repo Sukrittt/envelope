@@ -31,3 +31,49 @@ describe('tokens.css', () => {
     expect(darkTokens.accent).not.toBe(darkTokens.accentInk)
   })
 })
+
+// The accent is only half a fix if the stylesheets keep painting text with it.
+// These two aliases are what the sheets actually write, so they are what the
+// guard has to look for.
+const ACCENT_ALIASES = [
+  { file: 'src/expense-redesign.css', raw: '--gold', ink: '--gold-ink' },
+  { file: 'src/App.css', raw: '--accent', ink: '--accent-strong' },
+]
+
+describe('accent text contrast', () => {
+  it('never paints text with the raw accent', () => {
+    for (const { file, raw, ink } of ACCENT_ALIASES) {
+      const css = readFileSync(file, 'utf8')
+      // The alias has to still point at the token, or this guard is watching
+      // a name that no longer means what it did.
+      expect(css, `${file} no longer aliases ${raw}`).toMatch(
+        new RegExp(`^\\s*\\${raw}:\\s*var\\(--tk-accent\\);`, 'm'),
+      )
+      expect(css, `${file} no longer aliases ${ink}`).toMatch(
+        new RegExp(`^\\s*\\${ink}:\\s*var\\(--tk-accent-ink\\);`, 'm'),
+      )
+      const offenders = css
+        .split('\n')
+        .map((line, i) => [i + 1, line] as const)
+        .filter(([, line]) => new RegExp(`^\\s*color:\\s*var\\(\\${raw}\\);`).test(line))
+        .map(([n]) => `${file}:${n}`)
+      expect(offenders, `use var(${ink}) for text; var(${raw}) is for fills`).toEqual([])
+    }
+  })
+
+  it('clears 4.5:1 with accentInk on each scheme background', () => {
+    const channel = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => channel(parseInt(hex.slice(i, i + 2), 16) / 255))
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+      return (hi + 0.05) / (lo + 0.05)
+    }
+    for (const scheme of [lightTokens, darkTokens]) {
+      expect(contrast(scheme.accentInk, scheme.bg)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(scheme.accentInk, scheme.cardSolid)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+})

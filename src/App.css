@@ -3113,7 +3113,7 @@ input[type="date"]:hover {
 }
 
 .env-cell-cc {
-  color: var(--accent);
+  color: var(--accent-strong);
   font-weight: 500;
 }
 
@@ -5870,7 +5870,7 @@ summary:focus-visible,
 }
 
 .cm-group-option.is-selected {
-  color: var(--accent);
+  color: var(--accent-strong);
   font-weight: 600;
 }
 
@@ -6698,7 +6698,7 @@ summary:focus-visible,
 }
 
 .inv-event-type--market_update {
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .inv-event-type--contribution {
@@ -6902,7 +6902,7 @@ summary:focus-visible,
 .auth-guest {
   background: transparent;
   border: none;
-  color: var(--accent);
+  color: var(--accent-strong);
   font-weight: var(--fw-medium);
   font-size: var(--fs-13);
   cursor: pointer;
