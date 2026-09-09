@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
-import useSWR from 'swr'
 import { AnimatePresence } from 'motion/react'
-import { getHoldings, addHolding, deleteHolding, performHoldingAction, getHoldingEvents } from '../services/api'
+import { useHoldings, useAddHolding, useDeleteHolding, usePerformHoldingAction } from '../hooks/useHoldings'
+import { useHoldingEvents } from '../hooks/useHoldingEvents'
+import { EMPTY } from '../lib/constants'
+import type { HoldingRow, HoldingEventRow } from '../types'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
@@ -52,30 +54,33 @@ function eventLabel(type: string): string {
   }
 }
 
-async function fetchHoldingsPanel(): Promise<{ holdings: Holding[]; events: HoldingEvent[] }> {
-  const [holdingRows, eventRows] = await Promise.all([getHoldings(), getHoldingEvents()])
+function toHolding(r: HoldingRow): Holding {
+  return { name: r.name, type: r.type, value: Number(r.value) || 0, updatedAt: r.updated_at }
+}
+
+function toHoldingEvent(r: HoldingEventRow): HoldingEvent {
   return {
-    holdings: holdingRows.map((r) => ({
-      name: r.name,
-      type: r.type,
-      value: Number(r.value) || 0,
-      updatedAt: r.updated_at,
-    })),
-    events: eventRows.map((r) => ({
-      holdingName: r.holding_name,
-      eventType: r.event_type,
-      amount: Number(r.amount) || 0,
-      previousValue: Number(r.previous_value) || 0,
-      newValue: Number(r.new_value) || 0,
-      timestamp: r.timestamp,
-    })),
+    holdingName: r.holding_name,
+    eventType: r.event_type,
+    amount: Number(r.amount) || 0,
+    previousValue: Number(r.previous_value) || 0,
+    newValue: Number(r.new_value) || 0,
+    timestamp: r.timestamp,
   }
 }
 
 export function InvestmentsPage() {
-  const { data, isLoading, error: loadError, mutate: reload } = useSWR('holdings-panel', fetchHoldingsPanel)
-  const holdings = useMemo(() => data?.holdings ?? [], [data])
-  const events = data?.events ?? []
+  const holdingsQuery = useHoldings()
+  const eventsQuery = useHoldingEvents()
+  const addHolding = useAddHolding()
+  const deleteHolding = useDeleteHolding()
+  const performHoldingAction = usePerformHoldingAction()
+
+  // One spinner and one error for the pair, as the single SWR fetcher gave.
+  const isLoading = holdingsQuery.isLoading || eventsQuery.isLoading
+  const loadError = holdingsQuery.error ?? eventsQuery.error
+  const holdings = useMemo(() => (holdingsQuery.data ?? EMPTY).map(toHolding), [holdingsQuery.data])
+  const events = useMemo(() => (eventsQuery.data ?? EMPTY).map(toHoldingEvent), [eventsQuery.data])
   const [showAdd, setShowAdd] = useState(false)
   const [addName, setAddName] = useState('')
   const [addType, setAddType] = useState('')
@@ -95,13 +100,12 @@ export function InvestmentsPage() {
     if (!addName.trim() || !addValue.trim() || addPhase.saving || addPhase.success) return
     addPhase.start()
     try {
-      await addHolding({ name: addName.trim(), type: addType.trim() || 'Other', value: addValue.trim() })
+      await addHolding.mutateAsync({ name: addName.trim(), type: addType.trim() || 'Other', value: addValue.trim() })
       addPhase.succeed(() => {
         setShowAdd(false)
         setAddName('')
         setAddType('')
         setAddValue('')
-        reload()
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -113,8 +117,7 @@ export function InvestmentsPage() {
     try {
       setActionMenuHolding(null)
       setActiveAction(null)
-      await deleteHolding(name)
-      await reload()
+      await deleteHolding.mutateAsync(name)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -126,7 +129,7 @@ export function InvestmentsPage() {
     if (Number.isNaN(parsed) || parsed < 0) return
     actionPhase.start()
     try {
-      await performHoldingAction({
+      await performHoldingAction.mutateAsync({
         name: activeAction.holding,
         action: activeAction.type,
         amount: parsed,
@@ -135,7 +138,6 @@ export function InvestmentsPage() {
         setActionMenuHolding(null)
         setActiveAction(null)
         setActionAmount('')
-        reload()
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))

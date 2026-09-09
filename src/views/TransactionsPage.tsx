@@ -1,15 +1,27 @@
 import { Suspense, useMemo } from 'react'
-import useSWR from 'swr'
 import Link from 'next/link'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { TransactionsView } from '../components/TransactionsView'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
-import { toExpensePanelData } from '../services/expensePanelAdapter'
-import { loadExpensePanelContract } from '../services/expensePanelLoader'
+import { useBudgets } from '../hooks/useBudgets'
+import { useExpenses } from '../hooks/useExpenses'
+import { useCategories } from '../hooks/useCategories'
+import { useGroups } from '../hooks/useGroups'
+import { computeEnvelopeState, currentMonthKey } from '../lib/envelope'
+import { EMPTY } from '../lib/constants'
 
 export function TransactionsPage() {
-  const { data: contract } = useSWR('expense-panel-contract', loadExpensePanelContract)
-  const panel = useMemo(() => (contract ? toExpensePanelData(contract) : null), [contract])
+  // The sidebar wants this month's income and spend, which is all this page
+  // took the whole expense-panel contract for.
+  const budgets = useBudgets().data ?? EMPTY
+  const expenses = useExpenses().data ?? EMPTY
+  const categories = useCategories().data ?? EMPTY
+  const groups = useGroups().data ?? EMPTY
+  const month = currentMonthKey()
+  const envelopeState = useMemo(
+    () => computeEnvelopeState(budgets, expenses, month, categories, groups),
+    [budgets, expenses, month, categories, groups],
+  )
   const { theme, setTheme } = useAppearance()
 
   return (
@@ -25,10 +37,10 @@ export function TransactionsPage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          Hey Sukrit <span>👋</span>
+          Activity <span>🧾</span>
         </div>
         <div className="erd-mobile-sub">
-          <span>Check out all your transactions</span>
+          <span>Every transaction you have logged</span>
         </div>
       </header>
 
@@ -36,9 +48,9 @@ export function TransactionsPage() {
         <ExpenseSidebar
           onMoveMoney={() => {}}
           onShowCategories={() => {}}
-          month={panel?.month}
-          income={panel?.envelopeState?.income}
-          totalSpent={panel?.envelopeState?.totalSpent}
+          month={month}
+          income={envelopeState.income}
+          totalSpent={envelopeState.totalSpent}
         />
         <div className="erd-content">
           <Suspense fallback={<div className="txn-timeline-loading">Loading…</div>}>

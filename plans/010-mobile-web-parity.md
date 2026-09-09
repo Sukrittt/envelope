@@ -1,6 +1,6 @@
 # 010 — Bring Web to feature parity with Mobile
 
-- **Status**: ACCEPTED. Phase 0 in progress.
+- **Status**: ACCEPTED. Phases 0 and 1 done; phase 2 next.
 - **Scope**: frontend only. Every endpoint Mobile calls already exists in `app/api/`.
 - **Surveyed**: `Sukrittt/envelope` @ `7cd1127`, `Sukrittt/envelope-mobile` @ `6a393de`
 
@@ -95,7 +95,7 @@ widgets, haptics, Lottie tick, push notifications.
 
 Each phase is independently shippable.
 
-### Phase 0 — Clear the ground (S) — IN PROGRESS
+### Phase 0 — Clear the ground (S) — DONE
 Delete `/fitness`, `/learnings`, `mission-control-app/`, `dashboardService.ts`, `mockData.json`,
 `productivity/fitness/`, the fitness adapters and sample JSON, `src/types.ts`'s Mission Control
 models, and the orphaned `StatusChip`/`TimelineList`/`SparkLine` components. Lift the onboarding
@@ -105,14 +105,32 @@ for dead routes.
 `src/App.css` is left intact here; Phase 2 folds it wholesale rather than picking rules out of
 7,076 lines twice.
 
-### Phase 1 — Web data layer, mirrored from Mobile (M)
-Add `@tanstack/react-query`. Create `src/api/` and `src/hooks/` on Web as file-for-file twins of
-Mobile's, same exports and query keys, with `apiFetch` being the same-origin cookie version
-instead of the bearer one. Port `src/lib/`: `envelope.ts`, `monthly.ts`, `format.ts`, `emoji.ts`,
-`split.ts`, `date.ts`, `alerts.ts`, `recentCategories.ts`, `constants.ts`. Retire
-`src/services/api.ts`, `budgetLoader.ts`, `expenseTransactions.ts`, `autoCategory.ts` and the
-three SWR call sites. Carry Mobile's co-located tests across (Jest → Vitest is near-mechanical).
-**Ships:** no user-visible change, and every later phase gets cheap.
+### Phase 1 — Web data layer, mirrored from Mobile (M) — DONE
+Added `@tanstack/react-query`. `src/api/`, `src/hooks/` and `src/lib/` on Web are now
+file-for-file twins of Mobile's, same exports and same query keys, with `apiFetch` sending the
+same-origin cookie instead of a bearer token. Mobile's co-located tests came across (Jest to
+Vitest is mechanical apart from `jest.requireActual`, whose vitest equivalent is async).
+
+Where the platforms genuinely differ the twin says so in a comment: no 401 handler (web sends
+no token and falls through to the demo user at 200), no `expo/fetch` shim in `ai.ts` (and a
+reader loop, since a browser `ReadableStream` is not async-iterable in Chrome), no push-token
+unregisters, no offline expense queue or encrypted category cache. `analytics.ts` keeps
+Mobile's `AppEvent` union and `track()` signature over a sink so hook call sites stay
+identical.
+
+The four SecureStore-backed preference hooks share a new `usePersistentState` built on
+`useSyncExternalStore`. Mobile hydrates them in an effect because SecureStore is async; on Web
+that shape trips `react-hooks/set-state-in-effect`, and reading localStorage during render
+desyncs server and client markup. Mobile clears them from a logout subscription; Web navigates
+away to sign out, so `clearLocalPrefs()` runs from both sign-out controls first.
+
+`InvestmentsPage` and `TransactionsPage` are on the hooks. **`ExpensePage` is not, and
+`src/services/api.ts`, `budgetLoader.ts`, `expenseTransactions.ts`, `autoCategory.ts`,
+`expensePanelLoader.ts` and `expensePanelAdapter.ts` stay for now** — deliberately. The ~5,000
+lines still importing them (`ExpensePage` at 2,758, `TransactionsView` at 936, and five modals)
+are exactly what Phase 3 rebuilds. Rewiring them to preserve today's UI, then deleting that
+work a phase later, buys nothing a user can see. Their retirement moves to Phase 3, and until
+then two data layers coexist: everything new goes through `src/hooks/`.
 
 ### Phase 2 — One design system (M)
 Port `tokens.ts` to CSS custom properties with the same names, keeping `ThemeTokens` as the
@@ -123,6 +141,10 @@ than to `/expense`. Rename the product to Aviary across Web copy, `PRODUCT.md` a
 **Ships:** Web reads as the same product as the app.
 
 ### Phase 3 — Core screens (L)
+Retires `src/services/api.ts`, `budgetLoader.ts`, `expenseTransactions.ts`, `autoCategory.ts`,
+`expensePanelLoader.ts`, `expensePanelAdapter.ts` and `src/types/expense.ts` as the components
+that import them are rebuilt (carried over from Phase 1 — see there for why).
+
 Home, envelopes and activity at Mobile's fidelity in the desktop layout of §3: collapsed groups,
 group + category reorder, inline category creation, alert thresholds, split expenses, row hover
 actions, recent categories, category picker, edit-assigned-amount, and the shared `CheckIcon`
