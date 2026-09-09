@@ -25,22 +25,45 @@ type Doc = Record<string, unknown> & { _id: ObjectId }
 
 const stores: Record<string, Doc[]> = { expenses: [], budgets: [] }
 
-/** Matches a filter against a doc, comparing `_id` by value (ObjectId has no useful `===`). */
+/**
+ * Matches a filter against a doc, comparing `_id` by value (ObjectId has no
+ * useful `===`) and supporting the `$gte`/`$lte` range operators the
+ * paginated GET branch uses for its `from`/`to` date filter.
+ */
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
-  return Object.entries(filter).every(([k, v]) =>
-    k === '_id' && v instanceof ObjectId ? doc._id.equals(v) : doc[k] === v,
-  )
+  return Object.entries(filter).every(([k, v]) => {
+    if (k === '_id' && v instanceof ObjectId) return doc._id.equals(v)
+    if (v && typeof v === 'object' && !(v instanceof ObjectId)) {
+      return Object.entries(v as Record<string, unknown>).every(([op, opVal]) => {
+        if (op === '$gte') return String(doc[k] ?? '') >= (opVal as string)
+        if (op === '$lte') return String(doc[k] ?? '') <= (opVal as string)
+        return true
+      })
+    }
+    return doc[k] === v
+  })
 }
 
 function fakeCollection(base: string) {
   const store = stores[base]
   return {
-    find: (filter: Record<string, unknown> = {}) => ({
-      sort: () => ({
-        toArray: async () => store.filter((d) => matches(d, filter)),
-      }),
-      toArray: async () => store.filter((d) => matches(d, filter)),
-    }),
+    find: (filter: Record<string, unknown> = {}) => {
+      let rows = store.filter((d) => matches(d, filter))
+      const cursor = {
+        sort: () => cursor,
+        skip: (n: number) => {
+          rows = rows.slice(n)
+          return cursor
+        },
+        limit: (n: number) => {
+          rows = rows.slice(0, n)
+          return cursor
+        },
+        toArray: async () => rows,
+      }
+      return cursor
+    },
+    countDocuments: async (filter: Record<string, unknown> = {}) => store.filter((d) => matches(d, filter)).length,
     findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
     insertOne: async (doc: Record<string, unknown>) => {
       const withId = { ...doc, _id: new ObjectId() } as Doc
@@ -309,5 +332,64 @@ describe('POST /api/expenses — client_id idempotency (offline sync §5)', () =
       }),
     )
     expect(stores.expenses[0].timestamp).toBe('2026-01-01T09:00:00')
+  })
+})
+
+describe('GET /api/expenses — server-side pagination (opt-in via ?page=)', () => {
+  it('with no ?page= keeps the legacy full-list shape', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food', date: '2026-06-02' }))
+
+    const res = await GET(new Request('https://example.com/api/expenses'))
+    const body = (await res.json()) as { headers: string[]; rows: unknown[]; total?: number }
+    expect(body.rows).toHaveLength(2)
+    expect(body.total).toBeUndefined()
+  })
+
+  it('?page=&limit= returns a page, a matching total, and pageCount', async () => {
+    for (let i = 0; i < 3; i++) {
+      await POST(req('POST', { item: `Item ${i}`, amount_inr: '100', category: 'Food', date: '2026-06-01' }))
+    }
+
+    const res = await GET(new Request('https://example.com/api/expenses?page=1&limit=2'))
+    const body = (await res.json()) as {
+      rows: Array<{ item: string }>
+      total: number
+      page: number
+      pageCount: number
+      totalAmount: number
+    }
+    expect(body.rows).toHaveLength(2)
+    expect(body.total).toBe(3)
+    expect(body.page).toBe(1)
+    expect(body.pageCount).toBe(2)
+    expect(body.totalAmount).toBe(300)
+
+    const res2 = await GET(new Request('https://example.com/api/expenses?page=2&limit=2'))
+    const body2 = (await res2.json()) as { rows: unknown[] }
+    expect(body2.rows).toHaveLength(1)
+  })
+
+  it('filters by category and date range in the paginated branch', async () => {
+    await POST(req('POST', { item: 'Rent', amount_inr: '5000', category: 'Housing', date: '2026-01-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food', date: '2026-07-01' }))
+
+    const res = await GET(
+      new Request('https://example.com/api/expenses?page=1&limit=10&category=Food&from=2026-06-01&to=2026-06-30'),
+    )
+    const body = (await res.json()) as { rows: Array<{ item: string }>; total: number }
+    expect(body.total).toBe(1)
+    expect(body.rows[0].item).toBe('Coffee')
+  })
+
+  it('q searches item/notes in JS (item is an encrypted field, so Mongo cannot $regex it)', async () => {
+    await POST(req('POST', { item: 'Grocery run', amount_inr: '400', category: 'Food', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Movie ticket', amount_inr: '300', category: 'Entertainment', date: '2026-06-02' }))
+
+    const res = await GET(new Request('https://example.com/api/expenses?page=1&limit=10&q=grocery'))
+    const body = (await res.json()) as { rows: Array<{ item: string }>; total: number }
+    expect(body.total).toBe(1)
+    expect(body.rows[0].item).toBe('Grocery run')
   })
 })

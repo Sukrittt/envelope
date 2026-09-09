@@ -3,7 +3,11 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
-import { useExpenses, useDeleteExpense, useUpdateExpense } from "../hooks/useExpenses";
+import {
+  useExpensesPage,
+  useDeleteExpense,
+  useUpdateExpense,
+} from "../hooks/useExpenses";
 import { EMPTY } from "../lib/constants";
 import { suggestCategory } from "../lib/autoCategory";
 import { formatCurrency } from "@/lib/currency";
@@ -107,18 +111,9 @@ export function TransactionsView({
 }) {
   // TESTING ONLY — set true to pin the page on the loading skeleton.
   const FORCE_LOADING_SKELETON = false;
-  // Fetching moved to the shared queries, so a delete here and an edit
-  // elsewhere refresh each other without either knowing about the other.
-  const expensesQuery = useExpenses();
   const budgetsQuery = useBudgets();
   const deleteExpenseM = useDeleteExpense();
   const updateExpenseM = useUpdateExpense();
-  const transactions = useMemo(
-    () => toTransactions(expensesQuery.data ?? EMPTY),
-    [expensesQuery.data],
-  );
-  const loading = expensesQuery.isLoading;
-  const error = expensesQuery.error ? "Couldn't load your transactions." : null;
 
   // Period and the custom range start as derived values and become state only
   // once the user touches them. Seeding them from an effect instead made them
@@ -129,7 +124,18 @@ export function TransactionsView({
   const [customEndOverride, setCustomEnd] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
+
+  // A cheap 1-row fetch to anchor "this week"/"this month" off the newest
+  // logged transaction, the same way the old full-fetch version did — not
+  // real-world "today", which is deliberate (see latestDate below).
+  const anchorQuery = useExpensesPage({ page: 1, limit: 1 });
+  const anchorDate = useMemo(() => {
+    const iso = anchorQuery.data?.rows[0]?.date;
+    if (!iso) return null;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }, [anchorQuery.data]);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -140,7 +146,6 @@ export function TransactionsView({
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingSuggestedCat, setEditingSuggestedCat] = useState<string>("");
   const [updating, setUpdating] = useState(false);
-  const [autoTagging, setAutoTagging] = useState(false);
   const budgetCategories = useMemo(
     () =>
       (budgetsQuery.data ?? EMPTY)
@@ -178,17 +183,12 @@ export function TransactionsView({
    */
   const seededRange = useMemo(() => {
     if (dateParam) return { start: dateParam, end: dateParam };
-    let latest = new Date(0);
-    for (const r of transactions) {
-      const d = new Date(r.date);
-      if (!Number.isNaN(d.getTime()) && d > latest) latest = d;
-    }
-    if (latest.getTime() === 0) latest = new Date();
+    const latest = anchorDate ?? new Date();
     return {
       start: toDateInput(new Date(latest.getFullYear(), latest.getMonth(), 1)),
       end: toDateInput(latest),
     };
-  }, [dateParam, transactions]);
+  }, [dateParam, anchorDate]);
 
   // Arriving with ?date= means the user asked for one specific day.
   const period: PeriodKey = periodOverride ?? (dateParam ? "custom" : "week");
@@ -211,19 +211,12 @@ export function TransactionsView({
     return [...new Set(budgetCategories)].sort();
   }, [budgetCategories]);
 
-  const latestDate = useMemo(() => {
-    if (!transactions.length) return new Date();
-    let max = new Date(0);
-    for (const t of transactions) {
-      const d = new Date(t.date);
-      if (!Number.isNaN(d.getTime()) && d > max) max = d;
-    }
-    return max.getTime() === 0 ? new Date() : max;
-  }, [transactions]);
+  const latestDate = useMemo(() => anchorDate ?? new Date(), [anchorDate]);
 
-  const filtered = useMemo(() => {
-    let rows = [...transactions];
-
+  // The date window sent to the server — same week/month/custom math the old
+  // client-side filter used, now producing a `from`/`to` pair instead of
+  // filtering an already-fetched array.
+  const { from, to } = useMemo(() => {
     const end = new Date(latestDate);
     let start = new Date(0);
     if (period === "week") {
@@ -237,48 +230,37 @@ export function TransactionsView({
       start = new Date(customStart);
       end.setTime(new Date(customEnd).getTime());
     }
-    rows = rows.filter((t) => {
-      const d = new Date(t.date);
-      return d >= start && d <= end;
-    });
+    return { from: toDateInput(start), to: toDateInput(end) };
+  }, [period, customStart, customEnd, latestDate]);
 
-    if (selectedCategory)
-      rows = rows.filter((t) => t.category === selectedCategory);
+  const expensesQuery = useExpensesPage({
+    page,
+    limit: PAGE_SIZE,
+    category: selectedCategory || undefined,
+    from,
+    to,
+    q: search || undefined,
+  });
+  const loading = anchorQuery.isLoading || expensesQuery.isLoading;
+  const error = expensesQuery.error ? "Couldn't load your transactions." : null;
 
-    if (search) {
-      const q = search.toLowerCase();
-      rows = rows.filter(
-        (t) =>
-          t.item.toLowerCase().includes(q) || t.notes.toLowerCase().includes(q),
-      );
-    }
-
-    rows.sort((a, b) => {
-      const cmp = b.date.localeCompare(a.date);
-      if (cmp !== 0) return cmp;
-      return b.timestamp.localeCompare(a.timestamp);
-    });
-
-    return rows;
-  }, [
-    transactions,
-    period,
-    customStart,
-    customEnd,
-    selectedCategory,
-    search,
-    latestDate,
-  ]);
+  const pageTransactions = useMemo(
+    () => toTransactions(expensesQuery.data?.rows ?? EMPTY),
+    [expensesQuery.data],
+  );
 
   useEffect(() => {
     // Reset pagination whenever any filter changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage(0);
+    setPage(1);
   }, [period, customStart, customEnd, selectedCategory, search]);
 
+  // Day headers for just this page's rows. The server returns rows newest
+  // first, so same-date rows stay contiguous and group the same way the old
+  // full-set version did.
   const grouped = useMemo(() => {
     const groups = new Map<string, Transaction[]>();
-    for (const t of filtered) {
+    for (const t of pageTransactions) {
       const g = groups.get(t.date) ?? [];
       g.push(t);
       groups.set(t.date, g);
@@ -297,14 +279,12 @@ export function TransactionsView({
       }
     }
     return items;
-  }, [filtered]);
+  }, [pageTransactions]);
 
-  const totalPages = Math.max(1, Math.ceil(grouped.length / PAGE_SIZE));
-  const paged = grouped.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const totalSpend = useMemo(
-    () => filtered.reduce((s, t) => s + t.amountInr, 0),
-    [filtered],
-  );
+  const totalCount = expensesQuery.data?.total ?? 0;
+  const totalPages = expensesQuery.data?.pageCount ?? 1;
+  const paged = grouped;
+  const totalSpend = expensesQuery.data?.totalAmount ?? 0;
 
   // Keep the URL in step with manual filter changes so ?category= never goes stale
   function applyCategory(category: string) {
@@ -320,7 +300,7 @@ export function TransactionsView({
     setPeriod("week");
     applyCategory("");
     setSearch("");
-    setPage(0);
+    setPage(1);
   }
 
   // The mutation hooks invalidate the expense and budget queries themselves,
@@ -347,38 +327,6 @@ export function TransactionsView({
       );
     }
     setDeleting(false);
-  }
-
-  // Trigger button is commented out below (UI is disabled, not deleted) — kept
-  // for whoever re-enables it.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async function autoTagMonth() {
-    if (autoTagging) return;
-    setAutoTagging(true);
-    try {
-      const end = new Date(latestDate);
-      const start = new Date(end.getFullYear(), end.getMonth(), 1);
-      const monthRows = transactions.filter((t) => {
-        const d = new Date(t.date);
-        return d >= start && d <= end;
-      });
-      for (const t of monthRows) {
-        const suggested = await suggestCategory(t.item, categories);
-        if (suggested && suggested !== t.category) {
-          await updateExpenseM.mutateAsync({
-            id: t.id,
-            timestamp: t.timestamp,
-            item: t.item,
-            amountInr: t.amountInr,
-            updates: { category: suggested },
-          });
-        }
-      }
-      await refreshTransactions();
-    } catch {
-      // Auto-tagging is best-effort; leave the existing categories in place
-    }
-    setAutoTagging(false);
   }
 
   if (loading || FORCE_LOADING_SKELETON) {
@@ -653,16 +601,6 @@ export function TransactionsView({
         >
           Reset
         </button>
-
-        {/* <button
-          type="button"
-          className="action-button"
-          disabled={autoTagging}
-          onClick={autoTagMonth}
-          title="Auto-categorise this month's transactions"
-        >
-          {autoTagging ? "Tagging…" : "✨ Auto-tag"}
-        </button> */}
       </div>
 
       {deleteError && <p className="txn-entry-error">{deleteError}</p>}
@@ -675,7 +613,7 @@ export function TransactionsView({
         + Log expense
       </button>
 
-      {filtered.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="txn-timeline-empty">
           No transactions for this filter.
         </div>
@@ -875,25 +813,25 @@ export function TransactionsView({
 
       <div className="txn-timeline-footer">
         <span>
-          {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
+          {totalCount} transaction{totalCount !== 1 ? "s" : ""}
         </span>
         {totalPages > 1 && (
           <div className="txn-timeline-pagination">
             <button
               type="button"
               className="action-button is-ghost"
-              disabled={page === 0}
+              disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
               Prev
             </button>
             <span>
-              {page + 1} / {totalPages}
+              {page} / {totalPages}
             </span>
             <button
               type="button"
               className="action-button is-ghost"
-              disabled={page >= totalPages - 1}
+              disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
               Next

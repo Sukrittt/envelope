@@ -9,6 +9,37 @@ export async function getExpenses(): Promise<ExpenseRow[]> {
   return data.rows
 }
 
+export type ExpensesPageParams = {
+  page: number
+  limit: number
+  category?: string
+  from?: string
+  to?: string
+  q?: string
+}
+
+export type ExpensesPage = {
+  rows: ExpenseRow[]
+  total: number
+  page: number
+  pageCount: number
+  totalAmount: number
+}
+
+/** Server-paginated read, for the Activity screen only — every other caller keeps using `getExpenses()`. */
+export async function getExpensesPage(params: ExpensesPageParams): Promise<ExpensesPage> {
+  const qs = new URLSearchParams({ page: String(params.page), limit: String(params.limit) })
+  if (params.category) qs.set('category', params.category)
+  if (params.from) qs.set('from', params.from)
+  if (params.to) qs.set('to', params.to)
+  if (params.q) qs.set('q', params.q)
+
+  const resp = await apiFetch(`/api/expenses?${qs.toString()}`)
+  if (!resp.ok) throw new Error(`Failed to load expenses: ${resp.status}`)
+  const data: ExpensesPage = await resp.json()
+  return data
+}
+
 export type NewExpenseRow = {
   item: string
   amount_inr: string

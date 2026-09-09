@@ -49,6 +49,24 @@ export async function getCollection(base: string, auth: Auth): Promise<ScopedCol
 /** Force handlers to run dynamically (never prerendered at build time). */
 export const dynamic = 'force-dynamic'
 
+/** Parsed `page`/`limit` query params, 1-based page, clamped `limit`. */
+export type PageParams = { page: number; limit: number }
+
+/** Parse `?page=&limit=` off a URL, clamping limit to `[1, maxLimit]`. */
+export function parsePageParams(url: URL, opts: { defaultLimit: number; maxLimit: number }): PageParams {
+  const page = Math.max(1, Math.floor(Number(url.searchParams.get('page'))) || 1)
+  const limit = Math.min(
+    opts.maxLimit,
+    Math.max(1, Math.floor(Number(url.searchParams.get('limit'))) || opts.defaultLimit),
+  )
+  return { page, limit }
+}
+
+/** `{page, pageCount}` for a `total`-row result under the given `page`/`limit`. */
+export function pageMeta(total: number, page: number, limit: number): { page: number; pageCount: number } {
+  return { page, pageCount: Math.max(1, Math.ceil(total / limit)) }
+}
+
 /** Current instant as IST wall-clock date/timestamp strings (always +05:30, regardless of server locale). */
 // Keep in sync with Mobile/src/lib/date.ts.
 export function nowIST(): { date: string; timestamp: string } {

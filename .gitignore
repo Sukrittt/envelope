@@ -42,3 +42,8 @@ productivity/*.csv
 productivity/fitness/*.csv
 data/*.csv
 public/productivity/*.csv
+# Dev helper scripts — contain secrets in env, not committed
+scripts/check-data.mjs
+scripts/check-existing.mjs
+scripts/find-user.mjs
+scripts/generate-dummy-data.mjs

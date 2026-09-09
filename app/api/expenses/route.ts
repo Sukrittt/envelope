@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb'
-import { json, error, readBody, getCollection } from '@/lib/http'
+import { json, error, readBody, getCollection, parsePageParams, pageMeta } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
@@ -11,17 +11,87 @@ import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
 
 export const dynamic = 'force-dynamic'
 
+const SORT = { date: -1, timestamp: -1, _id: -1 } as const
+
+/**
+ * `GET /api/expenses` — two modes, picked by whether `?page=` is present.
+ *
+ * No `page`: legacy behavior, unchanged. Every other caller of
+ * useExpenses()/getExpenses() (budget math, insights, category autosuggest,
+ * widgets, ~18 call sites total) needs the full set for correct aggregates,
+ * so this path must stay byte-for-byte identical.
+ *
+ * `page` present: real pagination for the Activity screens. `category` and
+ * `from`/`to` (on `date`) filter in Mongo — both are plaintext fields
+ * (lib/encryptedFields.ts) and `date` is indexed ({user_id,date} in
+ * scripts/ensure-indexes.mjs), so skip/limit works directly. `item`/`notes`
+ * are encrypted, so a `q` search can't run as a Mongo $regex — it filters in
+ * JS over the already category/date-bounded, decrypted set instead (same
+ * ciphertext constraint app/api/ai/chat/sessions/route.ts works around for
+ * its own encrypted `title` field).
+ */
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const coll = await getCollection('expenses', auth)
-  const docs = await coll.find({}).toArray()
-  // `id` rides alongside the CSV-shaped headers/row rather than joining
-  // EXPENSE_HEADERS itself, since that array is also the CSV export's column
-  // set — this keeps the export unchanged while giving JSON callers a real
-  // row identity to edit/delete by by (see findExpense below).
+  const url = new URL(req.url)
+
+  if (!url.searchParams.has('page')) {
+    const docs = await coll.find({}).toArray()
+    // `id` rides alongside the CSV-shaped headers/row rather than joining
+    // EXPENSE_HEADERS itself, since that array is also the CSV export's column
+    // set — this keeps the export unchanged while giving JSON callers a real
+    // row identity to edit/delete by by (see findExpense below).
+    return json({
+      headers: EXPENSE_HEADERS,
+      rows: docs.map((d) => ({ id: String(d._id), ...toRow(EXPENSE_HEADERS, d) })),
+    })
+  }
+
+  const { page, limit } = parsePageParams(url, { defaultLimit: 50, maxLimit: 200 })
+  const category = url.searchParams.get('category') || undefined
+  const from = url.searchParams.get('from') || undefined
+  const to = url.searchParams.get('to') || undefined
+  const q = url.searchParams.get('q')?.trim().toLowerCase() || undefined
+
+  const mongoFilter: Record<string, unknown> = {}
+  if (category) mongoFilter.category = category
+  if (from || to) mongoFilter.date = { ...(from ? { $gte: from } : {}), ...(to ? { $lte: to } : {}) }
+
+  let pageDocs: Record<string, unknown>[]
+  let total: number
+  // `amount_inr` is encrypted too, so the period-total footer both clients
+  // show (sum over the whole filtered set, not just this page) needs
+  // decrypted rows — bounded by the same category/date filter either way.
+  let totalAmount: number
+
+  if (q) {
+    const matched = (await coll.find(mongoFilter).sort(SORT).toArray()).filter((d) => {
+      const item = String(d.item ?? '').toLowerCase()
+      const notes = String(d.notes ?? '').toLowerCase()
+      return item.includes(q) || notes.includes(q)
+    })
+    total = matched.length
+    totalAmount = matched.reduce((s, d) => s + (Number(d.amount_inr) || 0), 0)
+    const start = (page - 1) * limit
+    pageDocs = matched.slice(start, start + limit)
+  } else {
+    total = await coll.countDocuments(mongoFilter)
+    pageDocs = await coll
+      .find(mongoFilter)
+      .sort(SORT)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray()
+    const forTotal = await coll.find(mongoFilter, { projection: { amount_inr: 1 } }).toArray()
+    totalAmount = forTotal.reduce((s, d) => s + (Number(d.amount_inr) || 0), 0)
+  }
+
   return json({
     headers: EXPENSE_HEADERS,
-    rows: docs.map((d) => ({ id: String(d._id), ...toRow(EXPENSE_HEADERS, d) })),
+    rows: pageDocs.map((d) => ({ id: String(d._id), ...toRow(EXPENSE_HEADERS, d) })),
+    total,
+    totalAmount,
+    ...pageMeta(total, page, limit),
   })
 }
 

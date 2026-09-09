@@ -1,10 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   deleteExpense,
   getExpenses,
+  getExpensesPage,
   mintExpensePayload,
   postExpensePayload,
   updateExpense,
+  type ExpensesPageParams,
   type NewExpenseRow,
 } from '@/src/api/expenses'
 import { budgetsKey } from '@/src/hooks/useBudgets'
@@ -20,6 +22,20 @@ const categoryMapKey = ['category-map'] as const
 
 export function useExpenses() {
   return useQuery({ queryKey: key, queryFn: getExpenses, staleTime: 30_000 })
+}
+
+/**
+ * Server-paginated read for the Activity screen. Key starts with `'expenses'`
+ * so the add/update/delete mutations below already invalidate it via their
+ * existing `queryKey: key` prefix match — nothing extra to wire up.
+ */
+export function useExpensesPage(params: ExpensesPageParams) {
+  return useQuery({
+    queryKey: [...key, 'page', params] as const,
+    queryFn: () => getExpensesPage(params),
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  })
 }
 
 export type AddExpenseResult = { id?: string; timestamp?: string; clientId: string; pending: boolean }
