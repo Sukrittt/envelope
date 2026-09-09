@@ -29,7 +29,7 @@ export function TransactionsPage() {
       <button
         type="button"
         className="erd-theme-toggle"
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         aria-label="Toggle theme"
       >
         {theme === 'dark' ? '☀️' : '🌙'}

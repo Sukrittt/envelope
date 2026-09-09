@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Sign in — Mission Control' }
+export const metadata = { title: 'Sign in — Aviary' }
 
 export default async function SignInPage({
   searchParams,

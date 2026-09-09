@@ -41,13 +41,13 @@
   --r-lg: 20px;
   --r-pill: 9999px;
 
-  /* ── Brand Colors (Warm Sunset Palette) ──────────────────── */
-  --brand-coral: #FF6B6B;
-  --brand-peach: #FFA07A;
-  --brand-amber: #FFD166;
-  --brand-mint: #06D6A0;
-  --brand-sky: #118AB2;
-  --brand-electric: #6366F1;
+  /* ── Brand Colors ────────────────────────────────────────── */
+  /* Was a hand-picked "warm sunset" set from before the palette moved to
+     src/theme/tokens.ts. Only peach and mint survived, as fallbacks behind
+     --accent (which is always defined now) and in one gradient, so both
+     point at the real tokens rather than a second, diverging palette. */
+  --brand-peach: var(--tk-accent);
+  --brand-mint: var(--tk-mint);
 
   --stroke-soft: 1px;
   --shadow-0: none;
@@ -113,79 +113,48 @@ h4 {
   line-height: var(--lh-body);
 }
 
-.mc-page.theme-light {
-  --bg: #f5f5f7;
-  --bg-grad-a: #f7f7f9;
-  --bg-grad-b: #f0f0f2;
-  --panel: #ffffff;
-  --panel-soft: #f6f6f8;
-  --border: rgba(0, 0, 0, 0.09);
-  --divider-soft: rgba(0, 0, 0, 0.06);
-  --text: #1d1d1f;
-  --muted: #6e6e73;
-  --muted-2: #86868b;
-  --muted-3: #a1a1a6;
-  --accent: var(--brand-peach);
-  --accent-strong: #e8654a;
-  --accent-soft: rgba(232, 101, 74, 0.12);
-  --ok-fg: #0f9d75;
-  --ok-bg: #e6f8f1;
-  --warn-fg: #b45309;
-  --warn-bg: #fff4df;
-  --risk-fg: #c53030;
-  --risk-bg: #fdecec;
-  --chart-bar: #d8d0c6;
-  --chart-bar-current: #e8654a;
-  --chart-bar-red: #d6456a;
-  --chart-bar-green: #3fb57a;
-  --hover: rgba(0, 0, 0, 0.05);
-  --divider: rgba(0, 0, 0, 0.08);
-  --coral: #d6456a;
-  --mint: #0f9d75;
-  --red: #c53030;
-  --input-bg: #ffffff;
-  --fg: var(--text);
-  --expense-muted: var(--muted);
-  --accent-rgb: 232, 101, 74;
+.mc-page {
+  /* Colours come from src/theme/tokens.css, generated from src/theme/tokens.ts
+     — the twin of Mobile's palette. These local names are kept so the rules
+     downstream need no edit; only the values move. Both schemes now resolve
+     from the same --tk-* set, so this block no longer forks per theme. */
+  --bg: var(--tk-bg);
+  --bg-grad-a: var(--tk-card-solid);
+  --bg-grad-b: var(--tk-bg);
+  --panel: var(--tk-card-solid);
+  --panel-soft: var(--tk-input-bg);
+  --border: var(--tk-border);
+  --divider: var(--tk-border);
+  --divider-soft: var(--tk-border);
+  --text: var(--tk-text);
+  --fg: var(--tk-text);
+  --muted: var(--tk-text2);
+  --muted-2: var(--tk-text2);
+  --muted-3: var(--tk-text3);
+  --expense-muted: var(--tk-text2);
+  --accent: var(--tk-accent);
+  /* accent-strong labels text and icons, so it takes the ink variant that
+     clears 4.5:1 — the saturated accent only passes at large sizes. */
+  --accent-strong: var(--tk-accent-ink);
+  --accent-soft: var(--tk-accent-soft);
+  --ok-fg: var(--tk-mint);
+  --ok-bg: var(--tk-mint-soft);
+  --warn-fg: var(--tk-warn-ink);
+  --warn-bg: var(--tk-warn-soft);
+  --risk-fg: var(--tk-coral);
+  --risk-bg: var(--tk-coral-soft);
+  --chart-bar: var(--tk-border-strong);
+  --chart-bar-current: var(--tk-accent);
+  --chart-bar-red: var(--tk-coral);
+  --chart-bar-green: var(--tk-mint);
+  --hover: var(--tk-border);
+  --coral: var(--tk-coral);
+  --mint: var(--tk-mint);
+  --red: var(--tk-coral);
+  --input-bg: var(--tk-input-bg);
   --scrim: rgba(0, 0, 0, 0.32);
 }
 
-.mc-page.theme-dark {
-  --bg: #0a0a0c;
-  --bg-grad-a: #101013;
-  --bg-grad-b: #08080a;
-  --panel: #1c1c1e;
-  --panel-soft: #242426;
-  --border: rgba(255, 255, 255, 0.1);
-  --divider-soft: rgba(255, 255, 255, 0.08);
-  --text: #f5f5f7;
-  --muted: #98989d;
-  --muted-2: #7c7c82;
-  --muted-3: #5f5f64;
-  --accent: var(--brand-peach);
-  --accent-strong: #ffb49a;
-  --accent-soft: rgba(255, 180, 154, 0.16);
-  --ok-fg: #5ee6a8;
-  --ok-bg: #173829;
-  --warn-fg: #ffd166;
-  --warn-bg: #3d2e10;
-  --risk-fg: #ff8b9a;
-  --risk-bg: #4a1f2a;
-  --chart-bar: #3a3542;
-  --chart-bar-current: #ff8a6b;
-  --chart-bar-red: #ff6b6b;
-  --chart-bar-green: #5ee6a8;
-  --hover: rgba(255, 255, 255, 0.07);
-  --divider: rgba(255, 255, 255, 0.1);
-  --coral: #ff8b9a;
-  --mint: #5ee6a8;
-  --red: #ff8b9a;
-  --input-bg: #111114;
-  --fg: var(--text);
-  --expense-muted: var(--muted);
-  --accent-rgb: 255, 180, 154;
-  --scrim: rgba(0, 0, 0, 0.55);
-}
 
 .mc-layout {
   display: grid;
@@ -1726,39 +1695,25 @@ input[type="date"]:hover {
 }
 
 .expense-view {
-  --expense-bg: #0b0b0d;
-  --expense-panel: #19191c;
-  --expense-panel-soft: #212124;
-  --expense-border: rgba(255, 255, 255, 0.09);
-  --expense-text: #f5f5f7;
-  --expense-muted: #a09fa5;
-  --accent: var(--brand-peach);
-  --accent-strong: #ffb49a;
-  --accent-soft: rgba(255, 180, 154, 0.14);
-  --chart-bar: #3a3a3e;
-  --chart-bar-current: #ff8a6b;
-  --chart-bar-red: #ff6b6b;
-  --chart-bar-green: #5ee6a8;
+  /* Same generated tokens as .mc-page above, so this scope no longer forks
+     per theme either. */
+  --expense-bg: var(--tk-bg);
+  --expense-panel: var(--tk-card-solid);
+  --expense-panel-soft: var(--tk-input-bg);
+  --expense-border: var(--tk-border);
+  --expense-text: var(--tk-text);
+  --expense-muted: var(--tk-text2);
+  --accent: var(--tk-accent);
+  --accent-strong: var(--tk-accent-ink);
+  --accent-soft: var(--tk-accent-soft);
+  --chart-bar: var(--tk-border-strong);
+  --chart-bar-current: var(--tk-accent);
+  --chart-bar-red: var(--tk-coral);
+  --chart-bar-green: var(--tk-mint);
 
   color: var(--expense-text);
 }
 
-.theme-light .expense-view {
-  --expense-bg: #f4f4f6;
-  --expense-panel: #ffffff;
-  --expense-panel-soft: #f6f6f8;
-  --expense-border: rgba(0, 0, 0, 0.09);
-  --expense-text: #1d1d1f;
-  --expense-muted: #6e6e73;
-  --accent: var(--brand-peach);
-  --accent-strong: #e8654a;
-  --accent-soft: rgba(232, 101, 74, 0.12);
-  --chart-bar: #d8d0c6;
-  --chart-bar-current: #e8654a;
-  --chart-bar-red: #d6456a;
-  --chart-bar-green: #3fb57a;
-  color: var(--expense-text);
-}
 
 .expense-shell .module-pill.active,
 .expense-shell .sidebar-link.active,

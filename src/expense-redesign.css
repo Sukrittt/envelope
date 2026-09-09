@@ -1,7 +1,7 @@
 /* ─────────────────────────────────────────────────────────────
    Expense Dashboard Redesign — scoped "premium playful" theme.
-   Scoped under .expense-redesign so the shared App.css palette
-   (used by investments/fitness/etc.) stays untouched.
+   Scoped under .expense-redesign; the shared App.css palette (used by
+   /investments) now draws on the same generated tokens.
 
    Fonts (Fredoka + Nunito) are injected by next/font variables
    --font-fredoka / --font-nunito on the route wrapper.
@@ -13,78 +13,60 @@
   --font-fredoka: "Fredoka", -apple-system, system-ui, sans-serif;
   --font-nunito: "Nunito", -apple-system, system-ui, sans-serif;
 
-  --erd-bg: oklch(0% 0 0);
-  --erd-text: oklch(97% 0 0);
-  --erd-text2: oklch(65% 0 0);
-  --erd-text3: oklch(48% 0 0);
-  --erd-on-accent: oklch(8% 0 0);
-  --erd-card: oklch(10% 0 0 / 0.7);
-  --erd-sidebar-box: oklch(8% 0 0 / 0.6);
-  --erd-input-bg: oklch(9% 0 0);
-  --erd-modal-bg: oklch(9% 0 0 / 0.98);
-  --erd-tabbar-bg: oklch(6% 0 0 / 0.92);
-  --erd-header-bg: oklch(3% 0 0 / 0.9);
-  --erd-hero-a: oklch(24% 0.05 255 / 0.5);
-  --erd-hero-b: oklch(20% 0.015 260 / 0.6);
-  --erd-border: oklch(100% 0 0 / 0.1);
-  --erd-border-strong: oklch(100% 0 0 / 0.16);
-  --erd-skeleton: oklch(100% 0 0 / 0.14);
-  --erd-chip-active-bg: oklch(20% 0 0);
-  --erd-heat-a: oklch(38% 0.06 255);
-  --erd-heat-b: oklch(52% 0.09 255);
+  /* Every colour below comes from src/theme/tokens.css, generated from
+     src/theme/tokens.ts — the twin of Mobile's palette. The local names are
+     kept so the ~1,400 rules downstream need no edit; only the values move.
+     `--gold` is the historical name for the accent and now resolves to the
+     app's orange, which is what makes this sheet match the mobile app. */
 
-  --gold: oklch(70% 0.16 275);
-  --gold-soft: oklch(70% 0.16 275 / 0.22);
-  --gold-hover: oklch(78% 0.15 275);
-  --mint: oklch(80% 0.19 155);
-  --mint-soft: oklch(80% 0.19 155 / 0.22);
-  --coral: oklch(72% 0.2 20);
-  --coral-soft: oklch(72% 0.2 20 / 0.22);
-  --violet: oklch(72% 0.2 330);
-  --violet-soft: oklch(72% 0.2 330 / 0.22);
-  --blue: oklch(75% 0.14 210);
-  --blue-soft: oklch(75% 0.14 210 / 0.22);
-  --warn: oklch(80% 0.18 75);
-  --warn-soft: oklch(80% 0.18 75 / 0.22);
-  --range: color-mix(in oklch, var(--gold) 16%, transparent);
+  --erd-bg: var(--tk-bg);
+  --erd-text: var(--tk-text);
+  --erd-text2: var(--tk-text2);
+  --erd-text3: var(--tk-text3);
+  --erd-on-accent: var(--tk-on-accent);
+  --erd-card: var(--tk-card);
+  --erd-card-solid: var(--tk-card-solid);
+  --erd-sidebar-box: var(--tk-sidebar-box);
+  --erd-input-bg: var(--tk-input-bg);
+  --erd-pill-bg: var(--tk-pill-bg);
+  --erd-modal-bg: var(--tk-modal-bg);
+  --erd-modal-strong: var(--tk-modal-strong);
+  --erd-tabbar-bg: var(--tk-tabbar-bg);
+  --erd-header-bg: var(--tk-header-bg);
+  --erd-hero-a: var(--tk-hero-a);
+  --erd-hero-b: var(--tk-hero-b);
+  --erd-border: var(--tk-border);
+  --erd-border-strong: var(--tk-border-strong);
+  --erd-chip-active-bg: var(--tk-chip-active-bg);
+
+  /* No mobile equivalent: a shimmer tint and the heatmap ramp, both derived
+     from tokens rather than hand-picked so they follow a palette change. */
+  --erd-skeleton: color-mix(in oklab, var(--tk-text) 14%, transparent);
+  --erd-heat-a: color-mix(in oklab, var(--tk-accent) 35%, var(--tk-bg));
+  --erd-heat-b: var(--tk-accent);
+
+  --gold: var(--tk-accent);
+  --gold-ink: var(--tk-accent-ink);
+  --gold-soft: var(--tk-accent-soft);
+  --gold-hover: var(--tk-accent-hover);
+  --mint: var(--tk-mint);
+  --mint-soft: var(--tk-mint-soft);
+  --coral: var(--tk-coral);
+  --coral-soft: var(--tk-coral-soft);
+  --violet: var(--tk-violet);
+  --violet-soft: var(--tk-violet-soft);
+  --blue: var(--tk-blue);
+  --blue-soft: var(--tk-blue-soft);
+  --warn: var(--tk-warn);
+  --warn-ink: var(--tk-warn-ink);
+  --warn-soft: var(--tk-warn-soft);
+  --range: var(--tk-range);
 }
 
-.mc-page.theme-light .expense-redesign {
-  --erd-bg: oklch(100% 0 0);
-  --erd-text: oklch(12% 0 0);
-  --erd-text2: oklch(38% 0 0);
-  --erd-text3: oklch(55% 0 0);
-  --erd-on-accent: oklch(99% 0 0);
-  --erd-card: oklch(97% 0 0 / 0.85);
-  --erd-sidebar-box: oklch(95% 0 0 / 0.7);
-  --erd-input-bg: oklch(95% 0 0);
-  --erd-modal-bg: oklch(99% 0 0 / 0.98);
-  --erd-tabbar-bg: oklch(99% 0 0 / 0.92);
-  --erd-header-bg: oklch(100% 0 0 / 0.92);
-  --erd-hero-a: oklch(92% 0.03 255 / 0.55);
-  --erd-hero-b: oklch(94% 0.008 260 / 0.7);
-  --erd-border: oklch(0% 0 0 / 0.09);
-  --erd-border-strong: oklch(0% 0 0 / 0.16);
-  --erd-skeleton: oklch(0% 0 0 / 0.12);
-  --erd-chip-active-bg: oklch(90% 0 0);
-  --erd-heat-a: oklch(85% 0.05 255);
-  --erd-heat-b: oklch(62% 0.1 255);
-
-  --gold: oklch(48% 0.2 275);
-  --gold-soft: oklch(48% 0.2 275 / 0.18);
-  --gold-hover: oklch(40% 0.2 275);
-  --mint: oklch(52% 0.18 155);
-  --mint-soft: oklch(52% 0.18 155 / 0.18);
-  --coral: oklch(56% 0.22 20);
-  --coral-soft: oklch(56% 0.22 20 / 0.18);
-  --violet: oklch(54% 0.22 330);
-  --violet-soft: oklch(54% 0.22 330 / 0.18);
-  --blue: oklch(52% 0.15 210);
-  --blue-soft: oklch(52% 0.15 210 / 0.18);
-  --warn: oklch(62% 0.19 75);
-  --warn-soft: oklch(62% 0.19 75 / 0.18);
-  --range: color-mix(in oklch, var(--gold) 11%, transparent);
-}
+/* The light palette used to be redeclared here. It now lives in
+   src/theme/tokens.css alongside dark, keyed off .theme-light / .theme-dark
+   / prefers-color-scheme, so every --tk-* above resolves per scheme and this
+   block has nothing left to say. */
 
 /* ── Animations ─────────────────────────────────────────────── */
 

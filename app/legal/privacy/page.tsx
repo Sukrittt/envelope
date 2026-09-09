@@ -1,4 +1,4 @@
-export const metadata = { title: 'Privacy Policy — Envelope' }
+export const metadata = { title: 'Privacy Policy — Aviary' }
 
 const SUPPORT_EMAIL = '[your support email]'
 
@@ -9,14 +9,14 @@ export default function PrivacyPage() {
       <p className="legal-updated">Last updated 4 September 2026</p>
 
       <p>
-        Envelope (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independently developed, personal budgeting app.
+        Aviary (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independently developed, personal budgeting app.
         This policy explains what we collect, why, and how you can control or remove it. It applies to the
-        Envelope Android and iOS apps and to this website.
+        Aviary Android and iOS apps and to this website.
       </p>
 
       <h2>Who this is</h2>
       <p>
-        Envelope is developed and operated by an individual developer based in India. For any privacy question
+        Aviary is developed and operated by an individual developer based in India. For any privacy question
         or request, write to <strong>{SUPPORT_EMAIL}</strong>.
       </p>
 
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
         <li><strong>Vercel</strong> — hosts the app and its API, and stores data exports you request.</li>
       </ul>
       <p>
-        Some of these providers are located outside India, including in the United States, so using Envelope
+        Some of these providers are located outside India, including in the United States, so using Aviary
         means your data may be processed there.
       </p>
 
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
 
       <h2>Children</h2>
       <p>
-        Envelope isn&apos;t directed at children, and we don&apos;t knowingly collect data from anyone under 18.
+        Aviary isn&apos;t directed at children, and we don&apos;t knowingly collect data from anyone under 18.
         If you believe a child has provided us data, contact us and we&apos;ll delete it.
       </p>
 

@@ -38,7 +38,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <main
-      className={`mc-page theme-${theme} density-${density} ${isExpenseRoute ? 'expense-shell' : ''}`}
+      // No theme class until the browser resolves one: src/theme/tokens.css
+      // paints from prefers-color-scheme meanwhile, so a system-light user
+      // never sees a dark first frame.
+      className={`mc-page ${theme ? `theme-${theme}` : ''} density-${density} ${isExpenseRoute ? 'expense-shell' : ''}`}
     >
       <div className="mc-layout">
         <section className="mc-main">
@@ -52,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   className="action-button theme-toggle"
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                   aria-label="Toggle theme"
                 >
                   {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}

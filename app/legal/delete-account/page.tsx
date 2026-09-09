@@ -1,4 +1,4 @@
-export const metadata = { title: 'Delete your account — Envelope' }
+export const metadata = { title: 'Delete your account — Aviary' }
 
 const SUPPORT_EMAIL = '[your support email]'
 
@@ -8,7 +8,7 @@ export default function DeleteAccountPage() {
       <h1>Delete your account</h1>
       <p className="legal-updated">Last updated 4 September 2026</p>
 
-      <p>You can delete your Envelope account and data yourself, right from the app.</p>
+      <p>You can delete your Aviary account and data yourself, right from the app.</p>
 
       <h2>In the app</h2>
       <ul>

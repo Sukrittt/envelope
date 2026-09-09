@@ -14,7 +14,7 @@ Web (dashboard) + Android (native app, published to Google Play as **Envelope**,
 
 ## Product Purpose
 
-Mission Control is a self-hosted, YNAB-style personal finance dashboard: envelope budgeting, expense tracking, subscriptions, and investments in one cockpit, so Sukrit knows exactly how much is safe to spend and where money is going — without handing his financial data to a third party. Success means he can answer "what's my spending state right now?" at a glance and act (assign, move, recategorize) in seconds.
+Aviary is a self-hosted, YNAB-style personal finance dashboard: envelope budgeting, expense tracking, subscriptions, and investments in one cockpit, so Sukrit knows exactly how much is safe to spend and where money is going — without handing his financial data to a third party. Success means he can answer "what's my spending state right now?" at a glance and act (assign, move, recategorize) in seconds.
 
 ## Positioning
 
@@ -60,8 +60,8 @@ Constraints and boundaries:
 
 ## Brand Commitments
 
-- Public-facing name: **Envelope** — the name on the Play Store listing, the mobile app, and what user-facing copy (sign-in screen, welcome screen) already calls the product ("Every rupee in an envelope").
-- Internal/dev-only names still in the codebase: **Mission Control** (this repo's README and `PRODUCT.md` framing) and "YNAB Replacement" (`Web/app/layout.tsx` metadata, the GitHub repo slug). Neither is user-facing; don't introduce either into new user-facing copy, and prefer replacing them where convenient.
+- Public-facing name: **Aviary** — the name on the Play Store listing, the mobile app, and (since parity plan phase 2) every user-facing string on the web too. "Envelope" survives only as domain vocabulary: an envelope is a budget category, not the product.
+- Internal/dev-only names still in the codebase: the GitHub repo slugs (`envelope`, `envelope-mobile`) and CSS class prefixes (`mc-`, `erd-`). Neither is user-facing; don't introduce either into new user-facing copy.
 - No binding visual identity, voice, or assets have been committed beyond the mobile app's icon/splash. (No logo, tagline, or palette constraints are in force for the web dashboard.)
 
 ## Evidence on Hand

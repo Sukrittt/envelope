@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
+// tokens.css first: every other sheet reads its --tk-* custom properties.
+import '../src/theme/tokens.css'
 import '../src/index.css'
 import '../src/App.css'
 import { ClientProviders } from '../components/ClientProviders'
 
 export const metadata: Metadata = {
-  title: 'YNAB Replacement',
-  description: 'YNAB Replacement — budget, expense, investments, and mission dashboard',
+  title: 'Aviary',
+  description: 'Aviary — envelope budgeting, expenses, subscriptions and investments in one place',
   icons: { icon: '/favicon.svg' },
 }
 

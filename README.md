@@ -1,6 +1,6 @@
-# Mission Control
+# Aviary (Web)
 
-A self-hosted personal finance dashboard — a YNAB-style alternative for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with WorkOS AuthKit for sign-in.
+The web frontend for Aviary, alongside the Expo app in `Sukrittt/envelope-mobile`. A personal finance dashboard — a YNAB-style alternative for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with WorkOS AuthKit for sign-in.
 
 ## Highlights
 

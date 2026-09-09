@@ -12,7 +12,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
     <div className={`expense-redesign legal-page ${fredoka.variable} ${nunito.variable}`}>
       <div className="legal-shell">
         <Link href="/" className="legal-back">
-          ✉️ Envelope
+          🕊️ Aviary
         </Link>
         {children}
         <nav className="legal-footer-nav" aria-label="Legal pages">
