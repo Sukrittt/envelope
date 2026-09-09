@@ -52,7 +52,6 @@ Confirmed capabilities:
 
 Constraints and boundaries:
 
-- **Fitness and learnings pages are experiments**, running on bundled sample data, not real product surfaces. Do not treat them as first-class until wired to real data.
 - Real accounts are created by anyone who signs in (Google or email code) and data is scoped per `user_id`. With the mobile app on Google Play, this is no longer just Sukrit's own data under a schema that happens to support more — the app now has real, unrelated users, each expecting their own financial data kept private from every other account. There's still no multi-user or household model (shared envelopes, invites, permissions) on top of that scoping.
 - The app sends real user data to third parties (Google Gemini for Money Brain/bill scanning, PostHog for analytics, both disclosed in `/legal/privacy`). Any "self-hosted, nothing leaves your machine" framing is no longer accurate and shouldn't appear in product copy.
 - API is route handlers under `app/api/`, each resolving `real` vs `guest` scope from the Bearer token.
@@ -67,7 +66,7 @@ Constraints and boundaries:
 
 ## Evidence on Hand
 
-- Sample/demo data committed at `data/demo/` and `src/data/*.sample.json` (fitness, expense panels, mock data) and `public/hero.png`.
+- Sample/demo data committed at `data/demo/`, `src/data/expensePanel.sample.json` and `public/hero.png`.
 - Real CSVs live under `productivity/` and `data/` on disk but are gitignored — treat as private evidence, never reproducible in a demo or doc.
 - No testimonials, press, case studies, or public screenshots exist. Absence is a fact: future work must not fabricate social proof.
 

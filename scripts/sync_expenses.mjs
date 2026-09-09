@@ -11,10 +11,7 @@ const sourceSubscriptionsPath = path.join(workspace, 'productivity', 'subscripti
 const sourceBudgetsPath = path.join(workspace, 'productivity', 'budgets.csv')
 const dataExpensesPath = path.join(workspace, 'data', 'expenses.csv')
 const dataBudgetsPath = path.join(workspace, 'data', 'budgets.csv')
-const expensePanelPaths = [
-  path.join(workspace, 'src', 'data', 'expensePanel.sample.json'),
-  path.join(workspace, 'mission-control-app', 'src', 'data', 'expensePanel.sample.json'),
-]
+const expensePanelPaths = [path.join(workspace, 'src', 'data', 'expensePanel.sample.json')]
 
 const MONTHLY_SPEND_CAP_INR = 45000
 const DAILY_SOFT_CAP_INR = 1500

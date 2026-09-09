@@ -6,23 +6,9 @@ import { usePathname } from 'next/navigation'
 import { Sun, Moon, Github } from 'lucide-react'
 import { useAppearance } from './AppearanceProvider'
 
+// Only routes that render this shell's topbar need an entry. Every other route
+// sets skipChrome below and draws its own header.
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
-  '/expense': {
-    title: 'Hey Sukrit 👋',
-    subtitle: "What's your dashboard looking like today?",
-  },
-  '/expense/transactions': {
-    title: 'Hey Sukrit 👋',
-    subtitle: 'Check out all your transactions',
-  },
-  '/fitness': {
-    title: 'Fitness Dashboard',
-    subtitle: 'Body metrics, adherence, and training execution',
-  },
-  '/learnings': {
-    title: 'Agent Learnings',
-    subtitle: 'What each department/agent is learning over time',
-  },
   '/investments': {
     title: 'Investments',
     subtitle: 'Net worth, allocation, and holdings tracker',
@@ -33,10 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
   const { theme, setTheme, density } = useAppearance()
 
-  const currentMeta = useMemo(
-    () => pageMeta[pathname] ?? pageMeta['/expense'],
-    [pathname],
-  )
+  const currentMeta = useMemo(() => pageMeta[pathname], [pathname])
 
   const isExpenseRoute = pathname.startsWith('/expense') || pathname.startsWith('/investments')
   // Expense redesign routes carry their own chrome (sidebar, greeting, theme
@@ -51,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname === '/onboarding' ||
     pathname.startsWith('/account') ||
     pathname.startsWith('/legal')
-  const skipChrome = isErdRoute || isStandaloneRoute
+  const skipChrome = isErdRoute || isStandaloneRoute || !currentMeta
 
   return (
     <main
@@ -59,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     >
       <div className="mc-layout">
         <section className="mc-main">
-          {!skipChrome && (
+          {!skipChrome && currentMeta && (
             <header className="mc-topbar">
               <div className="page-context">
                 <h2>{currentMeta.title}</h2>

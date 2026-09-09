@@ -107,8 +107,6 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/expense` | Budget dashboard |
 | `/expense/transactions` | Transaction log |
 | `/investments` | Investments / net worth |
-| `/fitness` | Fitness dashboard (bundled sample data) |
-| `/learnings` | Agent learnings |
 | `/account`, `/account/security`, `/account/data`, `/account/help` | Profile, preferences, account & security, data export, help |
 
 Envelopes guard against duplicate category/group names, and the default **Archived** group can't be deleted.

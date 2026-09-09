@@ -24,10 +24,9 @@ lives in `lib/scoped.test.ts`; the script itself only does the live-data half (n
 Next.js 15 App Router app, but routing and views are deliberately split:
 
 - **`app/`** — route layer only. Each `app/<route>/page.tsx` is a thin wrapper that imports and renders a view from `src/views/`. `app/api/*` route handlers contain the actual server logic (no separate view layer for API).
-- **`src/`** — the real frontend: `src/views/` (one per route), `src/components/`, `src/context/` (DashboardProvider), `src/services/` (client-side adapters/loaders that call the API and shape data for views), `src/types/`.
+- **`src/`** — the real frontend: `src/views/` (one per route), `src/components/`, `src/services/` (client-side adapters/loaders that call the API and shape data for views), `src/types/`.
 - **`lib/`** — server-side helpers used by `app/api/*` route handlers: `lib/mongodb.ts` (cached MongoClient on `globalThis`), `lib/access.ts` (auth/scope resolution), `lib/http.ts` (response helpers, `getCollection`), `lib/models.ts` (Mongo document field names — kept as the legacy CSV header/snake_case names on purpose, see file header comment), `lib/categoryMap.ts`.
 - **`@/*` path alias** maps to the repo root (`tsconfig.json`), so `lib/`, `components/`, `src/` are all reachable as `@/lib/...`, `@/components/...`, `@/src/...`. `app/*/page.tsx` files use relative imports into `src/views/` instead.
-- **`mission-control-app/`** — legacy prototype, superseded by `app/` + `src/`. Not imported from anywhere; leave it alone unless asked.
 
 ### Data layer
 
@@ -47,7 +46,12 @@ Web routes: `app/api/auth/google` + `.../google/callback` (Google sign-in), `app
 
 ### Routes
 
-`/` → redirects to `/expense`. Pages: `/expense` (budget dashboard), `/expense/transactions`, `/investments`, `/fitness`, `/learnings`, `/settings`.
+`/` → redirects to `/expense`. Pages: `/expense` (budget dashboard), `/expense/transactions`, `/investments`, `/onboarding`, `/account/*`, `/legal/*`, and the `(auth)` sign-in flow.
+
+The `/fitness` and `/learnings` pages, the `mission-control-app/` prototype, and the
+`DashboardProvider`/`dashboardService` mock data layer behind them were removed in
+`plans/010-mobile-web-parity.md` phase 0. Web is being brought to feature parity with the
+Aviary mobile app; read that plan before adding frontend surfaces.
 
 ## Breaking Long-Running Tasks
 
