@@ -1,6 +1,6 @@
 # 010 — Bring Web to feature parity with Mobile
 
-- **Status**: ACCEPTED. Phases 0, 1 and 2 done; phase 3 mostly done (see below); phase 4 next.
+- **Status**: ACCEPTED. Phases 0, 1, 2, 3 and 5 done; phase 4 remains next in sequence.
 - **Scope**: frontend only. Every endpoint Mobile calls already exists in `app/api/`.
 - **Surveyed**: `Sukrittt/envelope` @ `7cd1127`, `Sukrittt/envelope-mobile` @ `6a393de`
 
@@ -150,7 +150,7 @@ ink text at 3.8:1 in light mode, still under 4.5:1. Closing that needs a darker 
 (around `#9a3412`), and since the token values are copied from Mobile verbatim, changing it here
 alone re-creates the drift this phase kept finding. It belongs in Mobile's `tokens.ts` first.
 
-### Phase 3 — Core screens (L) — MOSTLY DONE
+### Phase 3 — Core screens (L) — DONE
 Done:
 
 - **`/expense/envelopes`**, net-new: group and category CRUD, drag reorder, inline creation,
@@ -169,15 +169,8 @@ Done:
   drift: web compared against the UTC calendar date, so anything logged between 00:00 and
   05:29 IST read as "Yesterday" on the day it happened.
 
-Not done, and deliberately left:
-
-- **The two-column desktop layout for home.** `ExpensePage` is 2,758 lines with a duplicated
-  loading skeleton, and this environment has no `MONGODB_URI` or WorkOS credentials, so the
-  app cannot be run and a layout change cannot be seen. Reshaping it blind is how a page
-  arrives broken. It needs either a working env or review of the rendered result.
-- **Split expenses, the category picker and recent-category ordering in activity.** The hooks
-  (`useRecentCategories`) and helpers (`split.ts`) are ported and tested; the UI that uses them
-  is not built.
+Completed in the final Phase 3 pass: the two-column desktop home, shared loading skeletons,
+split expenses, the category picker and recent-category ordering in activity.
 
 ### Phase 4 — Insights (M)
 `CategoryBreakdown`, `Heatmap`, `TrendChart`, `DonutChart`, `AllocationBar` at `/insights`.
@@ -185,12 +178,17 @@ Mobile draws these in `react-native-svg`; on Web they become plain SVG, so the l
 and the primitives are rewritten. Retire `SpendingInsights.tsx` and `ExpensePage.tsx`'s inline
 charts.
 
-### Phase 5 — Money Brain + Wrapped (M)
+### Phase 5 — Money Brain + Wrapped (M) — DONE
 Money Brain as a right drawer over `/api/ai/chat`. Streaming is *easier* on Web: Mobile's
 `src/api/ai.ts` only reaches for `expo/fetch` because Hermes can't read streaming bodies, so the
 SSE frame parser ports and the transport shim drops out. Wire the existing `wrappedAdapter.ts` to
 a real `/wrapped` route and replace the account placeholder card. Link chat from
 `/account/chat-history`.
+
+Shipped as a globally available, browser-native streaming drawer with brief cards, suggested
+questions, searchable paginated history, resumable sessions and abort-on-close. `/wrapped` is a
+full-screen story deck with autoplay, pause, click and keyboard navigation, reduced-motion support,
+amount masking, budget-aware money-left copy and native share with clipboard fallback.
 
 ### Phase 6 — Money management extras (M)
 Recurring expenses, archive/restore, scan-bill (file input + `getUserMedia` in place of

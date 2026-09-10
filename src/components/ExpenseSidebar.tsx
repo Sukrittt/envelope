@@ -2,6 +2,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clearAccess, useAccessMode } from "../services/accessMode";
 import { formatCurrency } from "@/lib/currency";
+import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 
 interface Props {
   onMoveMoney?: () => void;
@@ -21,6 +22,7 @@ export function ExpenseSidebar({
   totalSpent,
 }: Props) {
   const pathname = usePathname();
+  const { openMoneyBrain } = useMoneyBrain();
   const access = useAccessMode();
   const isBudget = pathname.startsWith("/expense");
   const left = income != null && totalSpent != null ? income - totalSpent : null;
@@ -78,6 +80,10 @@ export function ExpenseSidebar({
           <span className="erd-nav-dot" />
           Transactions
         </Link>
+        <button type="button" className="erd-nav-item" onClick={() => openMoneyBrain()}>
+          <span className="erd-nav-dot" />
+          Money Brain
+        </button>
       </div>
 
       <div className="erd-nav-group">

@@ -1,0 +1,313 @@
+'use client'
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useBudgets } from '@/src/hooks/useBudgets'
+import { useCategories } from '@/src/hooks/useCategories'
+import { useExpenses } from '@/src/hooks/useExpenses'
+import { useGroups } from '@/src/hooks/useGroups'
+import { useHideAmounts } from '@/src/hooks/useHideAmounts'
+import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
+import { useChatSessions, useChatSessionsCount } from '@/src/hooks/useChatSessions'
+import { computeEnvelopeState, currentMonthKey } from '@/src/lib/envelope'
+import { formatCurrency } from '@/src/lib/format'
+import { getChatSession, streamChat, type ChatMessage } from '@/src/api/ai'
+import { track } from '@/src/lib/analytics'
+import { LoadingCaption } from './LoadingCaption'
+
+interface Props {
+  initialSessionId?: string | null
+  onClose: () => void
+}
+
+function timeAgo(iso: string) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const mins = Math.max(0, Math.round((Date.now() - date.getTime()) / 60_000))
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  if (mins < 1440) return `${Math.round(mins / 60)}h ago`
+  return `${Math.round(mins / 1440)}d ago`
+}
+
+export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
+  const reduceMotion = useReducedMotion()
+  const queryClient = useQueryClient()
+  const [hideAmounts] = useHideAmounts()
+  const budgets = useBudgets()
+  const expenses = useExpenses()
+  const categories = useCategories()
+  const groups = useGroups()
+  const brief = useMoneyBrief()
+  const count = useChatSessionsCount()
+
+  const [view, setView] = useState<'chat' | 'history'>('chat')
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [loadError, setLoadError] = useState(false)
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const abortRef = useRef<AbortController | null>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const history = useChatSessions(view === 'history', { page, query: debouncedQuery })
+  const envelope = useMemo(
+    () => computeEnvelopeState(
+      budgets.data ?? [],
+      expenses.data ?? [],
+      currentMonthKey(),
+      categories.data ?? [],
+      groups.data ?? [],
+    ),
+    [budgets.data, categories.data, expenses.data, groups.data],
+  )
+  const spentPct = envelope.totalAssigned > 0
+    ? Math.min(100, (envelope.totalSpent / envelope.totalAssigned) * 100)
+    : envelope.totalSpent > 0 ? 100 : 0
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    inputRef.current?.focus()
+    return () => {
+      abortRef.current?.abort()
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [onClose])
+
+  useEffect(() => {
+    if (!initialSessionId) return
+    void openSession(initialSessionId)
+  }, [initialSessionId])
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [messages, reduceMotion])
+
+  function startNewChat() {
+    abortRef.current?.abort()
+    setMessages([])
+    setSessionId(null)
+    setInput('')
+    setSending(false)
+    setLoadError(false)
+    setView('chat')
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
+  async function openSession(id: string) {
+    setLoadError(false)
+    try {
+      const detail = await getChatSession(id)
+      setMessages(detail.messages)
+      setSessionId(detail.id)
+      setView('chat')
+    } catch {
+      setLoadError(true)
+    }
+  }
+
+  async function send(text: string, source: 'chip' | 'typed') {
+    const trimmed = text.trim()
+    if (!trimmed || sending) return
+    track('money_brain_query', { source })
+    const historyMessages = [...messages, { role: 'user' as const, text: trimmed }]
+    setMessages([...historyMessages, { role: 'model', text: '' }])
+    setInput('')
+    setSending(true)
+    setLoadError(false)
+    const controller = new AbortController()
+    abortRef.current = controller
+    try {
+      const resolved = await streamChat(
+        sessionId,
+        historyMessages,
+        (delta) => setMessages((current) => {
+          const next = [...current]
+          const last = next[next.length - 1]
+          if (last?.role === 'model') next[next.length - 1] = { ...last, text: last.text + delta }
+          return next
+        }),
+        controller.signal,
+      )
+      setSessionId(resolved)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['chatSessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['chatSessionsCount'] }),
+      ])
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        setMessages((current) => {
+          const next = [...current]
+          next[next.length - 1] = { role: 'model', text: 'Something went wrong. Try again.' }
+          return next
+        })
+      }
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const awaitingFirstDelta = sending && messages.at(-1)?.role === 'model' && !messages.at(-1)?.text
+
+  return (
+    <motion.div
+      className="expense-redesign brain-scrim"
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    >
+      <motion.aside
+        className="brain-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Money Brain"
+        initial={reduceMotion ? false : { x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', damping: 34, stiffness: 320 }}
+      >
+        <header className="brain-head">
+          {view === 'history' ? (
+            <button className="brain-icon-btn" type="button" onClick={() => setView('chat')} aria-label="Back to chat">
+              <ArrowLeft size={18} />
+            </button>
+          ) : <span className="brain-orbit" aria-hidden="true">✦</span>}
+          <div className="brain-heading">
+            <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
+            <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions this month` : 'Reading your budget…'}</p>
+          </div>
+          <div className="brain-head-actions">
+            {view === 'chat' && (
+              <button className="brain-pill-btn" type="button" onClick={() => setView('history')} aria-label="Chat history">
+                <Clock3 size={15} />{count.data !== undefined && <span>{count.data}</span>}
+              </button>
+            )}
+            <button className="brain-pill-btn brain-pill-btn--accent" type="button" onClick={startNewChat}>
+              <Plus size={15} /><span>New</span>
+            </button>
+            <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Money Brain">
+              <X size={18} />
+            </button>
+          </div>
+        </header>
+
+        {view === 'history' ? (
+          <div className="brain-history">
+            <label className="brain-search">
+              <Search size={16} aria-hidden="true" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your chats…" />
+            </label>
+            {history.isLoading && !history.data ? <LoadingCaption /> : history.data?.sessions.length ? (
+              <div className="brain-history-list">
+                {history.data.sessions.map((item) => (
+                  <button key={item.id} type="button" onClick={() => void openSession(item.id)}>
+                    <strong>{item.title}</strong>
+                    <span>{item.preview}</span>
+                    <small>{timeAgo(item.updatedAt)} · {item.messageCount} messages</small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="brain-empty">{query ? `No chats match “${query}”.` : 'No past chats yet.'}</div>
+            )}
+            {(history.data?.pageCount ?? 1) > 1 && (
+              <div className="brain-pager">
+                <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</button>
+                <span>{page} of {history.data?.pageCount}</span>
+                <button type="button" disabled={page >= (history.data?.pageCount ?? 1)} onClick={() => setPage((value) => value + 1)}>Next</button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="brain-body" ref={bodyRef}>
+              {loadError && <div className="brain-error" role="alert">Couldn’t load that chat. Check your connection and try again.</div>}
+              {messages.length === 0 && (
+                <>
+                  <section className="brain-summary-card">
+                    <span className="brain-kicker">This month so far</span>
+                    <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
+                    <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
+                      <i style={{ transform: `scaleX(${spentPct / 100})` }} />
+                    </div>
+                    {brief.isLoading ? <LoadingCaption /> : brief.isError ? (
+                      <button className="brain-retry" type="button" onClick={() => void brief.refetch()}>Couldn’t load your money brief. Retry</button>
+                    ) : <p>{brief.data?.narrative}</p>}
+                  </section>
+                  {brief.data?.cards.length ? (
+                    <section className="brain-insight-grid">
+                      {brief.data.cards.map((card) => (
+                        <article key={`${card.title}-${card.valueLabel}`} className={`brain-insight brain-insight--${card.tone}`}>
+                          <span>{card.icon}</span>
+                          <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
+                          <b>{hideAmounts ? '₹••••' : card.valueLabel}</b>
+                        </article>
+                      ))}
+                    </section>
+                  ) : null}
+                  {brief.data?.questions.length ? (
+                    <section>
+                      <span className="brain-kicker">Ask anything</span>
+                      <div className="brain-chips">
+                        {brief.data.questions.map((question) => (
+                          <button key={question} type="button" disabled={sending} onClick={() => void send(question, 'chip')}>{question}</button>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                </>
+              )}
+              {messages.length > 0 && (
+                <div className="brain-messages" aria-live="polite">
+                  {messages.map((message, index) => message.text ? (
+                    <div key={index} className={`brain-bubble brain-bubble--${message.role}`}>{message.text}</div>
+                  ) : null)}
+                  {awaitingFirstDelta && <LoadingCaption />}
+                </div>
+              )}
+            </div>
+            <form className="brain-composer" onSubmit={(event) => { event.preventDefault(); void send(input, 'typed') }}>
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={input}
+                disabled={sending}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    void send(input, 'typed')
+                  }
+                }}
+                placeholder="Ask about your money…"
+                aria-label="Ask Money Brain"
+              />
+              <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUp size={18} /></button>
+            </form>
+          </>
+        )}
+      </motion.aside>
+    </motion.div>
+  )
+}

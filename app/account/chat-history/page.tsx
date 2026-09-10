@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 
 interface SessionSummary {
   id: string
@@ -32,6 +33,7 @@ function timeAgoLabel(iso: string): string {
 }
 
 export default function ChatHistoryPage() {
+  const { openMoneyBrain } = useMoneyBrain()
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null)
   const [selected, setSelected] = useState<SessionDetail | null>(null)
 
@@ -59,6 +61,9 @@ export default function ChatHistoryPage() {
           </span>
           <span className="account-row-label">{selected.title}</span>
         </button>
+        <button type="button" className="account-signout-btn account-primary-btn" onClick={() => openMoneyBrain(selected.id)}>
+          Continue this chat
+        </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 2px' }}>
           {selected.messages.map((m, i) => (
             <div
@@ -84,13 +89,14 @@ export default function ChatHistoryPage() {
 
   return (
     <>
-      <div className="account-section-label" style={{ marginBottom: 10 }}>
-        Chat history
+      <div className="account-page-heading">
+        <div className="account-section-label">Chat history</div>
+        <button type="button" className="account-compact-btn" onClick={() => openMoneyBrain()}>New chat</button>
       </div>
       {sessions === null ? (
         <div className="account-row-meta">Loading…</div>
       ) : sessions.length === 0 ? (
-        <div className="account-row-meta">No past chats yet — start one from Money Brain on mobile.</div>
+        <div className="account-row-meta">No past chats yet. Start a conversation with Money Brain.</div>
       ) : (
         <div className="account-card">
           {sessions.map((s) => (
