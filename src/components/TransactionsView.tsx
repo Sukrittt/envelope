@@ -10,6 +10,8 @@ import {
 } from "../hooks/useExpenses";
 import { EMPTY } from "../lib/constants";
 import { suggestCategory } from "../lib/autoCategory";
+import { orderWithRecents } from "../lib/recentCategories";
+import { useRecentCategories } from "../hooks/useRecentCategories";
 import { formatCurrency } from "@/lib/currency";
 import { LoadingCaption } from "./LoadingCaption";
 import { getCategoryColor } from "../data/categoryColors";
@@ -210,6 +212,11 @@ export function TransactionsView({
     // than once; dedupe so dropdown options keep unique keys.
     return [...new Set(budgetCategories)].sort();
   }, [budgetCategories]);
+  const { recents, record } = useRecentCategories();
+  const orderedCategories = useMemo(
+    () => orderWithRecents(categories, recents),
+    [categories, recents],
+  );
 
   const latestDate = useMemo(() => anchorDate ?? new Date(), [anchorDate]);
 
@@ -578,7 +585,7 @@ export function TransactionsView({
           aria-label="Filter by category"
         >
           <option value="">All</option>
-          {categories.map((c) => (
+          {orderedCategories.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
@@ -678,6 +685,7 @@ export function TransactionsView({
                               amountInr: t.amountInr,
                               updates: { category: newCat },
                             });
+                            record(newCat);
                             setEditingSuggestedCat("");
                             await refreshTransactions();
                           } catch {
@@ -700,7 +708,7 @@ export function TransactionsView({
                               ✨ {editingSuggestedCat}
                             </option>
                           )}
-                        {categories.map((c) => (
+                        {orderedCategories.map((c) => (
                           <option key={c} value={c}>
                             {c}
                           </option>
@@ -850,7 +858,6 @@ export function TransactionsView({
             amountInr={editingTxn.amountInr}
             date={editingTxn.date}
             category={editingTxn.category}
-            categories={categories}
             onClose={() => setEditingTxn(null)}
             onSaved={refreshTransactions}
           />
@@ -862,7 +869,6 @@ export function TransactionsView({
           <LogExpenseModal
             onClose={() => setShowLogModal(false)}
             onSaved={refreshTransactions}
-            categories={categories}
           />
         )}
       </AnimatePresence>

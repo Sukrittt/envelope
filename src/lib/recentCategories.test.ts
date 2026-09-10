@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pushRecent, deriveRecentsFromExpenses, MAX_RECENT } from "./recentCategories";
+import { pushRecent, deriveRecentsFromExpenses, orderWithRecents, MAX_RECENT } from "./recentCategories";
 import type { CategoryRow, ExpenseRow } from "@/src/types";
 
 function expense(overrides: Partial<ExpenseRow>): ExpenseRow {
@@ -93,5 +93,35 @@ describe("deriveRecentsFromExpenses", () => {
 
   it("returns an empty list with no expenses", () => {
     expect(deriveRecentsFromExpenses([], categories)).toEqual([]);
+  });
+});
+
+describe("orderWithRecents", () => {
+  it("moves recents that still exist to the front, in recency order", () => {
+    expect(orderWithRecents(["Food", "Fuel", "Rent"], ["Rent", "Food"])).toEqual([
+      "Rent",
+      "Food",
+      "Fuel",
+    ]);
+  });
+
+  it("drops recents that no longer exist in categories", () => {
+    expect(orderWithRecents(["Food", "Fuel"], ["Deleted", "Fuel"])).toEqual([
+      "Fuel",
+      "Food",
+    ]);
+  });
+
+  it("is a no-op with no recents", () => {
+    expect(orderWithRecents(["Food", "Fuel"], [])).toEqual(["Food", "Fuel"]);
+  });
+
+  it("preserves original order among the non-recent remainder", () => {
+    expect(orderWithRecents(["A", "B", "C", "D"], ["C"])).toEqual([
+      "C",
+      "A",
+      "B",
+      "D",
+    ]);
   });
 });

@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { updateExpense } from '../api/expenses'
+import { updateExpense, addExpense, deleteExpense } from '../api/expenses'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
+import { CategoryPicker } from './CategoryPicker'
+import { SplitExpenseEditor, makeSplitLine, type SplitLine } from './SplitExpenseEditor'
 
 interface Props {
   id?: string
@@ -11,7 +13,6 @@ interface Props {
   amountInr: number
   date: string
   category: string
-  categories: string[]
   onClose: () => void
   onSaved: () => void
 }
@@ -23,7 +24,6 @@ export function TransactionEditModal({
   amountInr,
   date: initialDate,
   category: initialCategory,
-  categories,
   onClose,
   onSaved,
 }: Props) {
@@ -31,15 +31,51 @@ export function TransactionEditModal({
   const [amount, setAmount] = useState(String(amountInr))
   const [date, setDate] = useState(initialDate.slice(0, 10))
   const [category, setCategory] = useState(initialCategory)
+  const [isSplit, setIsSplit] = useState(false)
+  const [splitLines, setSplitLines] = useState<SplitLine[]>(() => [
+    makeSplitLine(initialCategory, String(amountInr)),
+  ])
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
 
   const amt = parseFloat(amount)
-  const canSave = item.trim() !== '' && !Number.isNaN(amt) && amt >= 0 && date.trim() !== ''
+  const canSave = isSplit
+    ? item.trim() !== '' && date.trim() !== ''
+    : item.trim() !== '' && !Number.isNaN(amt) && amt >= 0 && date.trim() !== '' && category !== ''
 
   async function handleSave() {
     if (!canSave || saving || success) return
     setError('')
+
+    if (isSplit) {
+      const validLines = splitLines.filter((l) => l.category && Number(l.amount) > 0)
+      const allocated = validLines.reduce((s, l) => s + Number(l.amount), 0)
+      if (validLines.length < 2 || Math.abs(allocated - amt) >= 0.01) {
+        setError('Split lines must add up to the total amount.')
+        return
+      }
+      start()
+      try {
+        await deleteExpense(id, timestamp, initialItem, amountInr)
+        for (let i = 0; i < validLines.length; i++) {
+          const line = validLines[i]
+          await addExpense({
+            item: item.trim(),
+            amount_inr: String(line.amount),
+            category: line.category,
+            date,
+            notes: `Split ${i + 1}/${validLines.length} of ${amount}`,
+          })
+        }
+        onSaved()
+        succeed(onClose)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to update transaction')
+        fail()
+      }
+      return
+    }
+
     start()
     try {
       await updateExpense(id, timestamp, initialItem, amountInr, {
@@ -96,6 +132,7 @@ export function TransactionEditModal({
                 className="txn-entry-input"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                disabled={isSplit}
               />
             </label>
 
@@ -104,20 +141,23 @@ export function TransactionEditModal({
               <DatePicker mode="single" value={date} onChange={setDate} />
             </label>
 
-            <label className="subscription-modal-field">
-              <span>Category</span>
-              <select
-                className="txn-entry-input"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+            <label className="erd-split-toggle">
+              <input
+                type="checkbox"
+                checked={isSplit}
+                onChange={(e) => setIsSplit(e.target.checked)}
+              />
+              Split this expense across categories
             </label>
+
+            {isSplit ? (
+              <SplitExpenseEditor total={amt || 0} lines={splitLines} onChange={setSplitLines} />
+            ) : (
+              <label className="subscription-modal-field">
+                <span>Category</span>
+                <CategoryPicker value={category} onChange={setCategory} />
+              </label>
+            )}
           </div>
         </div>
 

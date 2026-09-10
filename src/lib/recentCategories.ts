@@ -37,3 +37,15 @@ export function deriveRecentsFromExpenses(
     .sort((a, b) => lastUsed.get(b)!.localeCompare(lastUsed.get(a)!))
     .slice(0, MAX_RECENT);
 }
+
+/**
+ * Recents that still exist in `categories` first, then everything else —
+ * order preserved within each half. For the plain `<select>` sites (activity
+ * filter, inline row edit) where there's no room for a rich picker's search
+ * + grouped layout, this is the whole "recent-first" treatment: just reorder
+ * the flat option list.
+ */
+export function orderWithRecents(categories: string[], recents: string[]): string[] {
+  const recentSet = new Set(recents);
+  return [...recents.filter((r) => categories.includes(r)), ...categories.filter((c) => !recentSet.has(c))];
+}

@@ -7,21 +7,30 @@ import { addExpense } from '../api/expenses'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { CategoryPicker } from './CategoryPicker'
+import { SplitExpenseEditor, makeSplitLine, type SplitLine } from './SplitExpenseEditor'
+import { useCategories } from '../hooks/useCategories'
+import { EMPTY } from '../lib/constants'
 
 interface Props {
   onClose: () => void
   onSaved: () => void
-  categories: string[]
 }
 
 function toDateInputValue(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
+export function LogExpenseModal({ onClose, onSaved }: Props) {
+  const categoriesQ = useCategories()
+  const categories = useMemo(
+    () => (categoriesQ.data ?? EMPTY).map((c) => c.name).filter(Boolean),
+    [categoriesQ.data],
+  )
+
   const [item, setItem] = useState('')
   const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState<string>(categories[0] ?? '')
+  const [category, setCategory] = useState<string>('')
   const [date, setDate] = useState(toDateInputValue(new Date()))
   const [error, setError] = useState('')
   const { saving, success, start, succeed, fail } = useButtonPhase()
@@ -29,6 +38,11 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
   const [categoryTouched, setCategoryTouched] = useState(false)
   const categoryTouchedRef = useRef(categoryTouched)
   const llmDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isSplit, setIsSplit] = useState(false)
+  const [splitLines, setSplitLines] = useState<SplitLine[]>(() => [makeSplitLine()])
+  // Categories load async, after this component's first render — fall back
+  // to the first one instead of syncing it into state once it arrives.
+  const effectiveCategory = category || categories[0] || ''
 
   useEffect(() => {
     getCategoryMap()
@@ -46,11 +60,6 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
       if (llmDebounceRef.current) clearTimeout(llmDebounceRef.current)
     }
   }, [])
-
-  const chips = useMemo(
-    () => Array.from(new Set(categories.filter(Boolean))),
-    [categories],
-  )
 
   function handleItemChange(value: string) {
     setItem(value)
@@ -95,16 +104,52 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
   function closeAndReset() {
     setItem('')
     setAmount('')
-    setCategory(categories[0] ?? '')
+    setCategory('')
     setDate(toDateInputValue(new Date()))
     setCategoryTouched(false)
+    setIsSplit(false)
+    setSplitLines([makeSplitLine()])
     onClose()
   }
 
   async function handleSubmit() {
     const parsed = Number(amount)
-    if (!item.trim() || Number.isNaN(parsed) || parsed <= 0 || !category) {
-      setError('Fill in item, amount, and pick a category.')
+    if (!item.trim() || Number.isNaN(parsed) || parsed <= 0) {
+      setError('Fill in item and amount.')
+      return
+    }
+
+    if (isSplit) {
+      const validLines = splitLines.filter((l) => l.category && Number(l.amount) > 0)
+      const allocated = validLines.reduce((s, l) => s + Number(l.amount), 0)
+      if (validLines.length < 2 || Math.abs(allocated - parsed) >= 0.01) {
+        setError('Split lines must add up to the total amount.')
+        return
+      }
+      start()
+      setError('')
+      try {
+        for (let i = 0; i < validLines.length; i++) {
+          const line = validLines[i]
+          await addExpense({
+            item: item.trim(),
+            amount_inr: String(line.amount),
+            category: line.category,
+            date: date || undefined,
+            notes: `Split ${i + 1}/${validLines.length} of ${amount}`,
+          })
+        }
+        onSaved()
+        succeed(closeAndReset)
+      } catch {
+        setError('Could not save — try again.')
+        fail()
+      }
+      return
+    }
+
+    if (!effectiveCategory) {
+      setError('Pick a category.')
       return
     }
     start()
@@ -113,7 +158,7 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
       await addExpense({
         item: item.trim(),
         amount_inr: String(Math.round(parsed)),
-        category,
+        category: effectiveCategory,
         date: date || undefined,
       })
       onSaved()
@@ -164,19 +209,23 @@ export function LogExpenseModal({ onClose, onSaved, categories }: Props) {
           onChange={(e) => setAmount(e.target.value)}
         />
 
-        <div className="erd-log-label">Category</div>
-        <div className="erd-chip-row">
-          {chips.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className={`erd-chip ${category === c ? 'is-selected' : ''}`}
-              onClick={() => handleCategoryPick(c)}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+        <label className="erd-split-toggle">
+          <input
+            type="checkbox"
+            checked={isSplit}
+            onChange={(e) => setIsSplit(e.target.checked)}
+          />
+          Split this expense across categories
+        </label>
+
+        {isSplit ? (
+          <SplitExpenseEditor total={Number(amount) || 0} lines={splitLines} onChange={setSplitLines} />
+        ) : (
+          <>
+            <div className="erd-log-label">Category</div>
+            <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} />
+          </>
+        )}
 
         <label className="erd-log-label">Date</label>
         <DatePicker mode="single" value={date} onChange={setDate} />

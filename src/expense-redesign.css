@@ -461,12 +461,27 @@
 }
 .erd-content {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 22px;
   min-width: 0;
   animation: erd-fadeUp 0.5s ease both;
   overflow-y: auto;
   height: 100%;
+}
+
+.erd-left-col,
+.erd-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+.erd-left-col {
+  flex: 1.6;
+}
+.erd-right-col {
+  flex: 1;
 }
 
 .erd-card {
@@ -732,12 +747,6 @@
 
 /* ── Spending trend ─────────────────────────────────────────── */
 
-.expense-redesign .expense-grid-xman {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 0;
-}
 .erd-trend-panel {
   padding: 24px 28px 24px 24px;
   margin-bottom: 12px;
@@ -1284,18 +1293,11 @@
   background: color-mix(in oklab, var(--gold) 6%, transparent);
 }
 
-/* ── Insights & Subs bottom row ─────────────────────────────── */
+/* ── Insights & Subs ─────────────────────────────────────────── */
 
-.erd-bottom-row {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
 .erd-insights-panel,
 .erd-subs-panel {
-  flex: 1;
-  min-width: 320px;
+  min-width: 0;
 }
 
 .si-month-nav {
@@ -1606,15 +1608,42 @@
   }
 
   .erd-content {
+    flex-direction: column;
     padding: 16px;
     gap: 16px;
+  }
+  /* `display: contents` unwraps the desktop two-column split so its children
+     become direct flex items of `.erd-content` again — `order` below then
+     reproduces the pre-two-column stacking without a second JSX tree. */
+  .erd-left-col,
+  .erd-right-col {
+    display: contents;
+  }
+  .erd-hero-row {
+    order: 1;
+    flex-direction: column;
+  }
+  .rollover-banner {
+    order: 2;
+  }
+  .erd-scopebar {
+    order: 3;
+  }
+  .erd-trend-panel {
+    order: 4;
+  }
+  .erd-envelopes-panel {
+    order: 5;
+  }
+  .erd-insights-panel {
+    order: 6;
+  }
+  .erd-subs-panel {
+    order: 7;
   }
   .erd-card {
     padding: 18px 18px 10px;
     border-radius: 20px;
-  }
-  .erd-hero-row {
-    flex-direction: column;
   }
   .erd-rta-hero,
   .erd-income-card {
@@ -1622,9 +1651,6 @@
   }
   .erd-rta-amount {
     font-size: 40px;
-  }
-  .erd-bottom-row {
-    flex-direction: column;
   }
 
   .erd-tabbar {
@@ -1790,6 +1816,88 @@
   background: var(--gold-soft);
   border-color: var(--gold);
   color: var(--gold-hover);
+}
+
+/* Category picker (log/edit-expense, split-line rows) */
+.category-picker {
+  margin-top: 10px;
+}
+.category-picker-search {
+  margin-top: 0;
+}
+.category-picker-list {
+  margin-top: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.category-picker-group .erd-chip-row {
+  max-height: none;
+  overflow-y: visible;
+}
+.category-picker-group-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--erd-text3);
+  margin-bottom: 6px;
+}
+.category-picker-empty {
+  font-size: 13px;
+  color: var(--erd-text2);
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* Split-expense editor (log/edit-expense) */
+.erd-split-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--erd-text2);
+  margin: 16px 0 8px;
+  cursor: pointer;
+}
+.split-expense-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.split-expense-line {
+  padding: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 16px;
+}
+.split-expense-line-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.split-expense-amount {
+  margin-top: 0;
+  flex: 1;
+}
+.split-expense-remove {
+  background: none;
+  border: none;
+  color: var(--erd-text2);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.split-expense-add {
+  align-self: flex-start;
+}
+.split-expense-summary {
+  font-size: 13px;
+  color: var(--coral);
+  font-weight: 600;
+}
+.split-expense-summary.is-balanced {
+  color: var(--mint);
 }
 .erd-log-submit {
   margin-top: 20px;
