@@ -34,11 +34,18 @@ vi.mock('@/lib/http', async (importOriginal) => {
         store.push(withId)
         return { insertedId: withId._id }
       },
+      find: () => ({
+        sort: () => ({
+          limit: () => ({
+            toArray: async () => [...store].sort((a, b) => (a.created_at! < b.created_at! ? 1 : -1)),
+          }),
+        }),
+      }),
     })),
   }
 })
 
-const { POST } = await import('./route')
+const { POST, GET } = await import('./route')
 
 const validBody = {
   image: 'aGVsbG8=',
@@ -141,5 +148,54 @@ describe('POST /api/bills', () => {
     const res = await POST(req({ ...validBody, expense_id: '' }))
     expect(res.status).toBe(400)
     expect(store).toHaveLength(0)
+  })
+})
+
+describe('GET /api/bills', () => {
+  function getReq(): Request {
+    return new Request('https://example.com/api/bills')
+  }
+
+  it('lists past scans newest first, without image data', async () => {
+    store.push(
+      {
+        _id: new ObjectId(),
+        merchant: 'Blinkit',
+        category: 'Groceries',
+        date: '2026-09-01',
+        total: '900',
+        my_share: '880',
+        people_count: 2,
+        items: [{ name: 'Milk', price: 60 }, { name: 'Pizza', price: 800 }],
+        image_status: 'ready',
+        created_at: '2026-09-01T10:00:00+05:30',
+      } as Doc,
+      {
+        _id: new ObjectId(),
+        merchant: 'Zomato',
+        category: 'Food',
+        date: '2026-09-05',
+        total: '400',
+        my_share: '400',
+        people_count: 1,
+        items: [{ name: 'Burger', price: 400 }],
+        image_status: 'pending',
+        created_at: '2026-09-05T10:00:00+05:30',
+      } as Doc,
+    )
+
+    const res = await GET(getReq())
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { bills: Array<{ merchant: string; item_count: number; image_status: string }> }
+    expect(body.bills.map((b) => b.merchant)).toEqual(['Zomato', 'Blinkit'])
+    expect(body.bills[1].item_count).toBe(2)
+    expect(body.bills[0].image_status).toBe('pending')
+    expect(body.bills.some((b) => 'image_url' in b)).toBe(false)
+  })
+
+  it('returns an empty list when nothing has been scanned', async () => {
+    const res = await GET(getReq())
+    const body = (await res.json()) as { bills: unknown[] }
+    expect(body.bills).toEqual([])
   })
 })

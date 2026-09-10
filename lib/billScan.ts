@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb'
-import { put } from '@vercel/blob'
+import { put, issueSignedToken, presignUrl } from '@vercel/blob'
 import { getDb } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
 import { COLLECTIONS } from '@/lib/models'
@@ -37,10 +37,29 @@ export async function storeBillScanImage(
     })
     await coll.updateOne(
       { _id: new ObjectId(billId) },
-      { $set: { image_url: blob.url, image_status: 'ready' } },
+      { $set: { image_url: blob.url, image_status: 'ready', image_ext: ext } },
     )
   } catch (err) {
     console.error('bill scan: image upload failed for', userId, billId, err)
     await coll.updateOne({ _id: new ObjectId(billId) }, { $set: { image_status: 'failed' } })
   }
+}
+
+const BILL_IMAGE_URL_TTL_MS = 5 * 60 * 1000
+
+/**
+ * Mints a short-lived signed GET URL for a stored bill image — same reasoning
+ * as `getExportDownloadUrl`: the Blob store is private, so there's no plain
+ * URL to hand out. `ext` is the one stamped on the row by the upload above,
+ * since the pathname needs it and the format isn't otherwise derivable.
+ */
+export async function getBillScanImageUrl(userId: string, billId: string, ext: string): Promise<string> {
+  const pathname = `bills/${userId}/${billId}.${ext}`
+  const signed = await issueSignedToken({
+    pathname,
+    operations: ['get'],
+    validUntil: Date.now() + BILL_IMAGE_URL_TTL_MS,
+  })
+  const { presignedUrl } = await presignUrl(signed, { operation: 'get', pathname, access: 'private' })
+  return presignedUrl
 }

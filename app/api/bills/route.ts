@@ -5,6 +5,34 @@ import { storeBillScanImage } from '@/lib/billScan'
 
 export const dynamic = 'force-dynamic'
 
+const LIST_LIMIT = 50
+
+/**
+ * `GET /api/bills` — the scan history list. No image URL here (that's a
+ * private-Blob signed URL, minted on demand by `GET /api/bills/[id]` only for
+ * the one row a viewer opens, not eagerly for every row in the list).
+ */
+export async function GET(req: Request) {
+  const auth = await getAuth(req)
+  const coll = await getCollection('bill_scans', auth)
+  const docs = await coll.find({}).sort({ created_at: -1 }).limit(LIST_LIMIT).toArray()
+
+  return json({
+    bills: docs.map((d) => ({
+      id: String(d._id),
+      merchant: String(d.merchant ?? ''),
+      category: String(d.category ?? ''),
+      date: String(d.date ?? ''),
+      total: Number(d.total) || 0,
+      my_share: Number(d.my_share) || 0,
+      people_count: Number(d.people_count) || 1,
+      item_count: Array.isArray(d.items) ? d.items.length : 0,
+      image_status: String(d.image_status ?? 'pending'),
+      created_at: String(d.created_at ?? ''),
+    })),
+  })
+}
+
 // Same wire-body cap as /api/expenses/scan — this is the same image, sent
 // once more after the user confirms.
 const MAX_IMAGE_LEN = 6_000_000
