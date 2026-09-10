@@ -9,3 +9,9 @@ it.each(['/api/cron/gc', '/api/cron/future', '/api/notifications/run'])('lets th
 it('rejects invalid bearer on ordinary API routes', async () => {
  expect((await middleware(new NextRequest('https://example.com/api/expenses'), {} as NextFetchEvent))?.status).toBe(401)
 })
+
+it.each(['/privacy-policy', '/legal/privacy', '/expense', '/account'])('keeps %s public without a session', async path => {
+ const response = await middleware(new NextRequest('https://example.com'+path), {} as NextFetchEvent)
+ expect(response?.status).toBe(200)
+ expect(response?.headers.get('location')).toBeNull()
+})

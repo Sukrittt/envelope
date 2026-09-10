@@ -8,8 +8,8 @@ import { AppShell } from './AppShell'
 import { AppearanceProvider } from './AppearanceProvider'
 import { MoneyBrainProvider } from './MoneyBrainProvider'
 
-// No AuthGate any more: middleware.ts now redirects any signed-out visitor to
-// /sign-in before this ever mounts, so there is nothing left to gate here.
+// No AuthGate: signed-out visitors use the API's read-only demo account, while
+// AuthKitProvider upgrades the same public pages when a real session exists.
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
     <AuthKitProvider>
