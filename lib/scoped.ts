@@ -30,12 +30,16 @@ function encDoc(doc: Doc, fields: string[], userId: string, collectionName: stri
   if (fields.length === 0) return doc
   const out: Doc = { ...doc }
   for (const field of fields) {
-    if (field === 'messages.text') {
-      if (Array.isArray(out.messages)) {
-        out.messages = (out.messages as Doc[]).map((m) =>
-          typeof m.text === 'string' && !isEncrypted(m.text)
-            ? { ...m, text: encrypt(m.text, aad(userId, collectionName, field)) }
-            : m,
+    // 'arrayKey.subField' means "the subField inside each element of the arrayKey array" —
+    // e.g. 'messages.text' (chat_sessions) or 'items.name'/'items.price' (bill_scans).
+    if (field.includes('.')) {
+      const [arrayKey, subField] = field.split('.')
+      if (Array.isArray(out[arrayKey])) {
+        const aadStr = aad(userId, collectionName, field)
+        out[arrayKey] = (out[arrayKey] as Doc[]).map((el) =>
+          typeof el[subField] === 'string' && !isEncrypted(el[subField] as string)
+            ? { ...el, [subField]: encrypt(el[subField] as string, aadStr) }
+            : el,
         )
       }
       continue
@@ -53,10 +57,12 @@ function decDoc(doc: Doc, fields: string[], userId: string, collectionName: stri
   if (fields.length === 0) return doc
   const out: Doc = { ...doc }
   for (const field of fields) {
-    if (field === 'messages.text') {
-      if (Array.isArray(out.messages)) {
-        out.messages = (out.messages as Doc[]).map((m) =>
-          typeof m.text === 'string' ? { ...m, text: decrypt(m.text, aad(userId, collectionName, field)) } : m,
+    if (field.includes('.')) {
+      const [arrayKey, subField] = field.split('.')
+      if (Array.isArray(out[arrayKey])) {
+        const aadStr = aad(userId, collectionName, field)
+        out[arrayKey] = (out[arrayKey] as Doc[]).map((el) =>
+          typeof el[subField] === 'string' ? { ...el, [subField]: decrypt(el[subField] as string, aadStr) } : el,
         )
       }
       continue

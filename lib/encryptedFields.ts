@@ -21,7 +21,9 @@
  * on `recurring_expenses` — category, payment_method, frequency, the three
  * dates and status, all of which the nightly cron filters or sorts on;
  * `holdings.name` (a future re-key to `_id` could move it into this list);
- * `chat_sessions.updatedAt` (sort + index).
+ * `chat_sessions.updatedAt` (sort + index); on `bill_scans` — category, date,
+ * expense_id, people_count, items.qty, items.divisor, image_url, image_status,
+ * created_at (filter/sort/join keys, or not money/PII to begin with).
  */
 export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
@@ -31,6 +33,7 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   holdings: ['value', 'recurring_amount'],
   holding_events: ['amount', 'previous_value', 'new_value'],
   chat_sessions: ['title', 'messages.text'],
+  bill_scans: ['merchant', 'total', 'my_share', 'items.name', 'items.price'],
 }
 
 export function fieldsFor(collectionName: string): string[] {

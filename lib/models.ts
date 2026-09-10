@@ -96,6 +96,7 @@ export const COLLECTIONS = {
   chatSessions: 'chat_sessions',
   notificationLog: 'notification_log',
   exports: 'exports',
+  billScans: 'bill_scans',
 } as const
 
 /** One CSV-ish row; every value is a string so it round-trips exactly. */

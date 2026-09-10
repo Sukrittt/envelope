@@ -81,6 +81,12 @@ const INDEXES = {
     [{ user_id: 1, month: 1, status: 1 }, {}],
     [{ user_id: 1, created_at: -1 }, {}],
   ],
+  // Future scan-history screen's list query, plus a lookup from an expense
+  // back to the scan it came from.
+  bill_scans: [
+    [{ user_id: 1, created_at: -1 }, {}],
+    [{ user_id: 1, expense_id: 1 }, {}],
+  ],
 }
 
 async function main() {
