@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { createPortal } from "react-dom";
 import { AnimatePresence } from "motion/react";
-import { Fredoka, Nunito } from "next/font/google";
 import { useAppearance } from "../../components/AppearanceProvider";
 import { formatCurrency } from "@/lib/currency";
-import { SparkBars } from "../components/SparkBars";
 import { FluidDemo } from "../components/FluidDemo";
 import { ReadyToAssignBanner } from "../components/ReadyToAssignBanner";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
@@ -14,8 +11,6 @@ import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { CategoryManager } from "../components/CategoryManager";
 import { SubscriptionModal } from "../components/SubscriptionModal";
 import { Scrim, Sheet } from "../components/MotionSheet";
-import { CalendarBody, parseISO, toISO, key as dateKey, monthStart as dateMonthStart } from "../components/DatePicker";
-import { SpendingInsights } from "../components/SpendingInsights";
 import { ExpensePageSkeleton } from "../components/ExpensePageSkeletons";
 import { getEffectiveDueDate, daysUntil, renewalDays } from "@/lib/subscriptions";
 import {
@@ -23,7 +18,6 @@ import {
   type ExpensePanelData,
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
-import { computeEnvelopeState } from "../lib/envelope";
 import { EMPTY } from "../lib/constants";
 import { useBudgets, useAddBudget, useUpdateBudget, useTransferBudget } from "../hooks/useBudgets";
 import { useExpenses, useAddExpense } from "../hooks/useExpenses";
@@ -38,69 +32,9 @@ import {
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
-import type { BudgetRow, Envelope, EnvelopeState } from "../types/expense";
+import type { BudgetRow, EnvelopeState } from "../types/expense";
 
-// Portal content (date-range-menu, below) is appended to document.body, outside
-// the .expense-redesign DOM subtree, so it can't inherit --font-fredoka /
-// --font-nunito from the route wrapper. Load them here too and apply the
-// variable classNames directly on the portal root.
-const fredoka = Fredoka({ subsets: ["latin"], weight: ["600"], variable: "--font-fredoka", display: "swap" });
-const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap" });
-
-type PeriodKey = "7d" | "30d" | "mtd" | "custom";
-type TrendView = "daily" | "weekly" | "monthly";
-type DrillFilter = { start: string; end: string; parentView: TrendView } | null;
 type ActiveSubscription = ExpensePanelData["subscriptions"]["active"][number];
-
-function toDateInputValue(value: Date): string {
-  return value.toISOString().slice(0, 10);
-}
-
-function weekKey(input: string): string {
-  const date = new Date(input);
-  if (Number.isNaN(date.getTime())) return input;
-  const start = new Date(date);
-  const diffToMonday = (start.getDay() + 6) % 7;
-  start.setDate(start.getDate() - diffToMonday);
-  return start.toISOString().slice(0, 10);
-}
-
-function monthKey(input: string): string {
-  return input.slice(0, 7);
-}
-
-function monthRangeFromKey(key: string): { start: string; end: string } {
-  const d = new Date(`${key}-01`);
-  const start = d.toISOString().slice(0, 10);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-    .toISOString()
-    .slice(0, 10);
-  return { start, end };
-}
-
-function weekRangeFromKey(startIso: string): { start: string; end: string } {
-  const d = new Date(startIso);
-  const end = new Date(d);
-  end.setDate(d.getDate() + 6);
-  return {
-    start: d.toISOString().slice(0, 10),
-    end: end.toISOString().slice(0, 10),
-  };
-}
-
-function weekRangeLabel(startIso: string): string {
-  const start = new Date(startIso);
-  if (Number.isNaN(start.getTime())) return startIso;
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  return `${start.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}-${end.toLocaleDateString(
-    "en-IN",
-    {
-      day: "numeric",
-      month: "short",
-    },
-  )}`;
-}
 
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
@@ -151,29 +85,9 @@ export function ExpensePage() {
           ),
     [anyLoading, budgetRows, expenseRows, subscriptionRows, categoryRows, groupNames],
   );
-  // const [activeTab, setActiveTab] = useState<ExpenseTab>('overview')
-  const [period, setPeriod] = useState<PeriodKey>("mtd");
-  const [trendView, setTrendView] = useState<TrendView>("weekly");
-  const [drillFilter, setDrillFilter] = useState<DrillFilter>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [activeMenu, setActiveMenu] = useState<"category" | "date" | null>(
-    null,
-  );
-  const [menuPosition, setMenuPosition] = useState<{
-    top: number;
-    left: number;
-    minWidth: number;
-  } | null>(null);
-  const isCategoryMenuOpen = activeMenu === "category";
-  const isDateMenuOpen = activeMenu === "date";
   // Read-only here: the toggle lives on /account, next to the theme control.
   const [hideAmounts] = useHideAmounts();
-  const [dailyDetailDate, setDailyDetailDate] = useState<string | null>(null);
   const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(
-    null,
-  );
-  const [insightMonth, setInsightMonth] = useState<string | null>(null);
-  const [insightEnvelopes, setInsightEnvelopes] = useState<Envelope[] | null>(
     null,
   );
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null);
@@ -213,7 +127,6 @@ export function ExpensePage() {
     category: string;
   } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
-  const [chartType, setChartType] = useState<"area" | "bar">("area");
   const { theme, setTheme } = useAppearance();
 
   // Restore the "hide amounts" preference after hydration so the server and
@@ -232,22 +145,6 @@ export function ExpensePage() {
   useEffect(() => {
     if (panel) setEnvelopeState(panel.envelopeState);
   }, [panel]);
-
-  async function handleInsightNavigate(delta: number) {
-    const base =
-      insightMonth ?? panel?.month ?? new Date().toISOString().slice(0, 7);
-    const d = new Date(`${base}-01`);
-    d.setMonth(d.getMonth() + delta);
-    const target = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const current =
-      envelopeState?.month ?? new Date().toISOString().slice(0, 7);
-    if (target > current) return;
-    setInsightMonth(target);
-    // Previously a second round-trip per month stepped through. Every row is
-    // already in the cache, so this is the same computation over what we hold.
-    const st = computeEnvelopeState(budgetRows, expenseRows, target, categoryRows, groupNames);
-    setInsightEnvelopes(st.envelopes);
-  }
 
   async function handleIncomeChange(newIncome: number) {
     const month = envelopeState?.month;
@@ -421,11 +318,6 @@ export function ExpensePage() {
     await refreshPanel();
   }
 
-  const categoryMenuRef = useRef<HTMLDivElement | null>(null);
-  const categoryTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const dateMenuRef = useRef<HTMLDivElement | null>(null);
-  const dateTriggerRef = useRef<HTMLButtonElement | null>(null);
-
   useEffect(() => {
     if (!panel) return;
     const override = localStorage.getItem("expense-income-override");
@@ -551,544 +443,9 @@ export function ExpensePage() {
     setRolloverData(null);
   }
 
-  const latestDate = useMemo(() => {
-    if (!panel) return new Date();
-    const last = panel.miniTrend.at(-1)?.date ?? panel.month;
-    const date = new Date(last);
-    return Number.isNaN(date.getTime()) ? new Date() : date;
-  }, [panel]);
-
-  const [customStart, setCustomStart] = useState<string>(
-    toDateInputValue(
-      new Date(latestDate.getFullYear(), latestDate.getMonth(), 1),
-    ),
-  );
-  const [customEnd, setCustomEnd] = useState<string>(
-    toDateInputValue(latestDate),
-  );
-  const [draftStart, setDraftStart] = useState<string>(customStart);
-  const [draftEnd, setDraftEnd] = useState<string>(customEnd);
-  const [menuView, setMenuView] = useState<Date>(
-    () => parseISO(customStart) ?? new Date(),
-  );
-  const [menuDir, setMenuDir] = useState<"next" | "prev">("next");
-  const [menuPingKey, setMenuPingKey] = useState<number | null>(null);
-
-  const draftStartTime = new Date(draftStart).getTime();
-  const draftEndTime = new Date(draftEnd).getTime();
-  const isDateRangeInvalid =
-    Number.isNaN(draftStartTime) ||
-    Number.isNaN(draftEndTime) ||
-    draftStartTime > draftEndTime;
-
-  function openDateMenu() {
-    setDraftStart(customStart);
-    setDraftEnd(customEnd);
-    setMenuView(dateMonthStart(parseISO(customStart) ?? new Date()));
-    setActiveMenu("date");
-  }
-
-  function tapMenuDay(d: Date) {
-    setMenuPingKey(dateKey(d));
-    const ds = parseISO(draftStart);
-    const de = parseISO(draftEnd);
-    if (!ds || (ds && de)) {
-      setDraftStart(toISO(d));
-      setDraftEnd("");
-    } else if (dateKey(d) < dateKey(ds)) {
-      setDraftEnd(draftStart);
-      setDraftStart(toISO(d));
-    } else {
-      setDraftEnd(toISO(d));
-    }
-  }
-
-  function applyDateRange() {
-    if (isDateRangeInvalid) return;
-    setCustomStart(draftStart);
-    setCustomEnd(draftEnd);
-    setActiveMenu(null);
-  }
-
-  function cancelDateRange() {
-    setActiveMenu(null);
-  }
-
-  const categoryOptions = useMemo(
-    () => panel?.topCategories.map((category) => category.category) ?? [],
-    [panel],
-  );
-  const allCategoriesSelected = selectedCategories.length === 0;
-
-  function selectAllCategories() {
-    setSelectedCategories([]);
-  }
-
-  function toggleCategory(category: string) {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((item) => item !== category)
-        : [...prev, category],
-    );
-  }
-
-  useEffect(() => {
-    if (!activeMenu) return;
-
-    const menuRef = activeMenu === "category" ? categoryMenuRef : dateMenuRef;
-    const triggerRef =
-      activeMenu === "category" ? categoryTriggerRef : dateTriggerRef;
-
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (
-        menuRef.current?.contains(target) ||
-        triggerRef.current?.contains(target)
-      ) {
-        return;
-      }
-      setActiveMenu(null);
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setActiveMenu(null);
-      }
-    }
-
-    window.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [activeMenu]);
-
-  useEffect(() => {
-    if (!activeMenu) return;
-
-    const triggerRef =
-      activeMenu === "category" ? categoryTriggerRef : dateTriggerRef;
-
-    function updatePosition() {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const horizontalPadding = 16;
-      const minWidth = rect.width;
-      const left = Math.max(
-        horizontalPadding,
-        rect.right - Math.max(minWidth, 270),
-      );
-      setMenuPosition({
-        top: rect.bottom + 6,
-        left,
-        minWidth,
-      });
-    }
-
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [activeMenu]);
-
-  const filteredTrend = useMemo(() => {
-    if (!panel) return [];
-    const rows = [...panel.miniTrend];
-    const end = new Date(latestDate);
-    let start = new Date(rows[0]?.date ?? end);
-
-    if (period === "7d") {
-      start = new Date(end);
-      start.setDate(end.getDate() - 6);
-    } else if (period === "30d") {
-      start = new Date(end);
-      start.setDate(end.getDate() - 29);
-    } else if (period === "mtd") {
-      start = new Date(end.getFullYear(), end.getMonth(), 1);
-    } else {
-      const parsedStart = new Date(customStart);
-      const parsedEnd = new Date(customEnd);
-      if (
-        !Number.isNaN(parsedStart.getTime()) &&
-        !Number.isNaN(parsedEnd.getTime())
-      ) {
-        start = parsedStart;
-        if (parsedEnd.getTime() < end.getTime()) {
-          end.setTime(parsedEnd.getTime());
-        }
-      }
-    }
-
-    return rows.filter((row) => {
-      const date = new Date(row.date);
-      return !Number.isNaN(date.getTime()) && date >= start && date <= end;
-    });
-  }, [customEnd, customStart, latestDate, panel, period]);
-
-  const categoryScopeRatio = useMemo(() => {
-    if (!panel || !selectedCategories.length) return 1;
-    const catTotal = panel.topCategories.reduce((s, r) => s + r.amountInr, 0);
-    if (!catTotal) return 1;
-    const selTotal = panel.topCategories
-      .filter((row) => selectedCategories.includes(row.category))
-      .reduce((s, r) => s + r.amountInr, 0);
-    return selTotal / catTotal;
-  }, [panel, selectedCategories]);
-
-  const dailyCategoryMap = useMemo(() => {
-    if (!panel) return new Map<string, Record<string, number>>();
-    const map = new Map<string, Record<string, number>>();
-    for (const row of panel.expenseRows) {
-      const prev = map.get(row.date) ?? {};
-      prev[row.category] = (prev[row.category] ?? 0) + row.amountInr;
-      map.set(row.date, prev);
-    }
-    return map;
-  }, [panel]);
-
-  const trendSeries = useMemo(() => {
-    const useFullHistory =
-      trendView === "monthly" || drillFilter?.parentView === "monthly";
-    const baseRows = useFullHistory && panel ? panel.miniTrend : filteredTrend;
-    let source = baseRows.map((row) => ({
-      ...row,
-      value: row.value * categoryScopeRatio,
-    }));
-
-    if (drillFilter) {
-      source = source.filter(
-        (row) => row.date >= drillFilter.start && row.date <= drillFilter.end,
-      );
-    }
-
-    if (trendView === "daily") {
-      if (!drillFilter && (period === "7d" || period === "30d")) {
-        const now = new Date();
-        const today = now.toISOString().slice(0, 10);
-        const startOfWeek = new Date(now);
-        const diffToMonday = (startOfWeek.getDay() + 6) % 7;
-        startOfWeek.setDate(now.getDate() - diffToMonday);
-        const weekStart = startOfWeek.toISOString().slice(0, 10);
-        source = source.filter(
-          (row) => row.date >= weekStart && row.date <= today,
-        );
-      }
-
-      const byDate = new Map(source.map((row) => [row.date, row.value]));
-      const startIso = drillFilter ? drillFilter.start : source[0]?.date;
-      const endIso = drillFilter
-        ? drillFilter.end
-        : source[source.length - 1]?.date;
-      if (!startIso || !endIso)
-        return source.map((row) => ({ date: row.date, value: row.value }));
-
-      const out: {
-        date: string;
-        value: number;
-        categories?: Record<string, number>;
-      }[] = [];
-      const cursor = new Date(startIso);
-      const end = new Date(endIso);
-      while (cursor <= end) {
-        const key = cursor.toISOString().slice(0, 10);
-        const rawCats = dailyCategoryMap.get(key);
-        const categories =
-          rawCats && allCategoriesSelected
-            ? rawCats
-            : rawCats && selectedCategories.length > 0
-              ? Object.fromEntries(
-                  Object.entries(rawCats).filter(([cat]) =>
-                    selectedCategories.includes(cat),
-                  ),
-                )
-              : undefined;
-        out.push({ date: key, value: byDate.get(key) ?? 0, categories });
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      return out;
-    }
-
-    if (trendView === "weekly") {
-      const byWeek = new Map<string, number>();
-      source.forEach((row) => {
-        const key = weekKey(row.date);
-        byWeek.set(key, (byWeek.get(key) ?? 0) + row.value);
-      });
-
-      return [...byWeek.entries()].map(([date, value]) => ({
-        date: weekRangeLabel(date),
-        value,
-      }));
-    }
-
-    const byMonth = new Map<string, number>();
-    source.forEach((row) => {
-      const key = row.date.slice(0, 7);
-      byMonth.set(key, (byMonth.get(key) ?? 0) + row.value);
-    });
-
-    return [...byMonth.entries()].map(([date, value]) => ({
-      date,
-      value,
-    }));
-  }, [
-    categoryScopeRatio,
-    allCategoriesSelected,
-    dailyCategoryMap,
-    drillFilter,
-    filteredTrend,
-    trendView,
-    period,
-    panel,
-    selectedCategories,
-  ]);
-
-  const trendKeys = useMemo(() => {
-    const useFullHistory =
-      trendView === "monthly" || drillFilter?.parentView === "monthly";
-    let source = useFullHistory && panel ? panel.miniTrend : filteredTrend;
-    if (drillFilter) {
-      source = source.filter(
-        (row) => row.date >= drillFilter.start && row.date <= drillFilter.end,
-      );
-    }
-    if (trendView === "daily") return source.map((row) => row.date);
-    if (trendView === "weekly") {
-      const keys: string[] = [];
-      const seen = new Set<string>();
-      source.forEach((row) => {
-        const k = weekKey(row.date);
-        if (!seen.has(k)) {
-          seen.add(k);
-          keys.push(k);
-        }
-      });
-      return keys;
-    }
-    const keys: string[] = [];
-    const seen = new Set<string>();
-    source.forEach((row) => {
-      const k = monthKey(row.date);
-      if (!seen.has(k)) {
-        seen.add(k);
-        keys.push(k);
-      }
-    });
-    return keys;
-  }, [drillFilter, filteredTrend, trendView, panel]);
-
-  function handleBarClick(index: number) {
-    if (trendView === "monthly") {
-      const key = trendKeys[index];
-      if (!key) return;
-      const range = monthRangeFromKey(key);
-      setDrillFilter({ ...range, parentView: "monthly" });
-      setTrendView("weekly");
-    } else if (trendView === "weekly") {
-      const key = trendKeys[index];
-      if (!key) return;
-      const range = weekRangeFromKey(key);
-      setDrillFilter({ ...range, parentView: "weekly" });
-      setTrendView("daily");
-    }
-  }
-
-  function handleDrillBack() {
-    if (drillFilter) {
-      setTrendView(drillFilter.parentView);
-      setDrillFilter(null);
-    }
-  }
-
-  function formatDrillRange(start: string, end: string): string {
-    const s = new Date(start);
-    const e = new Date(end);
-    const sameMonth =
-      s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
-    if (sameMonth) {
-      const month = e.toLocaleDateString("en-IN", { month: "short" });
-      return `${s.getDate()}–${e.getDate()} ${month}`;
-    }
-    const fmt = (d: Date) =>
-      d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-    return `${fmt(s)} – ${fmt(e)}`;
-  }
-
-  function handleDailyBarClick(index: number) {
-    const entry = trendSeries[index];
-    if (!entry) return;
-    setDailyDetailDate(entry.date);
-  }
-
-  const dailyDetailRows = useMemo(() => {
-    if (!dailyDetailDate || !panel) return [];
-    return panel.expenseRows
-      .filter((row) => row.date === dailyDetailDate)
-      .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  }, [dailyDetailDate, panel]);
-
-  const dailyDetailTotal = useMemo(
-    () => dailyDetailRows.reduce((sum, row) => sum + row.amountInr, 0),
-    [dailyDetailRows],
-  );
-
-  useEffect(() => {
-    if (!dailyDetailDate) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setDailyDetailDate(null);
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [dailyDetailDate]);
-
-  const categoryScopeLabel = selectedCategories.length
-    ? `${selectedCategories.length} selected`
-    : "All categories";
-
   if (!panel || FORCE_LOADING_SKELETON) {
     return <ExpensePageSkeleton />;
   }
-
-  const isCategoryMenuVisible = Boolean(isCategoryMenuOpen && menuPosition);
-  const isDateMenuVisible = Boolean(isDateMenuOpen && menuPosition);
-  const resolvedMenuPosition =
-    menuPosition ??
-    ({
-      top: 0,
-      left: 0,
-      minWidth: 140,
-    } as const);
-
-  const categoryMenu = createPortal(
-    <div
-      className="category-menu category-menu--portal"
-      role="menu"
-      aria-label="Category filter menu"
-      aria-hidden={!isCategoryMenuVisible}
-      ref={categoryMenuRef}
-      style={{
-        position: "fixed",
-        top: `${resolvedMenuPosition.top}px`,
-        left: `${resolvedMenuPosition.left}px`,
-        minWidth: `${resolvedMenuPosition.minWidth}px`,
-        display: isCategoryMenuVisible ? "grid" : "none",
-        pointerEvents: isCategoryMenuVisible ? "auto" : "none",
-      }}
-    >
-      <div className="category-menu-list">
-        <button
-          type="button"
-          className={`action-button is-ghost category-option category-option--all ${allCategoriesSelected ? "is-selected" : ""}`}
-          onClick={selectAllCategories}
-        >
-          <input
-            type="checkbox"
-            readOnly
-            checked={allCategoriesSelected}
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-          All categories
-        </button>
-
-        {categoryOptions.map((category) => {
-          const isSelected = selectedCategories.includes(category);
-          return (
-            <button
-              type="button"
-              key={category}
-              className={`action-button is-ghost category-option ${isSelected ? "is-selected" : ""}`}
-              onClick={() => toggleCategory(category)}
-            >
-              <input
-                type="checkbox"
-                readOnly
-                checked={isSelected}
-                tabIndex={-1}
-                aria-hidden="true"
-              />
-              {category}
-            </button>
-          );
-        })}
-      </div>
-
-      {!allCategoriesSelected ? (
-        <div className="category-menu-actions">
-          <button
-            type="button"
-            className="action-button is-ghost"
-            onClick={selectAllCategories}
-          >
-            Clear category filters
-          </button>
-        </div>
-      ) : null}
-    </div>,
-    document.body,
-  );
-
-  const dateMenu = createPortal(
-    <div
-      className={`category-menu category-menu--portal date-range-menu date-picker-vars ${fredoka.variable} ${nunito.variable} ${isDateMenuVisible ? "is-open" : ""}`}
-      role="menu"
-      aria-label="Custom date range"
-      aria-hidden={!isDateMenuVisible}
-      ref={dateMenuRef}
-      style={{
-        position: "fixed",
-        top: `${resolvedMenuPosition.top}px`,
-        left: `${resolvedMenuPosition.left}px`,
-        minWidth: `${resolvedMenuPosition.minWidth}px`,
-        display: "grid",
-        pointerEvents: isDateMenuVisible ? "auto" : "none",
-      }}
-    >
-      <CalendarBody
-        view={menuView}
-        today={new Date()}
-        draftStart={parseISO(draftStart)}
-        draftEnd={parseISO(draftEnd)}
-        disableFuture
-        dir={menuDir}
-        pingKey={menuPingKey}
-        onPrevMonth={() => {
-          setMenuDir("prev");
-          setMenuView((v) => new Date(v.getFullYear(), v.getMonth() - 1, 1));
-        }}
-        onNextMonth={() => {
-          setMenuDir("next");
-          setMenuView((v) => new Date(v.getFullYear(), v.getMonth() + 1, 1));
-        }}
-        onTapDay={tapMenuDay}
-      />
-
-      <div className="date-range-menu-actions">
-        <button
-          type="button"
-          className="date-range-cancel"
-          onClick={cancelDateRange}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="date-range-apply"
-          onClick={applyDateRange}
-          disabled={isDateRangeInvalid}
-        >
-          Apply
-        </button>
-      </div>
-    </div>,
-    document.body,
-  );
 
   function handleSidebarMoveMoney() {
     const firstOverspent = envelopeState?.envelopes.find((e) => e.isOverspent);
@@ -1165,298 +522,14 @@ export function ExpensePage() {
         />
         <div className="erd-content">
         <div className="erd-left-col">
-          <section className="erd-card erd-scopebar" aria-label="Scope bar">
-            <div role="group" aria-label="Period selector">
-              <div role="tablist" aria-label="Period presets">
-                <button
-                  type="button"
-                  className={`erd-pill ${period === "7d" ? "is-active" : ""}`}
-                  onClick={() => setPeriod("7d")}
-                >
-                  Last 7 days
-                </button>
-                <button
-                  type="button"
-                  className={`erd-pill ${period === "30d" ? "is-active" : ""}`}
-                  onClick={() => setPeriod("30d")}
-                >
-                  Last 30 days
-                </button>
-                <button
-                  type="button"
-                  className={`erd-pill ${period === "mtd" ? "is-active" : ""}`}
-                  onClick={() => setPeriod("mtd")}
-                >
-                  Month to date
-                </button>
-                <button
-                  type="button"
-                  className={`erd-pill ${period === "custom" ? "is-active" : ""}`}
-                  onClick={() => {
-                    setPeriod("custom");
-                    if (isDateMenuOpen) {
-                      setActiveMenu(null);
-                    } else {
-                      openDateMenu();
-                    }
-                  }}
-                  aria-haspopup="menu"
-                  aria-expanded={isDateMenuOpen}
-                  ref={dateTriggerRef}
-                >
-                  Custom range
-                </button>
-              </div>
-            </div>
-
-            <div className="erd-scope-spacer" />
-
-            <div className="erd-scope-meta" aria-label="Scope status">
-              <span
-                className="category-trigger"
-                onClick={() =>
-                  setActiveMenu((menu) => (menu === "category" ? null : "category"))
-                }
-                ref={categoryTriggerRef}
-              >
-                <span>{categoryScopeLabel}</span>
-                <span aria-hidden="true">▾</span>
-              </span>
-              <button
-                type="button"
-                className="erd-log-btn"
-                onClick={() => setShowLogModal(true)}
-              >
-                + Log expense
-              </button>
-            </div>
-          </section>
-
-            <article className="erd-card erd-trend-panel">
-              <div className="erd-panel-head">
-                <div className="erd-panel-title">
-                  {drillFilter && (
-                    <button
-                      type="button"
-                      className="erd-title-back"
-                      onClick={handleDrillBack}
-                      aria-label="Back to Spending trend"
-                      title="Back"
-                    >
-                      <svg viewBox="0 0 20 20" fill="none">
-                        <path
-                          d="M12.5 5.5 7 10l5.5 4.5"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                  <div>
-                    <h3>
-                      {drillFilter
-                        ? formatDrillRange(drillFilter.start, drillFilter.end)
-                        : "Spending trend"}
-                    </h3>
-                    <p>How money flows, day by day</p>
-                  </div>
-                </div>
-                <div className="erd-panel-tools">
-                  <div className="erd-chart-icon-toggle">
-                    <button
-                      type="button"
-                      className={`erd-chart-icon-btn ${chartType === "area" ? "is-active" : ""}`}
-                      onClick={() => setChartType("area")}
-                      aria-label="Area chart"
-                      title="Area"
-                    >
-                      <svg viewBox="0 0 16 16" fill="none">
-                        <path
-                          d="M1 10c1.5 0 1.5-4 3-4s1.5 4 3 4 1.5-6 3-6 1.5 6 3 6"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className={`erd-chart-icon-btn ${chartType === "bar" ? "is-active" : ""}`}
-                      onClick={() => setChartType("bar")}
-                      aria-label="Bar chart"
-                      title="Bars"
-                    >
-                      <svg viewBox="0 0 16 16" fill="none">
-                        <rect
-                          x="4"
-                          y="3"
-                          width="2.6"
-                          height="10"
-                          rx="1.3"
-                          fill="currentColor"
-                        />
-                        <rect
-                          x="9.4"
-                          y="3"
-                          width="2.6"
-                          height="10"
-                          rx="1.3"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  <span className="erd-tools-divider" aria-hidden="true" />
-                  <div className="erd-view-toggle">
-                    <button
-                      type="button"
-                      className={trendView === "daily" ? "is-active" : ""}
-                      onClick={() => {
-                        setTrendView("daily");
-                        setDrillFilter(null);
-                      }}
-                    >
-                      Daily
-                    </button>
-                    <button
-                      type="button"
-                      className={trendView === "weekly" ? "is-active" : ""}
-                      onClick={() => {
-                        setTrendView("weekly");
-                        setDrillFilter(null);
-                      }}
-                    >
-                      Weekly
-                    </button>
-                    <button
-                      type="button"
-                      className={trendView === "monthly" ? "is-active" : ""}
-                      onClick={() => {
-                        setTrendView("monthly");
-                        setDrillFilter(null);
-                      }}
-                    >
-                      Monthly
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <SparkBars
-                data={trendSeries}
-                size="expanded"
-                variant={chartType}
-                formatValue={(value) =>
-                  hideAmounts ? "---" : formatCurrency(value)
-                }
-                capOutliers
-                onBarClick={
-                  trendView === "daily" ? handleDailyBarClick : handleBarClick
-                }
-                enableFluidInteractions
-              />
-              <AnimatePresence>
-                {dailyDetailDate &&
-                  createPortal(
-                    <Scrim
-                      className="daily-detail-overlay"
-                      onClick={() => setDailyDetailDate(null)}
-                    >
-                      <Sheet
-                        className="daily-detail-modal"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="daily-detail-header">
-                          <h4>
-                            {new Date(dailyDetailDate).toLocaleDateString(
-                              "en-IN",
-                              {
-                                weekday: "long",
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              },
-                            )}
-                          </h4>
-                          <button
-                            type="button"
-                            className="daily-detail-close"
-                            onClick={() => setDailyDetailDate(null)}
-                            aria-label="Close"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        {dailyDetailRows.length === 0 ? (
-                          <p className="daily-detail-empty">
-                            No transactions recorded for this day.
-                          </p>
-                        ) : (
-                          <>
-                            <table className="daily-detail-table">
-                              <thead>
-                                <tr>
-                                  <th>Time</th>
-                                  <th>Item</th>
-                                  <th>Category</th>
-                                  <th className="num">Amount</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {dailyDetailRows.map((row, i) => {
-                                  const time = row.timestamp
-                                    ? new Date(row.timestamp)
-                                    : null;
-                                  const timeStr =
-                                    time && !Number.isNaN(time.getTime())
-                                      ? time.toLocaleTimeString("en-IN", {
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                        })
-                                      : "—";
-                                  return (
-                                    <tr key={`${row.timestamp}-${i}`}>
-                                      <td className="daily-detail-time">
-                                        {timeStr}
-                                      </td>
-                                      <td>{row.item}</td>
-                                      <td>
-                                        <span className="daily-detail-category">
-                                          {row.category}
-                                        </span>
-                                      </td>
-                                      <td
-                                        className={`num ${hideAmounts ? "amount-hidden" : ""}`}
-                                      >
-                                        {hideAmounts
-                                          ? "---"
-                                          : formatCurrency(row.amountInr)}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                            <div className="daily-detail-footer">
-                              <span>Total</span>
-                              <span
-                                className={`num ${hideAmounts ? "amount-hidden" : ""}`}
-                              >
-                                {hideAmounts
-                                  ? "---"
-                                  : formatCurrency(dailyDetailTotal)}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                      </Sheet>
-                    </Scrim>,
-                    document.body,
-                  )}
-              </AnimatePresence>
-            </article>
+          <div className="erd-dashboard-link-row">
+            <Link href="/insights" className="erd-log-btn">
+              Open spending insights
+            </Link>
+            <button type="button" className="erd-log-btn" onClick={() => setShowLogModal(true)}>
+              + Log expense
+            </button>
+          </div>
 
             <article className="erd-card erd-envelopes-panel">
               <div className="erd-panel-head">
@@ -1831,21 +904,6 @@ export function ExpensePage() {
             />
           )}
 
-              <section className="erd-card erd-insights-panel">
-                <SpendingInsights
-                  envelopes={insightEnvelopes ?? envelopeState?.envelopes ?? []}
-                  expenseRows={panel.expenseRows}
-                  month={insightMonth ?? panel.month}
-                  canGoNext={
-                    (insightMonth ??
-                      envelopeState?.month ??
-                      new Date().toISOString().slice(0, 7)) <
-                    (envelopeState?.month ??
-                      new Date().toISOString().slice(0, 7))
-                  }
-                  onNavigate={handleInsightNavigate}
-                />
-              </section>
         </div>
         </div>
         <AnimatePresence>
@@ -2083,8 +1141,6 @@ export function ExpensePage() {
               );
             })()}
         </AnimatePresence>
-        {categoryMenu}
-        {dateMenu}
         {showFluidDemo && (
           <Scrim onClick={() => setShowFluidDemo(false)}>
             <Sheet>
@@ -2118,14 +1174,10 @@ export function ExpensePage() {
         >
           +
         </button>
-        <button
-          type="button"
-          className="erd-tab"
-          onClick={() => setShowCategoryManager(true)}
-        >
-          <span aria-hidden="true">🧺</span>
-          <span>Envelopes</span>
-        </button>
+        <Link href="/insights" className="erd-tab">
+          <span aria-hidden="true">📊</span>
+          <span>Insights</span>
+        </Link>
         <Link href="/account" className="erd-tab">
           <span aria-hidden="true">⚙️</span>
           <span>More</span>

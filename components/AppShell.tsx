@@ -21,10 +21,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const currentMeta = useMemo(() => pageMeta[pathname], [pathname])
 
-  const isExpenseRoute = pathname.startsWith('/expense') || pathname.startsWith('/investments')
+  const isExpenseRoute = pathname.startsWith('/expense') || pathname === '/insights' || pathname.startsWith('/investments')
   // Expense redesign routes carry their own chrome (sidebar, greeting, theme
   // toggle, mobile tabbar), so skip the legacy mission-control topbar/footer.
-  const isErdRoute = pathname === '/expense' || pathname.startsWith('/expense/')
+  const isErdRoute = pathname === '/expense' || pathname.startsWith('/expense/') || pathname === '/insights'
   // Auth, onboarding, and account pages are full-bleed layouts with their own
   // chrome too (auth card, tour, nav rail) — same treatment as ERD routes.
   const isStandaloneRoute =

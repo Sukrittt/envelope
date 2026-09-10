@@ -470,6 +470,16 @@
   height: 100%;
 }
 
+.erd-dashboard-link-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.erd-dashboard-link-row a {
+  text-decoration: none;
+}
+
 .erd-left-col,
 .erd-right-col {
   display: flex;

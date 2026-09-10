@@ -164,117 +164,10 @@ export function ExpensePageSkeleton() {
         {/* ── Main content skeleton ── */}
         <div className="erd-content">
           <div className="erd-left-col">
-            {/* Scope bar */}
-            <section className="erd-card erd-scopebar" aria-hidden="true">
-              {[
-                "Last 7 days",
-                "Last 30 days",
-                "Month to date",
-                "Custom range",
-              ].map((label) => (
-                <span
-                  key={label}
-                  className="erd-skeleton"
-                  style={{
-                    width: "92px",
-                    height: "32px",
-                    borderRadius: "100px",
-                  }}
-                />
-              ))}
-              <div className="erd-scope-spacer" />
-              <div className="erd-scope-meta">
-                <span
-                  className="erd-skeleton"
-                  style={{
-                    width: "110px",
-                    height: "11px",
-                    borderRadius: "5px",
-                  }}
-                />
-                <span
-                  className="erd-skeleton"
-                  style={{
-                    width: "86px",
-                    height: "30px",
-                    borderRadius: "100px",
-                  }}
-                />
-                <span
-                  className="erd-skeleton"
-                  style={{
-                    width: "112px",
-                    height: "36px",
-                    borderRadius: "100px",
-                  }}
-                />
-              </div>
-            </section>
-
-            {/* Spending trend */}
-            <article className="erd-card erd-trend-panel">
-              <div className="erd-panel-head">
-                <div className="erd-panel-title">
-                  <div>
-                    <div
-                      className="erd-skeleton"
-                      style={{
-                        width: "130px",
-                        height: "18px",
-                        borderRadius: "7px",
-                      }}
-                    />
-                    <div
-                      className="erd-skeleton"
-                      style={{
-                        width: "160px",
-                        height: "12px",
-                        borderRadius: "6px",
-                        marginTop: "6px",
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="erd-panel-tools">
-                  {["Area", "Bars", "Daily", "Weekly", "Monthly"].map(
-                    (label) => (
-                      <span
-                        key={label}
-                        className="erd-skeleton"
-                        style={{
-                          width: "54px",
-                          height: "30px",
-                          borderRadius: "100px",
-                        }}
-                      />
-                    ),
-                  )}
-                </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-end",
-                  gap: "6px",
-                  height: "260px",
-                  padding: "16px 0 8px",
-                }}
-              >
-                {[45, 70, 35, 90, 55, 80, 40, 62, 48, 76, 30, 68].map(
-                  (h, i) => (
-                    <span
-                      key={i}
-                      className="erd-skeleton"
-                      style={{
-                        flex: 1,
-                        height: `${h}%`,
-                        borderRadius: "8px 8px 0 0",
-                      }}
-                    />
-                  ),
-                )}
-              </div>
-            </article>
+            <div className="erd-dashboard-link-row" aria-hidden="true">
+              <span className="erd-skeleton" style={{ width: "150px", height: "34px", borderRadius: "100px" }} />
+              <span className="erd-skeleton" style={{ width: "112px", height: "34px", borderRadius: "100px" }} />
+            </div>
 
             {/* Envelopes */}
             <article className="erd-card erd-envelopes-panel">
@@ -504,62 +397,6 @@ export function ExpensePageSkeleton() {
               </div>
             </div>
 
-            <section className="erd-card erd-insights-panel">
-              <div
-                className="erd-skeleton"
-                style={{
-                  width: "84px",
-                  height: "18px",
-                  borderRadius: "7px",
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                  marginTop: "16px",
-                }}
-              >
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i}>
-                    <div
-                      className="erd-skeleton"
-                      style={{
-                        width: "40%",
-                        height: "10px",
-                        borderRadius: "5px",
-                      }}
-                    />
-                    <div
-                      className="erd-skeleton"
-                      style={{
-                        width: "100%",
-                        height: "10px",
-                        borderRadius: "5px",
-                        marginTop: "6px",
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(7, 1fr)",
-                  gap: "4px",
-                  marginTop: "18px",
-                }}
-              >
-                {Array.from({ length: 28 }).map((_, i) => (
-                  <span
-                    key={i}
-                    className="erd-skeleton"
-                    style={{ aspectRatio: "1", borderRadius: "6px" }}
-                  />
-                ))}
-              </div>
-            </section>
           </div>
         </div>
       </div>
@@ -579,10 +416,10 @@ export function ExpensePageSkeleton() {
         <button type="button" className="erd-tab-fab" disabled aria-label="Log expense">
           +
         </button>
-        <button type="button" className="erd-tab" disabled>
-          <span aria-hidden="true">🧺</span>
-          <span>Envelopes</span>
-        </button>
+        <Link href="/insights" className="erd-tab">
+          <span aria-hidden="true">📊</span>
+          <span>Insights</span>
+        </Link>
         <Link href="/account" className="erd-tab">
           <span aria-hidden="true">⚙️</span>
           <span>More</span>

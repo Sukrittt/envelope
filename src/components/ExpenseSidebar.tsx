@@ -80,6 +80,13 @@ export function ExpenseSidebar({
           <span className="erd-nav-dot" />
           Transactions
         </Link>
+        <Link
+          href="/insights"
+          className={`erd-nav-item ${pathname === "/insights" ? "is-active" : ""}`}
+        >
+          <span className="erd-nav-dot" />
+          Insights
+        </Link>
         <button type="button" className="erd-nav-item" onClick={() => openMoneyBrain()}>
           <span className="erd-nav-dot" />
           Money Brain

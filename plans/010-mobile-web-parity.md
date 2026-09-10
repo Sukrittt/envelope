@@ -1,6 +1,6 @@
 # 010 — Bring Web to feature parity with Mobile
 
-- **Status**: ACCEPTED. Phases 0, 1, 2, 3 and 5 done; phase 4 remains next in sequence.
+- **Status**: ACCEPTED. Phases 0 through 5 done; phase 6 remains next in sequence.
 - **Scope**: frontend only. Every endpoint Mobile calls already exists in `app/api/`.
 - **Surveyed**: `Sukrittt/envelope` @ `7cd1127`, `Sukrittt/envelope-mobile` @ `6a393de`
 
@@ -172,11 +172,16 @@ Done:
 Completed in the final Phase 3 pass: the two-column desktop home, shared loading skeletons,
 split expenses, the category picker and recent-category ordering in activity.
 
-### Phase 4 — Insights (M)
+### Phase 4 — Insights (M) — DONE
 `CategoryBreakdown`, `Heatmap`, `TrendChart`, `DonutChart`, `AllocationBar` at `/insights`.
 Mobile draws these in `react-native-svg`; on Web they become plain SVG, so the layout math ports
 and the primitives are rewritten. Retire `SpendingInsights.tsx` and `ExpensePage.tsx`'s inline
 charts.
+
+Shipped as a responsive `/insights` workspace with month navigation, a trailing 12-month trend,
+category and group breakdowns, spend allocation, budget progress, interactive filtering and a
+12-week activity heatmap. All five charts use browser-native SVG, and the old dashboard-specific
+insights component and inline chart implementation have been removed.
 
 ### Phase 5 — Money Brain + Wrapped (M) — DONE
 Money Brain as a right drawer over `/api/ai/chat`. Streaming is *easier* on Web: Mobile's

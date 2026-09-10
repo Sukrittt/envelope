@@ -1,0 +1,44 @@
+import { describe, expect, it } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { AllocationBar } from './AllocationBar'
+import { heatmapLevels } from './Heatmap'
+import { layoutDonutSegments } from './DonutChart'
+
+describe('insights chart primitives', () => {
+  it('lays donut slices around one complete circle and ignores empty values', () => {
+    const layout = layoutDonutSegments([
+      { key: 'food', label: 'Food', emoji: '🍲', value: 60, color: 'red' },
+      { key: 'rent', label: 'Rent', emoji: '🏠', value: 40, color: 'blue' },
+      { key: 'empty', label: 'Empty', emoji: '', value: 0, color: 'gray' },
+    ])
+
+    expect(layout).toHaveLength(2)
+    expect(layout[0]).toMatchObject({ key: 'food', startDeg: 0, endDeg: 216 })
+    expect(layout[1].startDeg).toBe(216)
+    expect(layout[1].endDeg).toBe(360)
+  })
+
+  it('uses percentile ranks so one large spending day does not flatten the rest', () => {
+    const levels = heatmapLevels([
+      { date: '2026-09-01', day: 1, value: 10 },
+      { date: '2026-09-02', day: 2, value: 20 },
+      { date: '2026-09-03', day: 3, value: 30 },
+      { date: '2026-09-04', day: 4, value: 1000 },
+      { date: 'pad-1', day: 0, value: 0 },
+    ])
+
+    expect([...levels.values()]).toEqual([1, 2, 3, 4])
+    expect(levels.has('pad-1')).toBe(false)
+  })
+
+  it('renders allocation percentages that sum to the complete bar', () => {
+    render(<AllocationBar segments={[
+      { label: 'Needs', value: 3, color: 'red' },
+      { label: 'Wants', value: 1, color: 'blue' },
+    ]} />)
+
+    expect(screen.getByText('75.0%')).toBeInTheDocument()
+    expect(screen.getByText('25.0%')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Allocation by category' })).toBeInTheDocument()
+  })
+})

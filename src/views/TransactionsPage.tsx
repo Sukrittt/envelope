@@ -68,6 +68,10 @@ export function TransactionsPage() {
           <span aria-hidden="true">🧾</span>
           <span>Activity</span>
         </Link>
+        <Link href="/insights" className="erd-tab">
+          <span aria-hidden="true">📊</span>
+          <span>Insights</span>
+        </Link>
         <Link href="/account" className="erd-tab">
           <span aria-hidden="true">⚙️</span>
           <span>More</span>

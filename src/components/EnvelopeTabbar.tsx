@@ -11,6 +11,7 @@ const TABS = [
   { href: '/expense', icon: '🏠', label: 'Home' },
   { href: '/expense/envelopes', icon: '✉️', label: 'Envelopes' },
   { href: '/expense/transactions', icon: '🧾', label: 'Activity' },
+  { href: '/insights', icon: '📊', label: 'Insights' },
   { href: '/account', icon: '⚙️', label: 'More' },
 ]
 
