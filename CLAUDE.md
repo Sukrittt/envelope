@@ -46,7 +46,7 @@ Web routes: `app/api/auth/google` + `.../google/callback` (Google sign-in), `app
 
 ### Routes
 
-`/` → redirects to `/expense`. Pages: `/expense` (budget dashboard), `/expense/transactions`, `/investments`, `/onboarding`, `/account/*`, `/legal/*`, and the `(auth)` sign-in flow.
+`/` → public landing page (`src/views/LandingPage.tsx`); its playground runs web twins of Mobile's screens from `src/components/landing/mobile/`. Pages: `/expense` (budget dashboard), `/expense/transactions`, `/investments`, `/onboarding`, `/account/*`, `/legal/*`, and the `(auth)` sign-in flow.
 
 The `/fitness` and `/learnings` pages, the `mission-control-app/` prototype, and the
 `DashboardProvider`/`dashboardService` mock data layer behind them were removed in

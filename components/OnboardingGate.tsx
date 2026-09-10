@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation'
 
 // Pages that exist outside the "logged in and onboarded" app proper — never
 // bounce these to /onboarding even if the onboarding check would otherwise fire.
-const ONBOARDING_EXEMPT_PATHS = ['/sign-in', '/email', '/code', '/onboarding']
+// '/' is the public landing page, shown to everyone.
+const ONBOARDING_EXEMPT_PATHS = ['/', '/sign-in', '/email', '/code', '/onboarding']
 
 /**
  * Single app-mount onboarding gate: once, not per page. Skipped on the
