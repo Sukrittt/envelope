@@ -31,7 +31,7 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`account-rail-link ${pathname === item.href ? 'is-active' : ''}`}
+              className={`account-rail-link ${pathname === item.href || (item.href === '/account/help' && pathname === '/account/feedback') ? 'is-active' : ''}`}
             >
               <span aria-hidden="true">{item.icon}</span>
               {item.label}

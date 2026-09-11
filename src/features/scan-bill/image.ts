@@ -7,8 +7,6 @@
 const MAX_EDGE = 2000
 const QUALITY = 0.7
 
-export const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
 function encode(source: CanvasImageSource, width: number, height: number): string {
   const scale = Math.min(1, MAX_EDGE / Math.max(width, height))
   const canvas = document.createElement('canvas')

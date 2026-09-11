@@ -1,6 +1,6 @@
 # 010 — Bring Web to feature parity with Mobile
 
-- **Status**: ACCEPTED. Phases 0 through 5 done; phase 6 remains next in sequence.
+- **Status**: ACCEPTED. Phases 0 through 6 done; phase 7 remains next in sequence.
 - **Scope**: frontend only. Every endpoint Mobile calls already exists in `app/api/`.
 - **Surveyed**: `Sukrittt/envelope` @ `7cd1127`, `Sukrittt/envelope-mobile` @ `6a393de`
 
@@ -195,9 +195,23 @@ questions, searchable paginated history, resumable sessions and abort-on-close. 
 full-screen story deck with autoplay, pause, click and keyboard navigation, reduced-motion support,
 amount masking, budget-aware money-left copy and native share with clipboard fallback.
 
-### Phase 6 — Money management extras (M)
+### Phase 6 — Money management extras (M) — DONE
 Recurring expenses, archive/restore, scan-bill (file input + `getUserMedia` in place of
 `expo-image-picker`; the review/confirm UI is the substantial part), in-app feedback.
+
+Shipped as `/account/recurring` (list plus an add/edit/pause/delete dialog), `/account/archive`
+(filters, urgency bands, restore, delete forever, a sequential restore-all that reports
+collisions) and `/account/feedback`, which Help now links to instead of github.com. Scan a bill
+opens from the home page: file picker, drag and drop, clipboard paste and a `getUserMedia`
+camera, all downscaled to a JPEG in a canvas before upload. Review and confirm are two-column so
+the bill photo sits beside its items. `src/api/bills.ts`, `useSaveBillScan` and
+`src/features/scan-bill/useBillSplit.ts` mirror Mobile's, the last with its test ported first.
+
+Two deliberate differences from Mobile: item selection is always-visible checkboxes rather than
+a select mode, and the saved scan drops nameless rows, since `POST /api/bills` rejects the whole
+record over one of them (Mobile still sends them and loses the record). The account shell also
+gained `width: 100%`: as an auto-margined grid item it had been shrinking to its content, so
+every account page was only as wide as whatever was on it.
 
 ### Phase 7 — Onboarding and tour (M)
 The real setup wizard in place of the 3 slides, plus the guided tour and its six demos.
