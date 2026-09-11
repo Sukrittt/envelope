@@ -13,6 +13,8 @@ const NAV = [
   { href: '/account', label: 'You', icon: '👤' },
   { href: '/account/security', label: 'Security', icon: '🔐' },
   { href: '/account/data', label: 'Your data', icon: '🗂️' },
+  { href: '/account/recurring', label: 'Recurring', icon: '🔁' },
+  { href: '/account/archive', label: 'Archive', icon: '🗃️' },
   { href: '/account/chat-history', label: 'Chat history', icon: '🧠' },
   { href: '/account/help', label: 'Help', icon: '💬' },
 ]

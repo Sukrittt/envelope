@@ -1,0 +1,213 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { Scrim, Sheet } from '@/src/components/MotionSheet'
+import { LoadingCaption } from '@/src/components/LoadingCaption'
+import { ScanReview } from './ScanReview'
+import { ScanConfirm } from './ScanConfirm'
+import { useScanBillController, type ScanBillState } from './useScanBillController'
+
+interface Props {
+  onClose: () => void
+  onEnterManually: () => void
+}
+
+const SCANNING_PHRASES = ['Reading the bill…', 'Finding the total…', 'Spotting line items…', 'Almost done…']
+
+/**
+ * Web twin of Mobile's modals/scan-bill. One dialog walks pick → scanning →
+ * review → confirm; review and confirm are wide two-column layouts so the
+ * bill photo sits beside the items it was read from.
+ */
+export function ScanBillModal({ onClose, onEnterManually }: Props) {
+  const state = useScanBillController({ onDone: onClose })
+  const { phase, selected } = state
+  // Past the picker there are edits to lose, so a stray click on the scrim
+  // stops closing the dialog. The ✕ still does.
+  const dismissable = phase === 'pick' || phase === 'error'
+
+  const title = phase === 'confirm' ? 'Confirm your log' : 'Scan a bill'
+  const subtitle =
+    phase === 'review'
+      ? `${state.productItems.length} ${state.productItems.length === 1 ? 'item' : 'items'} · scanned just now${selected.length ? ` · ${selected.length} selected` : ''}`
+      : null
+
+  return (
+    <Scrim className="erd-modal-overlay" onClick={dismissable ? onClose : undefined}>
+      <Sheet
+        className={`erd-modal-card scan-modal ${phase === 'review' || phase === 'confirm' ? 'is-wide' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Scan a bill"
+      >
+        <div className="erd-modal-head">
+          <div>
+            <h3>{title}</h3>
+            {subtitle && <p className="scan-subtitle">{subtitle}</p>}
+          </div>
+          <button
+            type="button"
+            className="erd-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+            disabled={state.confirmButton.success}
+          >
+            ✕
+          </button>
+        </div>
+
+        {phase === 'pick' && <ScanPick {...state} />}
+
+        {phase === 'scanning' && (
+          <div className="scan-center">
+            {state.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- a local data URL, nothing for next/image to optimize
+              <img className="scan-scanning-thumb" src={state.imageUrl} alt="" />
+            )}
+            <LoadingCaption phrases={SCANNING_PHRASES} />
+          </div>
+        )}
+
+        {phase === 'error' && (
+          <div className="scan-center">
+            <p className="scan-error-copy">{state.errorMsg}</p>
+            <div className="scan-actions-row">
+              <button type="button" className="account-pill-btn" onClick={state.startOver}>
+                Try another photo
+              </button>
+              <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={onEnterManually}>
+                Enter manually
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === 'review' && <ScanReview {...state} />}
+        {phase === 'confirm' && <ScanConfirm {...state} />}
+      </Sheet>
+    </Scrim>
+  )
+}
+
+/**
+ * Mobile offers "Take a photo" and "Choose a screenshot". A desktop's
+ * screenshot is usually on the clipboard or the desktop, so paste and drop
+ * sit alongside the file picker, and the camera is getUserMedia.
+ */
+function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pickFrame'>) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [dragging, setDragging] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+  const [videoReady, setVideoReady] = useState(false)
+  const [cameraError, setCameraError] = useState('')
+  const canUseCamera = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
+
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const file = Array.from(e.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'))
+      if (!file) return
+      e.preventDefault()
+      void pickFile(file)
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [pickFile])
+
+  // Attach the stream once the <video> exists, and release the camera when
+  // this unmounts (a capture moves the dialog on to scanning) or it closes.
+  useEffect(() => {
+    if (!stream) return
+    if (videoRef.current) videoRef.current.srcObject = stream
+    return () => stream.getTracks().forEach((t) => t.stop())
+  }, [stream])
+
+  async function openCamera() {
+    setCameraError('')
+    try {
+      setStream(await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }))
+    } catch {
+      setCameraError("Camera access is off. Allow it for this site, or choose a file instead.")
+    }
+  }
+
+  function closeCamera() {
+    setStream(null)
+    setVideoReady(false)
+  }
+
+  if (stream) {
+    return (
+      <div className="scan-camera">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          onLoadedMetadata={() => setVideoReady(true)}
+          aria-label="Camera preview"
+        />
+        <div className="scan-actions-row">
+          <button type="button" className="account-pill-btn" onClick={closeCamera}>
+            Back
+          </button>
+          <button
+            type="button"
+            className="account-pill-btn account-pill-btn--primary"
+            disabled={!videoReady}
+            onClick={() => videoRef.current && pickFrame(videoRef.current)}
+          >
+            Take photo
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`scan-drop ${dragging ? 'is-dragging' : ''}`}
+      onDragOver={(e) => {
+        e.preventDefault()
+        setDragging(true)
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setDragging(false)
+        const file = e.dataTransfer.files[0]
+        if (file) void pickFile(file)
+      }}
+    >
+      <span className="scan-drop-icon" aria-hidden="true">
+        🧾
+      </span>
+      <p className="scan-drop-title">Drop a bill or a screenshot here</p>
+      <p className="scan-drop-copy">Or paste one straight from your clipboard. We&apos;ll read the items and work out your share.</p>
+      <div className="scan-actions-row">
+        <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={() => inputRef.current?.click()}>
+          Choose a file
+        </button>
+        {canUseCamera && (
+          <button type="button" className="account-pill-btn" onClick={openCamera}>
+            Use camera
+          </button>
+        )}
+      </div>
+      {cameraError && <p className="erd-log-error">{cameraError}</p>}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        aria-label="Bill photo"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) void pickFile(file)
+        }}
+      />
+    </div>
+  )
+}

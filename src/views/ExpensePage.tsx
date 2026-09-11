@@ -31,6 +31,7 @@ import {
 } from "../hooks/useSubscriptions";
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
 import { LogExpenseModal } from "../components/LogExpenseModal";
+import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { BudgetRow, EnvelopeState } from "../types/expense";
 
@@ -127,6 +128,7 @@ export function ExpensePage() {
     category: string;
   } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const { theme, setTheme } = useAppearance();
 
   // Restore the "hide amounts" preference after hydration so the server and
@@ -526,6 +528,9 @@ export function ExpensePage() {
             <Link href="/insights" className="erd-log-btn">
               Open spending insights
             </Link>
+            <button type="button" className="erd-log-btn" onClick={() => setShowScanModal(true)}>
+              Scan a bill
+            </button>
             <button type="button" className="erd-log-btn" onClick={() => setShowLogModal(true)}>
               + Log expense
             </button>
@@ -1188,6 +1193,17 @@ export function ExpensePage() {
           <LogExpenseModal
             onClose={() => setShowLogModal(false)}
             onSaved={refreshPanel}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showScanModal && (
+          <ScanBillModal
+            onClose={() => setShowScanModal(false)}
+            onEnterManually={() => {
+              setShowScanModal(false);
+              setShowLogModal(true);
+            }}
           />
         )}
       </AnimatePresence>

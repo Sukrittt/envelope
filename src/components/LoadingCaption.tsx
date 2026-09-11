@@ -32,17 +32,19 @@ function shuffleArray<T>(array: T[]): T[] {
 interface Props {
   className?: string
   style?: React.CSSProperties
+  phrases?: string[]
 }
 
-export function LoadingCaption({ className = '', style }: Props) {
+export function LoadingCaption({ className = '', style, phrases = PHRASES }: Props) {
   const [phraseIndex, setPhraseIndex] = useState(0)
   // Shuffling with Math.random() during the initial render would mismatch
   // the server-rendered order, so start deterministic and shuffle post-mount.
-  const [shuffledPhrases, setShuffledPhrases] = useState(PHRASES)
+  const [shuffledPhrases, setShuffledPhrases] = useState(phrases)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time post-mount shuffle to dodge the SSR hydration mismatch noted above, not a sync-with-external-system effect
-    setShuffledPhrases(shuffleArray(PHRASES))
+    // One-time post-mount shuffle to dodge the SSR hydration mismatch noted above.
+    setShuffledPhrases(shuffleArray(phrases))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shuffled once on mount, same as Mobile's useState initializer
   }, [])
 
   useEffect(() => {

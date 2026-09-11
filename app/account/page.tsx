@@ -99,13 +99,13 @@ export default function AccountPage() {
             <span className="account-feature-title">Investments</span>
             <span className="account-feature-copy">Portfolio at a glance</span>
           </Link>
-          <div className="account-feature-card account-feature-card--placeholder">
-            <span className="account-feature-icon" aria-hidden="true">
-              ＋
+          <Link href="/account/recurring" className="account-feature-card">
+            <span className="account-feature-icon" style={{ background: 'var(--violet-soft)' }} aria-hidden="true">
+              🔁
             </span>
-            <span className="account-feature-title">Next feature</span>
-            <span className="account-feature-copy">drop a card here</span>
-          </div>
+            <span className="account-feature-title">Recurring</span>
+            <span className="account-feature-copy">Rent, the gym, logged for you</span>
+          </Link>
         </div>
       </div>
 
@@ -185,6 +185,15 @@ export default function AccountPage() {
               🗂️
             </span>
             <span className="account-row-label">Your data</span>
+            <span className="account-row-arrow" aria-hidden="true">
+              →
+            </span>
+          </Link>
+          <Link href="/account/archive" className="account-row">
+            <span className="account-row-icon" aria-hidden="true">
+              🗃️
+            </span>
+            <span className="account-row-label">Archive</span>
             <span className="account-row-arrow" aria-hidden="true">
               →
             </span>

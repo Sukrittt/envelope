@@ -1,16 +1,6 @@
+import Link from 'next/link'
+
 const REPO_URL = 'https://github.com/Sukrittt/envelope-mobile'
-
-const BUG_URL = `${REPO_URL}/issues/new?${new URLSearchParams({
-  title: 'Bug: ',
-  body: '**What happened**\n\n**What you expected**\n\n**Steps to reproduce**\n\n**Screenshots (optional)**\n',
-  labels: 'bug',
-}).toString()}`
-
-const FEATURE_URL = `${REPO_URL}/issues/new?${new URLSearchParams({
-  title: 'Feature: ',
-  body: '**What problem does this solve?**\n\n**What would you like to happen?**\n',
-  labels: 'enhancement',
-}).toString()}`
 
 export default function HelpPage() {
   return (
@@ -30,7 +20,7 @@ export default function HelpPage() {
         </div>
       </div>
       <div className="account-card">
-        <a href={BUG_URL} target="_blank" rel="noreferrer" className="account-row">
+        <Link href="/account/feedback?type=bug" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             🐛
           </span>
@@ -38,8 +28,8 @@ export default function HelpPage() {
           <span className="account-row-arrow" aria-hidden="true">
             →
           </span>
-        </a>
-        <a href={FEATURE_URL} target="_blank" rel="noreferrer" className="account-row">
+        </Link>
+        <Link href="/account/feedback?type=idea" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             💬
           </span>
@@ -47,7 +37,7 @@ export default function HelpPage() {
           <span className="account-row-arrow" aria-hidden="true">
             →
           </span>
-        </a>
+        </Link>
         <a href={REPO_URL} target="_blank" rel="noreferrer" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             ⭐
