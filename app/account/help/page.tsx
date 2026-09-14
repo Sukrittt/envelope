@@ -20,6 +20,15 @@ export default function HelpPage() {
         </div>
       </div>
       <div className="account-card">
+        <Link href="/account/guided-tour" className="account-row">
+          <span className="account-row-icon" aria-hidden="true">
+            🧭
+          </span>
+          <span className="account-row-label">Take the guided tour</span>
+          <span className="account-row-arrow" aria-hidden="true">
+            →
+          </span>
+        </Link>
         <Link href="/account/feedback?type=bug" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             🐛

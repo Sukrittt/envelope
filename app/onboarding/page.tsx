@@ -1,75 +1,517 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Fredoka, Nunito } from 'next/font/google'
 import '../../src/expense-redesign.css'
+import { formatINR } from '../../src/lib/format'
+import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
+import { updateBudget } from '../../src/api/budgets'
+import { addGroup } from '../../src/api/groups'
+import { addCategory } from '../../src/api/categories'
+import { updateUser } from '../../src/api/account'
+import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
 
 const fredoka = Fredoka({ subsets: ['latin'], weight: ['600'], variable: '--font-fredoka', display: 'swap' })
 const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' })
 
-const SLIDES = [
-  {
-    emoji: '💰',
-    title: 'Give every rupee a job',
-    body: 'Income lands in Ready to Assign. Move it into envelopes — rent, food, football — until nothing is unassigned.',
-  },
-  {
-    emoji: '⚡',
-    title: 'Log in three taps',
-    body: 'The + button takes an amount, an envelope, and a note. That’s the whole ritual.',
-  },
-  {
-    emoji: '🧠',
-    title: 'Money Brain watches for you',
-    body: 'Ask it anything about your month, and get a Wrapped recap when the month closes. Both live under You.',
-  },
-]
+// Twin of Mobile's app/setup.tsx: income → groups → categories → assign →
+// done. Writes land on finish, same reasoning as mobile — groups/categories
+// aren't renameable server-side until they exist. No numpad/bottom-sheet
+// here: those exist on mobile because a thumb keyboard is painful, and a
+// desktop already has a real one, so plain number inputs replace them.
+const EMOJI_CYCLE = ['🏠', '🎬', '🌱', '🛒', '💡', '🚌', '🍜', '📺', '🛍', '🛟', '📈', '🎓', '🐶', '💊', '✈️', '🎁']
+const QUICK_PICKS = ['30000', '50000', '75000', '100000']
 
-async function finishOnboarding() {
-  try {
-    await fetch('/api/user', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ onboardedAt: new Date().toISOString() }),
-    })
-  } finally {
-    window.location.href = '/expense'
+interface Item {
+  id: string
+  emoji: string
+  name: string
+  on: boolean
+}
+
+interface LiveCat {
+  key: string
+  groupId: string
+  catId: string
+  gi: number
+  emoji: string
+  name: string
+}
+
+let nextId = 1
+const makeId = () => `setup-${nextId++}`
+
+function defaultGroups(): Item[] {
+  return [
+    { id: 'g1', emoji: '🏠', name: 'Essentials', on: true },
+    { id: 'g2', emoji: '🎬', name: 'Lifestyle', on: true },
+    { id: 'g3', emoji: '🌱', name: 'Savings', on: false },
+  ]
+}
+
+function defaultCats(): Record<string, Item[]> {
+  return {
+    g1: [
+      { id: makeId(), emoji: '🏠', name: 'Rent', on: true },
+      { id: makeId(), emoji: '🛒', name: 'Groceries', on: true },
+      { id: makeId(), emoji: '💡', name: 'Utilities', on: true },
+      { id: makeId(), emoji: '🚌', name: 'Transport', on: false },
+    ],
+    g2: [
+      { id: makeId(), emoji: '🍜', name: 'Eating out', on: true },
+      { id: makeId(), emoji: '📺', name: 'Subscriptions', on: false },
+      { id: makeId(), emoji: '🛍', name: 'Shopping', on: false },
+    ],
+    g3: [
+      { id: makeId(), emoji: '🛟', name: 'Emergency fund', on: true },
+      { id: makeId(), emoji: '📈', name: 'Investments', on: false },
+    ],
   }
 }
 
-export default function OnboardingPage() {
-  const [slide, setSlide] = useState(0)
-  const isLast = slide === SLIDES.length - 1
-  const current = SLIDES[slide]
+function nextEmoji(current: string): string {
+  const i = EMOJI_CYCLE.indexOf(current)
+  return EMOJI_CYCLE[(i + 1 + EMOJI_CYCLE.length) % EMOJI_CYCLE.length]
+}
+
+function label(item: Item): string {
+  return `${item.emoji} ${item.name.trim()}`
+}
+
+async function ignoreConflict(err: unknown): Promise<void> {
+  if (err instanceof Error && err.message.toLowerCase().includes('already exists')) return
+  if (err instanceof Error && err.message.includes('409')) return
+  throw err
+}
+
+// group 0 gets the biggest weighted share, group 1 next, every group after
+// that (including "rest") shares the same smaller weight.
+function groupWeight(gi: number, weighted: boolean): number {
+  if (!weighted) return 1
+  if (gi === 0) return 3
+  if (gi === 1) return 2
+  return 1.5
+}
+
+const TITLES: Record<number, [string, string]> = {
+  1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. You can change it any month.'],
+  2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
+  3: ['Add your categories', 'These are the envelopes you actually spend from. Pick the ones you recognize.'],
+  4: ['Assign every rupee', 'We suggested a split. Change any amount. The leftover has to reach zero.'],
+}
+
+export default function SetupWizardPage() {
+  const router = useRouter()
+  const qc = useQueryClient()
+
+  const [step, setStep] = useState(1)
+  const [income, setIncome] = useState('')
+  const [groups, setGroups] = useState<Item[]>(defaultGroups)
+  const [cats, setCats] = useState<Record<string, Item[]>>(defaultCats)
+  const [amounts, setAmounts] = useState<Record<string, number>>({})
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number; assigned: number } | null>(null)
+
+  const selectedGroups = groups.filter((g) => g.on && g.name.trim())
+  const selectedCatCount = selectedGroups.reduce(
+    (n, g) => n + (cats[g.id] ?? []).filter((c) => c.on && c.name.trim()).length,
+    0,
+  )
+
+  function liveCats(): LiveCat[] {
+    const out: LiveCat[] = []
+    selectedGroups.forEach((g, gi) => {
+      ;(cats[g.id] ?? []).forEach((c) => {
+        if (c.on && c.name.trim()) out.push({ key: `${g.id}:${c.id}`, groupId: g.id, catId: c.id, gi, emoji: c.emoji, name: c.name })
+      })
+    })
+    return out
+  }
+
+  const assignedTotal = () => liveCats().reduce((n, c) => n + (amounts[c.key] ?? 0), 0)
+  const remainder = () => (Number(income) || 0) - assignedTotal()
+
+  function distribute(weighted: boolean): Record<string, number> {
+    const items = liveCats()
+    const incomeValue = Number(income) || 0
+    if (!items.length) return {}
+    const weights = items.map((it) => groupWeight(it.gi, weighted))
+    const totalWeight = weights.reduce((a, b) => a + b, 0)
+    const out: Record<string, number> = {}
+    let used = 0
+    items.forEach((it, idx) => {
+      let v = idx === items.length - 1 ? incomeValue - used : Math.round((incomeValue * weights[idx]) / totalWeight / 100) * 100
+      if (v < 0) v = 0
+      used += v
+      out[it.key] = v
+    })
+    return out
+  }
+
+  const canAdvance =
+    step === 1
+      ? Number(income) > 0
+      : step === 2
+        ? selectedGroups.length > 0
+        : step === 3
+          ? selectedCatCount > 0
+          : step === 4
+            ? remainder() === 0 && assignedTotal() > 0
+            : true
+
+  const patchGroup = (id: string, patch: Partial<Item>) =>
+    setGroups((gs) => gs.map((g) => (g.id === id ? { ...g, ...patch } : g)))
+
+  const patchCat = (groupId: string, catId: string, patch: Partial<Item>) =>
+    setCats((c) => ({ ...c, [groupId]: (c[groupId] ?? []).map((cat) => (cat.id === catId ? { ...cat, ...patch } : cat)) }))
+
+  const addGroupRow = () => {
+    const id = makeId()
+    setGroups((gs) => [...gs, { id, emoji: '🎁', name: '', on: true }])
+    setCats((c) => ({ ...c, [id]: [] }))
+  }
+
+  const addCatRow = (groupId: string) => {
+    setCats((c) => ({ ...c, [groupId]: [...(c[groupId] ?? []), { id: makeId(), emoji: '🎁', name: '', on: true }] }))
+  }
+
+  const setAmount = (key: string, v: number) => setAmounts((prev) => ({ ...prev, [key]: Math.max(0, v) }))
+
+  const fillRemainder = (key: string) => {
+    const cur = amounts[key] ?? 0
+    const rest = assignedTotal() - cur
+    setAmount(key, Math.max(0, (Number(income) || 0) - rest))
+  }
+
+  const back = () => {
+    setError('')
+    setStep((s) => Math.max(1, s - 1))
+  }
+
+  const commit = async () => {
+    if (pending) return
+    setPending(true)
+    setError('')
+    try {
+      const month = currentMonthKey()
+      const incomeValue = Math.round(Number(income)) || 0
+      await updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' })
+
+      for (const g of selectedGroups) {
+        await addGroup(label(g)).catch(ignoreConflict)
+      }
+
+      let categoryCount = 0
+      const items = liveCats()
+      for (const g of selectedGroups) {
+        const groupLabel = label(g)
+        const rows = (cats[g.id] ?? []).filter((c) => c.on && c.name.trim())
+        for (const c of rows) {
+          await addCategory(label(c), groupLabel).catch(ignoreConflict)
+          categoryCount += 1
+        }
+      }
+
+      for (const item of items) {
+        const catLabel = `${item.emoji} ${item.name.trim()}`
+        await updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' })
+      }
+
+      await updateUser({ onboardedAt: new Date().toISOString() })
+      await qc.invalidateQueries()
+
+      setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount, assigned: assignedTotal() })
+      setStep(5)
+    } catch {
+      setError('Something went wrong. Try again.')
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const next = () => {
+    if (!canAdvance) return
+    if (step === 3) {
+      setAmounts((prev) => (Object.keys(prev).length ? prev : distribute(true)))
+      setStep(4)
+      return
+    }
+    if (step === 4) {
+      commit()
+      return
+    }
+    setStep((s) => s + 1)
+  }
+
+  if (step === 5 && result) {
+    return (
+      <div className={`expense-redesign setup-page ${fredoka.variable} ${nunito.variable}`}>
+        <SetupDone result={result} onFinish={() => router.push('/expense')} />
+      </div>
+    )
+  }
+
+  const [title, blurb] = TITLES[step]
+  const rem = remainder()
+  const hint =
+    step === 1
+      ? canAdvance
+        ? ''
+        : 'Enter an amount to continue'
+      : step === 2
+        ? canAdvance
+          ? `${selectedGroups.length} groups selected`
+          : 'Keep at least one group'
+        : step === 3
+          ? canAdvance
+            ? `${selectedCatCount} categories across ${selectedGroups.length} groups`
+            : 'Pick at least one category'
+          : canAdvance
+            ? 'Every rupee assigned'
+            : rem > 0
+              ? `${formatINR(rem)} still to assign`
+              : `${formatINR(-rem)} over your income`
+
+  const remState = rem === 0 ? 'is-zero' : rem < 0 ? 'is-over' : 'is-under'
+  const remLabel = rem === 0 ? 'All assigned' : rem < 0 ? 'Over by' : 'Left to assign'
 
   return (
-    <div className={`expense-redesign onboarding-page ${fredoka.variable} ${nunito.variable}`}>
-      <div className="onboarding-top">
-        <div className="onboarding-dots">
-          {SLIDES.map((_, i) => (
-            <span key={i} className={`onboarding-dot ${i === slide ? 'is-active' : ''}`} />
+    <div className={`expense-redesign setup-page ${fredoka.variable} ${nunito.variable}`}>
+      <div className="setup-top">
+        <button type="button" className="setup-back" onClick={back} disabled={step === 1}>
+          ←
+        </button>
+        <div className="setup-dots">
+          {[1, 2, 3, 4].map((n) => (
+            <span key={n} className={`setup-dot ${n <= step ? 'is-active' : ''}`} />
           ))}
         </div>
-        <button type="button" className="onboarding-skip" onClick={finishOnboarding}>
-          Skip tour
-        </button>
+        <span className="setup-step-counter">step {step}/4</span>
       </div>
 
-      <div className="onboarding-art" aria-hidden="true">
-        {current.emoji}
-      </div>
+      <h1 className="setup-title">{title}</h1>
+      <p className="setup-blurb">{blurb}</p>
 
-      <div className="onboarding-body">
-        <h1 className="onboarding-title">{current.title}</h1>
-        <p className="onboarding-copy">{current.body}</p>
-      </div>
+      {step === 1 && (
+        <div className="setup-body">
+          <div className="setup-amount-wrap">
+            <span className="setup-amount">{income ? formatINR(Number(income)) : '₹0'}</span>
+          </div>
+          <input
+            type="number"
+            className="txn-entry-input setup-amount-input"
+            placeholder="Type an amount"
+            value={income}
+            min={0}
+            onChange={(e) => setIncome(e.target.value.replace(/^0+/, '').slice(0, 9))}
+          />
+          <div className="setup-quick-row">
+            {QUICK_PICKS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={`setup-chip ${income === v ? 'is-active' : ''}`}
+                onClick={() => setIncome(v)}
+              >
+                {formatINR(Number(v))}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      <button
-        type="button"
-        className="auth-btn auth-btn--primary"
-        onClick={() => (isLast ? finishOnboarding() : setSlide((s) => s + 1))}
-      >
-        {isLast ? 'Get started' : 'Next'}
+      {step === 2 && (
+        <div className="setup-body setup-row-list">
+          {groups.map((g) => (
+            <PickRow
+              key={g.id}
+              emoji={g.emoji}
+              name={g.name}
+              on={g.on}
+              placeholder="Group name"
+              onCycleEmoji={() => patchGroup(g.id, { emoji: nextEmoji(g.emoji) })}
+              onChangeName={(name) => patchGroup(g.id, { name })}
+              onToggle={() => patchGroup(g.id, { on: !g.on })}
+            />
+          ))}
+          <button type="button" className="setup-add-row" onClick={addGroupRow}>
+            + Add your own group
+          </button>
+          <p className="setup-micro-hint">tap a name to rename · tap the emoji to change it</p>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="setup-body setup-section-list">
+          {selectedGroups.map((g) => {
+            const rows = cats[g.id] ?? []
+            return (
+              <div key={g.id} className="setup-section">
+                <div className="setup-section-header">
+                  <span>{g.emoji}</span>
+                  <span className="setup-section-title">{g.name.toUpperCase()}</span>
+                  <span className="setup-section-count">{rows.filter((c) => c.on).length} picked</span>
+                </div>
+                {rows.map((c) => (
+                  <PickRow
+                    key={c.id}
+                    emoji={c.emoji}
+                    name={c.name}
+                    on={c.on}
+                    placeholder="Category name"
+                    onCycleEmoji={() => patchCat(g.id, c.id, { emoji: nextEmoji(c.emoji) })}
+                    onChangeName={(name) => patchCat(g.id, c.id, { name })}
+                    onToggle={() => patchCat(g.id, c.id, { on: !c.on })}
+                  />
+                ))}
+                <button type="button" className="setup-add-pill" onClick={() => addCatRow(g.id)}>
+                  + Add category
+                </button>
+              </div>
+            )
+          })}
+          {selectedCatCount > 0 && (
+            <p className="setup-micro-hint">
+              🔔 Alerts at {DEFAULT_ALERT_PCTS.join(' · ')}% by default. Change any category&apos;s alerts later from Envelopes.
+            </p>
+          )}
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="setup-body">
+          <div className={`setup-rem-chip ${remState}`}>
+            <span className="setup-rem-label">{remLabel}</span>
+            <span className="setup-rem-value">{formatINR(Math.abs(rem))}</span>
+          </div>
+          <div className="setup-split-row">
+            <button type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(true))}>
+              Suggested split
+            </button>
+            <button type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(false))}>
+              Split evenly
+            </button>
+          </div>
+          <div className="setup-section-list">
+            {selectedGroups.map((g) => {
+              const rows = (cats[g.id] ?? []).filter((c) => c.on && c.name.trim())
+              const subtotal = rows.reduce((n, c) => n + (amounts[`${g.id}:${c.id}`] ?? 0), 0)
+              return (
+                <div key={g.id} className="setup-section">
+                  <div className="setup-section-header">
+                    <span>{g.emoji}</span>
+                    <span className="setup-section-title">{g.name.toUpperCase()}</span>
+                    <span className="setup-section-subtotal">{formatINR(subtotal)}</span>
+                  </div>
+                  {rows.map((c) => {
+                    const key = `${g.id}:${c.id}`
+                    const v = amounts[key] ?? 0
+                    return (
+                      <div key={c.id} className="setup-assign-row">
+                        <span className="setup-assign-emoji">{c.emoji}</span>
+                        <span className="setup-assign-name">{c.name}</span>
+                        <input
+                          type="number"
+                          className="txn-entry-input setup-assign-input"
+                          placeholder="0"
+                          min={0}
+                          value={v || ''}
+                          onChange={(e) => setAmount(key, Math.round(Number(e.target.value) || 0))}
+                        />
+                        {rem !== 0 && (
+                          <button type="button" className="setup-fill-btn" onClick={() => fillRemainder(key)} title="Give this the leftover">
+                            fill
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {error !== '' && <p className="setup-error">{error}</p>}
+
+      <button type="button" className="setup-cta" disabled={!canAdvance || pending} onClick={next}>
+        {pending ? 'Saving…' : step === 4 ? 'Finish setup' : 'Continue'}
+      </button>
+      {error === '' && <p className="setup-cta-hint">{hint}</p>}
+    </div>
+  )
+}
+
+function PickRow({
+  emoji,
+  name,
+  on,
+  placeholder,
+  onCycleEmoji,
+  onChangeName,
+  onToggle,
+}: {
+  emoji: string
+  name: string
+  on: boolean
+  placeholder: string
+  onCycleEmoji: () => void
+  onChangeName: (name: string) => void
+  onToggle: () => void
+}) {
+  return (
+    <div className={`setup-pick-row ${on ? 'is-on' : ''}`}>
+      <button type="button" className="setup-pick-emoji" onClick={onCycleEmoji} title="Change emoji">
+        {emoji}
+      </button>
+      <input
+        type="text"
+        className="setup-pick-input"
+        placeholder={placeholder}
+        value={name}
+        onChange={(e) => onChangeName(e.target.value)}
+      />
+      <button type="button" className={`setup-pick-check ${on ? 'is-on' : ''}`} onClick={onToggle} aria-label={on ? 'Included' : 'Excluded'}>
+        {on ? '✓' : ''}
+      </button>
+    </div>
+  )
+}
+
+function SetupDone({
+  result,
+  onFinish,
+}: {
+  result: { income: number; groupCount: number; categoryCount: number; assigned: number }
+  onFinish: () => void
+}) {
+  const summary = [
+    { icon: '₹', label: 'Monthly income', value: formatINR(result.income) },
+    { icon: '📁', label: 'Groups', value: String(result.groupCount) },
+    { icon: '✉️', label: 'Categories', value: String(result.categoryCount) },
+    { icon: '✓', label: 'Assigned', value: formatINR(result.assigned) },
+  ]
+
+  return (
+    <div className="setup-done">
+      <div className="setup-done-badge">✓</div>
+      <h1 className="setup-done-title">Your budget is ready to go.</h1>
+      <p className="setup-done-blurb">Everything below can be changed later from Envelopes.</p>
+      <div className="setup-done-list">
+        {summary.map((s) => (
+          <div key={s.label} className="setup-done-row">
+            <span className="setup-done-icon">{s.icon}</span>
+            <span className="setup-done-label">{s.label}</span>
+            <span className="setup-done-value">{s.value}</span>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="setup-cta" onClick={onFinish}>
+        Go to my dashboard
       </button>
     </div>
   )

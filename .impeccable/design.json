@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-11T11:45:48.324045+00:00",
+  "title": "Design System: Aviary public landing",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "worker-grounding",
+        "value": "0 5px 8px -6px #34412a70",
+        "purpose": "Small shadow beneath money workers only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-background",
+        "value": "160ms ease",
+        "purpose": "Button hover background."
+      },
+      {
+        "name": "worker-assignment",
+        "value": "spring: stiffness 190, damping 24",
+        "purpose": "User-triggered movement into a named envelope; disabled under reduced motion."
+      },
+      {
+        "name": "guided-step-delay",
+        "value": "1800ms assignment; 4800ms spending/adjustment",
+        "purpose": "Explicit Show me playback only."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "900px"
+      },
+      {
+        "name": "mobile",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Landing action; use on its documented contrasting surface.",
+      "html": "<button class=\"ds-button\">Open web app</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:13px 20px;border:1px solid transparent;border-radius:12px;font:800 15px/1.3 Nunito,sans-serif;cursor:pointer;transition:background-color .16s ease}.ds-button:focus-visible{outline:3px solid #a5d8ee;outline-offset:5px}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-button{background:#f4501a;color:#1f120a;border-color:transparent}.ds-button:hover{background:#ff7543}"
+    },
+    {
+      "name": "Outline button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Landing action; use on its documented contrasting surface.",
+      "html": "<button class=\"ds-button\">Open web app</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:13px 20px;border:1px solid transparent;border-radius:12px;font:800 15px/1.3 Nunito,sans-serif;cursor:pointer;transition:background-color .16s ease}.ds-button:focus-visible{outline:3px solid #a5d8ee;outline-offset:5px}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-button{background:transparent;color:#f8f7f4;border-color:#5d5f62}.ds-button:hover{background:#252729}"
+    },
+    {
+      "name": "Dark button",
+      "kind": "button",
+      "refersTo": "button-dark",
+      "description": "Landing action; use on its documented contrasting surface.",
+      "html": "<button class=\"ds-button\">Open web app</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:13px 20px;border:1px solid transparent;border-radius:12px;font:800 15px/1.3 Nunito,sans-serif;cursor:pointer;transition:background-color .16s ease}.ds-button:focus-visible{outline:3px solid #a5d8ee;outline-offset:5px}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-button{background:#202322;color:#fff;border-color:transparent}.ds-button:hover{background:#373d38}"
+    },
+    {
+      "name": "Light button",
+      "kind": "button",
+      "refersTo": "button-light",
+      "description": "Landing action; use on its documented contrasting surface.",
+      "html": "<button class=\"ds-button\">Open web app</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:13px 20px;border:1px solid transparent;border-radius:12px;font:800 15px/1.3 Nunito,sans-serif;cursor:pointer;transition:background-color .16s ease}.ds-button:focus-visible{outline:3px solid #a5d8ee;outline-offset:5px}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}.ds-button{background:#fff3e7;color:#25150c;border-color:transparent}.ds-button:hover{background:#fff}"
+    },
+    {
+      "name": "Sample note field",
+      "kind": "input",
+      "refersTo": "sample-field",
+      "description": "Expense sample note on the orange keypad.",
+      "html": "<label class=\"ds-label\" for=\"ds-note\">What was it for?</label><input class=\"ds-field\" id=\"ds-note\" placeholder=\"Lunch, chai, groceries\u2026\">",
+      "css": ".ds-label{display:block;font:800 12px Nunito,sans-serif;margin:12px 0 6px}.ds-field{width:100%;min-height:44px;border:1px solid #733118;border-radius:9px;background:#fff1e5;color:#2b160d;padding:10px 12px;font:16px Nunito,sans-serif}.ds-field::placeholder{color:#6b5144}.ds-field:focus-visible{outline:3px solid #241309;outline-offset:2px}"
+    },
+    {
+      "name": "Landing navigation",
+      "kind": "nav",
+      "description": "In-page links from the sticky header.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a href=\"#learn\">How it works</a><a href=\"#play\">Try it</a><a href=\"#faq\">FAQ</a></nav>",
+      "css": ".ds-nav{display:flex;gap:28px;align-items:center;background:#101112;padding:8px}.ds-nav a{font:14px Nunito,sans-serif;color:#b8babd;padding:8px 0;text-decoration:none}.ds-nav a:hover{text-decoration:underline;text-underline-offset:5px}.ds-nav a:focus-visible{outline:3px solid #a5d8ee;outline-offset:5px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Money at work",
+    "overview": "Public landing only: existing Aviary orange and Fredoka/Nunito identity, with money workers assigned to pastel envelopes on a light tabletop. No new global app identity.",
+    "keyCharacteristics": [
+      "Dark reading canvas",
+      "Light teaching tabletop",
+      "Named pastel envelope roles",
+      "Explicitly local sample data",
+      "User-controlled motion"
+    ],
+    "rules": [
+      {
+        "name": "Sample truth",
+        "body": "Assignment is not spending. Reallocation does not change total money. Neither sample saves to an account.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Preserve scope to public /.",
+      "Retain visible values, accessible labels, undo/reset, and reduced motion."
+    ],
+    "donts": [
+      "Do not apply this identity to the dashboard.",
+      "Do not present sample amounts as budget advice."
+    ]
+  }
+}

@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronRight, ChevronsDownUp, LineChart } from 'lucide-react'
 import { categoryEmoji, groupEmoji, splitEmoji } from '@/src/lib/emoji'
-import { formatCurrency } from '@/src/lib/format'
 import { AmountText, AutoHeight, BottomSheet, IconButton, NAV_HEIGHT, PHONE, T, col, font, pressable, radius, row, space, type } from './kit'
 import { fillColor } from './LogExpense'
 import { DAYS_LEFT, GROUPS, MONTH_LABEL, toEnvelope, type DemoCategory, type Envelope } from './demo'
@@ -135,7 +134,10 @@ function EnvelopeGroup({
           <span style={{ fontSize: 14 }}>{groupEmoji(group)}</span>
           <span style={{ color: T.text, ...font.bodyExtraBold, fontSize: 13 }}>{splitEmoji(group).text}</span>
         </div>
-        <span style={{ color: T.mint, ...font.bodySemiBold, fontSize: 12 }}>{formatCurrency(totalAvailable)} left</span>
+        <span style={{ ...row, color: T.mint, ...font.bodySemiBold, fontSize: 12 }}>
+          <AmountText value={totalAvailable} size={12} weight="bodySemiBold" color={T.mint} animate id={`group-total-${group}`} />
+          &nbsp;left
+        </span>
       </button>
       <AnimatePresence initial={false}>
         {expanded && (
@@ -189,8 +191,10 @@ function EnvelopeRow({ envelope, emoji, notice }: { envelope: Envelope; emoji: s
           <span style={{ color: T.text, ...font.bodySemiBold, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {name}
           </span>
-          <span style={{ marginLeft: 'auto', color: T.text2, ...font.bodyMedium, fontSize: 12, whiteSpace: 'nowrap' }}>
-            {formatCurrency(envelope.spent)}/{formatCurrency(envelope.assigned)}
+          <span style={{ ...row, marginLeft: 'auto', color: T.text2, ...font.bodyMedium, fontSize: 12, whiteSpace: 'nowrap' }}>
+            <AmountText value={envelope.spent} size={12} weight="bodyMedium" color={T.text2} animate id={`env-spent-${envelope.category}`} />
+            /
+            <AmountText value={envelope.assigned} size={12} weight="bodyMedium" color={T.text2} animate id={`env-assigned-${envelope.category}`} />
           </span>
         </div>
         <div style={{ width: '100%', height: 5, borderRadius: 100, overflow: 'hidden', background: T.borderStrong }}>
@@ -209,7 +213,14 @@ function EnvelopeRow({ envelope, emoji, notice }: { envelope: Envelope; emoji: s
           textAlign: 'right',
         }}
       >
-        {formatCurrency(envelope.available)}
+        <AmountText
+          value={envelope.available}
+          size={12}
+          weight="bodySemiBold"
+          color={envelope.isOverspent ? T.coral : T.mint}
+          animate
+          id={`env-available-${envelope.category}`}
+        />
       </span>
 
       <BottomSheet visible={sheetOpen} onClose={() => setSheetOpen(false)}>

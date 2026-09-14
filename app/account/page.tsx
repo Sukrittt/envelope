@@ -207,6 +207,15 @@ export default function AccountPage() {
             </span>
             <span className="account-badge">Free &amp; open source</span>
           </div>
+          <Link href="/account/guided-tour" className="account-row">
+            <span className="account-row-icon" aria-hidden="true">
+              🧭
+            </span>
+            <span className="account-row-label">How this works</span>
+            <span className="account-row-arrow" aria-hidden="true">
+              →
+            </span>
+          </Link>
           <Link href="/account/help" className="account-row">
             <span className="account-row-icon" aria-hidden="true">
               💬

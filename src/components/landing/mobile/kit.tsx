@@ -206,8 +206,8 @@ function Digit({
   const to = direction === 'down' ? 0 : -rowHeight
 
   useLayoutEffect(() => {
-    if (!changed) return
-    stack.current?.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${to}px)` }], {
+    if (!changed || typeof stack.current?.animate !== 'function') return
+    stack.current.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${to}px)` }], {
       duration: MOTION_SLOW,
       easing: cssEase(ease.outCubic),
       fill: 'forwards',
