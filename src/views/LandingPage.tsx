@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowDown, ArrowRight, Check, Github, Monitor, ShieldCheck, Smartphone } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
-import { Faq, LandingMotion, LaunchFilm } from '../components/landing/LandingClient'
+import { Faq, LandingMotion } from '../components/landing/LandingClient'
 import { MoneyLesson } from '../components/landing/MoneyLesson'
 import '../landing.css'
 
@@ -52,7 +52,6 @@ export function LandingPage() {
           <article><span className="lp-benefit-index" aria-hidden="true"><Check size={20} /></span><h3>See the picture behind the purchases.</h3><p>Explore spending with Insights and Expense Wrapped, track investments, or ask Money Brain a question about your money. Archived entries can be restored when you need them.</p></article>
         </div>
       </div>
-      <LaunchFilm />
     </section>
 
     <section id="web" className="lp-section lp-platforms" aria-labelledby="platform-title">
