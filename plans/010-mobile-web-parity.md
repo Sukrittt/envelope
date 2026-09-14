@@ -1,6 +1,6 @@
 # 010 — Bring Web to feature parity with Mobile
 
-- **Status**: ACCEPTED. Phases 0 through 6 done; phase 7 remains next in sequence.
+- **Status**: ACCEPTED. All phases (0 through 7) done.
 - **Scope**: frontend only. Every endpoint Mobile calls already exists in `app/api/`.
 - **Surveyed**: `Sukrittt/envelope` @ `7cd1127`, `Sukrittt/envelope-mobile` @ `6a393de`
 
@@ -213,8 +213,20 @@ record over one of them (Mobile still sends them and loses the record). The acco
 gained `width: 100%`: as an auto-margined grid item it had been shrinking to its content, so
 every account page was only as wide as whatever was on it.
 
-### Phase 7 — Onboarding and tour (M)
+### Phase 7 — Onboarding and tour (M) — DONE
 The real setup wizard in place of the 3 slides, plus the guided tour and its six demos.
+
+Shipped as a twin of Mobile's `app/setup.tsx`: income → groups → categories → assign → done,
+same weighted-split math, same "already exists" conflict swallowing, writes landing on finish
+for the same reason (groups/categories aren't renameable server-side until they exist). Numpad
+and bottom-sheet amount entry are dropped for plain number inputs — a desktop already has a
+keyboard, so the touch-specific input UI has no reason to exist here.
+
+`/account/guided-tour` ports `app/account/guided-tour.tsx` and its six demos
+(`src/components/tour/{content.ts,parts.tsx,demos/*}`) file-for-file, hub/chapter/done view
+states and all. `useTourProgress` sits on Phase 1's `usePersistentState` in place of
+SecureStore, same drop-in `useState<Set<number>>` tuple. Wired into the account sidebar,
+account page and Help.
 
 ## 5. Notes for the executor
 
