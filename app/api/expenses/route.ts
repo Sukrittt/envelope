@@ -75,14 +75,21 @@ export async function GET(req: Request) {
     const start = (page - 1) * limit
     pageDocs = matched.slice(start, start + limit)
   } else {
-    total = await coll.countDocuments(mongoFilter)
-    pageDocs = await coll
-      .find(mongoFilter)
-      .sort(SORT)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray()
-    const forTotal = await coll.find(mongoFilter, { projection: { amount_inr: 1 } }).toArray()
+    // `total` used to come from a separate countDocuments() call; the
+    // amount_inr-only fetch below already visits every matching doc, so its
+    // length is the same count for free. Running it alongside the page fetch
+    // (instead of after, sequentially) turns 3 round trips into 2 concurrent ones.
+    const [pageResult, forTotal] = await Promise.all([
+      coll
+        .find(mongoFilter)
+        .sort(SORT)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray(),
+      coll.find(mongoFilter, { projection: { amount_inr: 1 } }).toArray(),
+    ])
+    pageDocs = pageResult
+    total = forTotal.length
     totalAmount = forTotal.reduce((s, d) => s + (Number(d.amount_inr) || 0), 0)
   }
 
