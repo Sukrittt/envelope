@@ -6,6 +6,7 @@ import { OnboardingGate } from './OnboardingGate'
 import { QueryProvider } from './QueryProvider'
 import { AppShell } from './AppShell'
 import { AppearanceProvider } from './AppearanceProvider'
+import { CurrencyProvider } from './CurrencyProvider'
 import { MoneyBrainProvider } from './MoneyBrainProvider'
 
 // No AuthGate: signed-out visitors use the API's read-only demo account, while
@@ -14,13 +15,13 @@ export function ClientProviders({ children }: { children: ReactNode }) {
   return (
     <AuthKitProvider>
       <QueryProvider>
-        <AppearanceProvider>
+        <CurrencyProvider><AppearanceProvider>
           <MoneyBrainProvider>
             <OnboardingGate>
               <AppShell>{children}</AppShell>
             </OnboardingGate>
           </MoneyBrainProvider>
-        </AppearanceProvider>
+        </AppearanceProvider></CurrencyProvider>
       </QueryProvider>
     </AuthKitProvider>
   )

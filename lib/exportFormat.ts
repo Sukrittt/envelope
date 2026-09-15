@@ -8,6 +8,7 @@
  * up in the downloaded spreadsheet.
  */
 import { formatCurrency } from '@/lib/currency'
+import { resolveCurrency } from '@/src/lib/currencies'
 import { COLLECTIONS } from '@/lib/models'
 
 /** 'holding_events' -> 'Holding events' */
@@ -20,9 +21,9 @@ function capitalizeWord(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1)
 }
 
-const money = (raw: unknown): string => {
+const moneyFor = (currencyCode: string) => (raw: unknown): string => {
   const value = Number(raw)
-  return raw === undefined || raw === null || raw === '' || Number.isNaN(value) ? '' : formatCurrency(value)
+  return raw === undefined || raw === null || raw === '' || Number.isNaN(value) ? '' : formatCurrency(value, currencyCode)
 }
 
 const dateOnly = (raw: unknown): string => {
@@ -70,11 +71,14 @@ export interface ExportColumn {
 // ponytail: skips pushTokens/categoryMapOverrides/chatSessions/notificationLog/exports
 // (no fixed columns, not user-facing budget data) — add a dynamic-header tab if
 // users need those too.
-export const EXPORT_COLUMNS: Partial<Record<keyof typeof COLLECTIONS, ExportColumn[]>> = {
+export function exportColumns(currencyCode: string = 'INR'): Partial<Record<keyof typeof COLLECTIONS, ExportColumn[]>> {
+  const code = resolveCurrency(currencyCode)
+  const money = moneyFor(code)
+  return {
   expenses: [
     { key: 'date', label: 'Date', format: dateOnly },
     { key: 'item', label: 'Item' },
-    { key: 'amount_inr', label: 'Amount (INR)', format: money },
+    { key: 'amount_inr', label: `Amount (${code})`, format: money },
     { key: 'category', label: 'Category' },
     { key: 'notes', label: 'Notes' },
     { key: 'payment_method', label: 'Payment method', format: label({ bank: 'Bank', credit_card: 'Credit card' }) },
@@ -93,7 +97,7 @@ export const EXPORT_COLUMNS: Partial<Record<keyof typeof COLLECTIONS, ExportColu
   subscriptions: [
     { key: 'timestamp', label: 'Added on', format: dateTime },
     { key: 'service', label: 'Service' },
-    { key: 'amount_inr', label: 'Amount (INR)', format: money },
+    { key: 'amount_inr', label: `Amount (${code})`, format: money },
     { key: 'billing_cycle', label: 'Billing cycle' },
     { key: 'next_due_date', label: 'Next due date', format: dateOnly },
     { key: 'status', label: 'Status', format: label({ active: 'Active', cancelled: 'Cancelled' }) },
@@ -123,3 +127,8 @@ export const EXPORT_COLUMNS: Partial<Record<keyof typeof COLLECTIONS, ExportColu
     { key: 'timestamp', label: 'Date', format: dateTime },
   ],
 }
+
+}
+
+/** Default INR shape retained for existing callers and fixtures. */
+export const EXPORT_COLUMNS = exportColumns()

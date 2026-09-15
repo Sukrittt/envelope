@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 const PHRASES = [
   "Balancing the envelopes…",
-  "Giving every rupee a job…",
+  "Giving your money a job…",
   "Counting what's Ready to Assign…",
   "Chasing down last month's leftovers…",
   "Reconciling the chaos…",

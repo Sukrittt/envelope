@@ -1,6 +1,7 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
-import { formatCurrency } from '@/lib/currency'
+
 
 interface Props {
   currentMonth: string
@@ -22,6 +23,8 @@ function monthLabel(monthKey: string): string {
 }
 
 export function MonthRolloverBanner({ currentMonth, lastMonth, lastIncome, lastAssignments, onConfirm, onDismiss }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const [income, setIncome] = useState(String(lastIncome))
   const [copyAssigned, setCopyAssigned] = useState(true)
   const { saving, success, start, succeed, fail } = useButtonPhase()

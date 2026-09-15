@@ -11,7 +11,7 @@ export default function HelpPage() {
             How envelopes work
           </div>
           <p className="account-help-copy">
-            Every rupee of income gets assigned to an envelope — rent, food, subscriptions, whatever you spend on.
+            All income gets assigned to an envelope — rent, food, subscriptions, whatever you spend on.
             Money that hasn&apos;t been assigned yet sits in Ready to Assign. Overspend an envelope and you move
             money into it from another one; the total never lies, it just moves. At the start of a new month,
             whatever&apos;s left in each envelope rolls forward instead of resetting to zero, so a slow month in

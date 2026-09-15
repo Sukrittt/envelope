@@ -1,8 +1,10 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, type TargetAndTransition, type Transition } from 'motion/react'
-import { formatCurrency } from '@/src/lib/format'
+
 import { PHONE, PhoneScreenContext, T, ease } from './mobile/kit'
 import { FloatingNav, type NavRoute } from './mobile/nav'
 import { EMPTY_SUBMIT, ExpenseAddedScreen, LogExpenseScreen, type LoggedExpense, type SubmitState } from './mobile/LogExpense'
@@ -39,6 +41,8 @@ const TRANSITION: Record<Screen, Transition> = {
 }
 
 export function Playground() {
+  const { formatCurrency } = useCurrency()
+
   const [nav, setNav] = useState<{ screen: Screen; from: Screen }>({ screen: 'log', from: 'log' })
   const [categories, setCategories] = useState<DemoCategory[]>(CATEGORIES)
   const [submit, setSubmit] = useState<SubmitState>(EMPTY_SUBMIT)
@@ -211,7 +215,7 @@ export function Playground() {
             )}
             {tab === 'envelopes' && (
               <>
-                <div className="lp-h3">Every rupee has an address.</div>
+                <div className="lp-h3">Your money has an address.</div>
                 <p className="lp-body">
                   Group them how your life actually works. House, Lifestyle, whatever. Expand, collapse, drag to reorder.
                   The bar turns yellow before you&apos;re in trouble, not after.

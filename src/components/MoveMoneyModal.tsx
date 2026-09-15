@@ -1,8 +1,9 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useMemo, useState } from 'react'
 import type { Envelope } from '../types/expense'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
-import { formatCurrency } from '@/lib/currency'
+
 
 interface Props {
   targetCategory: string
@@ -15,6 +16,8 @@ interface Props {
 const RTA_SENTINEL = '__ready_to_assign__'
 
 export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClose, onTransfer }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const envelopeSources = envelopes.filter((e) => e.available > 0 && e.category !== targetCategory)
   const target = envelopes.find((e) => e.category === targetCategory)
   const targetAvail = target?.available ?? 0
@@ -138,7 +141,8 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
               saving={saving}
               success={success}
             >
-              Move ₹{parsedAmount}
+
+              Move {formatCurrency(parsedAmount)}
             </SuccessButton>
           </div>
         </form>

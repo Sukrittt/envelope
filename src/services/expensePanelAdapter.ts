@@ -1,3 +1,4 @@
+import { formatMoney } from '@/src/lib/currencies'
 export interface ExpenseRowDetail {
   timestamp: string
   date: string
@@ -128,7 +129,7 @@ function toWeeklyAnomalies(rows: Array<{ date: string; amountInr: number }>) {
   return [...weeklyTotals.values()].sort((a, b) => b.totalInr - a.totalInr)
 }
 
-function buildWeeklyInsights(input: ExpensePanelContract, avgDailyLast7Inr: number, trendPct: number): ExpensePanelData['weeklyInsights'] {
+function buildWeeklyInsights(input: ExpensePanelContract, avgDailyLast7Inr: number, trendPct: number, currencyCode = 'INR'): ExpensePanelData['weeklyInsights'] {
   const topCategory = input.topCategories[0]
   const softCapVariancePct = input.meta.dailySoftCapInr
     ? ((avgDailyLast7Inr - input.meta.dailySoftCapInr) / input.meta.dailySoftCapInr) * 100
@@ -136,9 +137,9 @@ function buildWeeklyInsights(input: ExpensePanelContract, avgDailyLast7Inr: numb
 
   const wentWrongBits = [
     topCategory
-      ? `${topCategory.category} is still the biggest drag at ₹${topCategory.amountInr.toFixed(0)}.`
+      ? `${topCategory.category} is still the biggest drag at ${formatMoney(Math.round(topCategory.amountInr), currencyCode)}.`
       : 'No clear top category pressure yet.',
-    `7d average is ₹${avgDailyLast7Inr.toFixed(0)}/day (${trendPct > 0 ? '+' : ''}${round(trendPct)}% vs previous week).`,
+    `7d average is ${formatMoney(Math.round(avgDailyLast7Inr), currencyCode)}/day (${trendPct > 0 ? '+' : ''}${round(trendPct)}% vs previous week).`,
   ]
 
   if (softCapVariancePct > 0) {
@@ -157,7 +158,7 @@ function buildWeeklyInsights(input: ExpensePanelContract, avgDailyLast7Inr: numb
   }
 }
 
-export function toExpensePanelData(input: ExpensePanelContract): ExpensePanelData {
+export function toExpensePanelData(input: ExpensePanelContract, currencyCode = 'INR'): ExpensePanelData {
   const spendVsCapPct = (input.totals.monthSpendInr / input.meta.monthlySpendCapInr) * 100
   const recent = input.dailySpend.slice(-14)
   const prev = recent.slice(0, Math.max(0, recent.length - 7))
@@ -207,7 +208,7 @@ export function toExpensePanelData(input: ExpensePanelContract): ExpensePanelDat
     miniTrend: input.dailySpend.map((row) => ({ date: row.date, value: row.amountInr })),
     expenseRows: input.expenseRows,
     weeklyAnomalies: toWeeklyAnomalies(input.dailySpend).slice(0, 8),
-    weeklyInsights: buildWeeklyInsights(input, avgDailyLast7Inr, trendPct),
+    weeklyInsights: buildWeeklyInsights(input, avgDailyLast7Inr, trendPct, currencyCode),
     subscriptions: {
       active: activeSubscriptions,
       cancelled: cancelledSubscriptions,

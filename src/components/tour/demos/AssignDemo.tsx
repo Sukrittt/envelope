@@ -1,10 +1,13 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
-import { formatCurrency } from '@/src/lib/format'
+
 import { TourRow } from '@/src/components/tour/parts'
 import { ASSIGN_ROWS, TOUR_INCOME } from '@/src/components/tour/content'
 
 /** Chapter 1: hand out the income until Ready to Assign hits zero. */
 export function AssignDemo({ onComplete }: { onComplete: () => void }) {
+  const { formatCurrency } = useCurrency()
+
   const [funded, setFunded] = useState<Record<string, boolean>>({})
 
   const assigned = ASSIGN_ROWS.reduce((sum, row) => sum + (funded[row.id] ? row.plan : 0), 0)
@@ -22,7 +25,7 @@ export function AssignDemo({ onComplete }: { onComplete: () => void }) {
   const heroClass = readyToAssign === 0 ? 'is-mint' : readyToAssign < 0 ? 'is-coral' : ''
   const note =
     readyToAssign === 0
-      ? 'Every rupee has a job ✓'
+      ? 'All your money has a job ✓'
       : readyToAssign < 0
         ? "You've assigned more than you earn"
         : `${formatCurrency(readyToAssign)} of your ${formatCurrency(TOUR_INCOME)} income has no job yet`

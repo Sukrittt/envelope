@@ -1,6 +1,8 @@
 'use client'
 
-import { formatCurrency } from '@/lib/currency'
+import { useCurrency } from '@/src/context/CurrencyContext'
+
+
 
 export interface HeatmapCell {
   date: string
@@ -33,6 +35,8 @@ export function heatmapLevels(cells: HeatmapCell[]) {
 }
 
 export function Heatmap({ cells, todayDate, hideAmounts = false, onSelectDate }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const rows = Math.max(1, Math.ceil(cells.length / 7))
   const width = CELL * 7 + GAP * 6
   const height = TOP + rows * CELL + (rows - 1) * GAP

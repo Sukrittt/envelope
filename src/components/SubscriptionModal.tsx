@@ -1,3 +1,4 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useState } from 'react'
 import { addSubscription, updateSubscription } from '../api/subscriptions'
 import { getCategories } from '../api/categories'
@@ -30,6 +31,8 @@ function toDateInput(iso: string): string {
 }
 
 export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
+  const { currencySymbol } = useCurrency()
+
   const isEdit = !!editData
   const [service, setService] = useState(editData?.service ?? '')
   const [amount, setAmount] = useState(editData?.amount_inr ?? '')
@@ -105,7 +108,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
             </label>
 
             <label className="subscription-modal-field">
-              <span>Amount (₹)</span>
+              <span>Amount ({currencySymbol})</span>
               <input
                 type="number"
                 step="any"

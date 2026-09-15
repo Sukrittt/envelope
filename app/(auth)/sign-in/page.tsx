@@ -14,7 +14,7 @@ export default async function SignInPage({
         ✉️
       </div>
       <h1 className="auth-headline">
-        Every rupee
+        Your money
         <br />
         in an envelope.
       </h1>

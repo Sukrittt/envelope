@@ -1,5 +1,6 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
-import { formatCurrency } from '@/lib/currency'
+
 
 interface Props {
   income: number
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOverAssigned, onIncomeChange, sparkData, overspentCount, totalEnvelopes }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(String(income))
 
@@ -49,7 +52,7 @@ export function ReadyToAssignBanner({ income, totalAssigned, readyToAssign, isOv
           <div className="erd-rta-warn">Over-assigned — reduce category budgets</div>
         )}
         {!isOverAssigned && readyToAssign === 0 && (
-          <div className="erd-rta-ok">Every rupee has a job ✨</div>
+          <div className="erd-rta-ok">All your money has a job ✨</div>
         )}
         {!isOverAssigned && readyToAssign > 0 && (
           <div className="erd-rta-ok">{overspentCount} envelope{overspentCount === 1 ? '' : 's'} overspent</div>

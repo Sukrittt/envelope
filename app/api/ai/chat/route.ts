@@ -70,8 +70,8 @@ function streamReply(
         if (leadingEvent) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(leadingEvent)}\n\n`))
         }
-        const { facts } = await buildExpenseContext(auth)
-        const systemPrompt = buildSystemPrompt(facts)
+        const { facts, currencyCode } = await buildExpenseContext(auth)
+        const systemPrompt = buildSystemPrompt(facts, currencyCode)
         const geminiStream = await streamText(systemPrompt, contents)
 
         for await (const chunk of geminiStream) {

@@ -1,3 +1,5 @@
+import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
+import { resolveCurrency } from '@/src/lib/currencies'
 import { Type } from '@google/genai'
 import { json, error } from '@/lib/http'
 import { getAuth, type Auth } from '@/lib/access'
@@ -45,9 +47,10 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { facts, meta } = await buildExpenseContext(auth)
+    const { facts, meta, currencyCode } = await buildExpenseContext(auth)
 
     const prompt = [
+      currencyInstruction(currencyCode),
       'You are generating a short "money brief" for a personal expense-tracking dashboard, grounded strictly in the FACTS below.',
       'Write a 1-2 sentence narrative paragraph summarizing the month so far.',
       'Produce exactly 3 cards highlighting the most useful things to surface right now — e.g. the heaviest envelope, the largest single spend, the easiest place to cut back — pick whichever 3 are most relevant given the FACTS.',
@@ -70,7 +73,7 @@ export async function GET(req: Request) {
               icon: { type: Type.STRING, description: 'A single emoji character representing the card, e.g. 💰 or 🛒' },
               title: { type: Type.STRING },
               subtitle: { type: Type.STRING },
-              valueLabel: { type: Type.STRING, description: 'Currency unit label for the amount, always "INR" — never USD or any other currency' },
+              valueLabel: { type: Type.STRING, description: `Currency unit label for the amount: ${resolveCurrency(currencyCode)}` },
               amount: { type: Type.NUMBER },
               tone: { type: Type.STRING, enum: ['mint', 'violet', 'coral', 'warn'] },
             },

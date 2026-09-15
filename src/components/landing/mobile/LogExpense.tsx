@@ -1,11 +1,13 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'motion/react'
 import { ChevronDown } from 'lucide-react'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
 import { categoryEmoji, groupEmoji, splitEmoji } from '@/src/lib/emoji'
-import { formatAmountInput, formatDateTimeLong } from '@/src/lib/format'
+import { formatDateTimeLong } from '@/src/lib/format'
 import type { ThemeTokens } from '@/src/theme/tokens'
 import {
   AmountText,
@@ -84,6 +86,8 @@ export function LogExpenseScreen({
   publish: (state: SubmitState) => void
   onAdded: (expense: LoggedExpense) => void
 }) {
+  const { formatAmountInput } = useCurrency()
+
   const { amount, setAmount, pushDigit, handleBackspace, shakeRef } = useAmountEntry(
     prefill ? String(prefill.amount) : '',
   )
@@ -482,6 +486,8 @@ const s = (ms: number) => ms / 1000
 
 /** Base fill grows to the pre-expense spot, a marker pins it, then the delta eases in on top. */
 function DeltaBar({ from, to, amount }: { from: number; to: number; amount: number }) {
+  const { formatMoney } = useCurrency()
+
   const fromPct = clamp(from)
   const toPct = clamp(to)
   const deltaPct = Math.max(toPct - fromPct, MIN_DELTA_PCT)
@@ -556,7 +562,7 @@ function DeltaBar({ from, to, amount }: { from: number; to: number; amount: numb
         >
           <motion.div style={{ background: fill, borderRadius: radius.full, padding: '4px 9px', whiteSpace: 'nowrap' }}>
             <span style={{ color: T.bg, ...font.bodySemiBold, fontSize: type.caption }}>
-              {`+₹${Math.round(amount).toLocaleString('en-IN')}`}
+              {`+${formatMoney(Math.round(amount))}`}
             </span>
           </motion.div>
         </motion.div>
@@ -619,6 +625,8 @@ export function ExpenseAddedScreen({
   onUndo: () => void
   onDone: () => void
 }) {
+  const { formatMoney } = useCurrency()
+
   const { amount, item, category } = expense
   const envelope = before ? toEnvelope(before) : undefined
   const spent = (envelope?.spent ?? 0) + amount
@@ -674,7 +682,7 @@ export function ExpenseAddedScreen({
             <div style={{ ...row, alignItems: 'baseline', gap: space.xs, marginTop: space.md }}>
               <AmountText value={shownLeft} size={32} weight="displayBold" animate />
               <span style={{ color: T.text2, ...font.bodyBold, fontSize: type.caption }}>
-                {`left of ₹${Math.round(funded).toLocaleString('en-IN')}`}
+                {`left of ${formatMoney(Math.round(funded))}`}
               </span>
             </div>
             <div style={{ marginTop: space.lg }}>
@@ -695,7 +703,7 @@ export function ExpenseAddedScreen({
             >
               <span style={{ color: T.text3, ...font.bodyExtraBold, fontSize: type.caption }}>{DAYS_LEFT} days left</span>
               <span style={{ color: T.text, ...font.bodyExtraBold, fontSize: type.caption }}>
-                {`₹${perDay.toLocaleString('en-IN')}/day to stay on track`}
+                {`${formatMoney(perDay)}/day to stay on track`}
               </span>
             </motion.div>
           </FadeInDown>

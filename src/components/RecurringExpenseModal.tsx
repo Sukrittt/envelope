@@ -1,5 +1,7 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker } from './DatePicker'
@@ -31,6 +33,8 @@ interface Props {
 
 /** Twin of Mobile's modals/recurring-expense.tsx, as a dialog over /account/recurring. */
 export function RecurringExpenseModal({ id, onClose }: Props) {
+  const { currencySymbol } = useCurrency()
+
   const recurringQ = useRecurringExpenses()
   const addRecurring = useAddRecurringExpense()
   const updateRecurring = useUpdateRecurringExpense()
@@ -129,7 +133,8 @@ export function RecurringExpenseModal({ id, onClose }: Props) {
         />
 
         <label className="erd-log-label" htmlFor="recurring-amount">
-          Amount (₹)
+
+          Amount ({currencySymbol})
         </label>
         <input
           id="recurring-amount"

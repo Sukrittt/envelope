@@ -1,5 +1,7 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { AllocationBar, type AllocationSegment } from '../components/charts/AllocationBar'
@@ -9,7 +11,7 @@ import { useRecurringExpenses } from '../hooks/useRecurringExpenses'
 import { useHideAmounts } from '../hooks/useHideAmounts'
 import { toISTDateString } from '../lib/date'
 import { splitEmoji } from '../lib/emoji'
-import { formatCurrency, formatDateShort } from '../lib/format'
+import { formatDateShort } from '../lib/format'
 import { CHART_COLORS } from '../theme/chartColors'
 import type { RecurringExpenseRow } from '../types'
 
@@ -61,6 +63,8 @@ export function dueLabel(nextRunDate: string): string {
  * it, with no local due-date math: one schedule owner, and it's the server.
  */
 export function RecurringPage() {
+  const { formatCurrency } = useCurrency()
+
   const recurringQ = useRecurringExpenses()
   const [hideAmounts] = useHideAmounts()
   // undefined: closed. '': adding. An id: editing that row.

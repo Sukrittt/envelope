@@ -1,7 +1,9 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { feeDiff } from '../lib/split'
-import { formatCurrency } from '@/lib/currency'
+
 import { CategoryPicker } from './CategoryPicker'
 
 export type SplitLine = { id: string; category: string; amount: string }
@@ -24,6 +26,8 @@ interface Props {
  * split.ts's feeDiff purely for the "amount left to allocate" math.
  */
 export function SplitExpenseEditor({ total, lines, onChange }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const remaining = feeDiff(total, lines.map((l) => ({ price: Number(l.amount) || 0 })))
   const isBalanced = Math.abs(remaining) < 0.01
 

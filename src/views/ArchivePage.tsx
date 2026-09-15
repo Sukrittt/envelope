@@ -1,5 +1,7 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,7 +10,7 @@ import { Scrim, Sheet } from '../components/MotionSheet'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { getArchive, purgeArchivedItem, restoreArchivedItem, type ArchivableCollection, type ArchivedItem } from '../api/account'
 import { useHideAmounts } from '../hooks/useHideAmounts'
-import { daysUntil, formatCurrency, formatDateShort } from '../lib/format'
+import { daysUntil, formatDateShort } from '../lib/format'
 
 const SECTION_ORDER: ArchivableCollection[] = ['expenses', 'budgets', 'categories', 'groups', 'subscriptions', 'holdings']
 
@@ -50,6 +52,8 @@ const RETRY = 'Check your connection and try again.'
 
 /** `/account/archive`. Twin of Mobile's account/archive.tsx. */
 export function ArchivePage() {
+  const { formatCurrency } = useCurrency()
+
   const qc = useQueryClient()
   const [hideAmounts] = useHideAmounts()
   const archiveQuery = useQuery({ queryKey: archiveKey, queryFn: getArchive })

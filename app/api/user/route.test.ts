@@ -100,3 +100,20 @@ describe('PATCH /api/user', () => {
     expect(usersUpdateOneMock).not.toHaveBeenCalled()
   })
 })
+
+describe('PATCH /api/user currency', () => {
+  it('stores only the selected currency without touching monetary records', async () => {
+    const res = await PATCH(patchRequest({ currencyCode: 'USD' }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { currencyCode: 'USD' } })
+  })
+  it.each(['BTC', 'usd', 'BGN', '', null, 123])('rejects unsupported currency %s', async currencyCode => {
+    const res = await PATCH(patchRequest({ currencyCode }))
+    expect(res.status).toBe(400)
+    expect(usersUpdateOneMock).not.toHaveBeenCalled()
+  })
+  it('returns INR for a legacy profile without currency', async () => {
+    const res = await PATCH(patchRequest({ name: 'Test' }))
+    expect((await res.json()).currencyCode).toBe('INR')
+  })
+})

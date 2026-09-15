@@ -1,10 +1,12 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useState } from 'react'
 import { CategoryPicker } from '@/src/components/CategoryPicker'
 import { DatePicker } from '@/src/components/DatePicker'
 import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
-import { formatINR } from '@/src/lib/format'
+
 import { round2 } from '@/src/lib/split'
 import { DIVISORS, PEOPLE_COUNTS, splitLabel } from './presentation'
 import type { ScanBillState } from './useScanBillController'
@@ -16,6 +18,8 @@ function parseAmount(raw: string, allowNegative = false): number {
 
 /** Twin of Mobile's ScanReview: items on the left, the bill and what gets logged on the right. */
 export function ScanReview(s: ScanBillState) {
+  const { formatMoney } = useCurrency()
+
   const [pickingCategory, setPickingCategory] = useState(false)
   const selectedCategory = s.categories.find((c) => c.name === s.category)
 
@@ -86,7 +90,8 @@ export function ScanReview(s: ScanBillState) {
               </div>
               <div className="scan-item-bottom">
                 <span className="scan-meta">
-                  ₹{it.price} {it.divisor === 1 ? '· all yours' : `· split ${it.divisor} ways`}
+
+                  {formatMoney(it.price)} {it.divisor === 1 ? '· all yours' : `· split ${it.divisor} ways`}
                 </span>
                 <div className="scan-item-actions">
                   {DIVISORS.map((d) => (
@@ -125,7 +130,7 @@ export function ScanReview(s: ScanBillState) {
                 <div className="scan-card-title">Fees &amp; discount</div>
                 <div className="scan-meta">Split equally across everyone on the bill</div>
               </div>
-              <strong>{formatINR(s.feeAggregate)}</strong>
+              <strong>{formatMoney(s.feeAggregate)}</strong>
             </div>
             {s.feeItems.map((it) => (
               <div key={it.key} className="scan-fee-row">
@@ -171,7 +176,7 @@ export function ScanReview(s: ScanBillState) {
             </div>
             <div className="scan-spread">
               <span className="scan-meta is-strong">Your reconciled share</span>
-              <strong className="scan-ink">{formatINR(s.feeShare)}</strong>
+              <strong className="scan-ink">{formatMoney(s.feeShare)}</strong>
             </div>
           </section>
         )}
@@ -187,10 +192,10 @@ export function ScanReview(s: ScanBillState) {
 
         <section className="scan-card">
           <div className="scan-micro">Your share</div>
-          <div className="scan-hero-amount">{formatINR(s.myShare)}</div>
+          <div className="scan-hero-amount">{formatMoney(s.myShare)}</div>
           <ShareBar pct={s.sharePct} />
           <div className="scan-spread scan-meta">
-            <span>of {formatINR(s.billTotal)} bill</span>
+            <span>of {formatMoney(s.billTotal)} bill</span>
             <span className="is-strong">{s.sharePct}% yours</span>
           </div>
         </section>
@@ -236,7 +241,7 @@ export function ScanReview(s: ScanBillState) {
           disabled={!s.canProceed}
           onClick={() => s.canProceed && s.setPhase('confirm')}
         >
-          Review {formatINR(s.myShare)} →
+          Review {formatMoney(s.myShare)} →
         </button>
       </aside>
     </div>

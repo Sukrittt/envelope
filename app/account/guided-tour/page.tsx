@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
-import { CHAPTERS } from '../../../src/components/tour/content'
+import { useTourContent } from '@/src/components/tour/useTourContent'
+
 import { AssignDemo } from '../../../src/components/tour/demos/AssignDemo'
 import { LogDemo } from '../../../src/components/tour/demos/LogDemo'
 import { MoveDemo } from '../../../src/components/tour/demos/MoveDemo'
@@ -22,6 +23,8 @@ type View3 = 'hub' | 'chapter' | 'done'
  * plan instead of its own full-screen stack push.
  */
 export default function GuidedTourPage() {
+  const { CHAPTERS } = useTourContent()
+
   const router = useRouter()
   const { openMoneyBrain } = useMoneyBrain()
   const [done, setDone] = useTourProgress()
@@ -172,12 +175,14 @@ function Hub({
   onOpen: (index: number) => void
   onStart: () => void
 }) {
+  const { CHAPTERS } = useTourContent()
+
   return (
     <div className="tour-hub">
       <div className="tour-hub-hero">
         <div className="tour-hub-badge">✉️</div>
         <div className="tour-row-body">
-          <h2 className="tour-hub-title">Every rupee gets a job.</h2>
+          <h2 className="tour-hub-title">Your money gets a job.</h2>
           <p className="tour-hub-subtitle">Six short chapters. All of them are pokeable, none of them touch your real money.</p>
         </div>
       </div>
@@ -226,6 +231,8 @@ function Done({
   onFinish: () => void
   onStartOver: () => void
 }) {
+  const { CHAPTERS } = useTourContent()
+
   const doneCount = done.size
 
   return (

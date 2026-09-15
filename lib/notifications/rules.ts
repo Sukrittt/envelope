@@ -1,3 +1,4 @@
+import { formatMoney } from '@/src/lib/currencies'
 import type { Envelope } from '@/src/types/expense'
 import type { CategoryDocRow, SubscriptionDocRow, SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
 import { getEffectiveDueDate, renewalDays, INACTIVE_STATUSES, MONTH_NAMES } from '@/lib/subscriptions'
@@ -12,6 +13,7 @@ import type { UserDoc } from '@/lib/users'
  */
 
 export interface NotificationPrefs {
+  currencyCode?: string
   cadence: 'off' | 'weekly' | 'daily'
   /** Category limit alerts (threshold + overspent) — independent of `cadence`, which only gates the digest. */
   thresholds: boolean
@@ -42,6 +44,7 @@ export interface Notification {
 /** Resolves a user's notification prefs, defaulting fields never set on the doc. */
 export function prefsFor(user: UserDoc): NotificationPrefs {
   return {
+    currencyCode: user.currencyCode,
     cadence: user.notifyCadence === 'weekly' || user.notifyCadence === 'daily' ? user.notifyCadence : 'off',
     thresholds: user.notifyThresholds ?? true,
     bills: user.notifyBills ?? true,
@@ -51,9 +54,6 @@ export function prefsFor(user: UserDoc): NotificationPrefs {
   }
 }
 
-function inr(n: number): string {
-  return Math.round(n).toLocaleString('en-IN')
-}
 
 /** ISO 8601 week key ('YYYY-Www') for a 'YYYY-MM-DD' date, so a weekly notification fires once per week. */
 function isoWeekKey(dateStr: string): string {
@@ -84,7 +84,8 @@ export function categoryLevel(envelopes: Envelope[], categories: CategoryDocRow[
   return levelFor(env, alertPctsMap(categories))
 }
 
-function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRow[], month: string): Notification[] {
+function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRow[], month: string, currencyCode = 'INR'): Notification[] {
+  const money = (n: number) => formatMoney(Math.round(n), currencyCode)
   const alertPctsByCategory = alertPctsMap(categories)
   const out: Notification[] = []
 
@@ -96,7 +97,7 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
         key: `over:${month}:${env.category}`,
         kind: 'overspent',
         title: `${env.category} is over budget`,
-        body: `You've overspent ₹${inr(-env.available)} in ${env.category} this month.`,
+        body: `You've overspent ${money(-env.available)} in ${env.category} this month.`,
         data: { category: env.category, month, level: OVER_LEVEL },
       })
       continue
@@ -113,7 +114,7 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
         key: `thr:${month}:${env.category}:${level}`,
         kind: 'threshold',
         title: `${env.category} is at ${Math.round(env.spentPct)}%`,
-        body: `₹${inr(env.spent)} of ₹${inr(env.assigned)} spent in ${env.category}.`,
+        body: `${money(env.spent)} of ${money(env.assigned)} spent in ${env.category}.`,
         data: { category: env.category, month, level },
       })
     }
@@ -123,6 +124,7 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
 }
 
 function billNotifications(subscriptions: SubscriptionDocRow[], prefs: NotificationPrefs): Notification[] {
+  const money = (n: number) => formatMoney(Math.round(n), prefs.currencyCode)
   if (!prefs.bills) return []
   const out: Notification[] = []
 
@@ -146,7 +148,7 @@ function billNotifications(subscriptions: SubscriptionDocRow[], prefs: Notificat
       key: `bill:${sub.service}:${due}`,
       kind: 'bill',
       title: `${sub.service} renews soon`,
-      body: `₹${inr(sub.amount_inr)} due in ${days} day${days === 1 ? '' : 's'} (${due}).`,
+      body: `${money(sub.amount_inr)} due in ${days} day${days === 1 ? '' : 's'} (${due}).`,
     })
   }
 
@@ -154,10 +156,11 @@ function billNotifications(subscriptions: SubscriptionDocRow[], prefs: Notificat
 }
 
 function digestNotification(meta: SummarizeExpensesMeta, prefs: NotificationPrefs, today: string): Notification | null {
+  const money = (n: number) => formatMoney(Math.round(n), prefs.currencyCode)
   if (prefs.cadence !== 'daily' && prefs.cadence !== 'weekly') return null
 
   const available = Math.round(meta.totalAssigned - meta.totalSpent)
-  const body = `₹${inr(meta.totalSpent)} spent this month · ₹${inr(available)} left · ${meta.daysLeft} day${meta.daysLeft === 1 ? '' : 's'} to go.`
+  const body = `${money(meta.totalSpent)} spent this month · ${money(available)} left · ${meta.daysLeft} day${meta.daysLeft === 1 ? '' : 's'} to go.`
   const key = prefs.cadence === 'daily' ? `digest:${today}` : `digest:w:${isoWeekKey(today)}`
 
   return { key, kind: 'digest', title: 'Your spending update', body }
@@ -169,6 +172,7 @@ function coachNotification(
   prefs: NotificationPrefs,
   today: string,
 ): Notification | null {
+  const money = (n: number) => formatMoney(Math.round(n), prefs.currencyCode)
   if (!prefs.coach) return null
 
   const projected = meta.daysElapsed > 0 ? (meta.totalSpent / meta.daysElapsed) * meta.totalDaysInMonth : 0
@@ -178,7 +182,7 @@ function coachNotification(
   if (!projectedOverspend && !overspentEnvelope) return null
 
   const body = projectedOverspend
-    ? `Projected to spend ₹${inr(projected)} this month vs ₹${inr(meta.totalAssigned)} budgeted — consider trimming a category.`
+    ? `Projected to spend ${money(projected)} this month vs ${money(meta.totalAssigned)} budgeted — consider trimming a category.`
     : `${overspentEnvelope!.category} is over budget; move some slack from an under-spent envelope to cover it guilt-free.`
 
   return {
@@ -221,7 +225,7 @@ export function buildNotifications(input: {
   const { envelopes, subscriptions, categories, meta, prefs, today, month } = input
 
   const notifications: Notification[] = []
-  if (prefs.thresholds) notifications.push(...thresholdNotifications(envelopes, categories, month))
+  if (prefs.thresholds) notifications.push(...thresholdNotifications(envelopes, categories, month, prefs.currencyCode))
 
   // Cadence is the digest's own on/off switch — it no longer gates category
   // limit alerts (those have `prefs.thresholds`), but still gates bills and

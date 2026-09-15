@@ -1,5 +1,6 @@
 'use client'
 
+import { CurrencySetting } from '@/src/components/CurrencyPicker'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -114,6 +115,7 @@ export default function AccountPage() {
           Preferences
         </div>
         <div className="account-card">
+          <CurrencySetting />
           <div className="account-row" style={{ cursor: 'default' }}>
             <span className="account-row-label">Appearance</span>
             <div className="account-segmented" role="group" aria-label="Theme">

@@ -1,3 +1,4 @@
+import { formatMoney } from '@/src/lib/currencies'
 import { timingSafeEqual, createHash } from 'node:crypto'
 import type { Db } from 'mongodb'
 import { json, nowIST, getCollection } from '@/lib/http'
@@ -75,9 +76,6 @@ async function runWrappedForUser(db: Db, user: UserDoc, month: string): Promise<
   return (await claimAndSend(db, user._id, notification, '')) ? 1 : 0
 }
 
-function inr(n: number): string {
-  return Math.round(n).toLocaleString('en-IN')
-}
 
 /**
  * Auto-applies today's due monthly contributions (SIP/PF) and sends a
@@ -87,6 +85,7 @@ function inr(n: number): string {
  * Runs for every user rather than a cadence-filtered subset for that reason.
  */
 async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+  const money = (n: number) => formatMoney(Math.round(n), user.currencyCode)
   const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
   const holdingsColl = await getCollection('holdings', auth)
   const recurring = await holdingsColl.find({ is_recurring: 'true' }).toArray()
@@ -111,7 +110,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
             await sendPushNotification({
               userId: user._id,
               title: 'SIP added',
-              body: `₹${inr(amount)} added to ${name}.`,
+              body: `${money(amount)} added to ${name}.`,
               data: { route: '/investments' },
             })
             sent++
@@ -129,7 +128,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
           await sendPushNotification({
             userId: user._id,
             title: 'SIP tomorrow',
-            body: `₹${inr(amount)} will be added to ${name} tomorrow.`,
+            body: `${money(amount)} will be added to ${name} tomorrow.`,
             data: { route: '/investments' },
           })
           sent++
@@ -151,6 +150,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
  * preference — it's the subscription's own due date.
  */
 async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+  const money = (n: number) => formatMoney(Math.round(n), user.currencyCode)
   const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
   const subsColl = await getCollection('subscriptions', auth)
   const subs = await subsColl.find({}).toArray()
@@ -180,7 +180,7 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
       await sendPushNotification({
         userId: user._id,
         title: `${service} charged`,
-        body: `₹${inr(Number(sub.amount_inr) || 0)} auto-added for ${service}.`,
+        body: `${money(Number(sub.amount_inr) || 0)} auto-added for ${service}.`,
         data: { route: '/activity', category: String(sub.category ?? '') },
       })
       sent++
@@ -214,6 +214,7 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
  *   — which `client_id` makes safe.
  */
 async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+  const money = (n: number) => formatMoney(Math.round(n), user.currencyCode)
   const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
   const coll = await getCollection('recurring_expenses', auth)
   const recurrences = await coll.find({ status: 'active' }).toArray()
@@ -288,8 +289,8 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
             title: `${label} added`,
             body:
               logged === 1
-                ? `₹${inr(Number(amount) || 0)} auto-added for ${label}.`
-                : `₹${inr((Number(amount) || 0) * logged)} auto-added for ${label} (${logged} missed dates).`,
+                ? `${money(Number(amount) || 0)} auto-added for ${label}.`
+                : `${money((Number(amount) || 0) * logged)} auto-added for ${label} (${logged} missed dates).`,
             data: { route: '/activity', category },
           })
           sent++

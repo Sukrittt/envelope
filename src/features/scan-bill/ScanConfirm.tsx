@@ -1,12 +1,16 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { SuccessButton } from '@/src/components/SuccessButton'
-import { formatDate, formatINR } from '@/src/lib/format'
+import { formatDate } from '@/src/lib/format'
 import { ShareBar } from './ScanReview'
 import type { ScanBillState } from './useScanBillController'
 
 /** Twin of Mobile's ScanConfirm: where the share came from on the left, the total and the log button on the right. */
 export function ScanConfirm(s: ScanBillState) {
+  const { formatMoney, currencySymbol } = useCurrency()
+
   const { saving, success } = s.confirmButton
 
   return (
@@ -14,9 +18,9 @@ export function ScanConfirm(s: ScanBillState) {
       <div className="scan-col">
         <section className="scan-card scan-confirm-hero">
           <div className="scan-micro">Logging to {s.categoryLabel}</div>
-          <div className="scan-hero-amount is-large">{formatINR(s.myShare)}</div>
+          <div className="scan-hero-amount is-large">{formatMoney(s.myShare)}</div>
           <div className="scan-meta">
-            {formatDate(s.date)} · from a scanned bill of {formatINR(s.billTotal)}
+            {formatDate(s.date)} · from a scanned bill of {formatMoney(s.billTotal)}
           </div>
         </section>
 
@@ -37,22 +41,22 @@ export function ScanConfirm(s: ScanBillState) {
                 />
               </div>
               <div className="scan-bucket-amount">
-                <strong>{formatINR(b.share)}</strong>
-                <span className="scan-meta">of {formatINR(b.gross)}</span>
+                <strong>{formatMoney(b.share)}</strong>
+                <span className="scan-meta">of {formatMoney(b.gross)}</span>
               </div>
             </li>
           ))}
           {s.hasFee && (
             <li className="scan-bucket">
-              <span className="scan-badge is-accent">₹</span>
+              <span className="scan-badge is-accent">{currencySymbol}</span>
               <div className="scan-bucket-body">
                 <strong>Fees &amp; discount, reconciled</strong>
                 <span className="scan-meta">
-                  {formatINR(s.feeAggregate)} split equally across {s.peopleCount} people
+                  {formatMoney(s.feeAggregate)} split equally across {s.peopleCount} people
                 </span>
               </div>
               <div className="scan-bucket-amount">
-                <strong>{formatINR(s.feeShare)}</strong>
+                <strong>{formatMoney(s.feeShare)}</strong>
               </div>
             </li>
           )}
@@ -63,14 +67,14 @@ export function ScanConfirm(s: ScanBillState) {
         <section className="scan-card">
           <div className="scan-spread">
             <span className="scan-meta is-strong">Total bill</span>
-            <strong>{formatINR(s.billTotal)}</strong>
+            <strong>{formatMoney(s.billTotal)}</strong>
           </div>
           <ShareBar pct={s.sharePct} height={8} />
           <div className="scan-spread scan-meta">
             <span className="scan-ink is-strong">
-              You {formatINR(s.myShare)} · {s.sharePct}%
+              You {formatMoney(s.myShare)} · {s.sharePct}%
             </span>
-            <span className="is-strong">Others {formatINR(s.billTotal - s.myShare)}</span>
+            <span className="is-strong">Others {formatMoney(s.billTotal - s.myShare)}</span>
           </div>
         </section>
 
@@ -86,7 +90,7 @@ export function ScanConfirm(s: ScanBillState) {
           disabled={saving || success}
           onClick={s.handleConfirm}
         >
-          Log {formatINR(s.myShare)} to {s.categoryLabel}
+          Log {formatMoney(s.myShare)} to {s.categoryLabel}
         </SuccessButton>
         <button type="button" className="scan-link-btn" disabled={saving || success} onClick={() => s.setPhase('review')}>
           Back to items

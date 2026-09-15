@@ -1,3 +1,4 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { updateExpense, addExpense, deleteExpense } from '../api/expenses'
 import { Scrim, Sheet } from './MotionSheet'
@@ -27,6 +28,8 @@ export function TransactionEditModal({
   onClose,
   onSaved,
 }: Props) {
+  const { currencySymbol } = useCurrency()
+
   const [item, setItem] = useState(initialItem)
   const [amount, setAmount] = useState(String(amountInr))
   const [date, setDate] = useState(initialDate.slice(0, 10))
@@ -124,7 +127,7 @@ export function TransactionEditModal({
             </label>
 
             <label className="subscription-modal-field">
-              <span>Amount (₹)</span>
+              <span>Amount ({currencySymbol})</span>
               <input
                 type="number"
                 step="any"

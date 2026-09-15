@@ -2,6 +2,7 @@ import { getDb } from './mongodb'
 import { getWorkOSClient } from './workosClient'
 
 export interface UserDoc {
+  currencyCode?: string
   _id: string
   email: string
   /**
@@ -62,6 +63,7 @@ export async function ensureUser(user: WorkOSUserLike): Promise<void> {
         _id: user.id,
         name: user.name || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null,
         createdAt: new Date(),
+        currencyCode: 'INR',
       },
     },
     { upsert: true },

@@ -1,5 +1,6 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
-import { formatCurrency } from '@/src/lib/format'
+
 import { SectionLabel, ResultCard } from '@/src/components/tour/parts'
 import { LOG_CHIPS, SPEND_ROWS } from '@/src/components/tour/content'
 
@@ -14,6 +15,8 @@ interface Logged {
 
 /** Chapter 2: log a quick expense and watch exactly one bar move. */
 export function LogDemo({ onComplete }: { onComplete: () => void }) {
+  const { formatCurrency } = useCurrency()
+
   const [logged, setLogged] = useState<Logged[]>([])
 
   const extra: Record<string, number> = {}

@@ -1,5 +1,7 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker } from './DatePicker'
@@ -22,6 +24,8 @@ function toDateInputValue(d: Date): string {
 }
 
 export function LogExpenseModal({ onClose, onSaved }: Props) {
+  const { currencySymbol } = useCurrency()
+
   const categoriesQ = useCategories()
   const categories = useMemo(
     () => (categoriesQ.data ?? EMPTY).map((c) => c.name).filter(Boolean),
@@ -197,7 +201,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         />
 
         <label className="erd-log-label" htmlFor="erd-log-amount">
-          Amount (₹)
+
+          Amount ({currencySymbol})
         </label>
         <input
           id="erd-log-amount"

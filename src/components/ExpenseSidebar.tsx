@@ -1,7 +1,8 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clearAccess, useAccessMode } from "../services/accessMode";
-import { formatCurrency } from "@/lib/currency";
+
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 
 interface Props {
@@ -21,6 +22,8 @@ export function ExpenseSidebar({
   income,
   totalSpent,
 }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const pathname = usePathname();
   const { openMoneyBrain } = useMoneyBrain();
   const access = useAccessMode();

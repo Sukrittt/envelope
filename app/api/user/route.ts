@@ -1,3 +1,4 @@
+import { isCurrencyCode, resolveCurrency } from '@/src/lib/currencies'
 import { json, error, readBody, nowIST } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
@@ -13,6 +14,7 @@ function serialize(user: UserDoc | null) {
   if (!user) return null
   return {
     ...user,
+    currencyCode: resolveCurrency(user.currencyCode),
     name: displayName(user),
     emailVerified: user.emailVerified ?? true,
     deletionScheduledFor: user.deleted_at ? purgesAt(user.deleted_at) : null,
@@ -38,6 +40,7 @@ export async function PATCH(req: Request) {
   const updates: Partial<
     Pick<
       UserDoc,
+      | 'currencyCode'
       | 'name'
       | 'onboardedAt'
       | 'notifyCadence'
@@ -48,6 +51,10 @@ export async function PATCH(req: Request) {
       | 'notifyWrapped'
     >
   > = {}
+  if ('currencyCode' in body) {
+    if (!isCurrencyCode(body.currencyCode)) return error('invalid currency code')
+    updates.currencyCode = body.currencyCode
+  }
   if (name !== undefined) updates.name = name || null
   if (typeof body.onboardedAt === 'string' || body.onboardedAt === null) updates.onboardedAt = body.onboardedAt as string | null
   if (body.notifyCadence === 'off' || body.notifyCadence === 'weekly' || body.notifyCadence === 'daily') {

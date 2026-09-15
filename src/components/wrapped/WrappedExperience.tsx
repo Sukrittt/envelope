@@ -1,5 +1,7 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
@@ -7,7 +9,7 @@ import { ArrowLeft, ArrowRight, Pause, Play, Share2, X } from 'lucide-react'
 import { useWrapped } from '@/src/hooks/useWrapped'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
-import { formatCurrency, formatDateShort } from '@/src/lib/format'
+import { formatDateShort } from '@/src/lib/format'
 import type { WrappedData } from '@/src/api/wrapped'
 
 const STORY_MS = 5000
@@ -42,6 +44,8 @@ function Story({ eyebrow, title, children, emoji }: { eyebrow: string; title: st
 }
 
 function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; moneySaved: number; hideAmounts: boolean }) {
+  const { formatCurrency } = useCurrency()
+
   const reduceMotion = useReducedMotion()
   const [started, setStarted] = useState(false)
   const [index, setIndex] = useState(0)
@@ -85,7 +89,7 @@ function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; mo
     {
       color: '#40395f', ink: '#fffaf0', node: <Story eyebrow={`${monthName(data.month)} · complete`} title="That was your month." emoji="🕊️"><p>{formatCurrency(data.totalSpent, hideAmounts)} spent. {formatCurrency(moneySaved, hideAmounts)} left. A clearer picture for what comes next.</p></Story>,
     },
-  ], [archetype, data, hideAmounts, maxWeek, moneySaved, topCategory])
+  ], [archetype, data, hideAmounts, maxWeek, moneySaved, topCategory, formatCurrency])
 
   const goNext = useCallback(() => setIndex((current) => Math.min(slides.length - 1, current + 1)), [slides.length])
   const goBack = useCallback(() => setIndex((current) => Math.max(0, current - 1)), [])

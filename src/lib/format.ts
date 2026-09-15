@@ -1,35 +1,9 @@
-// Indian digit grouping (last 3 digits, then pairs), written by hand instead
-// of `toLocaleString('en-IN')` since Hermes's ICU/Intl support varies by build
-// and this is money math we need right everywhere.
-function groupIndian(intStr: string): string {
-  const last3 = intStr.slice(-3)
-  const rest = intStr.slice(0, -3)
-  return rest ? `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}` : last3
-}
+import { formatMoney, formatMoneyInput, createCurrencyFormat } from './currencies'
 
-export function formatINR(value: number): string {
-  const abs = Math.abs(value)
-  const [intStr, decStr] = abs.toFixed(2).split('.')
-  const isZero = intStr === '0' && decStr === '00'
-  const sign = value < 0 && !isZero ? '-' : ''
-  const decimals = decStr === '00' ? '' : `.${decStr}`
-  return `${sign}₹${groupIndian(intStr)}${decimals}`
-}
-
-/** Pass hide=true (the "hide amounts" toggle) to mask the value instead of formatting it. */
-export function formatCurrency(value: number, hide = false): string {
-  return hide ? '₹••••' : formatINR(value)
-}
-
-// Mirrors what the numpad's raw string looks like mid-entry (a trailing "."
-// or trailing zeros formatINR would normally round away) so the amount on
-// screen never drops a digit the user just typed.
-export function formatAmountInput(raw: string): string {
-  if (raw === '') return '₹0'
-  const [intPart, decPart] = raw.split('.')
-  const grouped = groupIndian(intPart || '0')
-  return decPart === undefined ? `₹${grouped}` : `₹${grouped}.${decPart}`
-}
+/** Legacy pure formatter for INR fixtures and non-user demo data. */
+export const formatINR = formatMoney
+export const formatCurrency = createCurrencyFormat().formatCurrency
+export const formatAmountInput = formatMoneyInput
 
 /** e.g. "2 hours ago" — used by OfflineScreen's "last synced" caption. */
 export function formatRelativeTime(ms: number): string {

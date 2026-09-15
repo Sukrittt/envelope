@@ -1,3 +1,4 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -12,7 +13,7 @@ import { EMPTY } from "../lib/constants";
 import { suggestCategory } from "../lib/autoCategory";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
-import { formatCurrency } from "@/lib/currency";
+
 import { LoadingCaption } from "./LoadingCaption";
 import { getCategoryColor } from "../data/categoryColors";
 import { TransactionEditModal } from "./TransactionEditModal";
@@ -111,6 +112,8 @@ export function TransactionsView({
 }: {
   hideAmounts?: boolean;
 }) {
+  const { formatCurrency } = useCurrency()
+
   // TESTING ONLY — set true to pin the page on the loading skeleton.
   const FORCE_LOADING_SKELETON = false;
   const budgetsQuery = useBudgets();

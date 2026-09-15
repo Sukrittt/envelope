@@ -6,8 +6,8 @@ const fredoka = Fredoka({ subsets: ['latin'], weight: ['400', '500', '600', '700
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800', '900'], variable: '--font-nunito', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'Aviary · Envelope budgeting for rupees',
-  description: 'Give every rupee a job before you spend it. Free, open source envelope budgeting built for India.',
+  title: 'Aviary · Envelope budgeting in your currency',
+  description: 'Give your money a job before you spend it. Free, open source envelope budgeting in your currency.',
 }
 
 export default function Home() {

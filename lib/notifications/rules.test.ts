@@ -360,3 +360,13 @@ describe('buildNotifications — thresholds off', () => {
     expect(notifs.filter((n) => n.kind === 'threshold' || n.kind === 'overspent')).toHaveLength(0)
   })
 })
+
+it('uses each user’s display currency for thresholds and digests', () => {
+  const input = { envelopes: [envelope()], subscriptions: [], categories: [], meta: meta(), today: TODAY, month: MONTH }
+  const usd = buildNotifications({ ...input, prefs: prefs({ currencyCode: 'USD', cadence: 'daily' }) })
+  const eur = buildNotifications({ ...input, prefs: prefs({ currencyCode: 'EUR', cadence: 'daily' }) })
+  expect(usd.find(n => n.kind === 'threshold')?.body).toContain('$500 of $1,000')
+  expect(eur.find(n => n.kind === 'threshold')?.body).toContain('€500 of €1,000')
+  expect(usd.find(n => n.kind === 'digest')?.body).toContain('$500')
+  expect(input.envelopes[0].spent).toBe(500)
+})

@@ -1,8 +1,9 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
 import { useAppearance } from "../../components/AppearanceProvider";
-import { formatCurrency } from "@/lib/currency";
+
 import { FluidDemo } from "../components/FluidDemo";
 import { ReadyToAssignBanner } from "../components/ReadyToAssignBanner";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
@@ -40,6 +41,8 @@ type ActiveSubscription = ExpensePanelData["subscriptions"]["active"][number];
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
+  const { formatCurrency, currencyCode } = useCurrency()
+
   // TESTING ONLY — set true to pin the page on the loading skeleton.
   const FORCE_LOADING_SKELETON = false;
   // One query per resource, as Mobile has, with the dashboard's derived panel
@@ -77,14 +80,16 @@ export function ExpensePage() {
         ? null
         : toExpensePanelData(
             buildExpensePanel({
+              currencyCode,
               budgets: budgetRows,
               expenses: expenseRows,
               subscriptions: subscriptionRows,
               categories: categoryRows,
               groups: groupNames,
             }),
+            currencyCode,
           ),
-    [anyLoading, budgetRows, expenseRows, subscriptionRows, categoryRows, groupNames],
+    [anyLoading, budgetRows, expenseRows, subscriptionRows, categoryRows, groupNames, currencyCode],
   );
   // Read-only here: the toggle lives on /account, next to the theme control.
   const [hideAmounts] = useHideAmounts();
@@ -1107,7 +1112,7 @@ export function ExpensePage() {
                           Move <strong>{formatCurrency(total)}</strong> from{" "}
                           {positive.length} categor
                           {positive.length === 1 ? "y" : "ies"} back to Ready to
-                          Assign. Each category&apos;s Available will reset to ₹0.
+                          Assign. Each category&apos;s Available will reset to {formatCurrency(0)}.
                         </p>
                         <div className="bulk-return-list">
                           {positive.map((e) => (

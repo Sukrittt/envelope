@@ -1,3 +1,4 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useMemo, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useHoldings, useAddHolding, useDeleteHolding, usePerformHoldingAction } from '../hooks/useHoldings'
@@ -7,7 +8,7 @@ import type { HoldingRow, HoldingEventRow } from '../types'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
-import { formatCurrency } from '@/lib/currency'
+
 
 interface Holding {
   name: string
@@ -70,6 +71,8 @@ function toHoldingEvent(r: HoldingEventRow): HoldingEvent {
 }
 
 export function InvestmentsPage() {
+  const { formatCurrency, currencySymbol } = useCurrency()
+
   const holdingsQuery = useHoldings()
   const eventsQuery = useHoldingEvents()
   const addHolding = useAddHolding()
@@ -433,7 +436,7 @@ export function InvestmentsPage() {
                                     : 'Amount to withdraw (tracked here only):'}
                               </span>
                               <div className="inv-action-input-row">
-                                <span className="inv-action-currency">₹</span>
+                                <span className="inv-action-currency">{currencySymbol}</span>
                                 <input
                                   className="inv-action-input"
                                   type="number"
@@ -518,7 +521,7 @@ export function InvestmentsPage() {
                   </select>
                 </label>
                 <label className="inv-field">
-                  <span>Value (₹)</span>
+                  <span>Value ({currencySymbol})</span>
                   <input type="number" value={addValue} onChange={e => setAddValue(e.target.value)} placeholder="0" />
                 </label>
                 <div className="inv-add-actions">

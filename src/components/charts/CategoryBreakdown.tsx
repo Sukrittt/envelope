@@ -1,9 +1,10 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Check, ListFilter, TrendingDown, TrendingUp, X } from 'lucide-react'
-import { formatCurrency } from '@/lib/currency'
 import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
 import { CHART_COLORS } from '@/src/theme/chartColors'
 import { AllocationBar } from './AllocationBar'
@@ -24,9 +25,6 @@ interface Props {
 const VISIBLE_ROWS = 6
 const DONUT_TAIL_PCT = 3
 
-function money(value: number, hidden: boolean) {
-  return hidden ? '₹••••' : formatCurrency(value)
-}
 
 function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): DonutSegment[] {
   const big = rows.filter((row) => row.pct >= DONUT_TAIL_PCT)
@@ -61,6 +59,8 @@ export function CategoryBreakdown({
   monthLabel,
   hideAmounts = false,
 }: Props) {
+  const { currencySymbol, formatCurrency } = useCurrency()
+
   const [expanded, setExpanded] = useState(false)
   const [sortBy, setSortBy] = useState<'spend' | 'budget'>('spend')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -128,7 +128,7 @@ export function CategoryBreakdown({
           <button type="button" role="tab" aria-selected={mode === 'group'} className={mode === 'group' ? 'is-active' : ''} onClick={() => onModeChange('group')}>By group</button>
         </div>
         <div className="ins-segmented ins-measure" aria-label="Sort breakdown">
-          <button type="button" className={sortBy === 'spend' ? 'is-active' : ''} onClick={() => setSortBy('spend')} aria-label="Measure by amount spent">₹</button>
+          <button type="button" className={sortBy === 'spend' ? 'is-active' : ''} onClick={() => setSortBy('spend')} aria-label="Measure by amount spent">{currencySymbol}</button>
           <button type="button" className={sortBy === 'budget' ? 'is-active' : ''} onClick={() => setSortBy('budget')} aria-label="Measure by percent of budget used">%</button>
         </div>
       </div>
@@ -142,13 +142,13 @@ export function CategoryBreakdown({
               {selectedRow ? (
                 <>
                   {selectedRow.emoji && <span className="ins-center-emoji">{selectedRow.emoji}</span>}
-                  <strong>{money(selectedRow.spent, hideAmounts)}</strong>
+                  <strong>{formatCurrency(selectedRow.spent, hideAmounts)}</strong>
                   <span>{selectedRow.pct.toFixed(0)}%</span>
                 </>
               ) : filtered ? (
                 <>
                   <span>Filtered total</span>
-                  <strong>{money(total, hideAmounts)}</strong>
+                  <strong>{formatCurrency(total, hideAmounts)}</strong>
                 </>
               ) : comparison?.baseline != null && comparison.deltaPct != null ? (
                 <>
@@ -156,7 +156,7 @@ export function CategoryBreakdown({
                     {comparison.deltaPct > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                     {Math.abs(comparison.deltaPct).toFixed(0)}%
                   </span>
-                  <small>{money(Math.abs(comparison.spent - comparison.baseline), hideAmounts)} {comparison.deltaPct > 0 ? 'more' : 'less'} than usual</small>
+                  <small>{formatCurrency(Math.abs(comparison.spent - comparison.baseline), hideAmounts)} {comparison.deltaPct > 0 ? 'more' : 'less'} than usual</small>
                 </>
               ) : (
                 <>
@@ -190,7 +190,7 @@ export function CategoryBreakdown({
                     <i style={{ background: colors.get(row.key) }} />
                     {row.emoji && <span aria-hidden="true">{row.emoji}</span>}
                     <span className="ins-row-name">{row.label}</span>
-                    <strong>{money(row.spent, hideAmounts)}</strong>
+                    <strong>{formatCurrency(row.spent, hideAmounts)}</strong>
                     {row.deltaPct != null && (
                       <span className={row.deltaPct > 0 ? 'ins-delta is-up' : 'ins-delta is-down'}>
                         {row.deltaPct > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -199,7 +199,7 @@ export function CategoryBreakdown({
                     )}
                   </span>
                   <span className="ins-budget-track"><i style={{ width: `${Math.min(100, pct)}%`, background: pct > 100 ? 'var(--coral)' : colors.get(row.key) }} /></span>
-                  <small>{hasBudget ? `${money(row.spent, hideAmounts)} of ${money(row.assigned, hideAmounts)}` : 'No budget set'}</small>
+                  <small>{hasBudget ? `${formatCurrency(row.spent, hideAmounts)} of ${formatCurrency(row.assigned, hideAmounts)}` : 'No budget set'}</small>
                   {selected && mode === 'category' && <Link href={`/expense/transactions?category=${encodeURIComponent(row.key)}`} onClick={(event) => event.stopPropagation()}>View transactions ›</Link>}
                 </button>
               )
@@ -213,7 +213,7 @@ export function CategoryBreakdown({
 
       <div className="ins-leftover">
         <span>Income left in {monthLabel}</span>
-        <strong>{money(leftover, hideAmounts)}</strong>
+        <strong>{formatCurrency(leftover, hideAmounts)}</strong>
       </div>
 
       {filterOpen && (

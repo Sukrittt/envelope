@@ -1,7 +1,8 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Envelope } from '../types/expense'
-import { formatCurrency } from '@/lib/currency'
+
 
 interface Props {
   envelopes: Envelope[]
@@ -49,6 +50,8 @@ function compareEnvelopes(a: Envelope, b: Envelope, sortKey: Props['sortKey']): 
 }
 
 export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, searchQuery, sortKey, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
+  const { formatCurrency, currencySymbol } = useCurrency()
+
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
@@ -260,7 +263,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
               <div className="env-menu" ref={menuRef}>
                 {menuEditCategory === e.category ? (
                   <div className="env-menu-assign">
-                    <span className="env-menu-assign-label">Set ₹</span>
+                    <span className="env-menu-assign-label">Set {currencySymbol}</span>
                     <input
                       ref={editInputRef}
                       type="number"
@@ -295,7 +298,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
                   </>
                 ) : (
                   <div className="env-menu-assign">
-                    <span className="env-menu-assign-label">Assign ₹</span>
+                    <span className="env-menu-assign-label">Assign {currencySymbol}</span>
                     <input
                       ref={inputRef}
                       type="number"

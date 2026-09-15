@@ -1,7 +1,9 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { monthAbbrev } from '@/src/lib/envelope'
-import { formatCurrency } from '@/lib/currency'
+
 
 export interface TrendPoint {
   date: string
@@ -24,13 +26,11 @@ const PAD_TOP = 38
 const PAD_BOTTOM = 34
 const PAD_X = 12
 
-function compact(value: number, hidden: boolean) {
-  if (hidden) return '₹••'
-  if (value >= 1000) return `₹${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k`
-  return `₹${Math.round(value)}`
-}
+
 
 export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, onSelect, partialKey, partialNote }: Props) {
+  const { formatCompact, formatCurrency } = useCurrency()
+
   if (data.length === 0) return <div className="ins-chart-empty">No spending data yet</div>
 
   const max = Math.max(...data.map((point) => point.value), baseline ?? 0, 1)
@@ -42,8 +42,8 @@ export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, o
   return (
     <div className="ins-trend-wrap">
       <div className="ins-axis-row">
-        <span>{compact(max, hideAmounts)}</span>
-        {baseline != null && <span>avg {compact(baseline, hideAmounts)}</span>}
+        <span>{formatCompact(max, hideAmounts)}</span>
+        {baseline != null && <span>avg {formatCompact(baseline, hideAmounts)}</span>}
       </div>
       <svg className="ins-trend-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Spending over the last 12 months">
         {baselineY != null && (
@@ -85,7 +85,7 @@ export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, o
               />
               {selected && (
                 <text x={x + barWidth / 2} y={Math.max(15, y - 10)} textAnchor="middle" className="ins-trend-value">
-                  {hideAmounts ? '₹••' : compact(point.value, false)}
+                  {formatCompact(point.value, hideAmounts)}
                 </text>
               )}
               <text x={x + barWidth / 2} y={HEIGHT - 8} textAnchor="middle" className={selected ? 'ins-trend-label is-selected' : 'ins-trend-label'}>

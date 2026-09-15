@@ -1,10 +1,13 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
-import { formatCurrency } from '@/src/lib/format'
+
 import { SectionLabel, ResultCard } from '@/src/components/tour/parts'
 import { MOVE_AMOUNT, MOVE_IN_ENVELOPE, MOVE_NEED, MOVE_SOURCES } from '@/src/components/tour/content'
 
 /** Chapter 3: cover a shortfall by borrowing from an envelope with slack. */
 export function MoveDemo({ onComplete }: { onComplete: () => void }) {
+  const { formatCurrency } = useCurrency()
+
   const [moved, setMoved] = useState<{ id: string; name: string; amount: number } | null>(null)
 
   const inEnvelope = MOVE_IN_ENVELOPE + (moved?.amount ?? 0)
@@ -58,7 +61,7 @@ export function MoveDemo({ onComplete }: { onComplete: () => void }) {
           <span className="tour-move-result-title">
             {formatCurrency(moved.amount)} moved from {moved.name}
           </span>
-          <p className="tour-result-note">Not a single rupee left your bank. Only the plan changed, and that is the whole trick.</p>
+          <p className="tour-result-note">No money left your bank. Only the plan changed, and that is the whole trick.</p>
           <button type="button" className="tour-undo" onClick={() => setMoved(null)}>
             Undo
           </button>

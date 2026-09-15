@@ -25,7 +25,10 @@ export function useUpdateUser() {
     // The PATCH response is already the fresh server doc — write it straight into
     // the cache instead of invalidating, which would trigger a redundant refetch
     // that flashes the same value back a moment later.
-    onSuccess: (data) => qc.setQueryData<UserProfile>(userKey, data),
+    onSuccess: (data, patch) => {
+      qc.setQueryData<UserProfile>(userKey, data)
+      if (patch.currencyCode) void qc.invalidateQueries({ queryKey: ['ai-brief'] })
+    },
     onError: (err, _patch, context) => {
       console.warn('[useUpdateUser] update failed:', err)
       if (context?.previous) qc.setQueryData(userKey, context.previous)

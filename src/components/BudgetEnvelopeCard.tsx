@@ -1,5 +1,6 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import type { Envelope } from '../types/expense'
-import { formatCurrency } from '@/lib/currency'
+
 
 interface Props {
   envelope: Envelope
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export function BudgetEnvelopeCard({ envelope, hideAmounts, onMoveMoney }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const { category, assigned, spent, available, isOverspent, spentPct } = envelope
 
   const barColor = isOverspent ? 'var(--risk-fg, #ff8b9a)' : spentPct > 85 ? 'var(--warn-fg, #ffd166)' : '#5ee6a8'

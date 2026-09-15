@@ -67,7 +67,7 @@ export async function POST(req: Request) {
   try {
     result = await generateJSONFromImage<ScanResult>(
       'This is a photo or screenshot of an Indian retail bill or delivery-app ' +
-        '(Blinkit/Instamart/Zomato/Swiggy-style) cart. All amounts are in INR. ' +
+        '(Blinkit/Instamart/Zomato/Swiggy-style) cart. Extract numeric amounts exactly as printed; do not convert currencies. ' +
         'Extract the merchant name, the grand total, the bill date if visible ' +
         '(as YYYY-MM-DD, omit the field entirely if not visible), the single ' +
         'best-fit category from the allowed list, and every line item. Report ' +

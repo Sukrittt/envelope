@@ -1,5 +1,6 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -20,14 +21,10 @@ import { formatDateShort } from '@/src/lib/format'
 import { categoryBreakdown, leftoverFor, monthComparison, monthTotals, withDelta } from '@/src/lib/monthly'
 import { computeEnvelopeState } from '@/src/lib/envelope'
 import { EMPTY } from '@/src/lib/constants'
-import { formatCurrency } from '@/lib/currency'
 
 const TREND_MONTHS = 12
 const HEATMAP_WEEKS = 12
 
-function money(value: number, hidden: boolean) {
-  return hidden ? '₹••••' : formatCurrency(value)
-}
 
 function monthsBack(month: string, currentMonth: string) {
   const [y1, m1] = month.split('-').map(Number)
@@ -36,6 +33,8 @@ function monthsBack(month: string, currentMonth: string) {
 }
 
 export function InsightsPage() {
+  const { formatCurrency } = useCurrency()
+
   const router = useRouter()
   const { theme, setTheme } = useAppearance()
   const [hideAmounts] = useHideAmounts()
@@ -210,7 +209,7 @@ export function InsightsPage() {
                 </div>
                 {trendSummary ? (
                   <p className="ins-trend-summary">
-                    {trendSummary.kind === 'first' ? 'First month tracked.' : <><strong>{money(trendSummary.current, hideAmounts)}</strong> in {monthLabel(insightMonth)} vs {money(trendSummary.prior, hideAmounts)} in {monthLabel(trendSummary.previous)}</>}
+                    {trendSummary.kind === 'first' ? 'First month tracked.' : <><strong>{formatCurrency(trendSummary.current, hideAmounts)}</strong> in {monthLabel(insightMonth)} vs {formatCurrency(trendSummary.prior, hideAmounts)} in {monthLabel(trendSummary.previous)}</>}
                   </p>
                 ) : (
                   <TrendChart data={trendData} baseline={comparison.baseline} selectedKey={insightMonth} hideAmounts={hideAmounts} onSelect={setInsightMonth} partialKey={currentMonth} partialNote={`${monthAbbrev(currentMonth)}, ${Number(today.slice(8, 10))} days in`} />

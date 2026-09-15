@@ -1,5 +1,7 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import {
   createContext,
   useCallback,
@@ -15,7 +17,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, type LucideIcon } from 'lucide-react'
 import { darkTokens } from '@/src/theme/tokens'
-import { formatCurrency } from '@/src/lib/format'
+
 
 /**
  * Web twins of Mobile's UI primitives (Mobile/src/components/ui/*, shared/*),
@@ -116,6 +118,8 @@ export function AmountText({
   id?: string
   style?: CSSProperties
 }) {
+  const { formatCurrency } = useCurrency()
+
   const text = rawText ?? formatCurrency(value)
   const textStyle: CSSProperties = {
     fontSize: size,

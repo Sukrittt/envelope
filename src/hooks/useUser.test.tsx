@@ -88,3 +88,17 @@ it('useRestoreAccount invalidates every query on success', async () => {
   await waitFor(() => expect(result.current.isSuccess).toBe(true))
   expect(invalidateSpy).toHaveBeenCalled()
 })
+
+it('rolls back a failed currency change without changing any amounts', async () => {
+  ;(updateUser as Mock).mockRejectedValueOnce(new Error('currency save failed'))
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+  queryClient.setQueryData(userKey, { email: 'a@b.com', currencyCode: 'INR' })
+  queryClient.setQueryData(['expenses'], [{ amount_inr: '500' }])
+  const { result, unmount } = renderHook(() => useUpdateUser(), { wrapper: wrapper(queryClient) })
+  result.current.mutate({ currencyCode: 'USD' })
+  await waitFor(() => expect(result.current.isError).toBe(true))
+  expect(queryClient.getQueryData<UserProfile>(userKey)?.currencyCode).toBe('INR')
+  expect(queryClient.getQueryData(['expenses'])).toEqual([{ amount_inr: '500' }])
+  unmount()
+  queryClient.clear()
+})

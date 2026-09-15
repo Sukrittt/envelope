@@ -1,3 +1,4 @@
+import { getUserCurrency } from '@/lib/userCurrency'
 import { ObjectId } from 'mongodb'
 import { put, issueSignedToken, presignUrl } from '@vercel/blob'
 import * as XLSX from 'xlsx'
@@ -7,7 +8,7 @@ import { getCollection, nowIST } from '@/lib/http'
 import { sendPushNotification } from '@/lib/push'
 import type { Auth } from '@/lib/access'
 import { COLLECTIONS } from '@/lib/models'
-import { EXPORT_COLUMNS, readableSheetName } from '@/lib/exportFormat'
+import { exportColumns, readableSheetName } from '@/lib/exportFormat'
 
 export const EXPORT_LIMIT = 3
 
@@ -82,8 +83,9 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
   try {
     const wb = XLSX.utils.book_new()
 
+    const columnsByCollection = exportColumns(await getUserCurrency(userId))
     for (const [key, name] of Object.entries(COLLECTIONS) as [keyof typeof COLLECTIONS, string][]) {
-      const columns = EXPORT_COLUMNS[key]
+      const columns = columnsByCollection[key]
       if (!columns) continue
 
       const coll = scoped(db.collection(name), userId)

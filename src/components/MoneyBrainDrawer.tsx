@@ -1,5 +1,7 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
@@ -12,7 +14,7 @@ import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
 import { useChatSessions, useChatSessionsCount } from '@/src/hooks/useChatSessions'
 import { computeEnvelopeState, currentMonthKey } from '@/src/lib/envelope'
-import { formatCurrency } from '@/src/lib/format'
+
 import { getChatSession, streamChat, type ChatMessage } from '@/src/api/ai'
 import { track } from '@/src/lib/analytics'
 import { LoadingCaption } from './LoadingCaption'
@@ -33,6 +35,8 @@ function timeAgo(iso: string) {
 }
 
 export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
+  const { formatCurrency } = useCurrency()
+
   const reduceMotion = useReducedMotion()
   const queryClient = useQueryClient()
   const [hideAmounts] = useHideAmounts()
@@ -261,7 +265,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                         <article key={`${card.title}-${card.valueLabel}`} className={`brain-insight brain-insight--${card.tone}`}>
                           <span>{card.icon}</span>
                           <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
-                          <b>{hideAmounts ? '₹••••' : card.valueLabel}</b>
+                          <b>{hideAmounts ? formatCurrency(0, true) : card.valueLabel}</b>
                         </article>
                       ))}
                     </section>

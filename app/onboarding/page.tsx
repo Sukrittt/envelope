@@ -1,11 +1,14 @@
 'use client'
 
+import { CurrencyPicker } from '@/src/components/CurrencyPicker'
+import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Fredoka, Nunito } from 'next/font/google'
 import '../../src/expense-redesign.css'
-import { formatINR } from '../../src/lib/format'
+
 import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
@@ -96,17 +99,26 @@ function groupWeight(gi: number, weighted: boolean): number {
 }
 
 const TITLES: Record<number, [string, string]> = {
+  0: ['Choose your currency', 'The currency you use for your budget. You can change it later in More.'],
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. You can change it any month.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the envelopes you actually spend from. Pick the ones you recognize.'],
-  4: ['Assign every rupee', 'We suggested a split. Change any amount. The leftover has to reach zero.'],
+  4: ['Assign your money', 'We suggested a split. Change any amount. The leftover has to reach zero.'],
 }
 
 export default function SetupWizardPage() {
+  const current = useCurrency()
+  const [currencyCode, setCurrencyCode] = useState(current.currencyCode)
+  return <CurrencyScope code={currencyCode}><CurrencyWizard currencyCode={currencyCode} onCurrencyChange={code => setCurrencyCode(code as typeof currencyCode)} /></CurrencyScope>
+}
+
+function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: string; onCurrencyChange: (code: string) => void }) {
+  const { formatMoney } = useCurrency()
+
   const router = useRouter()
   const qc = useQueryClient()
 
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0)
   const [income, setIncome] = useState('')
   const [groups, setGroups] = useState<Item[]>(defaultGroups)
   const [cats, setCats] = useState<Record<string, Item[]>>(defaultCats)
@@ -151,7 +163,7 @@ export default function SetupWizardPage() {
     return out
   }
 
-  const canAdvance =
+  const canAdvance = step === 0 ? true :
     step === 1
       ? Number(income) > 0
       : step === 2
@@ -188,7 +200,7 @@ export default function SetupWizardPage() {
 
   const back = () => {
     setError('')
-    setStep((s) => Math.max(1, s - 1))
+    setStep((s) => Math.max(0, s - 1))
   }
 
   const commit = async () => {
@@ -220,7 +232,8 @@ export default function SetupWizardPage() {
         await updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' })
       }
 
-      await updateUser({ onboardedAt: new Date().toISOString() })
+      const savedUser = await updateUser({ currencyCode, onboardedAt: new Date().toISOString() })
+      qc.setQueryData(['user'], savedUser)
       await qc.invalidateQueries()
 
       setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount, assigned: assignedTotal() })
@@ -256,7 +269,7 @@ export default function SetupWizardPage() {
 
   const [title, blurb] = TITLES[step]
   const rem = remainder()
-  const hint =
+  const hint = step === 0 ? '' :
     step === 1
       ? canAdvance
         ? ''
@@ -270,10 +283,10 @@ export default function SetupWizardPage() {
             ? `${selectedCatCount} categories across ${selectedGroups.length} groups`
             : 'Pick at least one category'
           : canAdvance
-            ? 'Every rupee assigned'
+            ? 'Everything assigned'
             : rem > 0
-              ? `${formatINR(rem)} still to assign`
-              : `${formatINR(-rem)} over your income`
+              ? `${formatMoney(rem)} still to assign`
+              : `${formatMoney(-rem)} over your income`
 
   const remState = rem === 0 ? 'is-zero' : rem < 0 ? 'is-over' : 'is-under'
   const remLabel = rem === 0 ? 'All assigned' : rem < 0 ? 'Over by' : 'Left to assign'
@@ -281,24 +294,26 @@ export default function SetupWizardPage() {
   return (
     <div className={`expense-redesign setup-page ${fredoka.variable} ${nunito.variable}`}>
       <div className="setup-top">
-        <button type="button" className="setup-back" onClick={back} disabled={step === 1}>
+        <button type="button" className="setup-back" onClick={back} disabled={step === 0}>
           ←
         </button>
         <div className="setup-dots">
-          {[1, 2, 3, 4].map((n) => (
+          {[0, 1, 2, 3, 4].map((n) => (
             <span key={n} className={`setup-dot ${n <= step ? 'is-active' : ''}`} />
           ))}
         </div>
-        <span className="setup-step-counter">step {step}/4</span>
+        <span className="setup-step-counter">step {step + 1}/5</span>
       </div>
 
       <h1 className="setup-title">{title}</h1>
       <p className="setup-blurb">{blurb}</p>
 
+      {step === 0 && (<div className="setup-body"><CurrencyPicker value={currencyCode} onChange={onCurrencyChange} /></div>)}
+
       {step === 1 && (
         <div className="setup-body">
           <div className="setup-amount-wrap">
-            <span className="setup-amount">{income ? formatINR(Number(income)) : '₹0'}</span>
+            <span className="setup-amount">{income ? formatMoney(Number(income)) : formatMoney(0)}</span>
           </div>
           <input
             type="number"
@@ -316,7 +331,7 @@ export default function SetupWizardPage() {
                 className={`setup-chip ${income === v ? 'is-active' : ''}`}
                 onClick={() => setIncome(v)}
               >
-                {formatINR(Number(v))}
+                {formatMoney(Number(v))}
               </button>
             ))}
           </div>
@@ -385,7 +400,7 @@ export default function SetupWizardPage() {
         <div className="setup-body">
           <div className={`setup-rem-chip ${remState}`}>
             <span className="setup-rem-label">{remLabel}</span>
-            <span className="setup-rem-value">{formatINR(Math.abs(rem))}</span>
+            <span className="setup-rem-value">{formatMoney(Math.abs(rem))}</span>
           </div>
           <div className="setup-split-row">
             <button type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(true))}>
@@ -404,7 +419,7 @@ export default function SetupWizardPage() {
                   <div className="setup-section-header">
                     <span>{g.emoji}</span>
                     <span className="setup-section-title">{g.name.toUpperCase()}</span>
-                    <span className="setup-section-subtotal">{formatINR(subtotal)}</span>
+                    <span className="setup-section-subtotal">{formatMoney(subtotal)}</span>
                   </div>
                   {rows.map((c) => {
                     const key = `${g.id}:${c.id}`
@@ -489,11 +504,13 @@ function SetupDone({
   result: { income: number; groupCount: number; categoryCount: number; assigned: number }
   onFinish: () => void
 }) {
+  const { currencySymbol, formatMoney } = useCurrency()
+
   const summary = [
-    { icon: '₹', label: 'Monthly income', value: formatINR(result.income) },
+    { icon: currencySymbol, label: 'Monthly income', value: formatMoney(result.income) },
     { icon: '📁', label: 'Groups', value: String(result.groupCount) },
     { icon: '✉️', label: 'Categories', value: String(result.categoryCount) },
-    { icon: '✓', label: 'Assigned', value: formatINR(result.assigned) },
+    { icon: '✓', label: 'Assigned', value: formatMoney(result.assigned) },
   ]
 
   return (

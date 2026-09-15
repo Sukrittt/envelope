@@ -35,6 +35,7 @@ function fakeCollection(name: string) {
   const store = (stores[name] ??= [])
   return {
     collectionName: name,
+    findOne: async (filter: Record<string, unknown>) => store.find(d => matches(d, filter)) ?? null,
     find: (filter: Record<string, unknown> = {}) => {
       let results = store.filter((d) => matches(d, filter))
       const cursor = {

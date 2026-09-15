@@ -1,3 +1,4 @@
+import { formatMoney } from '@/src/lib/currencies'
 /**
  * Builds the dashboard's derived panel from raw API rows.
  *
@@ -24,6 +25,7 @@ const DAILY_SOFT_CAP_INR = 1500
 const DISCRETIONARY_ALERT_PCT = 60
 
 export function buildExpensePanel(input: {
+  currencyCode?: string
   budgets: BudgetRow[]
   expenses: ExpenseRow[]
   subscriptions: SubscriptionRow[]
@@ -67,7 +69,7 @@ export function buildExpensePanel(input: {
 
   const alerts: string[] = []
   if (envelopeState.isOverAssigned) {
-    alerts.push(`Over-assigned by ₹${Math.abs(envelopeState.readyToAssign)} — reduce category budgets.`)
+    alerts.push(`Over-assigned by ${formatMoney(Math.abs(envelopeState.readyToAssign), input.currencyCode)} — reduce category budgets.`)
   }
   const discretionaryPct = monthSpend > 0 ? (discretionarySpend / monthSpend) * 100 : 0
   if (discretionaryPct > DISCRETIONARY_ALERT_PCT) {

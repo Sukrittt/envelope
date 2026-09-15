@@ -1,9 +1,11 @@
 'use client'
 
+import { useCurrency } from '@/src/context/CurrencyContext'
+
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform, type MotionValue } from 'motion/react'
 import { ArrowLeft, Check, ListFilter, Play } from 'lucide-react'
-import { formatCurrency } from '@/src/lib/format'
+
 import type { ThemeTokens } from '@/src/theme/tokens'
 import {
   AmountText,
@@ -181,6 +183,8 @@ function CategoryBreakdown({
   monthLabel: string
   notice: (message: string) => void
 }) {
+  const { currencySymbol, formatCurrency } = useCurrency()
+
   const [expanded, setExpanded] = useState(false)
   const [sortBy, setSortBy] = useState<'spend' | 'budget'>('spend')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -414,7 +418,7 @@ function CategoryBreakdown({
               onClick={() => setSortBy(m)}
               style={cell(sortBy === m, { flex: 1, paddingBlock: 5, textAlign: 'center' })}
             >
-              <span style={caption(T.text, 'bodyBold', type.body)}>{m === 'spend' ? '₹' : '%'}</span>
+              <span style={caption(T.text, 'bodyBold', type.body)}>{m === 'spend' ? currencySymbol : '%'}</span>
             </button>
           ))}
         </div>

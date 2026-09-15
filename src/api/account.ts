@@ -9,6 +9,8 @@
 import { apiFetch } from './client'
 
 export interface UserProfile {
+  _id?: string
+  currencyCode?: string
   email: string
   emailVerified: boolean
   name?: string | null

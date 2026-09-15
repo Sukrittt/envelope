@@ -1,7 +1,9 @@
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
-import { formatCurrency } from '@/src/lib/format'
+
 import { TourRow } from '@/src/components/tour/parts'
-import { QUIZ_OPTIONS, QUIZ_QUESTION, ROLLOVER_ROWS } from '@/src/components/tour/content'
+import { useTourContent } from '@/src/components/tour/useTourContent'
+import { ROLLOVER_ROWS } from '@/src/components/tour/content'
 
 /**
  * Chapter 4: the quiz, then a September 30 / October 1 toggle showing what a
@@ -10,6 +12,10 @@ import { QUIZ_OPTIONS, QUIZ_QUESTION, ROLLOVER_ROWS } from '@/src/components/tou
  * restarts at zero.
  */
 export function RolloverDemo({ onComplete }: { onComplete: () => void }) {
+  const { QUIZ_OPTIONS, QUIZ_QUESTION } = useTourContent()
+
+  const { formatCurrency } = useCurrency()
+
   const [answer, setAnswer] = useState<string | null>(null)
   const [month, setMonth] = useState<'sep' | 'oct'>('sep')
 
