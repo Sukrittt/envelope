@@ -19,7 +19,6 @@ import { currentMonthKey, monthAbbrev, monthLabel, prevMonthKey, shiftMonthKey }
 import { todayIST } from '@/src/lib/date'
 import { formatDateShort } from '@/src/lib/format'
 import { categoryBreakdown, leftoverFor, monthComparison, monthTotals, withDelta } from '@/src/lib/monthly'
-import { computeEnvelopeState } from '@/src/lib/envelope'
 import { EMPTY } from '@/src/lib/constants'
 
 const TREND_MONTHS = 12
@@ -68,10 +67,6 @@ export function InsightsPage() {
     return expenses.reduce((earliest, expense) => expense.date.slice(0, 7) < earliest ? expense.date.slice(0, 7) : earliest, currentMonth)
   }, [expenses, currentMonth])
 
-  const currentState = useMemo(
-    () => computeEnvelopeState(budgets, expenses, currentMonth, categories, groups),
-    [budgets, expenses, categories, groups, currentMonth],
-  )
   const categoryGroupMap = useMemo(() => new Map(categories.map((category) => [category.name, category.group || 'Other'])), [categories])
 
   const trendMonths = useMemo(
@@ -175,7 +170,7 @@ export function InsightsPage() {
       </header>
 
       <div className="erd-main">
-        <ExpenseSidebar month={currentMonth} income={currentState.income} totalSpent={currentState.totalSpent} />
+        <ExpenseSidebar />
         <main className="erd-content ins-content">
           <header className="ins-period-header">
             <button type="button" className="ins-back-btn ins-desktop-back" onClick={() => router.back()} aria-label="Back"><ArrowLeft size={18} /></button>

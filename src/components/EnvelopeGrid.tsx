@@ -1,17 +1,18 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeftRight, CreditCard } from 'lucide-react'
+import { ChevronRight, ChevronsDownUp } from 'lucide-react'
+import { categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
 
+/** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
 interface Props {
   envelopes: Envelope[]
   groups: string[]
   hideAmounts: boolean
   readyToAssign: number
-  searchQuery: string
-  sortKey: 'custom' | 'overspent-first' | 'alphabetical' | 'by-assigned'
+  onManage: () => void
   onMoveMoney: (category: string) => void
   onAssignFromRTA: (category: string, amount: number) => void
   onSetAssigned: (category: string, amount: number) => void
@@ -23,6 +24,11 @@ const UNGROUPED_LABEL = 'Other'
 function usedPct(e: Envelope): number {
   if (e.assigned > 0) return Math.round((e.spent / e.assigned) * 100)
   return e.spent > 0 ? Infinity : 0
+}
+
+function usedPctLabel(e: Envelope): string {
+  if (e.assigned > 0) return `${usedPct(e)}%`
+  return e.spent > 0 ? '∞' : '—'
 }
 
 function lastSpentLabel(iso: string | undefined): string {
@@ -40,142 +46,67 @@ function lastSpentLabel(iso: string | undefined): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-function compareEnvelopes(a: Envelope, b: Envelope, sortKey: Props['sortKey']): number {
-  if (sortKey === 'custom') return 0
-  if (sortKey === 'overspent-first') {
-    if (a.isOverspent !== b.isOverspent) return a.isOverspent ? -1 : 1
-    return a.available - b.available
-  }
-  if (sortKey === 'alphabetical') return a.category.localeCompare(b.category)
-  return b.assigned - a.assigned
-}
+type MenuMode = 'actions' | 'assign' | 'edit'
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, searchQuery, sortKey, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
   const { formatCurrency, currencySymbol } = useCurrency()
+  const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
 
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
-  const [menuAssignCategory, setMenuAssignCategory] = useState<string | null>(null)
-  const [menuAssignValue, setMenuAssignValue] = useState('')
-  const [menuEditCategory, setMenuEditCategory] = useState<string | null>(null)
-  const [menuEditValue, setMenuEditValue] = useState('')
+  const [menuMode, setMenuMode] = useState<MenuMode>('actions')
+  const [menuValue, setMenuValue] = useState('')
   const menuRef = useRef<HTMLDivElement | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
-  const editInputRef = useRef<HTMLInputElement | null>(null)
+
+  function closeMenu() {
+    setMenuCategory(null)
+    setMenuMode('actions')
+    setMenuValue('')
+  }
 
   useEffect(() => {
     if (!menuCategory) return
     function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuCategory(null)
-        setMenuAssignCategory(null)
-        setMenuAssignValue('')
-        setMenuEditCategory(null)
-        setMenuEditValue('')
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) closeMenu()
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [menuCategory])
 
-  useEffect(() => {
-    if (menuAssignCategory && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [menuAssignCategory])
-
-  useEffect(() => {
-    if (menuEditCategory && editInputRef.current) {
-      editInputRef.current.focus()
-    }
-  }, [menuEditCategory])
-
-  function closeMenu() {
-    setMenuCategory(null)
-    setMenuAssignCategory(null)
-    setMenuAssignValue('')
-    setMenuEditCategory(null)
-    setMenuEditValue('')
-  }
-
   function openMenu(category: string) {
-    if (menuCategory === category) closeMenu()
-    else {
-      setMenuCategory(category)
-      setMenuAssignCategory(null)
-      setMenuAssignValue('')
-      setMenuEditCategory(null)
-      setMenuEditValue('')
-    }
+    if (menuCategory === category) return closeMenu()
+    setMenuCategory(category)
+    setMenuMode('actions')
+    setMenuValue('')
   }
 
-  function openEditAssigned(category: string, current: number) {
-    setMenuAssignCategory(null)
-    setMenuAssignValue('')
-    setMenuEditCategory(category)
-    setMenuEditValue(String(current))
-  }
-
-  function handleAssignKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      const amount = Number(menuAssignValue)
-      if (amount > 0 && amount <= readyToAssign && menuAssignCategory) {
-        onAssignFromRTA(menuAssignCategory, amount)
-      }
-      closeMenu()
-    }
+  function handleInputKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
-      setMenuAssignCategory(null)
-      setMenuAssignValue('')
+      setMenuMode('actions')
+      setMenuValue('')
+      return
     }
-  }
-
-  function handleEditKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      const amount = Number(menuEditValue)
-      if (menuEditCategory && menuEditValue.trim() !== '' && amount >= 0) {
-        onSetAssigned(menuEditCategory, amount)
-      }
-      closeMenu()
-    }
-    if (e.key === 'Escape') {
-      setMenuEditCategory(null)
-      setMenuEditValue('')
-    }
+    if (e.key !== 'Enter' || !menuCategory) return
+    const amount = Number(menuValue)
+    if (menuMode === 'assign' && amount > 0 && amount <= readyToAssign) onAssignFromRTA(menuCategory, amount)
+    if (menuMode === 'edit' && menuValue.trim() !== '' && amount >= 0) onSetAssigned(menuCategory, amount)
+    closeMenu()
   }
 
   const ccEnvelope = useMemo(() => envelopes.find((e) => e.isCreditCardPayment) ?? null, [envelopes])
-  const regular = useMemo(() => envelopes.filter((e) => !e.isCreditCardPayment), [envelopes])
-
-  const query = searchQuery.trim().toLowerCase()
 
   const grouped = useMemo(() => {
-    const list: Array<{ label: string; items: Envelope[] }> = []
-    const orderedGroups = groups.filter((g) => regular.some((e) => e.group === g))
-    for (const g of orderedGroups) {
-      list.push({ label: g, items: regular.filter((e) => e.group === g) })
-    }
+    const regular = envelopes.filter((e) => !e.isCreditCardPayment)
+    const list = groups
+      .map((g) => ({ label: g, items: regular.filter((e) => e.group === g) }))
+      .filter((g) => g.items.length > 0)
     const ungrouped = regular.filter((e) => !e.group)
     if (ungrouped.length > 0) list.push({ label: UNGROUPED_LABEL, items: ungrouped })
     return list
-  }, [groups, regular])
+  }, [envelopes, groups])
 
-  const matching = useMemo(() => {
-    if (!query) return null
-    return new Set(
-      regular
-        .filter((e) => e.category.toLowerCase().includes(query) || (e.group || UNGROUPED_LABEL).toLowerCase().includes(query))
-        .map((e) => e.group || UNGROUPED_LABEL),
-    )
-  }, [query, regular])
-
-  const visibleGroups = useMemo(() => {
-    return grouped.filter((g) => !matching || matching.has(g.label))
-  }, [grouped, matching])
-
-  const isSearching = Boolean(query)
-  const allExpanded = collapsed.size === 0
+  const allCollapsed = grouped.length > 0 && grouped.every((g) => collapsed.has(g.label))
 
   function toggleGroup(label: string) {
     setCollapsed((prev) => {
@@ -186,198 +117,140 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
     })
   }
 
-  function toggleAll() {
-    if (allExpanded) setCollapsed(new Set(visibleGroups.map((g) => g.label)))
-    else setCollapsed(new Set())
-  }
-
-  function groupTotals(items: Envelope[]) {
-    let assigned = 0
-    let spent = 0
-    let available = 0
-    for (const e of items) {
-      assigned += e.assigned
-      spent += e.spent
-      available += e.available
-    }
-    return { assigned, spent, available }
-  }
-
-  function renderRow(e: Envelope, nested: boolean) {
+  function renderRow(e: Envelope, group?: string) {
     const isCC = e.isCreditCardPayment
-    const isOverspent = e.isOverspent
-    const hasBalance = e.available > 0
-    const pct = Math.min(100, e.spentPct)
-    // Unclamped, for color only: pct above is capped at 100 for the bar's
-    // width, which would make an overspent envelope (>100%) read identically
-    // to one spent exactly to its limit. Matches Mobile's ProgressBar
-    // thresholds: muted at exactly 100%, coral past 90%, warn past 75%.
+    const name = isCC ? 'Credit Card Payment' : splitEmoji(e.category).text
+    const pct = Math.max(0, Math.min(100, e.spentPct))
+    // Unclamped, for color only — see Mobile's ProgressBar thresholds: muted
+    // at exactly 100%, coral past 90%, warn past 75%.
     const rawPct = usedPct(e)
+    const fill = (!e.assigned && !e.spent) || rawPct === 100 ? 'is-done' : rawPct > 90 ? 'is-coral' : rawPct > 75 ? 'is-warn' : 'is-mint'
     const isMenuOpen = menuCategory === e.category
-    const showDash = !isCC && e.assigned === 0 && e.spent === 0
+
     return (
-      <tr key={e.category} className={`env-row ${nested ? 'env-row-nested' : ''} ${isCC ? 'env-row-cc' : ''} ${isOverspent ? 'env-row-overspent' : ''} ${!isOverspent && !e.assigned && !e.spent && !e.available ? 'env-row-inactive' : ''}`}>
-        <td className="env-cell env-cell-cat">
-          {isCC ? (
-            <span className="env-cat-cc-label">
-              <span className="env-cc-icon"><CreditCard size={14} /></span>
-              Credit Card Payment
-              <span className="env-cc-badge">payoff</span>
+      <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''}`} ref={isMenuOpen ? menuRef : undefined}>
+        <button type="button" className="env2-row-main" onClick={() => openMenu(e.category)} aria-expanded={isMenuOpen}>
+          <span className="env2-row-top">
+            <span className="env2-emoji">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
+            <span className="env2-name">{name}</span>
+            <span className="env2-spent-of">
+              {money(e.spent)}/{money(e.assigned)}
             </span>
-          ) : (
-            <button
-              type="button"
-              className="env-cat-link"
-              onClick={() => router.push(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
-              title={`View ${e.category} transactions`}
-            >
-              <span>{e.category}</span>
-            </button>
-          )}
+          </span>
+          <span className="env-bar-track env2-bar">
+            <span className={`env-bar-fill ${fill}`} style={{ display: 'block', width: `${pct}%` }} />
+          </span>
           {!isCC && (
-            <div className="env-bar-track">
-              <div
-                className={`env-bar-fill ${(!e.assigned && !e.spent) || rawPct === 100 ? 'is-done' : rawPct > 90 ? 'is-coral' : rawPct > 75 ? 'is-warn' : 'is-mint'}`}
-                style={{ width: '100%', transform: `scaleX(${Math.max(0, pct) / 100})` }}
-              >
-                <span className="env-bar-shimmer" />
-              </div>
-            </div>
+            <span className="env2-meta">
+              Used {usedPctLabel(e)} · Last spent {lastSpentLabel(e.lastSpentDate)}
+            </span>
           )}
-        </td>
-        <td className="env-cell env-cell-num env-cell-assigned" title={isCC ? 'Set aside' : undefined}>
-          {hideAmounts ? '---' : formatCurrency(e.assigned)}
-        </td>
-        <td className="env-cell env-cell-num env-cell-spent" title={isCC ? 'Paid' : undefined}>
-          {hideAmounts ? '---' : formatCurrency(e.spent)}
-        </td>
-        <td className={`env-cell env-cell-num ${isCC ? 'env-cell-muted' : showDash ? 'env-cell-muted' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : 'env-cell-muted'}`}>
-          {isCC || showDash ? '—' : usedPct(e) === Infinity ? '∞' : `${usedPct(e)}%`}
-        </td>
-        <td className={`env-cell env-cell-num env-cell-avail ${isCC ? 'env-cell-cc' : isOverspent ? 'env-cell-negative' : hasBalance ? 'env-cell-positive' : ''}`} title={isCC ? 'Owed' : undefined}>
-          {hideAmounts ? '---' : formatCurrency(e.available)}
-        </td>
-        <td className="env-cell env-cell-num env-cell-last">
-          {lastSpentLabel(e.lastSpentDate)}
-        </td>
-        <td className="env-cell env-cell-action">
-          <div className="env-action-wrap">
-            <button type="button" className="env-menu-trigger" onClick={() => openMenu(e.category)} title="Actions">
-              <ArrowLeftRight size={14} />
-            </button>
-            {isMenuOpen && (
-              <div className="env-menu" ref={menuRef}>
-                {menuEditCategory === e.category ? (
-                  <div className="env-menu-assign">
-                    <span className="env-menu-assign-label">Set {currencySymbol}</span>
-                    <input
-                      ref={editInputRef}
-                      type="number"
-                      className="env-menu-assign-input"
-                      value={menuEditValue}
-                      onChange={(e) => setMenuEditValue(e.target.value)}
-                      onKeyDown={handleEditKeyDown}
-                      min={0}
-                      step={1}
-                      placeholder="amount"
-                    />
-                  </div>
-                ) : menuAssignCategory !== e.category ? (
-                  <>
-                    <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
-                      Move money between envelopes
-                    </button>
-                    <button type="button" className="env-menu-item" onClick={() => { setMenuAssignCategory(e.category); setMenuAssignValue('') }}>
-                      Assign from Ready to Assign
-                    </button>
-                    <button type="button" className="env-menu-item" onClick={() => openEditAssigned(e.category, e.assigned)}>
-                      Edit assigned amount
-                    </button>
-                    {isCC && e.available > 0 && (
-                      <>
-                        <div className="inv-action-divider" />
-                        <button type="button" className="env-menu-item env-menu-item-danger" onClick={() => { onPayCreditCard?.(); closeMenu() }}>
-                          Pay credit card bill
-                        </button>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <div className="env-menu-assign">
-                    <span className="env-menu-assign-label">Assign {currencySymbol}</span>
-                    <input
-                      ref={inputRef}
-                      type="number"
-                      className="env-menu-assign-input"
-                      value={menuAssignValue}
-                      onChange={(e) => setMenuAssignValue(e.target.value)}
-                      onKeyDown={handleAssignKeyDown}
-                      min={1}
-                      max={readyToAssign}
-                      placeholder="amount"
-                    />
-                  </div>
+        </button>
+        <span className={`env2-available ${e.isOverspent ? 'is-neg' : ''}`}>{money(e.available)}</span>
+
+        {isMenuOpen && (
+          <div className="env-menu env2-menu">
+            {menuMode === 'actions' ? (
+              <>
+                <div className="env2-menu-title">{name}</div>
+                <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
+                  Move money between envelopes
+                </button>
+                <button type="button" className="env-menu-item" onClick={() => { setMenuMode('assign'); setMenuValue('') }}>
+                  Assign from Ready to Assign
+                </button>
+                <button type="button" className="env-menu-item" onClick={() => { setMenuMode('edit'); setMenuValue(String(e.assigned)) }}>
+                  Edit assigned amount
+                </button>
+                {!isCC && (
+                  <button
+                    type="button"
+                    className="env-menu-item"
+                    onClick={() => router.push(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
+                  >
+                    View transactions
+                  </button>
                 )}
+                {isCC && e.available > 0 && (
+                  <button type="button" className="env-menu-item env-menu-item-danger" onClick={() => { onPayCreditCard?.(); closeMenu() }}>
+                    Pay credit card bill
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="env-menu-assign">
+                <span className="env-menu-assign-label">
+                  {menuMode === 'assign' ? 'Assign' : 'Set'} {currencySymbol}
+                </span>
+                <input
+                  autoFocus
+                  type="number"
+                  className="env-menu-assign-input"
+                  value={menuValue}
+                  onChange={(ev) => setMenuValue(ev.target.value)}
+                  onKeyDown={handleInputKeyDown}
+                  min={menuMode === 'assign' ? 1 : 0}
+                  max={menuMode === 'assign' ? readyToAssign : undefined}
+                  step={1}
+                  placeholder="amount"
+                />
               </div>
             )}
           </div>
-        </td>
-      </tr>
-    )
-  }
-
-  if (!envelopes.length) {
-    return (
-      <div className="envelope-grid-empty">
-        <p>No envelopes yet. Set up budgets in the budgets CSV to get started.</p>
+        )}
       </div>
     )
   }
 
   return (
-    <table className="env-table">
-      <thead>
-        <tr className="env-table-header">
-          <th className="env-th env-th-cat">
-            <span className="env-th-toggle-all" role="button" tabIndex={0} onClick={toggleAll} onKeyDown={(e) => { if (e.key === 'Enter') toggleAll() }} title={allExpanded ? 'Collapse all groups' : 'Expand all groups'}>
-              {allExpanded ? '▾' : '▸'} {allExpanded ? 'Collapse all' : 'Expand all'}
-            </span>
-          </th>
-          <th className="env-th env-th-num">Assigned</th>
-          <th className="env-th env-th-num">Spent</th>
-          <th className="env-th env-th-num">Used</th>
-          <th className="env-th env-th-num">Available</th>
-          <th className="env-th env-th-last">Last spent</th>
-          <th className="env-th env-th-action" />
-        </tr>
-      </thead>
-      <tbody>
-        {visibleGroups.map((group) => {
-          const sortedItems = sortKey === 'custom' ? group.items : [...group.items].sort((a, b) => compareEnvelopes(a, b, sortKey))
-          const isCollapsed = !isSearching && collapsed.has(group.label)
-          const totals = groupTotals(group.items)
-          const availableClass = totals.available < 0 ? 'env-cell-negative' : totals.available > 0 ? 'env-cell-positive' : 'env-cell-muted'
-          return (
-            <Fragment key={group.label}>
-              <tr className={`env-group-row ${isCollapsed ? 'env-group-collapsed' : ''}`} onClick={() => toggleGroup(group.label)}>
-                <td className="env-group-cell env-group-cell-cat">
-                  <span className="env-group-toggle">{isCollapsed ? '▸' : '▾'}</span>
-                  <span className="env-group-name">{group.label}</span>
-                  <span className="env-group-count">{group.items.length} {group.items.length === 1 ? 'category' : 'categories'}</span>
-                </td>
-                <td className="env-group-cell env-group-num env-cell-assigned">{hideAmounts ? '---' : formatCurrency(totals.assigned)}</td>
-                <td className="env-group-cell env-group-num env-cell-spent">{hideAmounts ? '---' : formatCurrency(totals.spent)}</td>
-                <td className="env-group-cell env-group-num">{totals.assigned > 0 ? `${Math.round((totals.spent / totals.assigned) * 100)}%` : '—'}</td>
-                <td className={`env-group-cell env-group-num env-cell-avail ${availableClass}`}>{hideAmounts ? '---' : formatCurrency(totals.available)}</td>
-                <td className="env-group-cell env-group-num env-cell-last">—</td>
-                <td className="env-group-cell env-group-action" />
-              </tr>
-              {!isCollapsed && sortedItems.map((e) => renderRow(e, true))}
-            </Fragment>
-          )
-        })}
-        {ccEnvelope && renderRow(ccEnvelope, false)}
-      </tbody>
-    </table>
+    <>
+      <div className="env2-head">
+        <div className="env2-head-title">
+          <h3>Envelopes</h3>
+          <button
+            type="button"
+            className="env2-icon-btn"
+            onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(grouped.map((g) => g.label)))}
+            aria-label={allCollapsed ? 'Expand all' : 'Collapse all'}
+            title={allCollapsed ? 'Expand all' : 'Collapse all'}
+          >
+            <ChevronsDownUp size={16} />
+          </button>
+        </div>
+        <button type="button" className="erd-manage-btn" onClick={onManage}>
+          Manage
+        </button>
+      </div>
+
+      {!envelopes.length ? (
+        <p className="env2-empty">No envelopes yet. Hit Manage to add your first one.</p>
+      ) : (
+        <div className="env2-list">
+          {grouped.map(({ label, items }) => {
+            const expanded = !collapsed.has(label)
+            const totalAvailable = items.reduce((s, e) => s + e.available, 0)
+            return (
+              <div key={label} className="env2-group">
+                <button type="button" className="env2-group-head" onClick={() => toggleGroup(label)} aria-expanded={expanded}>
+                  <span className="env2-group-name">
+                    <ChevronRight size={16} className={`env2-chevron ${expanded ? 'is-open' : ''}`} />
+                    <span className="env2-emoji">{groupEmoji(label)}</span>
+                    <span>{splitEmoji(label).text}</span>
+                  </span>
+                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}>{money(totalAvailable)} left</span>
+                </button>
+                {expanded && <div className="env2-group-rows">{items.map((e) => renderRow(e, label))}</div>}
+              </div>
+            )
+          })}
+          {ccEnvelope && (
+            <div className="env2-cc">
+              <span className="env2-cc-badge">PAYOFF</span>
+              {renderRow(ccEnvelope)}
+            </div>
+          )}
+        </div>
+      )}
+    </>
   )
 }

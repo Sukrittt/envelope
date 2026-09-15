@@ -104,11 +104,7 @@ h4 {
   position: relative;
   min-height: 100vh;
   font-family: var(--font-stack);
-  /* Calm near-flat surface: a whisper of ambient accent at the top
-     so panels float, without the multi-color gradient festival. */
-  background:
-    radial-gradient(ellipse 60% 26% at 50% -4%, color-mix(in oklab, var(--accent) 5%, transparent), transparent 60%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-size: var(--fs-14);
   line-height: var(--lh-body);

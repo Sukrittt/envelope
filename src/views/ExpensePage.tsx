@@ -2,10 +2,12 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
+import { ChevronRight } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
-import { ReadyToAssignBanner } from "../components/ReadyToAssignBanner";
+import { IncomeCard } from "../components/IncomeCard";
+import { BirdMark } from "../components/BirdMark";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
 import { MoveMoneyModal } from "../components/MoveMoneyModal";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
@@ -32,9 +34,9 @@ import {
 } from "../hooks/useSubscriptions";
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
 import { LogExpenseModal } from "../components/LogExpenseModal";
-import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { BudgetRow, EnvelopeState } from "../types/expense";
+import { daysLeftInMonth, monthLabel } from "../lib/envelope";
 
 type ActiveSubscription = ExpensePanelData["subscriptions"]["active"][number];
 
@@ -97,10 +99,6 @@ export function ExpensePage() {
     null,
   );
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null);
-  const [envelopeSearch, setEnvelopeSearch] = useState("");
-  const [envelopeSort, setEnvelopeSort] = useState<
-    "custom" | "overspent-first" | "alphabetical" | "by-assigned"
-  >("custom");
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
   const [showRolloverBanner, setShowRolloverBanner] = useState(false);
@@ -133,7 +131,6 @@ export function ExpensePage() {
     category: string;
   } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
-  const [showScanModal, setShowScanModal] = useState(false);
   const { theme, setTheme } = useAppearance();
 
   // Restore the "hide amounts" preference after hydration so the server and
@@ -459,11 +456,6 @@ export function ExpensePage() {
     if (firstOverspent) setMoveMoneyTarget(firstOverspent.category);
   }
 
-  function handleShowCategories() {
-    const el = document.querySelector(".erd-envelopes-panel");
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   const overspentCount =
     envelopeState?.envelopes.filter((e) => e.isOverspent).length ?? 0;
 
@@ -485,126 +477,73 @@ export function ExpensePage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          Hey Sukrit <span>👋</span>
-        </div>
-        <div className="erd-mobile-sub">
-          <span>
-            {panel.month}
-            {envelopeState
-              ? ` · Income ${formatCurrency(envelopeState.income)}`
-              : ""}
-          </span>
-          <span className="erd-mobile-rta">
-            RTA{" "}
-            {envelopeState ? formatCurrency(envelopeState.readyToAssign) : "…"}
-          </span>
+          <BirdMark size={30} /> Aviary
         </div>
       </header>
-
-      {envelopeState && (
-        <div className="erd-mobile-stats">
-          <div className="erd-mstat erd-mstat-rta">
-            <span>Ready to assign</span>
-            <strong>{formatCurrency(envelopeState.readyToAssign)}</strong>
-          </div>
-          <div className="erd-mstat">
-            <span>Income</span>
-            <strong>{formatCurrency(envelopeState.income)}</strong>
-          </div>
-          <div className={`erd-mstat ${overspentCount > 0 ? "is-neg" : ""}`}>
-            <span>Overspent</span>
-            <strong>{overspentCount}</strong>
-          </div>
-        </div>
-      )}
 
       <div className="erd-main">
         <ExpenseSidebar
           onMoveMoney={handleSidebarMoveMoney}
-          onShowCategories={handleShowCategories}
           onBulkReturn={() => setShowBulkReturnConfirm(true)}
-          month={panel.month}
-          income={envelopeState?.income}
-          totalSpent={envelopeState?.totalSpent}
         />
         <div className="erd-content">
-        <div className="erd-left-col">
-          <div className="erd-dashboard-link-row">
-            <Link href="/insights" className="erd-log-btn">
-              Open spending insights
-            </Link>
-            <button type="button" className="erd-log-btn" onClick={() => setShowScanModal(true)}>
-              Scan a bill
-            </button>
-            <button type="button" className="erd-log-btn" onClick={() => setShowLogModal(true)}>
-              + Log expense
-            </button>
-          </div>
+        <div className="erd-home">
+        <div className="erd-home-main">
+          {envelopeState && (
+            <div className="erd-home-hero">
+              <span className="erd-home-hero-label">READY TO ASSIGN</span>
+              <strong className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}>
+                {hideAmounts ? "---" : formatCurrency(envelopeState.readyToAssign)}
+              </strong>
+              <span className="erd-home-hero-caption">
+                {monthLabel(panel.month)} · {daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`}
+              </span>
+            </div>
+          )}
 
+          {showRolloverBanner && rolloverData && (
+            <MonthRolloverBanner
+              currentMonth={panel.month}
+              lastMonth={rolloverData.lastMonth}
+              lastIncome={rolloverData.lastIncome}
+              lastAssignments={rolloverData.lastAssignments}
+              onConfirm={handleRolloverConfirm}
+              onDismiss={handleRolloverDismiss}
+            />
+          )}
+
+          {envelopeState && (
             <article className="erd-card erd-envelopes-panel">
-              <div className="erd-panel-head">
-                <div className="erd-panel-title">
-                  <div>
-                    <h3>Envelopes</h3>
-                    <p className="erd-panel-head-sub">
-                      Assigned · Spent · Available
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="erd-manage-btn"
-                  onClick={() => setShowCategoryManager(true)}
-                >
-                  Manage
-                </button>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "center",
-                }}
-              >
-                <input
-                  type="search"
-                  className="erd-search-input"
-                  placeholder="Search categories or groups…"
-                  value={envelopeSearch}
-                  onChange={(e) => setEnvelopeSearch(e.target.value)}
-                  style={{ width: "220px", marginTop: 0 }}
-                />
-                <select
-                  value={envelopeSort}
-                  onChange={(e) =>
-                    setEnvelopeSort(e.target.value as typeof envelopeSort)
-                  }
-                  className="erd-search-input"
-                  style={{ width: "auto", marginTop: 0 }}
-                >
-                  <option value="custom">Custom order</option>
-                  <option value="overspent-first">Overspent first</option>
-                  <option value="alphabetical">Alphabetical</option>
-                  <option value="by-assigned">By assigned amount</option>
-                </select>
-              </div>
-              {envelopeState && (
-                <div className="erd-table-wrap">
-                  <EnvelopeGrid
-                    envelopes={envelopeState.envelopes}
-                    groups={envelopeState.groups}
-                    hideAmounts={hideAmounts}
-                    readyToAssign={envelopeState.readyToAssign}
-                    searchQuery={envelopeSearch}
-                    sortKey={envelopeSort}
-                    onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
-                    onAssignFromRTA={handleAssignFromRTA}
-                    onSetAssigned={handleSetAssigned}
-                    onPayCreditCard={handlePayCreditCard}
-                  />
-                </div>
-              )}
+              <EnvelopeGrid
+                envelopes={envelopeState.envelopes}
+                groups={envelopeState.groups}
+                hideAmounts={hideAmounts}
+                readyToAssign={envelopeState.readyToAssign}
+                onManage={() => setShowCategoryManager(true)}
+                onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
+                onAssignFromRTA={handleAssignFromRTA}
+                onSetAssigned={handleSetAssigned}
+                onPayCreditCard={handlePayCreditCard}
+              />
             </article>
+          )}
+
+          <Link href="/insights" className="erd-home-insights-link">
+            Trends and daily spend <ChevronRight size={16} />
+          </Link>
+        </div>
+
+        <aside className="erd-home-rail">
+          {envelopeState && (
+            <IncomeCard
+              income={envelopeState.income}
+              totalAssigned={envelopeState.totalAssigned}
+              onIncomeChange={handleIncomeChange}
+              sparkData={panel.miniTrend.slice(-7)}
+              overspentCount={overspentCount}
+              totalEnvelopes={envelopeState.envelopes.length}
+            />
+          )}
 
               <article className="erd-card erd-subs-panel">
                 <div className="erd-panel-head">
@@ -886,34 +825,7 @@ export function ExpensePage() {
                   );
                 })()}
               </article>
-        </div>
-        <div className="erd-right-col">
-          {envelopeState && (
-            <div className="erd-hero-row">
-              <ReadyToAssignBanner
-                income={envelopeState.income}
-                totalAssigned={envelopeState.totalAssigned}
-                readyToAssign={envelopeState.readyToAssign}
-                isOverAssigned={envelopeState.isOverAssigned}
-                onIncomeChange={handleIncomeChange}
-                sparkData={panel.miniTrend.slice(-7)}
-                overspentCount={overspentCount}
-                totalEnvelopes={envelopeState.envelopes.length}
-              />
-            </div>
-          )}
-
-          {showRolloverBanner && rolloverData && (
-            <MonthRolloverBanner
-              currentMonth={panel.month}
-              lastMonth={rolloverData.lastMonth}
-              lastIncome={rolloverData.lastIncome}
-              lastAssignments={rolloverData.lastAssignments}
-              onConfirm={handleRolloverConfirm}
-              onDismiss={handleRolloverDismiss}
-            />
-          )}
-
+        </aside>
         </div>
         </div>
         <AnimatePresence>
@@ -1198,17 +1110,6 @@ export function ExpensePage() {
           <LogExpenseModal
             onClose={() => setShowLogModal(false)}
             onSaved={refreshPanel}
-          />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showScanModal && (
-          <ScanBillModal
-            onClose={() => setShowScanModal(false)}
-            onEnterManually={() => {
-              setShowScanModal(false);
-              setShowLogModal(true);
-            }}
           />
         )}
       </AnimatePresence>

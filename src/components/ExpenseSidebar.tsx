@@ -1,132 +1,167 @@
-import { useCurrency } from '@/src/context/CurrencyContext'
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { clearAccess, useAccessMode } from "../services/accessMode";
-
+import { AnimatePresence } from "motion/react";
+import {
+  ArrowLeftRight,
+  House,
+  LineChart,
+  LogOut,
+  Mail,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  ReceiptText,
+  ScanLine,
+  Settings,
+  Sparkles,
+  Sun,
+  Undo2,
+  type LucideIcon,
+} from "lucide-react";
+import { clearAccess } from "../services/accessMode";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
+import { useAppearance } from "@/components/AppearanceProvider";
+import { usePersistentState } from "../hooks/usePersistentState";
+import { BirdMark } from "./BirdMark";
+import { LogExpenseModal } from "./LogExpenseModal";
+import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
 
 interface Props {
   onMoveMoney?: () => void;
-  onShowCategories?: () => void;
   onBulkReturn?: () => void;
-  month?: string;
-  income?: number;
-  totalSpent?: number;
 }
 
-export function ExpenseSidebar({
-  onMoveMoney,
-  onShowCategories,
-  onBulkReturn,
-  month,
-  income,
-  totalSpent,
-}: Props) {
-  const { formatCurrency } = useCurrency()
+const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
+  { href: "/expense", label: "Home", icon: House },
+  { href: "/expense/envelopes", label: "Envelopes", icon: Mail },
+  { href: "/expense/transactions", label: "Activity", icon: ReceiptText },
+  { href: "/insights", label: "Insights", icon: LineChart },
+];
 
+const parseBool = (raw: string) => raw === "1";
+const serializeBool = (v: boolean) => (v ? "1" : "0");
+
+export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
   const pathname = usePathname();
   const { openMoneyBrain } = useMoneyBrain();
-  const access = useAccessMode();
-  const isBudget = pathname.startsWith("/expense");
-  const left = income != null && totalSpent != null ? income - totalSpent : null;
+  const { theme, setTheme } = useAppearance();
+  const [collapsed, setCollapsed] = usePersistentState("erd-sidebar-collapsed", false, parseBool, serializeBool);
+  const [showLog, setShowLog] = useState(false);
+  const [showScan, setShowScan] = useState(false);
+
+  // Collapsed rows show only their icon, so the label moves to a native tooltip.
+  const tip = (label: string) => (collapsed ? label : undefined);
 
   return (
-    <nav className="erd-sidebar">
-      <div>
-        <div className="erd-greeting">
-          Aviary <span className="erd-wave">🕊️</span>
-        </div>
-        <div className="erd-sidebar-month">
-          {month ?? ""} · {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-        </div>
-      </div>
-
-      {month && (
-        <div className="erd-summary-box">
-          <div className="erd-summary-row">
-            <span>Income</span>
-            <strong>{income != null ? formatCurrency(income) : "—"}</strong>
-          </div>
-          <div className="erd-summary-row">
-            <span>Spent</span>
-            <strong>{totalSpent != null ? formatCurrency(totalSpent) : "—"}</strong>
-          </div>
-          <div className="erd-summary-row">
-            <span>Left</span>
-            <strong style={{ color: "var(--mint)" }}>
-              {left != null ? formatCurrency(left) : "—"}
-            </strong>
-          </div>
-        </div>
-      )}
-
-      <div className="erd-nav-group">
-        <div className="erd-nav-label">Views</div>
-        <Link
-          href="/expense"
-          className={`erd-nav-item ${isBudget && pathname === "/expense" ? "is-active" : ""}`}
-        >
-          <span className="erd-nav-dot" />
-          Dashboard
-        </Link>
-        <Link
-          href="/expense/envelopes"
-          className={`erd-nav-item ${pathname === "/expense/envelopes" ? "is-active" : ""}`}
-        >
-          <span className="erd-nav-dot" />
-          Envelopes
-        </Link>
-        <Link
-          href="/expense/transactions"
-          className={`erd-nav-item ${pathname === "/expense/transactions" ? "is-active" : ""}`}
-        >
-          <span className="erd-nav-dot" />
-          Transactions
-        </Link>
-        <Link
-          href="/insights"
-          className={`erd-nav-item ${pathname === "/insights" ? "is-active" : ""}`}
-        >
-          <span className="erd-nav-dot" />
-          Insights
-        </Link>
-        <button type="button" className="erd-nav-item" onClick={() => openMoneyBrain()}>
-          <span className="erd-nav-dot" />
-          Money Brain
-        </button>
-      </div>
-
-      <div className="erd-nav-group">
-        <div className="erd-nav-label">Envelopes</div>
-        {onShowCategories && (
-          <button type="button" className="erd-nav-item" onClick={onShowCategories}>
-            <span className="erd-nav-dot" />
-            Categories
+    <>
+      <nav className={`erd-sidebar ${collapsed ? "is-collapsed" : ""}`} aria-label="Primary">
+        <div className="erd-brand">
+          <Link href="/expense" className="erd-brand-link" aria-label="Aviary home">
+            <BirdMark size={34} />
+            <span className="erd-side-label">Aviary</span>
+          </Link>
+          <button
+            type="button"
+            className="erd-collapse-btn"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
-        )}
-        {onMoveMoney && (
-          <button type="button" className="erd-nav-item" onClick={onMoveMoney}>
-            <span className="erd-nav-dot" />
-            Move money
-          </button>
-        )}
-      </div>
+        </div>
 
-      <div className="erd-nav-group">
-        <div className="erd-nav-label">Settings</div>
-        {onBulkReturn && (
-          <button type="button" className="erd-nav-item" onClick={onBulkReturn}>
-            <span className="erd-nav-dot" />
-            Return all to RTA
+        <div className="erd-side-actions">
+          <button type="button" className="erd-side-cta" onClick={() => setShowLog(true)} title={tip("Log expense")}>
+            <Plus size={18} strokeWidth={2.5} />
+            <span className="erd-side-label">Log expense</span>
           </button>
-        )}
-        <button type="button" className="erd-nav-item" onClick={clearAccess}>
-          <span className="erd-nav-dot" />
-          {access === "real" ? "Log out" : "Exit guest mode"}
-        </button>
-      </div>
+          <button type="button" className="erd-side-cta is-secondary" onClick={() => setShowScan(true)} title={tip("Scan a bill")}>
+            <ScanLine size={18} />
+            <span className="erd-side-label">Scan a bill</span>
+          </button>
+        </div>
 
-      <div className="erd-sidebar-foot">Crafted for Sukrit&apos;s finances</div>
-    </nav>
+        <div className="erd-nav-group">
+          {NAV.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`erd-nav-item ${pathname === href ? "is-active" : ""}`}
+              aria-current={pathname === href ? "page" : undefined}
+              title={tip(label)}
+            >
+              <Icon size={18} />
+              <span className="erd-side-label">{label}</span>
+            </Link>
+          ))}
+          <button type="button" className="erd-nav-item" onClick={() => openMoneyBrain()} title={tip("Money Brain")}>
+            <Sparkles size={18} />
+            <span className="erd-side-label">Money Brain</span>
+          </button>
+        </div>
+
+        {(onMoveMoney || onBulkReturn) && (
+          <div className="erd-nav-group">
+            <div className="erd-nav-label erd-side-label">Budget</div>
+            {onMoveMoney && (
+              <button type="button" className="erd-nav-item" onClick={onMoveMoney} title={tip("Move money")}>
+                <ArrowLeftRight size={18} />
+                <span className="erd-side-label">Move money</span>
+              </button>
+            )}
+            {onBulkReturn && (
+              <button type="button" className="erd-nav-item" onClick={onBulkReturn} title={tip("Return all to RTA")}>
+                <Undo2 size={18} />
+                <span className="erd-side-label">Return all to RTA</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="erd-nav-group erd-sidebar-foot">
+          <Link
+            href="/account"
+            className={`erd-nav-item ${pathname.startsWith("/account") ? "is-active" : ""}`}
+            title={tip("Account")}
+          >
+            <Settings size={18} />
+            <span className="erd-side-label">Account</span>
+          </Link>
+          <button
+            type="button"
+            className="erd-nav-item"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            title={tip(theme === "light" ? "Dark mode" : "Light mode")}
+          >
+            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+            <span className="erd-side-label">{theme === "light" ? "Dark mode" : "Light mode"}</span>
+          </button>
+          <button type="button" className="erd-nav-item" onClick={clearAccess} title={tip("Log out")}>
+            <LogOut size={18} />
+            <span className="erd-side-label">Log out</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Outside <nav>: its fade-in animation leaves a transform behind, which
+          would trap these position:fixed overlays inside the sidebar. */}
+      <AnimatePresence>
+        {showLog && <LogExpenseModal onClose={() => setShowLog(false)} onSaved={() => {}} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showScan && (
+          <ScanBillModal
+            onClose={() => setShowScan(false)}
+            onEnterManually={() => {
+              setShowScan(false);
+              setShowLog(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }

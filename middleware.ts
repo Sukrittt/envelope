@@ -1,4 +1,4 @@
-import { authkitMiddleware } from '@workos-inc/authkit-nextjs'
+import { authkit, authkitMiddleware, handleAuthkitProxy } from '@workos-inc/authkit-nextjs'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 import { bearerToken, verifyBearerToken } from '@/lib/access'
 
@@ -10,8 +10,17 @@ const refreshSession = authkitMiddleware()
 // constant-time secret check before doing anything.
 const CRON_PATHS = ['/api/notifications/run']
 
+// The signed-in app. There is no guest mode: a signed-out visitor here goes to
+// /sign-in. Landing, legal and the sign-in flow itself stay public.
+const APP_PATHS = ['/expense', '/insights', '/investments', '/wrapped', '/account', '/onboarding']
+
+function isAppPath(pathname: string): boolean {
+  return APP_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
 /**
- * Refreshes the sealed AuthKit session cookie while leaving every page public.
+ * Refreshes the sealed AuthKit session cookie, and sends signed-out visitors on
+ * app routes (APP_PATHS) to this app's own /sign-in page.
  *
  * This app never uses WorkOS's hosted AuthKit UI — Google goes straight to
  * Google's consent screen and email uses magic-auth codes, both via
@@ -26,8 +35,8 @@ const CRON_PATHS = ['/api/notifications/run']
  * resolves its own auth via `lib/access.ts::getAuth`, which falls back to
  * the read-only demo user (`DEMO_USER_ID`) for anyone with *no* credential
  * at all. That stays as-is — it's the fallback for API callers that bypass
- * the browser (tests, curl, direct requests, or a signed-out web visitor).
- * This lets every page render the read-only demo experience without a session.
+ * the browser (tests, curl, direct requests). Pages no longer render that demo:
+ * app routes redirect to /sign-in above.
  *
  * One exception: a request that *does* carry a Bearer token (the mobile
  * app's normal case — it always sends one once signed in) but whose token
@@ -41,9 +50,17 @@ const CRON_PATHS = ['/api/notifications/run']
  * paths are exempt from that gate — see `CRON_PATHS` above.
  */
 export default async function middleware(request: NextRequest, event: NextFetchEvent) {
-  const response = await refreshSession(request, event)
-
   const { pathname } = request.nextUrl
+
+  // authkit() is the same session refresh authkitMiddleware runs, but hands back
+  // the session so we can redirect. Only one of the two runs per request: a
+  // second refresh would spend the same refresh token twice.
+  if (isAppPath(pathname)) {
+    const { session, headers } = await authkit(request)
+    return handleAuthkitProxy(request, headers, session.user ? undefined : { redirect: '/sign-in' })
+  }
+
+  const response = await refreshSession(request, event)
   if (pathname.startsWith('/api/')) {
     const token = (pathname.startsWith('/api/cron/') || CRON_PATHS.includes(pathname)) ? null : bearerToken(request)
     if (token && !(await verifyBearerToken(token))) {

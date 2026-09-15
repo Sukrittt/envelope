@@ -1,27 +1,10 @@
-import { Suspense, useMemo } from 'react'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { TransactionsView } from '../components/TransactionsView'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
-import { useBudgets } from '../hooks/useBudgets'
-import { useExpenses } from '../hooks/useExpenses'
-import { useCategories } from '../hooks/useCategories'
-import { useGroups } from '../hooks/useGroups'
-import { computeEnvelopeState, currentMonthKey } from '../lib/envelope'
-import { EMPTY } from '../lib/constants'
 
 export function TransactionsPage() {
-  // The sidebar wants this month's income and spend, which is all this page
-  // took the whole expense-panel contract for.
-  const budgets = useBudgets().data ?? EMPTY
-  const expenses = useExpenses().data ?? EMPTY
-  const categories = useCategories().data ?? EMPTY
-  const groups = useGroups().data ?? EMPTY
-  const month = currentMonthKey()
-  const envelopeState = useMemo(
-    () => computeEnvelopeState(budgets, expenses, month, categories, groups),
-    [budgets, expenses, month, categories, groups],
-  )
   const { theme, setTheme } = useAppearance()
 
   return (
@@ -45,13 +28,7 @@ export function TransactionsPage() {
       </header>
 
       <div className="erd-main">
-        <ExpenseSidebar
-          onMoveMoney={() => {}}
-          onShowCategories={() => {}}
-          month={month}
-          income={envelopeState.income}
-          totalSpent={envelopeState.totalSpent}
-        />
+        <ExpenseSidebar />
         <div className="erd-content">
           <Suspense fallback={<div className="txn-timeline-loading">Loading…</div>}>
             <TransactionsView />
