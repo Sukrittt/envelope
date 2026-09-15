@@ -1,6 +1,6 @@
 # 010 — Bring Web to feature parity with Mobile
 
-- **Status**: ACCEPTED. All phases (0 through 7) done.
+- **Status**: ACCEPTED. All phases (0 through 8) done.
 - **Scope**: frontend only. Every endpoint Mobile calls already exists in `app/api/`.
 - **Surveyed**: `Sukrittt/envelope` @ `7cd1127`, `Sukrittt/envelope-mobile` @ `6a393de`
 
@@ -227,6 +227,46 @@ keyboard, so the touch-specific input UI has no reason to exist here.
 states and all. `useTourProgress` sits on Phase 1's `usePersistentState` in place of
 SecureStore, same drop-in `useState<Set<number>>` tuple. Wired into the account sidebar,
 account page and Help.
+
+### Phase 8 — Design system parity, round 2 (S) — DONE
+
+Phase 2 unified colors; density and material still drifted. Fixed, app-wide unless noted:
+
+- **Fonts.** Fredoka/Nunito were loaded per-route in 8 separate files (some restricted to a single
+  weight), and not at all on `/investments` or `/expense/transactions` — both silently fell back to
+  the OS system font despite the latter importing `expense-redesign.css`. Centralized on `<body>`
+  in `app/layout.tsx`, unrestricted (both are variable fonts), and `App.css`'s `--font-display`/
+  `--font-body` now read `--font-fredoka`/`--font-nunito` first. The 8 per-route instantiations are
+  gone.
+- **Chart color order.** `CHART_COLORS` didn't match Mobile's `CHART_COLOR_CYCLE` index-for-index
+  (`src/theme/chartColors.ts`) — same category landed on a different color per app. Reordered to
+  match.
+- **Envelope card material** (`.erd-card`, `/expense`). Was translucent + `backdrop-filter: blur(24px)`
+  with a heavy shadow; Mobile's `Card.tsx` is deliberately solid. Now `--erd-card-solid`, `--tk-radius-lg`
+  (20px, was 24px), and a light shadow matching Mobile's `elevation.card`.
+- **Progress-bar thresholds** (`EnvelopeGrid.tsx`). Warn/coral cut at 85%/overspent-only; Mobile's
+  `ProgressBar.tsx` cuts at 75%/90%/muted-at-100%. Matched, using the unclamped `usedPct()` so an
+  actual overspend (>100%) still reads coral rather than colliding with "spent exactly to the limit."
+- **Small-button contrast** (`.erd-log-btn`, `.auth-btn--primary`). Raw `--gold` (accent) is ~3.3:1
+  against its `onAccent` label below 24px text — Mobile's `Button.tsx` uses `accentInk` for exactly
+  this case. Swapped both confirmed sites to `--gold-ink`. Not audited: 19 other `background: var(--gold)`
+  sites in `expense-redesign.css` may have the same issue; only the two flagged in this pass were fixed.
+- **Chrome icons** (`EnvelopeGrid.tsx`). The `⇄` action-menu trigger and `💳` credit-card row icon
+  were raw glyphs; Mobile's convention (`shared/Icon.tsx`) reserves emoji for category glyphs only
+  and uses `lucide-react-native` for everything else. Swapped to `lucide-react`'s `ArrowLeftRight`/
+  `CreditCard`. Left the 🕊️ wordmark alone — that's brand identity, not a chrome icon.
+- **Space/radius scale.** Mobile's `scale.ts` (`space`/`radius`) has no Web equivalent; literals were
+  ad hoc and inconsistent (`--sp-*` legacy: 4/6/10/14/18/22/30 vs Mobile's 4/8/12/16/24/32/48). Added
+  `src/theme/scale.css` with matching `--tk-space-*`/`--tk-radius-*` custom properties, consumed so
+  far only by the `.erd-card` fix above.
+
+**Deliberately not done in this pass** (scope was `/expense`, the screen actually in question, plus
+the two app-wide bugs above): the ~19 other `--gold`-as-background button sites; `App.css`'s many
+other `backdrop-filter: blur()` surfaces on `/investments` and legacy `mc-*` chrome (KPI cards,
+department/learning/setting cards) still use the old glass material; no button/card/chip were
+extracted into shared React components — the ~20 bespoke button classes and one-off `.env-cc-badge`
+still exist as separate CSS rules, just now pulling from the same tokens. Web's `--sp-*`/ad hoc
+spacing literals elsewhere are unconverted; `scale.css`'s tokens exist for future work to consume.
 
 ## 5. Notes for the executor
 

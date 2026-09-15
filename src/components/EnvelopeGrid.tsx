@@ -1,6 +1,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeftRight, CreditCard } from 'lucide-react'
 import type { Envelope } from '../types/expense'
 
 
@@ -207,6 +208,11 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
     const isOverspent = e.isOverspent
     const hasBalance = e.available > 0
     const pct = Math.min(100, e.spentPct)
+    // Unclamped, for color only: pct above is capped at 100 for the bar's
+    // width, which would make an overspent envelope (>100%) read identically
+    // to one spent exactly to its limit. Matches Mobile's ProgressBar
+    // thresholds: muted at exactly 100%, coral past 90%, warn past 75%.
+    const rawPct = usedPct(e)
     const isMenuOpen = menuCategory === e.category
     const showDash = !isCC && e.assigned === 0 && e.spent === 0
     return (
@@ -214,7 +220,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
         <td className="env-cell env-cell-cat">
           {isCC ? (
             <span className="env-cat-cc-label">
-              <span className="env-cc-icon">💳</span>
+              <span className="env-cc-icon"><CreditCard size={14} /></span>
               Credit Card Payment
               <span className="env-cc-badge">payoff</span>
             </span>
@@ -231,7 +237,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
           {!isCC && (
             <div className="env-bar-track">
               <div
-                className={`env-bar-fill ${(!e.assigned && !e.spent) ? 'is-done' : isOverspent ? 'is-coral' : pct > 85 ? 'is-warn' : 'is-mint'}`}
+                className={`env-bar-fill ${(!e.assigned && !e.spent) || rawPct === 100 ? 'is-done' : rawPct > 90 ? 'is-coral' : rawPct > 75 ? 'is-warn' : 'is-mint'}`}
                 style={{ width: '100%', transform: `scaleX(${Math.max(0, pct) / 100})` }}
               >
                 <span className="env-bar-shimmer" />
@@ -257,7 +263,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, se
         <td className="env-cell env-cell-action">
           <div className="env-action-wrap">
             <button type="button" className="env-menu-trigger" onClick={() => openMenu(e.category)} title="Actions">
-              ⇄
+              <ArrowLeftRight size={14} />
             </button>
             {isMenuOpen && (
               <div className="env-menu" ref={menuRef}>

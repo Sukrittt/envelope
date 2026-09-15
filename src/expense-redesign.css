@@ -497,12 +497,12 @@
 .erd-card {
   min-width: 0;
   padding: 24px 28px;
-  background: var(--erd-card);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  /* Solid, not the old frosted-glass blur — matches Mobile's Card.tsx,
+     which is deliberately opaque so it reads as a distinct plane. */
+  background: var(--erd-card-solid);
   border: 1px solid var(--erd-border);
-  border-radius: 24px;
-  box-shadow: 0 24px 60px -24px oklch(0% 0 0 / 0.7);
+  border-radius: var(--tk-radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 /* ── Hero row ───────────────────────────────────────────────── */
@@ -723,7 +723,9 @@
   padding: 10px 18px;
   border-radius: 100px;
   border: none;
-  background: var(--gold);
+  /* --gold-ink (accentInk), not --gold: below 24px text, raw accent is
+     only ~3.3:1 against its onAccent label. */
+  background: var(--gold-ink);
   color: var(--erd-on-accent);
   font-weight: 650;
   font-size: 13px;
@@ -1226,13 +1228,15 @@
   text-align: right;
 }
 .env-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border-radius: 50%;
   border: none;
   background: none;
   color: var(--erd-text3);
-  font-size: 14px;
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -1301,6 +1305,16 @@
 }
 .env-row-cc {
   background: color-mix(in oklab, var(--gold) 6%, transparent);
+}
+.env-cat-cc-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+}
+.env-cc-icon {
+  display: inline-flex;
+  color: var(--erd-text3);
 }
 
 /* ── Insights & Subs ─────────────────────────────────────────── */
@@ -2591,7 +2605,9 @@
 }
 
 .auth-btn--primary {
-  background: var(--gold);
+  /* --gold-ink (accentInk): this label is 15px, under the 24px floor for
+     the raw accent's contrast against onAccent. */
+  background: var(--gold-ink);
   color: var(--erd-on-accent);
   font-family: var(--font-fredoka);
 }

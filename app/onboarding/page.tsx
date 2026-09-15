@@ -6,7 +6,6 @@ import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import { Fredoka, Nunito } from 'next/font/google'
 import '../../src/expense-redesign.css'
 
 import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
@@ -15,9 +14,6 @@ import { addGroup } from '../../src/api/groups'
 import { addCategory } from '../../src/api/categories'
 import { updateUser } from '../../src/api/account'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
-
-const fredoka = Fredoka({ subsets: ['latin'], weight: ['600'], variable: '--font-fredoka', display: 'swap' })
-const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' })
 
 // Twin of Mobile's app/setup.tsx: income → groups → categories → assign →
 // done. Writes land on finish, same reasoning as mobile — groups/categories
@@ -261,7 +257,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   if (step === 5 && result) {
     return (
-      <div className={`expense-redesign setup-page ${fredoka.variable} ${nunito.variable}`}>
+      <div className="expense-redesign setup-page">
         <SetupDone result={result} onFinish={() => router.push('/expense')} />
       </div>
     )
@@ -292,7 +288,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const remLabel = rem === 0 ? 'All assigned' : rem < 0 ? 'Over by' : 'Left to assign'
 
   return (
-    <div className={`expense-redesign setup-page ${fredoka.variable} ${nunito.variable}`}>
+    <div className="expense-redesign setup-page">
       <div className="setup-top">
         <button type="button" className="setup-back" onClick={back} disabled={step === 0}>
           ←

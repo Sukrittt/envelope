@@ -1,0 +1,21 @@
+/* Hand-authored, scheme-independent — twin of Mobile/src/theme/scale.ts's
+   space/radius scale, expressed as custom properties since Web has no JS
+   consumer for these (Mobile reads them as numbers via useTheme()). Keep
+   values identical to scale.ts; that's what lets the two apps' spacing and
+   corners read as one system. */
+
+:root {
+  --tk-space-xs: 4px;
+  --tk-space-sm: 8px;
+  --tk-space-md: 12px;
+  --tk-space-lg: 16px;
+  --tk-space-xl: 24px;
+  --tk-space-xxl: 32px;
+  --tk-space-xxxl: 48px;
+
+  --tk-radius-sm: 8px;
+  --tk-radius-md: 14px;
+  --tk-radius-lg: 20px;
+  --tk-radius-xl: 28px;
+  --tk-radius-full: 999px;
+}

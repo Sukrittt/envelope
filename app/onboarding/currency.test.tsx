@@ -5,7 +5,6 @@ import SetupWizardPage from './page'
 import { updateUser } from '@/src/api/account'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
-vi.mock('next/font/google', () => ({ Fredoka: () => ({ variable: '' }), Nunito: () => ({ variable: '' }) }))
 vi.mock('@/src/api/budgets', () => ({ updateBudget: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})) }))

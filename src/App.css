@@ -1,9 +1,10 @@
 :root {
   /* ── Typography ───────────────────────────────────────────── */
-  /* Default to the platform system font — SF Pro carries its own
-     optical sizing, tracking tables, and legibility tuning. */
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  /* Fredoka/Nunito are loaded app-wide on <body> (app/layout.tsx) — same
+     fonts Mobile uses everywhere. The SF Pro chain is the fallback for the
+     brief pre-hydration frame only, not a deliberate second font system. */
+  --font-display: var(--font-fredoka, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif);
+  --font-body: var(--font-nunito, -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif);
   --font-stack: var(--font-body);
 
   --fs-11: 0.6875rem;
