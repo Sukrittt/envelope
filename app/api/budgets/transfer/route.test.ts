@@ -25,6 +25,9 @@ function matches(doc: Doc, filter: Record<string, unknown>): boolean {
 function fakeBudgets() {
   return {
     findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
+    find: (filter: Record<string, unknown>) => ({
+      toArray: async () => store.filter((d) => matches(d, filter)),
+    }),
     insertOne: async (doc: Record<string, unknown>) => {
       const existing = store.find((d) => d.month === doc.month && d.category === doc.category)
       if (existing) {
@@ -139,9 +142,33 @@ describe('POST /api/budgets/transfer', () => {
     expect(res.status).toBe(400)
   })
 
-  it('404s when a source has no budget row for that month', async () => {
+  it('404s when a source has never had a budget row at all', async () => {
     const res = await POST(req({ month: '2026-03', to: 'Travel', from: 'GhostCategory', amount: 100 }))
     expect(res.status).toBe(404)
     expect(row('2026-03', 'Travel')).toBeUndefined()
+  })
+
+  it('carries forward a source with no row this month, mirroring the client display', async () => {
+    // Football was last assigned 3629 in February and never touched in March —
+    // the client still shows it as available (carry-forward), so debiting it
+    // here must materialize the March row instead of 404ing.
+    store.push({ _id: 1, month: '2026-02', category: 'Football', assigned: '3629', rolled_over: '0' })
+    store.push({ _id: 2, month: '2026-03', category: 'Shopping', assigned: '1000', rolled_over: '0' })
+
+    const res = await POST(req({ month: '2026-03', to: 'Shopping', from: 'Football', amount: 1000 }))
+    expect(res.status).toBe(200)
+
+    expect(row('2026-03', 'Football')?.assigned).toBe('2629')
+    expect(row('2026-03', 'Shopping')?.assigned).toBe('2000')
+  })
+
+  it('never carries forward the credit-card envelope', async () => {
+    store.push({ _id: 1, month: '2026-02', category: '__credit_card__', assigned: '500', rolled_over: '0' })
+    store.push({ _id: 2, month: '2026-03', category: 'Shopping', assigned: '1000', rolled_over: '0' })
+
+    const res = await POST(req({ month: '2026-03', to: 'Shopping', from: '__credit_card__', amount: 100 }))
+    expect(res.status).toBe(200)
+
+    expect(row('2026-03', '__credit_card__')?.assigned).toBe('-100')
   })
 })
