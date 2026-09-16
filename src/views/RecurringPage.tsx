@@ -85,7 +85,7 @@ export function RecurringPage() {
     .map(([label, value], i) => ({ label, value, color: CHART_COLORS[i % CHART_COLORS.length] }))
   const categoryColor = new Map(segments.map((s) => [s.label, s.color]))
 
-  function section(title: string, list: RecurringExpenseRow[], offset: number) {
+  function section(title: string, list: RecurringExpenseRow[]) {
     if (list.length === 0) return null
     return (
       <div>
@@ -93,11 +93,11 @@ export function RecurringPage() {
           {title}
         </div>
         <ul className="account-card recurring-list" aria-label={title}>
-          {list.map((row, i) => {
+          {list.map((row) => {
             const isActive = row.status === 'active'
             const category = splitEmoji(row.category)
             return (
-              <li key={row.id} style={{ animationDelay: `${100 + Math.min(offset + i, 6) * 45}ms` }}>
+              <li key={row.id}>
                 <button type="button" className="account-row" onClick={() => setEditing(row.id)}>
                   <span
                     className="recurring-dot"
@@ -163,8 +163,8 @@ export function RecurringPage() {
             <div className="recurring-hero-amount">{formatCurrency(monthlyTotal, hideAmounts)}</div>
             {segments.length > 0 && <AllocationBar segments={segments} />}
           </div>
-          {section('Active', active, 0)}
-          {section('Paused and finished', inactive, active.length)}
+          {section('Active', active)}
+          {section('Paused and finished', inactive)}
         </>
       )}
 

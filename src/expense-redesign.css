@@ -84,11 +84,6 @@
     transform: translateY(0);
   }
 }
-@keyframes erd-fadeIn {
-  from {
-    opacity: 0;
-  }
-}
 @keyframes erd-popIn {
   from {
     opacity: 0;
@@ -310,7 +305,6 @@
   overflow-x: hidden;
   border-right: 1px solid var(--erd-border);
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: erd-fadeUp 0.5s ease both;
 }
 .erd-sidebar.is-collapsed {
   width: 72px;
@@ -496,7 +490,6 @@
   gap: 22px;
   min-width: 0;
   padding: 32px 40px 56px;
-  animation: erd-fadeUp 0.5s ease both;
   overflow-y: auto;
   height: 100%;
 }
@@ -549,7 +542,6 @@
   letter-spacing: -0.02em;
   color: var(--erd-text);
   font-variant-numeric: tabular-nums;
-  animation: erd-popIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .erd-home-hero-amount.is-negative {
   color: var(--coral);
@@ -639,10 +631,6 @@
 }
 .env2-chevron {
   color: var(--erd-text2);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.env2-chevron.is-open {
-  transform: rotate(90deg);
 }
 .env2-group-left {
   font-size: 13px;
@@ -659,7 +647,6 @@
   padding-left: 14px;
   padding-bottom: 6px;
   border-left: 1px solid var(--erd-border);
-  animation: erd-fadeIn 0.18s ease both;
 }
 .env2-row {
   position: relative;
@@ -850,7 +837,6 @@
   margin-top: 6px;
 }
 .erd-rta-track {
-  margin-top: 16px;
   height: 8px;
   border-radius: 100px;
   background: var(--erd-border-strong);
@@ -859,102 +845,12 @@
 .erd-rta-fill {
   height: 100%;
   border-radius: 100px;
-  background: var(--gold);
+  background: var(--mint);
   transform-origin: left;
   animation: erd-chartReveal 1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.erd-rta-hint {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--erd-text2);
-}
-
-.erd-income-card {
-  flex: 1;
-  min-width: 240px;
-  padding: 24px 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.erd-income-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.erd-income-label {
-  font-size: 11px;
-  color: var(--erd-text2);
-  letter-spacing: 0.06em;
-}
-.erd-income-value {
-  font-size: 19px;
-  font-weight: 650;
-  margin-top: 3px;
-  font-variant-numeric: tabular-nums;
-}
-.erd-income-edit {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: var(--erd-text);
-  font-size: 19px;
-  font-weight: 650;
-  cursor: pointer;
-  padding: 0;
-  margin-top: 3px;
-}
-.erd-income-edit-icon {
-  font-size: 11px;
-  opacity: 0.6;
-}
-.erd-income-input {
-  width: 120px;
-  margin-top: 3px;
-  padding: 4px 8px;
-  border-radius: 10px;
-  background: var(--erd-input-bg);
-  border: 1px solid var(--erd-border-strong);
-  color: var(--erd-text);
-  font-size: 17px;
-  font-weight: 650;
-  font-family: var(--font-fredoka);
-  outline: none;
-}
-.erd-income-spark {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 22px;
-}
-.erd-income-spark i {
-  width: 4px;
-  background: var(--gold);
-  border-radius: 14px;
-}
-.erd-card-divider {
-  height: 1px;
-  background: var(--erd-border);
-}
-.erd-income-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-}
-.erd-income-row span {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--erd-text2);
-}
-.erd-income-row strong {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.erd-income-row strong.is-neg {
-  color: var(--coral);
+.erd-rta-track.is-over .erd-rta-fill {
+  background: var(--coral);
 }
 
 /* ── Scope bar ──────────────────────────────────────────────── */
@@ -1750,85 +1646,194 @@
   gap: 2px;
 }
 
-.erd-subs-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Subscriptions panel: mirrors Mobile's SubscriptionsPanel. */
+.subp-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--erd-text3);
 }
-.erd-subs-count {
+.subp-total {
+  font-family: var(--font-fredoka);
+  font-size: 28px;
+  font-weight: 600;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.subp-caption {
   font-size: 12px;
   color: var(--erd-text2);
+  margin-top: 4px;
 }
-.erd-subs-totals {
+.subp-bar {
+  margin-top: 18px;
+}
+.subp-empty {
+  font-size: 12px;
+  color: var(--erd-text3);
+  margin: 12px 0;
+}
+.subp-list {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+.subp-row {
+  position: relative;
+  border-top: 1px solid var(--erd-border);
+}
+.subp-row-main {
+  width: 100%;
   display: flex;
-  gap: 18px;
-  margin-top: 6px;
-  font-size: 13px;
-  color: var(--erd-text2);
-}
-.erd-subs-totals strong {
-  color: var(--erd-text);
-  font-weight: 650;
-}
-.erd-subs-list {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
-  margin-top: 16px;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
 }
-.erd-subs-item {
+.subp-tile {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.subp-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
-.erd-subs-item-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-}
-.erd-subs-item-row span:last-child {
-  color: var(--erd-text2);
-}
-.erd-subs-item-track {
-  height: 6px;
-  border-radius: 100px;
-  background: var(--erd-border);
+.subp-info strong,
+.subp-info span {
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.erd-subs-item-fill {
-  height: 100%;
-  border-radius: 100px;
-  background: var(--violet);
-  transform-origin: left;
-  animation: erd-chartReveal 1s ease both;
-}
-.erd-subs-more {
-  margin-top: 14px;
-}
-.erd-subs-accordion summary {
-  cursor: pointer;
+.subp-info strong {
   font-size: 13px;
+  font-weight: 600;
+}
+.subp-info span {
+  font-size: 11px;
+  color: var(--erd-text3);
+}
+.subp-info span.is-soon {
+  color: var(--warn-ink);
+}
+.subp-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.subp-amount strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.subp-amount span {
+  font-size: 10px;
+  color: var(--erd-text3);
+}
+.subp-row.is-cancelled .subp-info strong,
+.subp-row.is-cancelled .subp-amount {
+  opacity: 0.55;
+}
+/* Cancel overlays the amount on hover/focus, so rows stay clean like Mobile's. */
+.subp-action,
+.subp-busy {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.subp-action {
+  background: none;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 999px;
   color: var(--erd-text2);
-  font-family: var(--font-fredoka);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.subp-row:hover .subp-action,
+.subp-row:has(:focus-visible) .subp-action {
+  opacity: 1;
+  pointer-events: auto;
+}
+.subp-row:hover .subp-amount,
+.subp-row:has(:focus-visible) .subp-amount,
+.subp-row:has(.subp-busy) .subp-amount {
+  opacity: 0;
+}
+/* No hover on touch: keep the action inline beside the amount instead. */
+@media (hover: none) {
+  .subp-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .subp-row-main {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+  .subp-action,
+  .subp-busy {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .subp-row .subp-amount {
+    opacity: 1;
+  }
+}
+.subp-row:not(.is-cancelled) .subp-action:hover {
+  color: var(--coral);
+  border-color: var(--coral);
+}
+.subp-busy {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--erd-text3);
+}
+.subp-cancelled {
+  margin-top: 8px;
+  border-top: 1px solid var(--erd-border);
+  padding-top: 8px;
+}
+.subp-cancelled .subp-list {
+  margin-top: 6px;
+}
+.subp-section-head {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-.erd-subs-accordion[open] summary {
-  margin-bottom: 8px;
-}
-.erd-subs-cancelled {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.erd-subs-cancelled li {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--erd-text2);
-  list-style: none;
+  background: none;
+  border: none;
   padding: 4px 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.subp-section-head svg {
+  transition: transform 0.2s;
+}
+.subp-section-head.is-open svg {
+  transform: rotate(90deg);
 }
 
 /* ── Mobile (header / stats / tabbar) ───────────────────────── */
@@ -1863,7 +1868,6 @@
     background: var(--erd-header-bg);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--erd-border);
-    animation: erd-fadeUp 0.5s ease both;
   }
   .erd-mobile-greet {
     font-size: 20px;
@@ -1959,8 +1963,7 @@
     padding: 18px 18px 10px;
     border-radius: 20px;
   }
-  .erd-rta-hero,
-  .erd-income-card {
+  .erd-rta-hero {
     min-width: 0;
   }
   .erd-rta-amount {
@@ -4574,13 +4577,8 @@ button.account-row:hover {
   text-align: left;
 }
 
-.env-group-toggle svg {
+.env-group-chevron {
   color: var(--erd-text3);
-  transition: transform var(--dur-med, 180ms) var(--ease-standard, ease);
-}
-
-.env-group-toggle svg.is-open {
-  transform: rotate(90deg);
 }
 
 .env-group-name {
@@ -5882,7 +5880,6 @@ button.account-row:hover {
 .recurring-hero .account-section-label { padding: 0; }
 .recurring-hero-amount { margin-bottom: 6px; font: 600 34px/1.1 var(--font-fredoka); font-variant-numeric: tabular-nums; }
 .recurring-list, .archive-list { list-style: none; margin: 0; padding: 0; }
-.recurring-list > li { animation: erd-fadeUp 0.35s ease both; }
 .recurring-list > li + li { border-top: 1px solid var(--erd-border); }
 .recurring-list .account-row strong { font-variant-numeric: tabular-nums; }
 .recurring-list .account-row-meta { display: block; }
@@ -5910,7 +5907,7 @@ button.account-row:hover {
 .archive-filters { max-height: none; }
 .archive-chip-count { margin-left: 4px; font-size: 11px; opacity: 0.6; }
 .archive-list { display: flex; flex-direction: column; gap: 8px; }
-.archive-list > li { display: flex; flex-direction: column; gap: 6px; animation: erd-fadeUp 0.3s ease both; }
+.archive-list > li { display: flex; flex-direction: column; gap: 6px; }
 .archive-band { padding: 8px 4px 0; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--erd-text3); }
 .archive-band.is-coral { color: var(--coral); }
 .archive-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
@@ -6032,6 +6029,6 @@ button.account-row:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scan-item, .scan-bucket, .scan-scanning-thumb, .recurring-list > li, .archive-list > li { animation: none; }
+  .scan-item, .scan-bucket, .scan-scanning-thumb { animation: none; }
   .scan-bar-fill, .scan-drop { transition: none; }
 }

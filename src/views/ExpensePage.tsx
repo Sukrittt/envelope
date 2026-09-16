@@ -6,7 +6,7 @@ import { ChevronRight } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
-import { IncomeCard } from "../components/IncomeCard";
+import { SubscriptionsPanel } from "../components/SubscriptionsPanel";
 import { BirdMark } from "../components/BirdMark";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
 import { MoveMoneyModal } from "../components/MoveMoneyModal";
@@ -15,7 +15,6 @@ import { CategoryManager } from "../components/CategoryManager";
 import { SubscriptionModal } from "../components/SubscriptionModal";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageSkeleton } from "../components/ExpensePageSkeletons";
-import { getEffectiveDueDate, daysUntil, renewalDays } from "@/lib/subscriptions";
 import {
   toExpensePanelData,
   type ExpensePanelData,
@@ -38,7 +37,6 @@ import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { BudgetRow, EnvelopeState } from "../types/expense";
 import { daysLeftInMonth, monthLabel } from "../lib/envelope";
 
-type ActiveSubscription = ExpensePanelData["subscriptions"]["active"][number];
 
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
@@ -144,35 +142,11 @@ export function ExpensePage() {
   }
 
   // Keep envelopeState in sync with the panel contract, while still allowing
-  // optimistic local updates (handleIncomeChange, handleAssignFromRTA, etc.)
+  // optimistic local updates (handleAssignFromRTA, etc.)
   // to apply in between contract refreshes.
   useEffect(() => {
     if (panel) setEnvelopeState(panel.envelopeState);
   }, [panel]);
-
-  async function handleIncomeChange(newIncome: number) {
-    const month = envelopeState?.month;
-    const income = Math.round(newIncome) || 0;
-    if (month) {
-      // PUT /api/budgets already upserts server-side — no need for a
-      // fallback POST here. A real failure (network, read-only demo, 500)
-      // is surfaced instead of being misread as "row doesn't exist" and
-      // retried against a different endpoint.
-      try {
-        await updateBudgetM.mutateAsync({ month, category: "__income__", updates: { assigned: String(income) } });
-      } catch {
-        setActionError("Couldn't save income — check your connection.");
-        return;
-      }
-    }
-    localStorage.removeItem("expense-income-override");
-    setEnvelopeState((prev) => {
-      if (!prev) return prev;
-      const totalAssigned = prev.envelopes.reduce((s, e) => s + e.assigned, 0);
-      const rta = Math.round(income - totalAssigned) || 0;
-      return { ...prev, income, readyToAssign: rta, isOverAssigned: rta < 0 };
-    });
-  }
 
   function handleAssignFromRTA(category: string, amount: number) {
     setEnvelopeState((prev) => {
@@ -329,9 +303,8 @@ export function ExpensePage() {
     const value = Math.round(Number(override)) || 0;
     const month = panel.month;
     (async () => {
-      // PUT /api/budgets already upserts server-side — see handleIncomeChange
-      // for why the old catch-as-control-flow fallback to addBudget was
-      // redundant (and, on a real failure, misleading).
+      // PUT /api/budgets already upserts server-side, so no fallback POST to
+      // addBudget — on a real failure that would be misleading.
       try {
         await updateBudgetM.mutateAsync({ month, category: "__income__", updates: { assigned: String(value) } });
         localStorage.removeItem("expense-income-override");
@@ -456,9 +429,6 @@ export function ExpensePage() {
     if (firstOverspent) setMoveMoneyTarget(firstOverspent.category);
   }
 
-  const overspentCount =
-    envelopeState?.envelopes.filter((e) => e.isOverspent).length ?? 0;
-
   return (
     <section className="expense-redesign">
       {actionError && (
@@ -534,297 +504,42 @@ export function ExpensePage() {
         </div>
 
         <aside className="erd-home-rail">
-          {envelopeState && (
-            <IncomeCard
-              income={envelopeState.income}
-              totalAssigned={envelopeState.totalAssigned}
-              onIncomeChange={handleIncomeChange}
-              sparkData={panel.miniTrend.slice(-7)}
-              overspentCount={overspentCount}
-              totalEnvelopes={envelopeState.envelopes.length}
-            />
-          )}
-
-              <article className="erd-card erd-subs-panel">
-                <div className="erd-panel-head">
-                  <div className="erd-panel-title">
-                    <div>
-                      <h3>Subscriptions</h3>
-                      <p className="erd-panel-head-sub">
-                        Recurring monthly burn
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="erd-manage-btn"
-                    onClick={() => setShowSubModal(true)}
-                    title="Add subscription"
-                  >
-                    + Add
-                  </button>
-                </div>
-                {(() => {
-                  function monthlyEq(sub: ActiveSubscription): number {
-                    if (/yearly|annual/i.test(sub.billingCycle))
-                      return sub.amountInr / 12;
-                    if (/quarterly/i.test(sub.billingCycle))
-                      return sub.amountInr / 3;
-                    if (/weekly/i.test(sub.billingCycle))
-                      return sub.amountInr * 4.33;
-                    return sub.amountInr;
-                  }
-
-                  function cleanCycle(cycle: string): string {
-                    if (/one-time/i.test(cycle)) return "one-time";
-                    if (/monthly/i.test(cycle)) return "monthly";
-                    if (/yearly|annual/i.test(cycle)) return "yearly";
-                    if (/quarterly/i.test(cycle)) return "quarterly";
-                    if (/weekly/i.test(cycle)) return "weekly";
-                    return cycle;
-                  }
-
-                  function renewalText(sub: ActiveSubscription): string {
-                    return daysUntil(getEffectiveDueDate(sub));
-                  }
-
-                  function urgencyClass(days: number): string {
-                    if (days === 0) return "urgency-today";
-                    if (days <= 3) return "urgency-soon";
-                    if (days <= 7) return "urgency-week";
-                    return "urgency-later";
-                  }
-
-                  const sorted = [...panel.subscriptions.active].sort(
-                    (a, b) => monthlyEq(b) - monthlyEq(a),
-                  );
-                  const totalMonthly = Math.round(
-                    sorted.reduce((s, sub) => s + monthlyEq(sub), 0),
-                  );
-                  const totalYearly = Math.round(totalMonthly * 12);
-
-                  return (
-                    <>
-                      <div className="erd-subs-totals">
-                        <span>
-                          <strong>
-                            {hideAmounts
-                              ? "---"
-                              : `~${formatCurrency(totalMonthly)}`}
-                          </strong>{" "}
-                          /mo
-                        </span>
-                        <span>
-                          <strong>{panel.subscriptions.active.length}</strong>{" "}
-                          active
-                        </span>
-                        <span>
-                          <strong>
-                            {hideAmounts
-                              ? "---"
-                              : `~${formatCurrency(totalYearly)}`}
-                          </strong>{" "}
-                          /yr
-                        </span>
-                      </div>
-
-                      <div className="sub-breakdown">
-                        <span className="sub-breakdown-label">
-                          % of monthly spend
-                        </span>
-                        {sorted.map((sub) => {
-                          const meq = monthlyEq(sub);
-                          const pct =
-                            totalMonthly > 0 ? (meq / totalMonthly) * 100 : 0;
-                          return (
-                            <div key={sub.service} className="sub-bar-row">
-                              <span className="sub-bar-label">
-                                {sub.service}
-                              </span>
-                              <div className="sub-bar-track">
-                                <div
-                                  className="sub-bar-fill"
-                                  style={{ width: `${Math.max(3, pct)}%` }}
-                                />
-                              </div>
-                              <span className="sub-bar-value">
-                                {Math.round(pct)}% ·{" "}
-                                {formatCurrency(Math.round(meq))}/mo
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="subscription-lists">
-                        <details className="subscription-accordion" open>
-                          <summary>
-                            <h4>
-                              Active ({panel.subscriptions.active.length})
-                            </h4>
-                            <span className="chevron" aria-hidden="true">
-                              ▾
-                            </span>
-                          </summary>
-                          <ul className="sub-list">
-                            {sorted.map((sub) => {
-                              const renew = renewalText(sub);
-                              const rDays = renewalDays(sub);
-                              const isYearly = /yearly|annual/i.test(
-                                sub.billingCycle,
-                              );
-                              return (
-                                <li key={sub.service} className="sub-row">
-                                  <div className="sub-row-info">
-                                    <strong>{sub.service}</strong>
-                                    <span className="sub-meta">
-                                      {cleanCycle(sub.billingCycle)}
-                                      {renew ? (
-                                        <>
-                                          {" · "}
-                                          {rDays < Infinity && (
-                                            <span
-                                              className={`urgency-dot ${urgencyClass(rDays)}`}
-                                            />
-                                          )}
-                                          {renew}
-                                        </>
-                                      ) : null}
-                                      <>
-                                        {" · "}
-                                        {hideAmounts
-                                          ? "---"
-                                          : formatCurrency(sub.amountInr)}
-                                      </>
-                                      {isYearly &&
-                                        ` (${formatCurrency(Math.round(monthlyEq(sub)))}/mo)`}
-                                    </span>
-                                  </div>
-                                  <div className="sub-actions">
-                                    <button
-                                      type="button"
-                                      className="sub-icon-btn"
-                                      title="Edit"
-                                      onClick={() => {
-                                        setEditSub({
-                                          service: sub.service,
-                                          amount_inr: String(sub.amountInr),
-                                          billing_cycle: sub.billingCycle,
-                                          next_due_date: sub.nextDueDate,
-                                          notes: sub.notes,
-                                          category: sub.category,
-                                        });
-                                        setShowSubModal(true);
-                                      }}
-                                    >
-                                      ✏️
-                                    </button>
-                                    {cancellingSub === sub.service ? (
-                                      <span className="sub-cancelling">
-                                        Cancelling…
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="sub-action"
-                                        onClick={async () => {
-                                          setCancellingSub(sub.service);
-                                          try {
-                                            await cancelSubscriptionM.mutateAsync(
-                                              sub.service,
-                                            );
-                                            await refreshPanel();
-                                          } catch {
-                                            setCancellingSub(null);
-                                          }
-                                        }}
-                                      >
-                                        Cancel
-                                      </button>
-                                    )}
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </details>
-
-                        <details className="subscription-accordion">
-                          <summary>
-                            <h4>
-                              Cancelled ({panel.subscriptions.cancelled.length})
-                            </h4>
-                            <span className="chevron" aria-hidden="true">
-                              ▾
-                            </span>
-                          </summary>
-                          {panel.subscriptions.cancelled.length ? (
-                            <ul className="sub-list">
-                              {panel.subscriptions.cancelled.map((sub) => (
-                                <li key={sub.service} className="sub-row">
-                                  <div className="sub-row-info">
-                                    <strong>{sub.service}</strong>
-                                    <span className="sub-meta">
-                                      {sub.renewalOrEndMonth ?? "n/a"}
-                                    </span>
-                                  </div>
-                                  <div className="sub-actions">
-                                    <button
-                                      type="button"
-                                      className="sub-icon-btn"
-                                      title="Edit"
-                                      onClick={() => {
-                                        setEditSub({
-                                          service: sub.service,
-                                          amount_inr: String(sub.amountInr),
-                                          billing_cycle: sub.billingCycle,
-                                          next_due_date: sub.nextDueDate,
-                                          notes: sub.notes,
-                                          category: sub.category,
-                                        });
-                                        setShowSubModal(true);
-                                      }}
-                                    >
-                                      ✏️
-                                    </button>
-                                    {reactivatingSub === sub.service ? (
-                                      <span className="sub-cancelling">
-                                        Reactivating…
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="sub-action"
-                                        onClick={async () => {
-                                          setReactivatingSub(sub.service);
-                                          try {
-                                            await reactivateSubscriptionM.mutateAsync(
-                                              sub.service,
-                                            );
-                                            await refreshPanel();
-                                          } catch {
-                                            setReactivatingSub(null);
-                                          }
-                                        }}
-                                      >
-                                        Reactivate
-                                      </button>
-                                    )}
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="muted">
-                              No cancelled subscriptions found.
-                            </p>
-                          )}
-                        </details>
-                      </div>
-                    </>
-                  );
-                })()}
-              </article>
+          <SubscriptionsPanel
+            active={panel.subscriptions.active}
+            cancelled={panel.subscriptions.cancelled}
+            hideAmounts={hideAmounts}
+            busyService={cancellingSub ?? reactivatingSub}
+            onAdd={() => setShowSubModal(true)}
+            onEdit={(sub) => {
+              setEditSub({
+                service: sub.service,
+                amount_inr: String(sub.amountInr),
+                billing_cycle: sub.billingCycle,
+                next_due_date: sub.nextDueDate,
+                notes: sub.notes,
+                category: sub.category,
+              });
+              setShowSubModal(true);
+            }}
+            onCancel={async (service) => {
+              setCancellingSub(service);
+              try {
+                await cancelSubscriptionM.mutateAsync(service);
+                await refreshPanel();
+              } catch {
+                setCancellingSub(null);
+              }
+            }}
+            onReactivate={async (service) => {
+              setReactivatingSub(service);
+              try {
+                await reactivateSubscriptionM.mutateAsync(service);
+                await refreshPanel();
+              } catch {
+                setReactivatingSub(null);
+              }
+            }}
+          />
         </aside>
         </div>
         </div>

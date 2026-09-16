@@ -1,7 +1,8 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, ChevronsDownUp } from 'lucide-react'
+import { ChevronsDownUp } from 'lucide-react'
+import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
 
@@ -233,13 +234,15 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, on
               <div key={label} className="env2-group">
                 <button type="button" className="env2-group-head" onClick={() => toggleGroup(label)} aria-expanded={expanded}>
                   <span className="env2-group-name">
-                    <ChevronRight size={16} className={`env2-chevron ${expanded ? 'is-open' : ''}`} />
+                    <SpringChevron open={expanded} size={16} className="env2-chevron" />
                     <span className="env2-emoji">{groupEmoji(label)}</span>
                     <span>{splitEmoji(label).text}</span>
                   </span>
                   <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}>{money(totalAvailable)} left</span>
                 </button>
-                {expanded && <div className="env2-group-rows">{items.map((e) => renderRow(e, label))}</div>}
+                <SpringCollapse open={expanded}>
+                  <div className="env2-group-rows">{items.map((e) => renderRow(e, label))}</div>
+                </SpringCollapse>
               </div>
             )
           })}

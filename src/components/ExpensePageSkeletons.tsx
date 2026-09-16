@@ -49,7 +49,7 @@ export function ExpensePageSkeleton() {
               </article>
             </div>
             <aside className="erd-home-rail" aria-hidden="true">
-              <div className="erd-card erd-income-card">
+              <div className="erd-card erd-subs-panel">
                 <span className="erd-skeleton" style={{ width: "120px", height: "22px", borderRadius: "8px" }} />
                 <span className="erd-skeleton" style={{ width: "100%", height: "8px", borderRadius: "100px" }} />
               </div>

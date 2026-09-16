@@ -1,10 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronRight, ChevronsDownUp, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ChevronsDownUp, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { EnvelopeTabbar } from '../components/EnvelopeTabbar'
+import { SpringChevron, SpringCollapse } from '../components/SpringCollapse'
 import { AlertThresholdPicker } from '../components/AlertThresholdPicker'
 import {
   useCategories,
@@ -239,7 +240,7 @@ export function EnvelopesPage() {
                       onClick={() => toggleGroup(group.label)}
                       aria-expanded={!isCollapsed}
                     >
-                      <ChevronRight size={14} className={isCollapsed ? '' : 'is-open'} aria-hidden="true" />
+                      <SpringChevron open={!isCollapsed} size={14} className="env-group-chevron" />
                       <span className="env-group-icon" aria-hidden="true">
                         {icon}
                       </span>
@@ -293,7 +294,7 @@ export function EnvelopesPage() {
                     </div>
                   </div>
 
-                  {!isCollapsed && (
+                  <SpringCollapse open={!isCollapsed}>
                     <ul className="env-cat-list">
                       {group.items.map((category, index) => {
                         const parts = splitEmoji(category.name)
@@ -396,7 +397,7 @@ export function EnvelopesPage() {
                         <li className="env-cat env-cat--empty">Nothing in here yet.</li>
                       )}
                     </ul>
-                  )}
+                  </SpringCollapse>
                 </li>
               )
             })}

@@ -140,12 +140,12 @@ describe('EnvelopesPage', () => {
     const first = renderPage()
     await user.click((await groupList()).getByRole('button', { name: /^Home/ }))
     await waitFor(() => expect(window.localStorage.getItem('mc-collapsed-envelopes')).toContain('Home'))
-    expect(screen.queryByText('Rent')).not.toBeInTheDocument()
+    // Rows leave once the collapse spring finishes.
+    await waitFor(() => expect(screen.queryByText('Rent')).not.toBeInTheDocument())
     first.unmount()
 
     renderPage()
-    // Collapsed, so Rent is not rendered and groupList()'s readiness signal
-    // does not apply — wait on the group's own toggle instead.
+    // Wait on the group's own toggle: the collapsed state loads after mount.
     const list = within(await screen.findByRole('list', { name: 'Envelope groups' }))
     await waitFor(() => expect(list.getByRole('button', { name: /^Home/ })).toHaveAttribute('aria-expanded', 'false'))
   })
