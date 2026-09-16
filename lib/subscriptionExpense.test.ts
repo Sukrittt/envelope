@@ -1,58 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
-vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
-vi.mock('@/lib/notifications/instant', () => ({ notifyThresholdCrossed: vi.fn() }))
+const createExpense = vi.fn()
 
-const insertOne = vi.fn()
-
-vi.mock('@/lib/http', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/http')>()
-  return {
-    ...actual,
-    getCollection: vi.fn(async (base: string) => {
-      if (base === 'expenses') return { insertOne }
-      throw new Error(`unexpected collection ${base}`)
-    }),
-  }
-})
+vi.mock('@/lib/createExpense', () => ({ createExpense }))
 
 const { applySubscriptionExpense } = await import('./subscriptionExpense')
-const { notifyThresholdCrossed } = await import('@/lib/notifications/instant')
 
 const auth = { userId: 'user_a', readOnly: false, sessionId: null }
 
 describe('applySubscriptionExpense', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    insertOne.mockResolvedValue({ insertedId: 'exp_1' })
+    createExpense.mockResolvedValue({ id: 'exp_1', timestamp: '2026-09-16T00:00:00', duplicate: false })
   })
 
   it('skips and does not insert when the subscription has no linked category', async () => {
     const result = await applySubscriptionExpense(auth, { service: 'Netflix', amount_inr: '199', category: '' })
     expect(result).toEqual({ ok: false, reason: 'no-category' })
-    expect(insertOne).not.toHaveBeenCalled()
+    expect(createExpense).not.toHaveBeenCalled()
   })
 
-  it('inserts an expense marked as auto-generated, in the linked category', async () => {
+  it('inserts an expense marked as auto-generated, in the linked category, keyed for same-day retries', async () => {
     const result = await applySubscriptionExpense(auth, {
       service: 'Netflix',
       amount_inr: '199',
       category: 'Entertainment',
     })
 
-    expect(result).toEqual({ ok: true, id: 'exp_1' })
-    expect(insertOne).toHaveBeenCalledWith(
+    expect(result).toEqual({ ok: true, id: 'exp_1', duplicate: false })
+    expect(createExpense).toHaveBeenCalledWith(
+      auth,
       expect.objectContaining({
         item: 'Netflix',
         amount_inr: '199',
         category: 'Entertainment',
         notes: 'Auto-added from subscription',
         source: 'subscription',
-        payment_method: 'bank',
+        client_id: expect.stringMatching(/^sub:Netflix:\d{4}-\d{2}-\d{2}$/),
       }),
     )
-    expect(notifyThresholdCrossed).toHaveBeenCalledWith(auth, 'Entertainment')
   })
 
   it('appends the subscription notes after the auto-generated marker', async () => {
@@ -63,8 +49,21 @@ describe('applySubscriptionExpense', () => {
       notes: 'shared with family',
     })
 
-    expect(insertOne).toHaveBeenCalledWith(
+    expect(createExpense).toHaveBeenCalledWith(
+      auth,
       expect.objectContaining({ notes: 'Auto-added from subscription · shared with family' }),
     )
+  })
+
+  it('surfaces a same-day retry as a duplicate instead of inserting again', async () => {
+    createExpense.mockResolvedValue({ id: 'exp_1', timestamp: '2026-09-16T00:00:00', duplicate: true })
+
+    const result = await applySubscriptionExpense(auth, {
+      service: 'Netflix',
+      amount_inr: '199',
+      category: 'Entertainment',
+    })
+
+    expect(result).toEqual({ ok: true, id: 'exp_1', duplicate: true })
   })
 })

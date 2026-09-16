@@ -6,7 +6,7 @@ import { getDb } from '@/lib/mongodb'
 import type { Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { buildNotifications, prefsFor, wrappedNotification } from '@/lib/notifications/rules'
-import { claim, claimAndSend } from '@/lib/notifications/deliver'
+import { claim, claimAndSend, unclaim } from '@/lib/notifications/deliver'
 import { currentEdition, editionStatus } from '@/lib/wrapped'
 import type { UserDoc } from '@/lib/users'
 import { applyHoldingAction } from '@/lib/holdings'
@@ -116,6 +116,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
             sent++
           } catch (err) {
             console.error('notifications/run: investment push failed for', user._id, name, err)
+            await unclaim(db, user._id, `invest:${name}:${today}`)
           }
         }
       }
@@ -134,6 +135,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
           sent++
         } catch (err) {
           console.error('notifications/run: investment reminder failed for', user._id, name, err)
+          await unclaim(db, user._id, `invest-reminder:${name}:${tomorrow}`)
         }
       }
     }
@@ -166,7 +168,6 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
       status: sub.status ? String(sub.status) : undefined,
     }
     if (!isSubscriptionDueToday(dueInput, today)) continue
-    if (!(await claim(db, user._id, `sub-expense:${service}:${today}`))) continue
 
     const result = await applySubscriptionExpense(auth, {
       service,
@@ -175,6 +176,9 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
       notes: sub.notes ? String(sub.notes) : undefined,
     })
     if (!result.ok) continue
+
+    const claimKey = `sub-expense:${service}:${today}`
+    if (!(await claim(db, user._id, claimKey))) continue
 
     try {
       await sendPushNotification({
@@ -186,6 +190,7 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
       sent++
     } catch (err) {
       console.error('notifications/run: subscription expense push failed for', user._id, service, err)
+      await unclaim(db, user._id, claimKey)
     }
   }
 
@@ -296,6 +301,7 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
           sent++
         } catch (err) {
           console.error('notifications/run: recurring expense push failed for', user._id, id, err)
+          await unclaim(db, user._id, `recur-expense:${id}:${today}`)
         }
       }
     } catch (err) {

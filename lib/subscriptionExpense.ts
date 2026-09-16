@@ -1,19 +1,18 @@
-import { getCollection, nowIST } from '@/lib/http'
-import { invalidate } from '@/lib/cache'
-import { invalidateCategoryMap } from '@/lib/categoryMap'
-import { notifyThresholdCrossed } from '@/lib/notifications/instant'
+import { nowIST } from '@/lib/http'
+import { createExpense } from '@/lib/createExpense'
 import type { Auth } from '@/lib/access'
 
 /**
  * Inserts one auto-generated `expenses` row for a subscription that's due
- * today. Same shape and post-insert bookkeeping as the manual
- * `app/api/expenses` POST route (cache invalidation, threshold check) —
- * shared here so the cron (`app/api/notifications/run`) doesn't call that
- * route over HTTP, same reasoning as `applyHoldingAction`.
+ * today, via `createExpense` (see its file header — this used to be a fork
+ * that dropped `client_id`, `withTx`, and per-subscription payment method;
+ * now it's a thin wrapper instead). `client_id: sub:<service>:<date>` makes a
+ * same-day retry (e.g. the cron rerunning after a push failure) idempotent,
+ * same guarantee the recurring-expense cron leans on.
  */
 
 export type SubscriptionExpenseResult =
-  | { ok: true; id: string }
+  | { ok: true; id: string; duplicate: boolean }
   | { ok: false; reason: 'no-category' }
 
 export async function applySubscriptionExpense(
@@ -22,27 +21,18 @@ export async function applySubscriptionExpense(
 ): Promise<SubscriptionExpenseResult> {
   if (!sub.category) return { ok: false, reason: 'no-category' }
 
-  const ist = nowIST()
+  const { date } = nowIST()
   const notes = sub.notes ? `Auto-added from subscription · ${sub.notes}` : 'Auto-added from subscription'
 
-  const coll = await getCollection('expenses', auth)
-  const inserted = await coll.insertOne({
-    timestamp: `${ist.date}T${ist.timestamp.slice(11)}`,
-    date: ist.date,
+  const result = await createExpense(auth, {
     item: sub.service,
     amount_inr: sub.amount_inr,
     category: sub.category,
     notes,
+    date,
     source: 'subscription',
-    amount: '',
-    description: '',
-    payment_method: 'bank',
+    client_id: `sub:${sub.service}:${date}`,
   })
 
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
-  invalidateCategoryMap(auth.userId)
-  await notifyThresholdCrossed(auth, sub.category)
-
-  return { ok: true, id: String(inserted.insertedId) }
+  return { ok: true, id: result.id, duplicate: result.duplicate }
 }

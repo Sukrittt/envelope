@@ -31,6 +31,16 @@ export async function claim(db: Db, userId: string, key: string): Promise<boolea
 }
 
 /**
+ * Releases a claim so a later run can retry it. Call after a claimed `key`'s
+ * push send throws — without this, a transient Expo/network failure burns
+ * the key permanently: the log already says "sent", so every future run
+ * skips it and the user never gets that notification, silently.
+ */
+export async function unclaim(db: Db, userId: string, key: string): Promise<void> {
+  await db.collection(COLLECTIONS.notificationLog).deleteOne({ user_id: userId, key })
+}
+
+/**
  * Upgrade a 'coach' notification's body with a Gemini-written suggestion,
  * grounded in the same FACTS text used for the money-brain chat/brief. Falls
  * back to the plain arithmetic body from `rules.ts` on any failure — the
@@ -92,6 +102,9 @@ export async function claimAndSend(db: Db, userId: string, notification: Notific
     return true
   } catch (err) {
     console.error('notifications: send failed for', userId, notification.key, err)
+    if (notification.kind !== 'threshold' && notification.kind !== 'overspent') {
+      await unclaim(db, userId, notification.key)
+    }
     return false
   }
 }
