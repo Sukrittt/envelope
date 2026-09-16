@@ -20,7 +20,7 @@ import {
   Undo2,
   type LucideIcon,
 } from "lucide-react";
-import { clearAccess } from "../services/accessMode";
+import { SignOutDialog } from "./ConfirmDialog";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -50,6 +50,7 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
   const [collapsed, setCollapsed] = usePersistentState("erd-sidebar-collapsed", false, parseBool, serializeBool);
   const [showLog, setShowLog] = useState(false);
   const [showScan, setShowScan] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   // Collapsed rows show only their icon, so the label moves to a native tooltip.
   const tip = (label: string) => (collapsed ? label : undefined);
@@ -139,7 +140,7 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
             <span className="erd-side-label">{theme === "light" ? "Dark mode" : "Light mode"}</span>
           </button>
-          <button type="button" className="erd-nav-item" onClick={clearAccess} title={tip("Log out")}>
+          <button type="button" className="erd-nav-item" onClick={() => setConfirmSignOut(true)} title={tip("Log out")}>
             <LogOut size={18} />
             <span className="erd-side-label">Log out</span>
           </button>
@@ -148,6 +149,9 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
 
       {/* Outside <nav>: its fade-in animation leaves a transform behind, which
           would trap these position:fixed overlays inside the sidebar. */}
+      <AnimatePresence>
+        {confirmSignOut && <SignOutDialog onCancel={() => setConfirmSignOut(false)} />}
+      </AnimatePresence>
       <AnimatePresence>
         {showLog && <LogExpenseModal onClose={() => setShowLog(false)} onSaved={() => {}} />}
       </AnimatePresence>

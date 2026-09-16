@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { LoadingCaption } from '../components/LoadingCaption'
-import { Scrim, Sheet } from '../components/MotionSheet'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { getArchive, purgeArchivedItem, restoreArchivedItem, type ArchivableCollection, type ArchivedItem } from '../api/account'
 import { useHideAmounts } from '../hooks/useHideAmounts'
@@ -361,34 +361,5 @@ export function ArchivePage() {
         )}
       </AnimatePresence>
     </>
-  )
-}
-
-function ConfirmDialog({
-  title,
-  body,
-  cancelLabel,
-  onCancel,
-  children,
-}: {
-  title: string
-  body?: string
-  cancelLabel: string
-  onCancel: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <Scrim className="erd-modal-overlay" onClick={onCancel}>
-      <Sheet className="erd-modal-card archive-confirm" role="alertdialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
-        <h3 className="archive-confirm-title">{title}</h3>
-        {body && <p className="account-row-meta">{body}</p>}
-        <div className="archive-confirm-actions">
-          <button type="button" className="account-pill-btn" onClick={onCancel}>
-            {cancelLabel}
-          </button>
-          {children}
-        </div>
-      </Sheet>
-    </Scrim>
   )
 }

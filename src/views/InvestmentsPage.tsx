@@ -1,547 +1,729 @@
-import { useCurrency } from '@/src/context/CurrencyContext'
-import { useMemo, useState } from 'react'
-import { AnimatePresence } from 'motion/react'
-import { useHoldings, useAddHolding, useDeleteHolding, usePerformHoldingAction } from '../hooks/useHoldings'
-import { useHoldingEvents } from '../hooks/useHoldingEvents'
-import { EMPTY } from '../lib/constants'
-import type { HoldingRow, HoldingEventRow } from '../types'
-import { Scrim, Sheet } from '../components/MotionSheet'
-import { ExpenseSidebar } from '../components/ExpenseSidebar'
-import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
+"use client";
 
+import { useCurrency } from "@/src/context/CurrencyContext";
+import { useMemo, useState } from "react";
+import { AnimatePresence } from "motion/react";
+import { ArrowRight, ChevronRight, Plus } from "lucide-react";
+import {
+  useAddHolding,
+  useDeleteHolding,
+  useHoldings,
+  usePerformHoldingAction,
+  useUpdateHolding,
+} from "../hooks/useHoldings";
+import { useHoldingEvents } from "../hooks/useHoldingEvents";
+import { useHideAmounts } from "../hooks/useHideAmounts";
+import { EMPTY } from "../lib/constants";
+import { formatDateTime } from "../lib/format";
+import { CHART_COLORS } from "../theme/chartColors";
+import type { HoldingRow } from "../types";
+import { Scrim, Sheet } from "../components/MotionSheet";
+import { ExpenseSidebar } from "../components/ExpenseSidebar";
+import {
+  AllocationBar,
+  type AllocationSegment,
+} from "../components/charts/AllocationBar";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { LoadingCaption } from "../components/LoadingCaption";
+import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 
-interface Holding {
-  name: string
-  type: string
-  value: number
-  updatedAt: string
-}
+const TYPES = [
+  "Equity",
+  "FD",
+  "Mutual Fund",
+  "Gold",
+  "Crypto",
+  "Bonds",
+  "Other",
+];
 
-interface HoldingEvent {
-  holdingName: string
-  eventType: string
-  amount: number
-  previousValue: number
-  newValue: number
-  timestamp: string
-}
+// Fixed colors for common asset types, same keys as Mobile's FIXED_TYPE_COLOR;
+// anything else cycles the shared chart palette.
+const FIXED_TYPE_COLOR: Record<string, string> = {
+  Equity: "var(--blue)",
+  FD: "var(--mint)",
+  "Mutual Fund": "var(--violet)",
+  Gold: "var(--gold)",
+  Crypto: "var(--coral)",
+  Bonds: "var(--warn)",
+};
 
-const ASSET_COLORS: Record<string, string> = {
-  Equity: '#5882FF',
-  FD: '#5EE6A8',
-  'Mutual Fund': '#C084FC',
-  Gold: '#FFD166',
-  Crypto: '#FF8B9A',
-  Bonds: '#94A3B8',
-}
+const LOADING_PHRASES = [
+  "Waking up your portfolio…",
+  "Counting your compounding…",
+  "Polishing the allocation bar…",
+  "Watching the SIPs do their thing…",
+  "Giving Gold its moment…",
+  "Valuing your positions…",
+];
 
-function assetColor(type: string): string {
-  return ASSET_COLORS[type] ?? '#6b7a8b'
-}
+type ActionType = "market_update" | "contribution" | "withdrawal";
 
-function formatTime(ts: string): string {
-  if (!ts) return ''
-  const d = new Date(ts)
-  if (Number.isNaN(d.getTime())) return ts
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
+const ACTION_TITLES: Record<ActionType, string> = {
+  market_update: "Update market value",
+  contribution: "Add contribution",
+  withdrawal: "Withdraw",
+};
 
-function eventLabel(type: string): string {
-  switch (type) {
-    case 'market_update': return 'Market update'
-    case 'contribution': return 'Contribution'
-    case 'withdrawal': return 'Withdrawal'
-    default: return type
-  }
-}
+const ACTION_COPY: Record<ActionType, string> = {
+  market_update: "Set the new current value.",
+  contribution:
+    "Amount being invested. Tracked here only. Budget it separately if you want it reflected in Ready to Assign.",
+  withdrawal:
+    "Amount to withdraw. Tracked here only. Budget it separately if you want it reflected in Ready to Assign.",
+};
 
-function toHolding(r: HoldingRow): Holding {
-  return { name: r.name, type: r.type, value: Number(r.value) || 0, updatedAt: r.updated_at }
-}
+const EVENT_LABELS: Record<string, { label: string; color: string }> = {
+  market_update: { label: "Market update", color: "var(--gold-ink)" },
+  contribution: { label: "Contribution", color: "var(--mint)" },
+  withdrawal: { label: "Withdrawal", color: "var(--coral)" },
+};
 
-function toHoldingEvent(r: HoldingEventRow): HoldingEvent {
-  return {
-    holdingName: r.holding_name,
-    eventType: r.event_type,
-    amount: Number(r.amount) || 0,
-    previousValue: Number(r.previous_value) || 0,
-    newValue: Number(r.new_value) || 0,
-    timestamp: r.timestamp,
-  }
-}
-
+/** `/investments`. Twin of Mobile's investments.tsx + modals/add-holding.tsx + modals/holding-action.tsx. */
 export function InvestmentsPage() {
-  const { formatCurrency, currencySymbol } = useCurrency()
+  const { formatCurrency } = useCurrency();
+  const [hideAmounts] = useHideAmounts();
+  const holdingsQuery = useHoldings();
+  const eventsQuery = useHoldingEvents();
+  const deleteHolding = useDeleteHolding();
 
-  const holdingsQuery = useHoldings()
-  const eventsQuery = useHoldingEvents()
-  const addHolding = useAddHolding()
-  const deleteHolding = useDeleteHolding()
-  const performHoldingAction = usePerformHoldingAction()
+  const holdings = holdingsQuery.data ?? EMPTY;
+  const events = eventsQuery.data ?? EMPTY;
+  const isLoading = holdingsQuery.isLoading || eventsQuery.isLoading;
+  const loadError = holdingsQuery.error ?? eventsQuery.error;
 
-  // One spinner and one error for the pair, as the single SWR fetcher gave.
-  const isLoading = holdingsQuery.isLoading || eventsQuery.isLoading
-  const loadError = holdingsQuery.error ?? eventsQuery.error
-  const holdings = useMemo(() => (holdingsQuery.data ?? EMPTY).map(toHolding), [holdingsQuery.data])
-  const events = useMemo(() => (eventsQuery.data ?? EMPTY).map(toHoldingEvent), [eventsQuery.data])
-  const [showAdd, setShowAdd] = useState(false)
-  const [addName, setAddName] = useState('')
-  const [addType, setAddType] = useState('')
-  const [addValue, setAddValue] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [menuHolding, setMenuHolding] = useState<HoldingRow | null>(null);
+  const [action, setAction] = useState<{
+    name: string;
+    type: ActionType;
+  } | null>(null);
+  // undefined = closed, '' = add, a name = edit that holding's monthly contribution.
+  const [editing, setEditing] = useState<string | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const [actionMenuHolding, setActionMenuHolding] = useState<string | null>(null)
-  const [activeAction, setActiveAction] = useState<{ holding: string; type: 'market_update' | 'contribution' | 'withdrawal' } | null>(null)
-  const [actionAmount, setActionAmount] = useState('')
-  const actionPhase = useButtonPhase()
-  const addPhase = useButtonPhase()
-  const [showHistory, setShowHistory] = useState(false)
+  const netWorth = useMemo(
+    () => holdings.reduce((sum, h) => sum + (Number(h.value) || 0), 0),
+    [holdings],
+  );
 
-  const netWorth = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings])
+  const segments: AllocationSegment[] = useMemo(() => {
+    const byType = new Map<string, number>();
+    for (const h of holdings)
+      byType.set(h.type, (byType.get(h.type) ?? 0) + (Number(h.value) || 0));
+    return [...byType.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, value], i) => ({
+        label: type,
+        value,
+        color: FIXED_TYPE_COLOR[type] ?? CHART_COLORS[i % CHART_COLORS.length],
+      }));
+  }, [holdings]);
 
-  async function handleAdd() {
-    if (!addName.trim() || !addValue.trim() || addPhase.saving || addPhase.success) return
-    addPhase.start()
-    try {
-      await addHolding.mutateAsync({ name: addName.trim(), type: addType.trim() || 'Other', value: addValue.trim() })
-      addPhase.succeed(() => {
-        setShowAdd(false)
-        setAddName('')
-        setAddType('')
-        setAddValue('')
-      })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-      addPhase.fail()
-    }
-  }
+  const reversedEvents = useMemo(() => events.slice().reverse(), [events]);
 
   async function handleDelete(name: string) {
+    setDeleteTarget(null);
+    setError(null);
     try {
-      setActionMenuHolding(null)
-      setActiveAction(null)
-      await deleteHolding.mutateAsync(name)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      await deleteHolding.mutateAsync(name);
+    } catch {
+      setError(`Couldn't delete ${name}. Check your connection and try again.`);
     }
   }
 
-  async function handleConfirmAction() {
-    if (!activeAction || actionPhase.saving || actionPhase.success) return
-    const parsed = Number(actionAmount)
-    if (Number.isNaN(parsed) || parsed < 0) return
-    actionPhase.start()
-    try {
-      await performHoldingAction.mutateAsync({
-        name: activeAction.holding,
-        action: activeAction.type,
-        amount: parsed,
-      })
-      actionPhase.succeed(() => {
-        setActionMenuHolding(null)
-        setActiveAction(null)
-        setActionAmount('')
-      })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-      actionPhase.fail()
-    }
-  }
-
-  function openAction(holding: Holding, type: 'market_update' | 'contribution' | 'withdrawal') {
-    setActiveAction({ holding: holding.name, type })
-    setActionAmount(type === 'market_update' ? String(holding.value) : '')
-  }
-
-  if (isLoading) {
-    return (
-      <section className="expense-view" aria-busy="true" aria-live="polite">
-        <div className="expense-layout">
-          {/* ── Sidebar skeleton ── */}
-          <nav className="expense-sidebar">
-            <div className="expense-sidebar-summary">
-              <span
-                className="expense-skeleton expense-skeleton-line"
-                style={{ width: "50%", height: "10px" }}
-              />
-              <div className="ess-row">
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "35%", height: "10px" }}
-                />
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "40%", height: "10px" }}
-                />
-              </div>
-              <div className="ess-row">
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "30%", height: "10px" }}
-                />
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "45%", height: "10px" }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="expense-sidebar-group-label">Views</div>
-              <div className="expense-sidebar-link">
-                <span className="expense-sidebar-link-icon">◈</span>
-                Dashboard
-              </div>
-              <div className="expense-sidebar-link">
-                <span className="expense-sidebar-link-icon">↕</span>
-                Transactions
-              </div>
-            </div>
-            <div>
-              <div className="expense-sidebar-group-label">Finance</div>
-              <div className="expense-sidebar-link is-active">
-                <span className="expense-sidebar-link-icon">◆</span>
-                Investments
-              </div>
-            </div>
-          </nav>
-
-          {/* ── Main content skeleton ── */}
-          <div className="expense-main">
-            <div className="expense-tab-content">
-              {/* Header skeleton */}
-              <div className="mc-panel-header" style={{ padding: 'var(--sp-4) var(--sp-3)', margin: 0, borderBottom: '1px solid var(--divider-soft)' }}>
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "120px", height: "18px" }}
-                />
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "60px", height: "28px", borderRadius: "6px" }}
-                />
-              </div>
-
-              {/* Net Worth section skeleton */}
-              <div className="inv-net-worth" aria-hidden="true">
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "80px", height: "12px" }}
-                />
-                <span
-                  className="expense-skeleton expense-skeleton-line"
-                  style={{ width: "140px", height: "32px" }}
-                />
-              </div>
-
-              {/* Allocation bar skeleton */}
-              <div className="inv-allocation" aria-hidden="true">
-                <div className="inv-allocation-bar">
-                  <span
-                    className="expense-skeleton"
-                    style={{ width: "100%", height: "24px", borderRadius: "6px" }}
-                  />
-                </div>
-                <div className="inv-allocation-legend">
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className="inv-legend-item">
-                      <span
-                        className="expense-skeleton"
-                        style={{ width: "12px", height: "12px", borderRadius: "50%" }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "80px", height: "10px" }}
-                      />
-                      <span
-                        className="expense-skeleton expense-skeleton-line"
-                        style={{ width: "40px", height: "10px" }}
-                      />
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Table skeleton */}
-              <table className="env-table" aria-hidden="true">
-                <thead>
-                  <tr className="env-table-header">
-                    <th>Asset</th>
-                    <th>Type</th>
-                    <th className="env-th-num">Value</th>
-                    <th className="env-th-num">Last Updated</th>
-                    <th className="env-th-action" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {[0, 1, 2, 3].map((i) => (
-                    <tr key={i} className="env-row">
-                      <td className="env-cell">
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "100px", height: "12px" }}
-                        />
-                      </td>
-                      <td className="env-cell">
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "80px", height: "12px" }}
-                        />
-                      </td>
-                      <td className="env-cell env-cell-num">
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "90px", height: "12px" }}
-                        />
-                      </td>
-                      <td className="env-cell env-cell-num">
-                        <span
-                          className="expense-skeleton expense-skeleton-line"
-                          style={{ width: "110px", height: "12px" }}
-                        />
-                      </td>
-                      <td className="env-cell env-cell-action">
-                        <span
-                          className="expense-skeleton"
-                          style={{ width: "20px", height: "20px", borderRadius: "4px" }}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-    )
+  function pick(next: () => void) {
+    setMenuHolding(null);
+    next();
   }
 
   return (
-    <section className="expense-view">
-      <div className="expense-layout">
+    <section className="expense-redesign">
+      <header className="erd-mobile-header">
+        <div className="erd-mobile-greet">Investments</div>
+        <div className="erd-mobile-sub">
+          <span>Net worth, allocation, and holdings</span>
+        </div>
+      </header>
+
+      <div className="erd-main">
         <ExpenseSidebar />
-        <div className="expense-main">
-          <div className="expense-tab-content">
-            <div className="mc-panel-header" style={{ padding: 'var(--sp-4) var(--sp-3)', margin: 0, borderBottom: '1px solid var(--divider-soft)' }}>
-              <h3>Investments</h3>
-              <button type="button" className="env-manage-btn" onClick={() => setShowAdd(true)}>+ Add</button>
-            </div>
-
-            {(error || loadError) && <div style={{ color: 'var(--risk-fg)', fontSize: 'var(--fs-12)', padding: 'var(--sp-3)' }}>{error ?? String(loadError)}</div>}
-
-            <div className="inv-net-worth">
-              <span className="inv-nw-label">Net Worth</span>
-              <span className="inv-nw-amount">{formatCurrency(netWorth)}</span>
-            </div>
-
-            {holdings.length > 0 && (
-              <div className="inv-allocation">
-                <div className="inv-allocation-bar">
-                  {holdings.map(h => (
-                    <div
-                      key={h.name}
-                      className="inv-allocation-segment"
-                      style={{ width: `${Math.max(1, (h.value / netWorth) * 100)}%`, background: assetColor(h.type) }}
-                      title={`${h.name}: ${((h.value / netWorth) * 100).toFixed(1)}%`}
-                    />
-                  ))}
-                </div>
-                <div className="inv-allocation-legend">
-                  {holdings.map(h => {
-                    const pct = (h.value / netWorth) * 100
-                    return (
-                      <span key={h.name} className="inv-legend-item">
-                        <span className="inv-legend-dot" style={{ background: assetColor(h.type) }} />
-                        {h.name}
-                        <span className="inv-legend-pct">{pct.toFixed(1)}%</span>
-                      </span>
-                    )
-                  })}
-                </div>
+        <div className="erd-content inv-page">
+          <div className="erd-panel-head">
+            <div>
+              <div className="erd-panel-title">Investments</div>
+              <div className="erd-panel-head-sub">
+                {holdings.length}{" "}
+                {holdings.length === 1 ? "holding" : "holdings"}
               </div>
-            )}
-
-            <table className="env-table">
-              <thead>
-                <tr className="env-table-header">
-                  <th>Asset</th>
-                  <th>Type</th>
-                  <th className="env-th-num">Value</th>
-                  <th className="env-th-num">Last Updated</th>
-                  <th className="env-th-action" />
-                </tr>
-              </thead>
-              <tbody>
-                {holdings.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="env-cell" style={{ textAlign: 'center', color: 'var(--muted-2)' }}>
-                      No holdings yet. Add one to get started.
-                    </td>
-                  </tr>
-                ) : (
-                  holdings.map(h => (
-                    <tr key={h.name} className="env-row">
-                      <td className="env-cell env-cell-cat">{h.name}</td>
-                      <td className="env-cell inv-cell-type">{h.type}</td>
-                      <td className="env-cell env-cell-num">{formatCurrency(h.value)}</td>
-                      <td className="env-cell env-cell-num inv-cell-updated">{formatTime(h.updatedAt)}</td>
-                      <td className="env-cell env-cell-action" style={{ position: 'relative' }}>
-                        <button
-                          type="button"
-                          className="inv-action-btn"
-                          onClick={() => setActionMenuHolding(actionMenuHolding === h.name ? null : h.name)}
-                          title="Actions"
-                        >
-                          ⋯
-                        </button>
-                        {actionMenuHolding === h.name && !activeAction && (
-                          <div className="inv-action-menu">
-                            <button className="inv-action-opt" onClick={() => openAction(h, 'market_update')}>
-                              <span className="inv-action-icon">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1,13 5,8 9,10 15,3"/><polyline points="10,3 15,3 15,8"/></svg>
-                              </span>
-                              Update market value
-                            </button>
-                            <button className="inv-action-opt" onClick={() => openAction(h, 'contribution')}>
-                              <span className="inv-action-icon">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></svg>
-                              </span>
-                              Add contribution
-                            </button>
-                            <button className="inv-action-opt" onClick={() => openAction(h, 'withdrawal')}>
-                              <span className="inv-action-icon">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
-                              </span>
-                              Withdraw
-                            </button>
-                            <div className="inv-action-divider" />
-                            <button className="inv-action-opt inv-action-danger" onClick={() => handleDelete(h.name)}>
-                              <span className="inv-action-icon">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 4.5h9L11.5 15h-7L3.5 4.5z"/><line x1="2" y1="4.5" x2="14" y2="4.5"/><path d="M6.5 4.5v-2a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2"/></svg>
-                              </span>
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                        {activeAction && activeAction.holding === h.name && (
-                          <div className="inv-action-menu inv-action-form">
-                            <button className="inv-action-opt inv-action-back" onClick={() => { setActiveAction(null); setActionAmount('') }}>
-                              ← Actions
-                            </button>
-                            <div className="inv-action-body">
-                              <span className="inv-action-desc">
-                                {activeAction.type === 'market_update'
-                                  ? 'Set new current value:'
-                                  : activeAction.type === 'contribution'
-                                    ? 'Amount being invested (tracked here only):'
-                                    : 'Amount to withdraw (tracked here only):'}
-                              </span>
-                              <div className="inv-action-input-row">
-                                <span className="inv-action-currency">{currencySymbol}</span>
-                                <input
-                                  className="inv-action-input"
-                                  type="number"
-                                  value={actionAmount}
-                                  onChange={e => setActionAmount(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') handleConfirmAction(); if (e.key === 'Escape') { setActiveAction(null); setActionAmount('') } }}
-                                  autoFocus
-                                />
-                              </div>
-                              <div className="inv-action-buttons">
-                                <button className="action-button is-ghost" onClick={() => { setActiveAction(null); setActionAmount('') }} disabled={actionPhase.saving || actionPhase.success}>Cancel</button>
-                                <SuccessButton
-                                  onClick={handleConfirmAction}
-                                  disabled={actionPhase.saving || actionPhase.success || !actionAmount}
-                                  saving={actionPhase.saving}
-                                  success={actionPhase.success}
-                                >
-                                  Confirm
-                                </SuccessButton>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            {events.length > 0 && (
-              <div className="inv-events-section">
-                <button
-                  className="inv-events-toggle"
-                  onClick={() => setShowHistory(!showHistory)}
-                >
-                  {showHistory ? '▾' : '▸'} Activity History ({events.length})
-                </button>
-                {showHistory && (
-                  <div className="inv-events-list">
-                    {events.slice().reverse().map((e, i) => (
-                      <div key={i} className="inv-event-row">
-                        <span className="inv-event-time">{formatTime(e.timestamp)}</span>
-                        <span className={`inv-event-type inv-event-type--${e.eventType}`}>{eventLabel(e.eventType)}</span>
-                        <span className="inv-event-holding">{e.holdingName}</span>
-                        <span className="inv-event-amount">
-                          {e.eventType === 'withdrawal' ? '-' : '+'}{formatCurrency(e.amount)}
-                        </span>
-                        <span className="inv-event-delta">
-                          {formatCurrency(e.previousValue)} → {formatCurrency(e.newValue)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
+            <div className="erd-panel-tools">
+              <button
+                type="button"
+                className="erd-log-btn"
+                onClick={() => setEditing("")}
+              >
+                <Plus size={14} aria-hidden="true" />
+                Add holding
+              </button>
+            </div>
           </div>
 
-          <AnimatePresence>
-          {showAdd && (
-            <Scrim className="modal-overlay" onClick={() => setShowAdd(false)}>
-              <Sheet className="modal-content inv-add-modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h4>Add Holding</h4>
-                </div>
-                <label className="inv-field">
-                  <span>Name</span>
-                  <input value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Stocks" />
-                </label>
-                <label className="inv-field">
-                  <span>Type</span>
-                  <select value={addType} onChange={e => setAddType(e.target.value)}>
-                    <option value="">Select type…</option>
-                    <option value="Equity">Equity</option>
-                    <option value="FD">FD</option>
-                    <option value="Mutual Fund">Mutual Fund</option>
-                    <option value="Gold">Gold</option>
-                    <option value="Crypto">Crypto</option>
-                    <option value="Bonds">Bonds</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </label>
-                <label className="inv-field">
-                  <span>Value ({currencySymbol})</span>
-                  <input type="number" value={addValue} onChange={e => setAddValue(e.target.value)} placeholder="0" />
-                </label>
-                <div className="inv-add-actions">
-                  <button type="button" className="action-button is-ghost" onClick={() => setShowAdd(false)} disabled={addPhase.saving || addPhase.success}>Cancel</button>
-                  <SuccessButton
-                    type="button"
-                    onClick={handleAdd}
-                    disabled={addPhase.saving || addPhase.success}
-                    saving={addPhase.saving}
-                    success={addPhase.success}
-                  >
-                    Add
-                  </SuccessButton>
-                </div>
-              </Sheet>
-            </Scrim>
+          {(error || loadError) && (
+            <div className="erd-action-error" role="alert">
+              {error ??
+                "Couldn't load your investments. Check your connection and try again."}
+            </div>
           )}
-          </AnimatePresence>
+
+          {isLoading ? (
+            <LoadingCaption phrases={LOADING_PHRASES} />
+          ) : (
+            <>
+              <div className="erd-card inv-hero">
+                <div className="account-section-label" style={{ padding: 0 }}>
+                  Net worth
+                </div>
+                <div className="recurring-hero-amount">
+                  {formatCurrency(netWorth, hideAmounts)}
+                </div>
+                {segments.length > 0 && (
+                  <>
+                    <AllocationBar segments={segments} />
+                    <ul className="inv-legend">
+                      {segments.map((s) => (
+                        <li key={s.label}>
+                          <span
+                            className="recurring-dot"
+                            style={{ background: s.color }}
+                          />
+                          {s.label}
+                          <strong>
+                            {netWorth > 0
+                              ? `${((s.value / netWorth) * 100).toFixed(1)}%`
+                              : "—"}
+                          </strong>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <div
+                  className="account-section-label"
+                  style={{ marginBottom: 10 }}
+                >
+                  Holdings
+                </div>
+                {holdings.length === 0 ? (
+                  <div className="account-empty">
+                    <div className="account-empty-title">No holdings yet</div>
+                    <p className="account-row-meta">Add one to get started.</p>
+                  </div>
+                ) : (
+                  <ul
+                    className="account-card recurring-list"
+                    aria-label="Holdings"
+                  >
+                    {holdings.map((h) => (
+                      <li key={h.name}>
+                        <button
+                          type="button"
+                          className="account-row"
+                          onClick={() => setMenuHolding(h)}
+                        >
+                          <span
+                            className="recurring-dot"
+                            style={{
+                              background:
+                                FIXED_TYPE_COLOR[h.type] ?? "var(--erd-text3)",
+                            }}
+                          />
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span className="account-row-label recurring-title">
+                              {h.name}
+                            </span>
+                            <span className="account-row-meta recurring-meta">
+                              {h.type} · Updated {formatDateTime(h.updated_at)}
+                            </span>
+                            {h.is_recurring === "true" && (
+                              <span className="account-row-meta recurring-due">
+                                Monthly{" "}
+                                {formatCurrency(
+                                  Number(h.recurring_amount) || 0,
+                                  hideAmounts,
+                                )}
+                              </span>
+                            )}
+                          </span>
+                          <strong>
+                            {formatCurrency(Number(h.value) || 0, hideAmounts)}
+                          </strong>
+                          <ChevronRight
+                            size={16}
+                            className="account-row-arrow"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {events.length > 0 && (
+                <div>
+                  <div
+                    className="account-section-label"
+                    style={{ marginBottom: 10 }}
+                  >
+                    Activity ({events.length})
+                  </div>
+                  <ul
+                    className="account-card recurring-list"
+                    aria-label="Investment activity"
+                  >
+                    {reversedEvents.map((e, i) => {
+                      const meta = EVENT_LABELS[e.event_type] ?? {
+                        label: e.event_type,
+                        color: "var(--erd-text2)",
+                      };
+                      return (
+                        <li
+                          key={i}
+                          className="account-row"
+                          style={{ cursor: "default" }}
+                        >
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span
+                              className="account-row-label recurring-title"
+                              style={{ color: meta.color }}
+                            >
+                              {meta.label}
+                            </span>
+                            <span className="account-row-meta recurring-meta">
+                              {e.holding_name} · {formatDateTime(e.timestamp)}
+                            </span>
+                            <span className="account-row-meta inv-delta">
+                              {formatCurrency(
+                                Number(e.previous_value) || 0,
+                                hideAmounts,
+                              )}
+                              <ArrowRight size={12} aria-hidden="true" />
+                              {formatCurrency(
+                                Number(e.new_value) || 0,
+                                hideAmounts,
+                              )}
+                            </span>
+                          </span>
+                          <strong>
+                            {e.event_type === "withdrawal" ? "-" : "+"}
+                            {formatCurrency(Number(e.amount) || 0, hideAmounts)}
+                          </strong>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {menuHolding && (
+          <Scrim
+            className="erd-modal-overlay"
+            onClick={() => setMenuHolding(null)}
+          >
+            <Sheet
+              className="erd-modal-card inv-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label={menuHolding.name}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="account-section-label inv-menu-title">
+                {menuHolding.name}
+              </div>
+              {(["market_update", "contribution", "withdrawal"] as const).map(
+                (type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() =>
+                      pick(() => setAction({ name: menuHolding.name, type }))
+                    }
+                  >
+                    {ACTION_TITLES[type]}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={() => pick(() => setEditing(menuHolding.name))}
+              >
+                Edit monthly contribution
+              </button>
+              <button
+                type="button"
+                className="is-danger"
+                onClick={() => pick(() => setDeleteTarget(menuHolding.name))}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="is-muted"
+                onClick={() => setMenuHolding(null)}
+              >
+                Cancel
+              </button>
+            </Sheet>
+          </Scrim>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {action && (
+          <HoldingActionModal
+            name={action.name}
+            type={action.type}
+            holding={holdings.find((h) => h.name === action.name)}
+            onClose={() => setAction(null)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {editing !== undefined && (
+          <HoldingModal
+            name={editing || undefined}
+            holding={holdings.find((h) => h.name === editing)}
+            onClose={() => setEditing(undefined)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConfirmDialog
+            title={`Delete ${deleteTarget}?`}
+            body="This can't be undone."
+            cancelLabel="Keep"
+            onCancel={() => setDeleteTarget(null)}
+          >
+            <button
+              type="button"
+              className="account-danger-btn"
+              style={{ marginTop: 0 }}
+              onClick={() => handleDelete(deleteTarget)}
+            >
+              Delete
+            </button>
+          </ConfirmDialog>
+        )}
+      </AnimatePresence>
     </section>
-  )
+  );
+}
+
+function HoldingActionModal({
+  name,
+  type,
+  holding,
+  onClose,
+}: {
+  name: string;
+  type: ActionType;
+  holding: HoldingRow | undefined;
+  onClose: () => void;
+}) {
+  const { formatCurrency, currencySymbol } = useCurrency();
+  const [hideAmounts] = useHideAmounts();
+  const performAction = usePerformHoldingAction();
+  const phase = useButtonPhase();
+  const currentValue = Number(holding?.value) || 0;
+  const [amount, setAmount] = useState(
+    type === "market_update" && holding ? String(currentValue) : "",
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const parsed = Number(amount);
+  const canSubmit =
+    amount.trim() !== "" && !Number.isNaN(parsed) && parsed >= 0;
+  const busy = phase.saving || phase.success;
+
+  async function handleConfirm() {
+    if (!canSubmit || busy) return;
+    setError(null);
+    phase.start();
+    try {
+      await performAction.mutateAsync({ name, action: type, amount: parsed });
+      phase.succeed(onClose);
+    } catch {
+      setError("Couldn't save. Check your connection and try again.");
+      phase.fail();
+    }
+  }
+
+  return (
+    <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
+      <Sheet
+        className="erd-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label={ACTION_TITLES[type]}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="erd-modal-head">
+          <h3>{ACTION_TITLES[type]}</h3>
+          <button
+            type="button"
+            className="erd-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+            disabled={phase.success}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="account-row-label">{name}</div>
+        {holding && (
+          <div className="account-row-meta">
+            Current value: {formatCurrency(currentValue, hideAmounts)}
+          </div>
+        )}
+        <p className="recurring-hint">{ACTION_COPY[type]}</p>
+
+        <label className="erd-log-label" htmlFor="holding-action-amount">
+          Amount ({currencySymbol})
+        </label>
+        <input
+          id="holding-action-amount"
+          className="erd-log-input"
+          type="number"
+          inputMode="decimal"
+          min="0"
+          placeholder="0"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+          autoFocus
+        />
+
+        {error && <p className="erd-log-error">{error}</p>}
+
+        <SuccessButton
+          type="button"
+          baseClass="erd-log-submit"
+          saving={phase.saving}
+          success={phase.success}
+          successLabel="Saved"
+          disabled={!canSubmit || busy}
+          onClick={handleConfirm}
+        >
+          Confirm
+        </SuccessButton>
+      </Sheet>
+    </Scrim>
+  );
+}
+
+/** Add a holding, or (with `name`) edit only its monthly contribution — never its value, same as Mobile. */
+function HoldingModal({
+  name,
+  holding,
+  onClose,
+}: {
+  name?: string;
+  holding: HoldingRow | undefined;
+  onClose: () => void;
+}) {
+  const { currencySymbol } = useCurrency();
+  const addHolding = useAddHolding();
+  const updateHolding = useUpdateHolding();
+  const phase = useButtonPhase();
+  const isEdit = name !== undefined;
+
+  const [newName, setNewName] = useState("");
+  const [type, setType] = useState("");
+  const [value, setValue] = useState("");
+  const [isRecurring, setIsRecurring] = useState(
+    holding?.is_recurring === "true",
+  );
+  const [recurringAmount, setRecurringAmount] = useState(
+    holding?.recurring_amount || "",
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const parsedValue = Number(value);
+  const parsedRecurring = Number(recurringAmount);
+  const recurringOk =
+    !isRecurring ||
+    (recurringAmount.trim() !== "" &&
+      !Number.isNaN(parsedRecurring) &&
+      parsedRecurring >= 0);
+  const canSubmit = isEdit
+    ? recurringOk
+    : newName.trim() !== "" &&
+      value.trim() !== "" &&
+      !Number.isNaN(parsedValue) &&
+      parsedValue >= 0 &&
+      recurringOk;
+  const busy = phase.saving || phase.success;
+
+  async function handleSubmit() {
+    if (!canSubmit || busy) return;
+    setError(null);
+    phase.start();
+    const recurring = {
+      is_recurring: isRecurring,
+      recurring_amount: isRecurring ? recurringAmount.trim() : undefined,
+    };
+    try {
+      if (isEdit) await updateHolding.mutateAsync({ name, updates: recurring });
+      else
+        await addHolding.mutateAsync({
+          name: newName.trim(),
+          type: type || "Other",
+          value: value.trim(),
+          ...recurring,
+        });
+      phase.succeed(onClose);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Couldn't save. Check your connection and try again.",
+      );
+      phase.fail();
+    }
+  }
+
+  const title = isEdit ? "Edit monthly contribution" : "Add holding";
+
+  return (
+    <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
+      <Sheet
+        className="erd-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="erd-modal-head">
+          <h3>{title}</h3>
+          <button
+            type="button"
+            className="erd-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+            disabled={phase.success}
+          >
+            ✕
+          </button>
+        </div>
+
+        {isEdit ? (
+          <>
+            <div className="erd-log-label">Holding</div>
+            <div className="account-row-label">{name}</div>
+          </>
+        ) : (
+          <>
+            <label className="erd-log-label" htmlFor="holding-name">
+              Name
+            </label>
+            <input
+              id="holding-name"
+              className="erd-log-input"
+              placeholder="e.g. Stocks"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              autoFocus
+            />
+
+            <div className="erd-log-label">Type</div>
+            <div className="erd-chip-row">
+              {TYPES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`erd-chip ${type === t ? "is-selected" : ""}`}
+                  aria-pressed={type === t}
+                  onClick={() => setType(type === t ? "" : t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <label className="erd-log-label" htmlFor="holding-value">
+              Current value ({currencySymbol})
+            </label>
+            <input
+              id="holding-value"
+              className="erd-log-input"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              placeholder="0"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </>
+        )}
+
+        <label className="account-row inv-recurring-toggle">
+          <span className="account-row-label">
+            Repeat monthly (SIP/PF)
+            <span className="account-row-hint">
+              {isEdit
+                ? "Adds the amount below as a contribution on top of the current balance every month"
+                : "Adds the amount below as a contribution on this day every month"}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="account-switch"
+            checked={isRecurring}
+            onChange={(e) => setIsRecurring(e.target.checked)}
+          />
+        </label>
+        {isRecurring && (
+          <>
+            <label className="erd-log-label" htmlFor="holding-monthly">
+              Monthly contribution ({currencySymbol})
+            </label>
+            <input
+              id="holding-monthly"
+              className="erd-log-input"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              placeholder="0"
+              value={recurringAmount}
+              onChange={(e) => setRecurringAmount(e.target.value)}
+            />
+          </>
+        )}
+
+        {error && <p className="erd-log-error">{error}</p>}
+
+        <SuccessButton
+          type="button"
+          baseClass="erd-log-submit"
+          saving={phase.saving}
+          success={phase.success}
+          successLabel="Saved"
+          disabled={!canSubmit || busy}
+          onClick={handleSubmit}
+        >
+          {isEdit ? "Save changes" : "Add holding"}
+        </SuccessButton>
+      </Sheet>
+    </Scrim>
+  );
 }

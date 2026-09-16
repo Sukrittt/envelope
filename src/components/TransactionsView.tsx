@@ -4,13 +4,8 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
-import {
-  useExpensesPage,
-  useDeleteExpense,
-  useUpdateExpense,
-} from "../hooks/useExpenses";
+import { useExpensesPage, useDeleteExpense } from "../hooks/useExpenses";
 import { EMPTY } from "../lib/constants";
-import { suggestCategory } from "../lib/autoCategory";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
 
@@ -77,35 +72,20 @@ function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function formatTime(ts: string): string {
-  const m = ts.match(/T(\d{2}:\d{2})/);
-  return m ? m[1] : "";
-}
-
-function formatDateHeader(iso: string): string {
+function formatShortDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
-
-  if (iso === todayStr) return "Today";
-  if (iso === yesterdayStr) return "Yesterday";
-
-  return d.toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: d.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
-  });
+  const day = d.getDate();
+  const month = d.toLocaleDateString("en-IN", { month: "short" });
+  const year = String(d.getFullYear()).slice(2);
+  return `${day} ${month} '${year}`;
 }
 
-type TimelineItem =
-  | { kind: "header"; date: string; label: string; total: number }
-  | { kind: "txn"; txn: Transaction };
+// Mirrors Mobile's activity.tsx avatarColorFor — reuses this app's existing
+// per-category color instead of inventing a second palette.
+function avatarTint(category: string): string {
+  return `color-mix(in oklab, ${getCategoryColor(category)} 30%, transparent)`;
+}
 
 export function TransactionsView({
   hideAmounts = false,
@@ -118,7 +98,6 @@ export function TransactionsView({
   const FORCE_LOADING_SKELETON = false;
   const budgetsQuery = useBudgets();
   const deleteExpenseM = useDeleteExpense();
-  const updateExpenseM = useUpdateExpense();
 
   // Period and the custom range start as derived values and become state only
   // once the user touches them. Seeding them from an effect instead made them
@@ -148,9 +127,6 @@ export function TransactionsView({
   const dateParam = searchParams.get("date");
   const categoryParam = searchParams.get("category");
 
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editingSuggestedCat, setEditingSuggestedCat] = useState<string>("");
-  const [updating, setUpdating] = useState(false);
   const budgetCategories = useMemo(
     () =>
       (budgetsQuery.data ?? EMPTY)
@@ -215,7 +191,7 @@ export function TransactionsView({
     // than once; dedupe so dropdown options keep unique keys.
     return [...new Set(budgetCategories)].sort();
   }, [budgetCategories]);
-  const { recents, record } = useRecentCategories();
+  const { recents } = useRecentCategories();
   const orderedCategories = useMemo(
     () => orderWithRecents(categories, recents),
     [categories, recents],
@@ -265,35 +241,8 @@ export function TransactionsView({
     setPage(1);
   }, [period, customStart, customEnd, selectedCategory, search]);
 
-  // Day headers for just this page's rows. The server returns rows newest
-  // first, so same-date rows stay contiguous and group the same way the old
-  // full-set version did.
-  const grouped = useMemo(() => {
-    const groups = new Map<string, Transaction[]>();
-    for (const t of pageTransactions) {
-      const g = groups.get(t.date) ?? [];
-      g.push(t);
-      groups.set(t.date, g);
-    }
-    const items: TimelineItem[] = [];
-    for (const [date, txns] of groups) {
-      const total = txns.reduce((s, t) => s + t.amountInr, 0);
-      items.push({
-        kind: "header",
-        date,
-        label: formatDateHeader(date),
-        total,
-      });
-      for (const txn of txns) {
-        items.push({ kind: "txn", txn });
-      }
-    }
-    return items;
-  }, [pageTransactions]);
-
   const totalCount = expensesQuery.data?.total ?? 0;
   const totalPages = expensesQuery.data?.pageCount ?? 1;
-  const paged = grouped;
   const totalSpend = expensesQuery.data?.totalAmount ?? 0;
 
   // Keep the URL in step with manual filter changes so ?category= never goes stale
@@ -394,122 +343,31 @@ export function TransactionsView({
 
         {/* Timeline skeleton */}
         <div className="txn-timeline-list" aria-hidden="true">
-          {/* Column headers */}
-          <div className="txn-timeline-col-headers">
-            {["Time", "Description", "Category", "Amount"].map((label) => (
-              <span
-                key={label}
-                className={`erd-skeleton txn-timeline-col-label ${
-                  label === "Amount" ? "txn-timeline-col-label--right" : ""
-                }`}
-                style={{ height: "10px", borderRadius: "4px" }}
-              />
-            ))}
-          </div>
-
-          {/* Date header skeleton */}
-          <div className="txn-timeline-header">
-            <span />
-            <span />
-            <span
-              className="erd-skeleton"
-              style={{ width: "140px", height: "14px", borderRadius: "6px" }}
-            />
-            <span />
-            <span
-              className="erd-skeleton"
-              style={{
-                width: "80px",
-                height: "14px",
-                borderRadius: "6px",
-                marginLeft: "auto",
-              }}
-            />
-          </div>
-
-          {/* Transaction row skeletons */}
           {[...Array(8)].map((_, i) => (
             <div key={i} className="txn-timeline-row">
               <span
                 className="erd-skeleton"
-                style={{ width: "20px", height: "20px", borderRadius: "8px" }}
+                style={{ width: "40px", height: "40px", borderRadius: "20px" }}
               />
-              <span
-                className="erd-skeleton"
-                style={{ width: "40px", height: "12px", borderRadius: "6px" }}
-              />
-              <span
-                className="erd-skeleton"
-                style={{
-                  width: `${60 + (i % 3) * 20}%`,
-                  height: "12px",
-                  borderRadius: "6px",
-                }}
-              />
-              <span
-                className="erd-skeleton"
-                style={{ width: "90px", height: "20px", borderRadius: "100px" }}
-              />
-              <span
-                className="erd-skeleton"
-                style={{
-                  width: "70px",
-                  height: "12px",
-                  borderRadius: "6px",
-                  marginLeft: "auto",
-                }}
-              />
-            </div>
-          ))}
-
-          {/* Another date header */}
-          <div className="txn-timeline-header" style={{ marginTop: "16px" }}>
-            <span />
-            <span />
-            <span
-              className="erd-skeleton"
-              style={{ width: "120px", height: "14px", borderRadius: "6px" }}
-            />
-            <span />
-            <span
-              className="erd-skeleton"
-              style={{
-                width: "80px",
-                height: "14px",
-                borderRadius: "6px",
-                marginLeft: "auto",
-              }}
-            />
-          </div>
-
-          {/* More transaction rows */}
-          {[...Array(6)].map((_, i) => (
-            <div key={`second-${i}`} className="txn-timeline-row">
-              <span
-                className="erd-skeleton"
-                style={{ width: "20px", height: "20px", borderRadius: "8px" }}
-              />
-              <span
-                className="erd-skeleton"
-                style={{ width: "40px", height: "12px", borderRadius: "6px" }}
-              />
-              <span
-                className="erd-skeleton"
-                style={{
-                  width: `${50 + (i % 4) * 15}%`,
-                  height: "12px",
-                  borderRadius: "6px",
-                }}
-              />
-              <span
-                className="erd-skeleton"
-                style={{ width: "85px", height: "20px", borderRadius: "100px" }}
-              />
+              <span className="txn-timeline-body">
+                <span
+                  className="erd-skeleton"
+                  style={{
+                    width: `${50 + (i % 3) * 20}%`,
+                    height: "13px",
+                    borderRadius: "6px",
+                  }}
+                />
+                <span
+                  className="erd-skeleton"
+                  style={{ width: "90px", height: "11px", borderRadius: "6px" }}
+                />
+              </span>
               <span
                 className="erd-skeleton"
                 style={{
                   width: "70px",
-                  height: "12px",
+                  height: "13px",
                   borderRadius: "6px",
                   marginLeft: "auto",
                 }}
@@ -635,115 +493,30 @@ export function TransactionsView({
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
         >
-          {paged.map((item, i) => {
-            if (item.kind === "header") {
-              return (
-                <div key={`h-${item.date}`} className="txn-timeline-header">
-                  <span />
-                  <span className="txn-timeline-header-label">
-                    {item.label}
-                  </span>
-                  <span />
-                  <span
-                    className={`txn-timeline-header-total ${hideAmounts ? "amount-hidden" : ""}`}
-                  >
-                    {hideAmounts ? "---" : formatCurrency(item.total)}
-                  </span>
-                  <span />
-                </div>
-              );
-            }
-            const t = item.txn;
+          {pageTransactions.map((t, i) => {
             const isIncome = INCOME_CATEGORIES.has(t.category);
             const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
-            const isEditing = editingKey === rowKey;
             return (
               <div key={`t-${t.timestamp}-${i}`} className="txn-timeline-row">
-                <span className="txn-timeline-icon" title={t.category}>
+                <span
+                  className="txn-timeline-icon"
+                  title={t.category}
+                  style={{ background: avatarTint(t.category) }}
+                >
                   {getCategoryIcon(t.category)}
                 </span>
-                <span className="txn-timeline-time">
-                  {formatTime(t.timestamp)}
-                </span>
-                <span className="txn-timeline-item">{t.item}</span>
-                <span className="txn-timeline-amount-group">
-                  {isEditing ? (
-                    <span className="txn-timeline-cat-col">
-                      <select
-                        className="txn-cat-select"
-                        value={t.category}
-                        disabled={updating}
-                        onChange={async (e) => {
-                          const newCat = e.target.value;
-                          if (newCat === t.category) {
-                            setEditingKey(null);
-                            return;
-                          }
-                          setUpdating(true);
-                          try {
-                            await updateExpenseM.mutateAsync({
-                              id: t.id,
-                              timestamp: t.timestamp,
-                              item: t.item,
-                              amountInr: t.amountInr,
-                              updates: { category: newCat },
-                            });
-                            record(newCat);
-                            setEditingSuggestedCat("");
-                            await refreshTransactions();
-                          } catch {
-                            // Keep the row as-is if the category update fails
-                          }
-                          setUpdating(false);
-                          setEditingKey(null);
-                        }}
-                        onBlur={() => {
-                          if (!updating) {
-                            setEditingKey(null);
-                            setEditingSuggestedCat("");
-                          }
-                        }}
-                        autoFocus
-                      >
-                        {editingSuggestedCat &&
-                          editingSuggestedCat !== t.category && (
-                            <option value={editingSuggestedCat}>
-                              ✨ {editingSuggestedCat}
-                            </option>
-                          )}
-                        {orderedCategories.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                      {updating && <span className="txn-cat-saving">…</span>}
-                    </span>
-                  ) : (
-                    <span
-                      className="txn-timeline-cat-col txn-timeline-cat-pill"
-                      style={
-                        {
-                          "--chip-accent": getCategoryColor(t.category),
-                        } as React.CSSProperties
-                      }
-                      onClick={async () => {
-                        setEditingKey(rowKey);
-                        const s = await suggestCategory(t.item, categories);
-                        setEditingSuggestedCat(s);
-                      }}
-                    >
-                      {t.category}
-                      <span className="cat-chevron">▾</span>
-                    </span>
-                  )}
-                  <span
-                    className={`txn-timeline-amount ${isIncome ? "is-income" : "is-expense"} ${hideAmounts ? "amount-hidden" : ""}`}
-                  >
-                    {hideAmounts
-                      ? "---"
-                      : `${isIncome ? "+" : "-"}${formatCurrency(t.amountInr)}`}
+                <span className="txn-timeline-body">
+                  <span className="txn-timeline-item">{t.item}</span>
+                  <span className="txn-timeline-meta">
+                    {formatShortDate(t.date)} · {t.category}
                   </span>
+                </span>
+                <span
+                  className={`txn-timeline-amount ${isIncome ? "is-income" : "is-expense"} ${hideAmounts ? "amount-hidden" : ""}`}
+                >
+                  {hideAmounts
+                    ? "---"
+                    : `${isIncome ? "+" : "-"}${formatCurrency(t.amountInr)}`}
                 </span>
                 <span className="txn-actions">
                   <div className="env-action-wrap">

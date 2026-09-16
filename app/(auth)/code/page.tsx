@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, type FormEvent } from 'react'
+import { Suspense, useState, type CSSProperties, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 function CodeForm() {
@@ -10,25 +10,33 @@ function CodeForm() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+  const [done, setDone] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [resent, setResent] = useState(false)
 
-  async function verifyCode(e: FormEvent) {
-    e.preventDefault()
+  async function verifyCode(codeToVerify: string) {
     setPending(true)
     setError('')
     const res = await fetch('/api/auth/magic-auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code }),
-    })
-    if (!res.ok) {
-      setPending(false)
+      body: JSON.stringify({ email, code: codeToVerify }),
+    }).catch(() => null)
+    setPending(false)
+    if (!res?.ok) {
       setError('Wrong or expired code.')
+      setCode('')
+      // New key on the boxes row replays the shake/drop on every failure.
+      setAttempt((a) => a + 1)
       return
     }
+    setDone(true)
     // Full navigation: AuthKitProvider and the rest of the app read the
     // session cookie fresh, same as the old AuthGate's post-verify reload.
-    window.location.href = '/expense'
+    // Delay lets the success animation play, matching mobile's 1100ms.
+    setTimeout(() => {
+      window.location.href = '/expense'
+    }, 1100)
   }
 
   async function resend() {
@@ -58,30 +66,70 @@ function CodeForm() {
         Code sent to <strong>{email || 'your email'}</strong>
       </p>
 
-      <form className="auth-actions" onSubmit={verifyCode}>
-        <input
-          className="auth-code-field"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          placeholder="000000"
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-          autoFocus
-        />
-        {error ? <div className="auth-field-error">{error}</div> : null}
-        <button
-          type="button"
-          className="auth-resend"
-          onClick={resend}
+      <form
+        className="auth-actions"
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault()
+          if (code.length === 6 && !pending && !done) void verifyCode(code)
+        }}
+      >
+        <div
+          key={attempt}
+          className={`auth-code-boxes${error ? ' is-bad' : ''}${done ? ' is-ok' : ''}`}
         >
-          {resent ? 'Code resent.' : "Didn't get it? Resend code"}
-        </button>
-        <button type="submit" className="auth-btn auth-btn--primary" disabled={pending || code.length < 6}>
-          {pending ? 'Verifying…' : 'Verify'}
-        </button>
+          {/* One real input stretched over the boxes keeps paste, SMS/email
+              autofill and screen readers working; the boxes are visual only. */}
+          <input
+            className="auth-code-input"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            aria-label="6-digit code"
+            maxLength={6}
+            value={code}
+            disabled={pending || done}
+            onChange={(e) => {
+              const next = e.target.value.replace(/\D/g, '').slice(0, 6)
+              setCode(next)
+              if (next) setError('')
+              if (next.length === 6) void verifyCode(next)
+            }}
+            autoFocus
+          />
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={i}
+              aria-hidden
+              className={`auth-code-box${code[i] ? ' is-filled' : ''}${i === code.length && !error && !done ? ' is-active' : ''}`}
+              style={{ '--i': i } as CSSProperties}
+            >
+              {code[i] ?? ''}
+            </div>
+          ))}
+          {done ? <span className="auth-code-wash" aria-hidden /> : null}
+        </div>
+        {done ? (
+          <div className="auth-verified" role="status">
+            <span className="auth-verified-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+            Code verified. Signing you in…
+          </div>
+        ) : (
+          <>
+            {error ? <div className="auth-field-error" role="alert">{error}</div> : null}
+            <button type="button" className="auth-resend" onClick={resend}>
+              {resent ? 'Code resent.' : "Didn't get it? Resend code"}
+            </button>
+            <button type="submit" className="auth-btn auth-btn--primary" disabled={pending || code.length < 6}>
+              {pending ? 'Verifying…' : 'Verify'}
+            </button>
+          </>
+        )}
       </form>
+      {done ? <div className="auth-veil" aria-hidden /> : null}
     </div>
   )
 }

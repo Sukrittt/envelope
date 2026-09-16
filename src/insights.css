@@ -16,7 +16,7 @@
   align-items: center;
   gap: 16px;
   padding: 4px 0 22px;
-  background: linear-gradient(to bottom, var(--erd-bg) 72%, transparent);
+  background: var(--erd-bg);
 }
 
 .ins-period-copy {
@@ -90,7 +90,7 @@
 
 .insights-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(410px, 1.18fr);
+  grid-template-columns: minmax(410px, 1.18fr) minmax(0, 0.82fr);
   gap: 22px;
   padding-bottom: 34px;
 }
@@ -100,12 +100,13 @@
 }
 
 .ins-breakdown-card {
-  grid-row: span 2;
+  order: 2;
   animation-delay: 70ms;
 }
 
 .ins-heatmap-card {
   align-self: start;
+  order: 1;
   animation-delay: 130ms;
 }
 
@@ -651,7 +652,7 @@
 @media (max-width: 1120px) {
   .insights-grid { grid-template-columns: 1fr; }
   .ins-trend-card { grid-column: auto; }
-  .ins-breakdown-card { grid-row: auto; }
+  .ins-breakdown-card, .ins-heatmap-card { order: 0; }
 }
 
 @media (max-width: 900px) {

@@ -3,17 +3,19 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Archive, Brain, Compass, Database, History, Lock, MessageCircle, Repeat, UserRound } from 'lucide-react'
 import '../../src/expense-redesign.css'
 
 const NAV = [
-  { href: '/account', label: 'You', icon: '👤' },
-  { href: '/account/security', label: 'Security', icon: '🔐' },
-  { href: '/account/data', label: 'Your data', icon: '🗂️' },
-  { href: '/account/recurring', label: 'Recurring', icon: '🔁' },
-  { href: '/account/archive', label: 'Archive', icon: '🗃️' },
-  { href: '/account/chat-history', label: 'Chat history', icon: '🧠' },
-  { href: '/account/guided-tour', label: 'How this works', icon: '🧭' },
-  { href: '/account/help', label: 'Help', icon: '💬' },
+  { href: '/account', label: 'You', icon: UserRound },
+  { href: '/account/security', label: 'Security', icon: Lock },
+  { href: '/account/data', label: 'Your data', icon: Database },
+  { href: '/account/recurring', label: 'Recurring', icon: Repeat },
+  { href: '/account/archive', label: 'Archive', icon: Archive },
+  { href: '/account/bill-scans', label: 'Bills Scanned', icon: History },
+  { href: '/account/chat-history', label: 'Chat history', icon: Brain },
+  { href: '/account/guided-tour', label: 'How this works', icon: Compass },
+  { href: '/account/help', label: 'Help', icon: MessageCircle },
 ]
 
 export default function AccountLayout({ children }: { children: ReactNode }) {
@@ -30,7 +32,7 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
               href={item.href}
               className={`account-rail-link ${pathname === item.href || (item.href === '/account/help' && pathname === '/account/feedback') ? 'is-active' : ''}`}
             >
-              <span aria-hidden="true">{item.icon}</span>
+              <item.icon size={16} aria-hidden="true" />
               {item.label}
             </Link>
           ))}

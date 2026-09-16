@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { Scrim, Sheet } from './MotionSheet'
 import { ALERT_PRESET_PCTS, MAX_ALERT_PCTS, DEFAULT_ALERT_PCTS } from '../lib/alerts'
@@ -22,7 +23,19 @@ interface Props {
 export function AlertThresholdPicker({ categoryName, value, onChange, onClose, onSave }: Props) {
   const atLimit = value.length >= MAX_ALERT_PCTS
   const isDefault =
-    value.length === DEFAULT_ALERT_PCTS.length && value.every((v, i) => [...value].sort((a, b) => a - b)[i] === DEFAULT_ALERT_PCTS[i])
+    value.length === DEFAULT_ALERT_PCTS.length &&
+    value.every((v, i) => [...value].sort((a, b) => a - b)[i] === DEFAULT_ALERT_PCTS[i])
+
+  const [custom, setCustom] = useState('')
+  const customPcts = value.filter((p) => !ALERT_PRESET_PCTS.includes(p))
+
+  // Same parsing as Mobile's addCustomAlertPct; the API enforces 0–100 integers too.
+  function addCustom() {
+    const n = Math.round(Number(custom))
+    if (!custom.trim() || Number.isNaN(n) || n < 0 || n > 100) return
+    setCustom('')
+    if (!value.includes(n) && !atLimit) onChange([...value, n].sort((a, b) => a - b))
+  }
 
   function toggle(pct: number) {
     if (value.includes(pct)) onChange(value.filter((p) => p !== pct))
@@ -31,44 +44,86 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
 
   return (
     <AnimatePresence>
-      <Scrim key="scrim" onClick={onClose} />
-      <Sheet key="sheet" className="env-sheet" role="dialog" aria-label={`Alerts for ${categoryName}`}>
-        <div className="env-sheet-title">Alerts for {categoryName}</div>
-        <p className="env-sheet-copy">
-          You&apos;ll get a nudge when this envelope crosses each of these.
-        </p>
+      <Scrim key="scrim" className="erd-modal-overlay" onClick={onClose}>
+        <Sheet
+          className="erd-modal-card env-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Alerts for ${categoryName}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="env-sheet-title">Alerts for {categoryName}</div>
+          <p className="env-sheet-copy">You&apos;ll get a nudge when this envelope crosses each of these.</p>
 
-        <div className="env-pct-row">
-          {ALERT_PRESET_PCTS.map((pct) => {
-            const on = value.includes(pct)
-            return (
+          <div className="env-pct-row">
+            {ALERT_PRESET_PCTS.map((pct) => {
+              const on = value.includes(pct)
+              return (
+                <button
+                  key={pct}
+                  type="button"
+                  className={`env-pct${on ? ' is-on' : ''}`}
+                  onClick={() => toggle(pct)}
+                  disabled={!on && atLimit}
+                  aria-pressed={on}
+                >
+                  {pct}%
+                </button>
+              )
+            })}
+            {customPcts.map((pct) => (
               <button
                 key={pct}
                 type="button"
-                className={`env-pct${on ? ' is-on' : ''}`}
+                className="env-pct is-on"
                 onClick={() => toggle(pct)}
-                disabled={!on && atLimit}
-                aria-pressed={on}
+                aria-pressed
+                aria-label={`Remove ${pct}% alert`}
               >
-                {pct}%
+                {pct}% ×
               </button>
-            )
-          })}
-        </div>
+            ))}
+          </div>
 
-        {atLimit && <p className="env-sheet-hint">That&apos;s the most you can pick. Turn one off to add another.</p>}
-        {value.length === 0 && <p className="env-sheet-hint">No alerts. This envelope stays quiet.</p>}
-        {isDefault && <p className="env-sheet-hint">These are the defaults.</p>}
+          <form
+            className="env-pct-custom"
+            onSubmit={(e) => {
+              e.preventDefault()
+              addCustom()
+            }}
+          >
+            <input
+              className="env-input"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={100}
+              step={1}
+              placeholder="Custom %"
+              aria-label="Custom alert percentage"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              disabled={atLimit}
+            />
+            <button type="submit" className="env-pct" disabled={atLimit || !custom.trim()}>
+              Add
+            </button>
+          </form>
 
-        <div className="env-sheet-actions">
-          <button type="button" className="auth-btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="button" className="auth-btn auth-btn--primary" onClick={onSave}>
-            Save
-          </button>
-        </div>
-      </Sheet>
+          {atLimit && <p className="env-sheet-hint">That&apos;s the most you can pick. Turn one off to add another.</p>}
+          {value.length === 0 && <p className="env-sheet-hint">No alerts. This envelope stays quiet.</p>}
+          {isDefault && <p className="env-sheet-hint">These are the defaults.</p>}
+
+          <div className="env-sheet-actions">
+            <button type="button" className="auth-btn" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="button" className="auth-btn auth-btn--primary" onClick={onSave}>
+              Save
+            </button>
+          </div>
+        </Sheet>
+      </Scrim>
     </AnimatePresence>
   )
 }

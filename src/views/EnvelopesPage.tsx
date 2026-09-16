@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronsDownUp, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Bell, ChevronsDownUp, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { EnvelopeTabbar } from '../components/EnvelopeTabbar'
@@ -342,9 +342,11 @@ export function EnvelopesPage() {
                                 setEditing(category)
                                 setDraftPcts(thresholds)
                               }}
-                              title="Alert thresholds"
+                              title="Get notified when spending in this envelope reaches these points"
+                              aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(', ')}`}
                             >
-                              {thresholds.map((p) => `${p}%`).join(' · ')}
+                              <Bell size={11} aria-hidden="true" />
+                              Alerts at {thresholds.map((p) => `${p}%`).join(' · ')}
                             </button>
                             <div className="env-cat-actions">
                               <button
