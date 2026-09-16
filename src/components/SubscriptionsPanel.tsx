@@ -199,26 +199,28 @@ export function SubscriptionsPanel({ active, cancelled, hideAmounts, busyService
             </div>
           )}
 
-          {sorted.length === 0 ? (
-            <p className="subp-empty">No active subscriptions.</p>
-          ) : (
-            <ul className="subp-list">{sorted.map((sub, i) => row(sub, i, true))}</ul>
-          )}
+          <div className="subp-scroll">
+            {sorted.length === 0 ? (
+              <p className="subp-empty">No active subscriptions.</p>
+            ) : (
+              <ul className="subp-list">{sorted.map((sub, i) => row(sub, i, true))}</ul>
+            )}
 
-          {cancelled.length > 0 && (
-            <div className="subp-cancelled">
-              <button
-                type="button"
-                className={`subp-section-head ${showCancelled ? 'is-open' : ''}`}
-                onClick={() => setShowCancelled((v) => !v)}
-                aria-expanded={showCancelled}
-              >
-                <ChevronRight size={14} />
-                CANCELLED ({cancelled.length})
-              </button>
-              {showCancelled && <ul className="subp-list">{cancelled.map((sub, i) => row(sub, i, false))}</ul>}
-            </div>
-          )}
+            {cancelled.length > 0 && (
+              <div className="subp-cancelled">
+                <button
+                  type="button"
+                  className={`subp-section-head ${showCancelled ? 'is-open' : ''}`}
+                  onClick={() => setShowCancelled((v) => !v)}
+                  aria-expanded={showCancelled}
+                >
+                  <ChevronRight size={14} />
+                  CANCELLED ({cancelled.length})
+                </button>
+                {showCancelled && <ul className="subp-list">{cancelled.map((sub, i) => row(sub, i, false))}</ul>}
+              </div>
+            )}
+          </div>
         </>
       )}
     </article>

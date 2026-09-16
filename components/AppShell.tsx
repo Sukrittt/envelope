@@ -10,7 +10,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Every route draws its own chrome (sidebar, headers, tabbar); this shell
   // only carries the theme/density classes and the expense nav flag.
-  const isExpenseRoute = pathname.startsWith('/expense') || pathname === '/insights' || pathname.startsWith('/investments')
+  const isExpenseRoute = pathname.startsWith('/expense') || pathname === '/insights' || pathname.startsWith('/investments') || pathname.startsWith('/account')
 
   return (
     <main

@@ -115,7 +115,7 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
           {isDefault && <p className="env-sheet-hint">These are the defaults.</p>}
 
           <div className="env-sheet-actions">
-            <button type="button" className="auth-btn" onClick={onClose}>
+            <button type="button" className="auth-btn auth-btn--outline" onClick={onClose}>
               Cancel
             </button>
             <button type="button" className="auth-btn auth-btn--primary" onClick={onSave}>

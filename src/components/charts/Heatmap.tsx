@@ -18,8 +18,8 @@ interface Props {
 }
 
 const LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-const CELL = 44
-const GAP = 7
+const CELL = 38
+const GAP = 6
 const TOP = 25
 const LEVEL_OPACITY = [0.16, 0.4, 0.65, 0.9]
 

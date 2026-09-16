@@ -173,12 +173,11 @@
   gap: 0;
 }
 
-/* Auth/onboarding/account pages are also full-bleed .expense-redesign
-   layouts but their .mc-page never gets the .expense-shell class (that's
-   reserved for the /expense and /investments nav), so target them directly. */
+/* Auth/onboarding pages are also full-bleed .expense-redesign layouts but
+   their .mc-page never gets the .expense-shell class (that's reserved for
+   the app nav routes), so target them directly. */
 .mc-main:has(.auth-page),
-.mc-main:has(.setup-page),
-.mc-main:has(.account-shell) {
+.mc-main:has(.setup-page) {
   padding: 0;
   gap: 0;
 }
@@ -517,6 +516,16 @@
   .erd-home-rail {
     position: sticky;
     top: 0;
+  }
+  .erd-subs-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 40px);
+  }
+  .subp-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 }
 
@@ -906,6 +915,10 @@
   font-family: var(--font-fredoka);
 }
 .erd-log-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 10px 18px;
   border-radius: 100px;
   border: none;
@@ -1219,6 +1232,9 @@
   margin-top: 2px;
 }
 .erd-manage-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: none;
   border: none;
   color: var(--gold-ink);
@@ -2396,6 +2412,7 @@
 .txn-timeline-dates {
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
 }
 .txn-timeline-dates input {
   padding: 8px 10px;
@@ -3586,98 +3603,15 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Account (/account/*) — nav rail + panel
+   Account (/account/*) — content panel
    ───────────────────────────────────────────────────────────── */
-
-.account-shell {
-  /* Undo .expense-redesign's fixed-height, clipped app shell — account pages
-     are documents and must scroll. */
-  height: auto;
-  overflow: visible;
-  min-height: 100vh;
-  color: var(--erd-text);
-  font-family: var(--font-nunito);
-  /* A grid item with auto margins shrinks to its content; without this each
-     account page was as wide as whatever happened to be on it. */
-  width: 100%;
-  box-sizing: border-box;
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 40px 24px 80px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.account-shell-title {
-  font-family: var(--font-fredoka);
-  font-size: 26px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.account-body {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.account-rail {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.account-rail-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 100px;
-  border: 1px solid var(--erd-border-strong);
-  background: var(--erd-card);
-  color: var(--erd-text);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.account-rail-link.is-active {
-  background: var(--gold-ink);
-  border-color: var(--gold);
-  color: var(--erd-on-accent);
-}
 
 .account-panel {
   display: flex;
   flex-direction: column;
   gap: 22px;
   min-width: 0;
-}
-
-@media (min-width: 900px) {
-  .account-body {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-
-  .account-rail {
-    flex-direction: column;
-    width: 200px;
-    flex-shrink: 0;
-    position: sticky;
-    top: 24px;
-  }
-
-  .account-rail-link {
-    width: 100%;
-  }
-
-  .account-panel {
-    flex: 1;
-  }
+  width: 100%;
 }
 
 .account-section-label {
@@ -3785,6 +3719,23 @@ button.account-row:hover {
   color: var(--erd-text3);
 }
 
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-chip svg {
+  color: var(--erd-text3);
+}
+
 .account-badge {
   text-decoration: none;
   font-size: 11px;
@@ -3858,6 +3809,7 @@ button.account-row:hover {
 }
 
 .account-feature-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3868,6 +3820,24 @@ button.account-row:hover {
   color: var(--erd-text);
   text-decoration: none;
   transition: transform 0.15s ease;
+}
+
+.account-feature-card--locked {
+  opacity: 0.6;
+}
+
+.account-feature-lock-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
 }
 
 .account-feature-card:hover:not(:disabled) {
@@ -4434,7 +4404,8 @@ button.account-feature-card {
 .date-picker-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  row-gap: 2px;
+  column-gap: 0;
 }
 .date-picker-grid.is-next {
   animation: erd-date-monthNext 0.22s ease both;
@@ -4454,10 +4425,12 @@ button.account-feature-card {
   background: var(--range);
 }
 .date-picker-cell-wrap.is-edge-left {
-  background: linear-gradient(to right, transparent 50%, var(--range) 50%);
+  background: var(--range);
+  border-radius: 16px 0 0 16px;
 }
 .date-picker-cell-wrap.is-edge-right {
-  background: linear-gradient(to left, transparent 50%, var(--range) 50%);
+  background: var(--range);
+  border-radius: 0 16px 16px 0;
 }
 
 .date-picker-cell {
@@ -4527,27 +4500,22 @@ button.account-feature-card {
   z-index: 200;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
+  padding: 16px;
   background: oklch(0% 0 0 / 0.34);
   backdrop-filter: blur(2px);
 }
 .date-picker-sheet {
-  width: min(428px, 100vw);
+  width: min(428px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   background: var(--erd-modal-bg, var(--erd-card));
-  border-top: 1px solid var(--erd-border-strong);
-  border-radius: 24px 24px 0 0;
-  padding: 10px 18px calc(16px + env(safe-area-inset-bottom));
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 24px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-.date-picker-sheet-handle {
-  width: 38px;
-  height: 4px;
-  border-radius: 100px;
-  background: var(--erd-border-strong);
-  align-self: center;
-  margin: 2px 0;
 }
 .date-picker-sheet-header {
   display: flex;
@@ -4913,6 +4881,32 @@ button.account-feature-card {
 
 .env-sheet-hint {
   color: var(--erd-text3);
+}
+
+.env-sheet-section-label {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--erd-text3);
+}
+
+.env-sheet-name-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.env-sheet-icon-swatch {
+  width: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border-radius: 10px;
+  background: var(--erd-input-bg);
+  border: 1px solid var(--erd-border-strong);
 }
 
 .env-pct-row {
@@ -6214,6 +6208,47 @@ button.account-feature-card {
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal { width: 560px; }
 .expense-redesign .erd-modal-card.scan-modal.is-wide { width: 980px; }
+
+/* Currency picker */
+.expense-redesign .erd-modal-card.currency-modal { width: 640px; max-height: 80vh; }
+
+.currency-selected-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+}
+.currency-selected-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+}
+.currency-selected-name {
+  margin-top: 3px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+.currency-selected-code {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 11px;
+  display: flex;
+  align-items: center;
+  border-radius: 100px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-pill-bg);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--erd-text);
+}
 .scan-subtitle { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: var(--erd-text2); }
 .scan-drop { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 18px; padding: 36px 24px; border: 1.5px dashed var(--erd-border-strong); border-radius: 20px; background: var(--erd-input-bg); text-align: center; transition: border-color 0.15s ease, background-color 0.15s ease; }
 .scan-drop.is-dragging { border-color: var(--gold); background: var(--gold-soft); }

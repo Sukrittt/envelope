@@ -166,7 +166,7 @@ export function InsightsPage() {
 
       <header className="erd-mobile-header ins-mobile-header">
         <button type="button" className="ins-back-btn" onClick={() => router.back()} aria-label="Back"><ArrowLeft size={18} /></button>
-        <div><div className="erd-mobile-greet">{monthLabel(insightMonth)}</div><span>{isCurrent ? 'This month' : `${back} ${back === 1 ? 'month' : 'months'} back`}</span></div>
+        <div className="erd-mobile-greet">Insights</div>
       </header>
 
       <div className="erd-main">
@@ -174,15 +174,13 @@ export function InsightsPage() {
         <main className="erd-content ins-content">
           <header className="ins-period-header">
             <button type="button" className="ins-back-btn ins-desktop-back" onClick={() => router.back()} aria-label="Back"><ArrowLeft size={18} /></button>
-            <div className="ins-period-copy">
-              <span className="ins-kicker">Your spending story</span>
-              <h1>{monthLabel(insightMonth)}</h1>
-              {!isCurrent && <button type="button" className="ins-today-chip" onClick={() => setInsightMonth(currentMonth)}>↩ Today</button>}
-            </div>
-            <div className="ins-month-controls">
-              <button type="button" onClick={() => canGoPrevious && setInsightMonth((month) => shiftMonthKey(month, -1))} disabled={!canGoPrevious} aria-label="Previous month"><ChevronLeft size={18} /></button>
-              <span>{isCurrent ? 'This month' : `${back} ${back === 1 ? 'month' : 'months'} back`}</span>
-              <button type="button" onClick={() => canGoNext && setInsightMonth((month) => shiftMonthKey(month, 1))} disabled={!canGoNext} aria-label="Next month"><ChevronRight size={18} /></button>
+            <div className="ins-period-nav">
+              <button type="button" className="ins-month-btn" onClick={() => setInsightMonth((month) => shiftMonthKey(month, -1))} disabled={!canGoPrevious} aria-label={canGoPrevious ? `Previous month, ${monthLabel(shiftMonthKey(insightMonth, -1))}` : 'No earlier months'} title={canGoPrevious ? monthLabel(shiftMonthKey(insightMonth, -1)) : 'No earlier months'}><ChevronLeft size={18} /></button>
+              <div className="ins-period-copy">
+                <h1>{monthLabel(insightMonth)}</h1>
+                {isCurrent ? <span>This month</span> : <button type="button" className="ins-today-chip" onClick={() => setInsightMonth(currentMonth)}>{back} {back === 1 ? 'month' : 'months'} back · Today</button>}
+              </div>
+              <button type="button" className="ins-month-btn" onClick={() => setInsightMonth((month) => shiftMonthKey(month, 1))} disabled={!canGoNext} aria-label={canGoNext ? `Next month, ${monthLabel(shiftMonthKey(insightMonth, 1))}` : 'Already on this month'} title={canGoNext ? monthLabel(shiftMonthKey(insightMonth, 1)) : 'Already on this month'}><ChevronRight size={18} /></button>
             </div>
           </header>
 
@@ -212,7 +210,7 @@ export function InsightsPage() {
               </article>
 
               <article className="erd-card ins-card ins-breakdown-card">
-                <CategoryBreakdown key={`${insightMonth}|${breakdownMode}`} rows={breakdownRows} mode={breakdownMode} onModeChange={setBreakdownMode} selectedKey={selectedBreakdownKey} onSelectKey={setSelectedBreakdownKey} comparison={comparison} leftover={leftover} monthLabel={monthLabel(insightMonth)} hideAmounts={hideAmounts} />
+                <CategoryBreakdown rows={breakdownRows} categoryRows={categoryRows} groupRows={groupRows} categoryGroupMap={categoryGroupMap} mode={breakdownMode} onModeChange={setBreakdownMode} selectedKey={selectedBreakdownKey} onSelectKey={setSelectedBreakdownKey} comparison={comparison} leftover={leftover} monthLabel={monthLabel(insightMonth)} hideAmounts={hideAmounts} />
               </article>
 
               <article className="erd-card ins-card ins-heatmap-card">

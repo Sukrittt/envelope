@@ -180,7 +180,10 @@ export function DatePicker(props: DatePickerProps) {
   useEffect(() => {
     if (!open) return
     function onDocClick(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (rootRef.current && rootRef.current.contains(target)) return
+      if ((target as HTMLElement).closest?.('.date-picker-scrim')) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
@@ -328,7 +331,6 @@ export function DatePicker(props: DatePickerProps) {
       {open && (
         <Scrim className="date-picker-scrim" onClick={() => setOpen(false)}>
           <Sheet className="date-picker-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="date-picker-sheet-handle" />
             <div className="date-picker-sheet-header">
               <div>
                 <div className="date-picker-sheet-title">Pick a range</div>

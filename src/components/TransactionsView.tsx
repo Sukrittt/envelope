@@ -14,6 +14,7 @@ import { getCategoryColor } from "../data/categoryColors";
 import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { DatePicker } from "./DatePicker";
+import { categoryEmoji, splitEmoji } from "../lib/emoji";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -29,44 +30,6 @@ const INCOME_CATEGORIES = new Set([
   "Gift",
   "Transfer",
 ]);
-
-const CATEGORY_ICONS: Record<string, string> = {
-  Bills: "📋",
-  Entertainment: "🎬",
-  Food: "🍔",
-  Football: "⚽",
-  "Goa Shopping": "🛍️",
-  Groceries: "🛒",
-  Household: "🏠",
-  Personal: "👤",
-  "Personal care": "🧴",
-  Shopping: "🛍️",
-  Subscription: "📡",
-  Travel: "🚗",
-  Water: "💧",
-  "Work/Investment": "💼",
-  Betting: "🎲",
-  Rent: "🏠",
-  Transport: "🚗",
-  Utilities: "💡",
-  Education: "📚",
-  Health: "💊",
-  Medical: "💊",
-  Fitness: "🏋️",
-  Gifts: "🎁",
-  Clothing: "👕",
-  Electronics: "💻",
-  Pet: "🐾",
-  Coffee: "☕",
-  Misc: "📦",
-  Miscellaneous: "📦",
-};
-
-function getCategoryIcon(category: string): string {
-  return (
-    CATEGORY_ICONS[category] ?? CATEGORY_ICONS[category.toLowerCase()] ?? ""
-  );
-}
 
 function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -496,19 +459,20 @@ export function TransactionsView({
           {pageTransactions.map((t, i) => {
             const isIncome = INCOME_CATEGORIES.has(t.category);
             const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
+            const categoryName = splitEmoji(t.category).text;
             return (
               <div key={`t-${t.timestamp}-${i}`} className="txn-timeline-row">
                 <span
                   className="txn-timeline-icon"
-                  title={t.category}
-                  style={{ background: avatarTint(t.category) }}
+                  title={categoryName}
+                  style={{ background: avatarTint(categoryName) }}
                 >
-                  {getCategoryIcon(t.category)}
+                  {categoryEmoji(t.category)}
                 </span>
                 <span className="txn-timeline-body">
                   <span className="txn-timeline-item">{t.item}</span>
                   <span className="txn-timeline-meta">
-                    {formatShortDate(t.date)} · {t.category}
+                    {formatShortDate(t.date)} · {categoryName}
                   </span>
                 </span>
                 <span

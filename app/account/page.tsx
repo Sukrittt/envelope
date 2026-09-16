@@ -27,13 +27,12 @@ import {
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { useHideAmounts } from '../../src/hooks/useHideAmounts'
-import { useWrappedStatus } from '../../src/hooks/useWrapped'
-import { monthAbbrev, monthLabel, shiftMonthKey } from '../../src/lib/envelope'
 import { useMoneyBrain } from '../../components/MoneyBrainProvider'
 import { LogExpenseModal } from '../../src/components/LogExpenseModal'
 import { ScanBillModal } from '../../src/features/scan-bill/ScanBillModal'
 import { SignOutDialog } from '../../src/components/ConfirmDialog'
-import type { WrappedStatus } from '../../src/api/wrapped'
+
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
 type NotifyCadence = 'off' | 'weekly' | 'daily'
 
@@ -61,7 +60,6 @@ export default function AccountPage() {
   const { preference, setPreference } = useAppearance()
   const { openMoneyBrain } = useMoneyBrain()
   const [hideAmounts, setHideAmounts] = useHideAmounts()
-  const wrappedStatus = useWrappedStatus().data
   const [doc, setDoc] = useState<UserDoc | null>(null)
   const [notifyCadence, setNotifyCadence] = useState<NotifyCadence>('off')
   const [showScan, setShowScan] = useState(false)
@@ -90,7 +88,6 @@ export default function AccountPage() {
   const email = doc?.email ?? user?.email ?? ''
   const name = doc?.name || email || 'You'
   const initial = name.trim().charAt(0).toUpperCase() || '?'
-  const wrapped = wrappedCopy(wrappedStatus)
 
   return (
     <>
@@ -126,8 +123,10 @@ export default function AccountPage() {
             icon={Gift}
             tone="coral"
             label="Expense Wrapped"
-            blurb={wrapped.blurb}
-            href={wrapped.available ? '/wrapped' : undefined}
+            blurb={<span className="account-feature-copy">Download the mobile app to view this.</span>}
+            href={PLAY_STORE_URL}
+            external
+            locked
           />
           <FeatureCard icon={Brain} tone="gold" label="Money Brain" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />
           <FeatureCard icon={TrendingUp} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />
@@ -253,6 +252,8 @@ function FeatureCard({
   label,
   blurb,
   href,
+  external,
+  locked,
   onClick,
 }: {
   icon: LucideIcon
@@ -260,10 +261,18 @@ function FeatureCard({
   label: string
   blurb: ReactNode
   href?: string
+  external?: boolean
+  locked?: boolean
   onClick?: () => void
 }) {
+  const className = locked ? 'account-feature-card account-feature-card--locked' : 'account-feature-card'
   const body = (
     <>
+      {locked && (
+        <span className="account-feature-lock-badge" aria-hidden="true">
+          <Lock size={12} />
+        </span>
+      )}
       <span className="account-feature-icon" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone})` }} aria-hidden="true">
         <Icon size={18} />
       </span>
@@ -271,15 +280,22 @@ function FeatureCard({
       {blurb}
     </>
   )
+  if (href && external) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={className}>
+        {body}
+      </a>
+    )
+  }
   if (href) {
     return (
-      <Link href={href} className="account-feature-card">
+      <Link href={href} className={className}>
         {body}
       </Link>
     )
   }
   return (
-    <button type="button" className="account-feature-card" onClick={onClick} disabled={!onClick}>
+    <button type="button" className={className} onClick={onClick} disabled={!onClick}>
       {body}
     </button>
   )
@@ -293,29 +309,4 @@ function AccountRow({ icon: Icon, label, href }: { icon: LucideIcon; label: stri
       <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
     </Link>
   )
-}
-
-/** Mirrors Mobile's wrappedCardProps: a dot tracker toward next month's unlock until Wrapped is ready. */
-function wrappedCopy(status: WrappedStatus | undefined): { blurb: ReactNode; available: boolean } {
-  if (!status) return { blurb: <span className="account-feature-copy">Checking last month…</span>, available: false }
-  if (status.available) {
-    return { blurb: <span className="account-feature-copy">Your {monthLabel(status.month)}, wrapped</span>, available: true }
-  }
-  const { currentMonth, currentMonthCount, minTransactions } = status
-  const goalReached = currentMonthCount >= minTransactions
-  const next = monthAbbrev(shiftMonthKey(currentMonth, 1))
-  const filled = Math.min(currentMonthCount, minTransactions)
-  return {
-    available: false,
-    blurb: (
-      <span>
-        <span className="account-feature-dots" style={{ color: goalReached ? 'var(--mint)' : 'var(--erd-text3)' }} aria-hidden="true">
-          {'●'.repeat(filled) + '○'.repeat(minTransactions - filled)}
-        </span>
-        <span className="account-feature-copy">
-          {goalReached ? `Wrap unlocks ${next} 1` : `${currentMonthCount}/${minTransactions} · unlocks ${next} 1`}
-        </span>
-      </span>
-    ),
-  }
 }

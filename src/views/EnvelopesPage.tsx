@@ -1,12 +1,14 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import { Bell, ChevronsDownUp, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { EnvelopeTabbar } from '../components/EnvelopeTabbar'
 import { SpringChevron, SpringCollapse } from '../components/SpringCollapse'
 import { AlertThresholdPicker } from '../components/AlertThresholdPicker'
+import { Scrim, Sheet } from '../components/MotionSheet'
 import {
   useCategories,
   useAddCategory,
@@ -17,7 +19,7 @@ import {
 import { useGroups, useAddGroup, useUpdateGroup, useDeleteGroup, useMoveGroup } from '../hooks/useGroups'
 import { useCollapsedGroups } from '../hooks/useCollapsedGroups'
 import { groupCategories, orphanedBy, ARCHIVED_GROUP, OTHER_LABEL } from '../lib/envelopeGroups'
-import { splitEmoji } from '../lib/emoji'
+import { splitEmoji, groupEmoji, categoryEmoji } from '../lib/emoji'
 import { DEFAULT_ALERT_PCTS } from '../lib/alerts'
 import { EMPTY } from '../lib/constants'
 import type { CategoryRow } from '../types'
@@ -57,6 +59,8 @@ export function EnvelopesPage() {
   const [collapsed, setCollapsed] = useCollapsedGroups('envelopes')
   const [draft, setDraft] = useState<Draft | null>(null)
   const [draftText, setDraftText] = useState('')
+  const [draftGroup, setDraftGroup] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [editing, setEditing] = useState<CategoryRow | null>(null)
   const [draftPcts, setDraftPcts] = useState<number[]>(DEFAULT_ALERT_PCTS)
   const [error, setError] = useState<string | null>(null)
@@ -79,6 +83,7 @@ export function EnvelopesPage() {
     setError(null)
     setDraft(next)
     setDraftText(initial)
+    setDraftGroup(next.kind === 'new-category' ? next.group : '')
   }
 
   async function run(action: () => Promise<unknown>, whenBusy: string) {
@@ -98,12 +103,14 @@ export function EnvelopesPage() {
   async function commitDraft() {
     const name = draftText.trim()
     if (!draft || !name) return setDraft(null)
+    setSubmitting(true)
     let ok = false
     if (draft.kind === 'new-group') ok = await run(() => addGroup.mutateAsync(name), 'group')
-    else if (draft.kind === 'new-category') ok = await run(() => addCategory.mutateAsync({ name, group: draft.group }), 'category')
+    else if (draft.kind === 'new-category') ok = await run(() => addCategory.mutateAsync({ name, group: draftGroup }), 'category')
     else if (draft.kind === 'rename-group')
       ok = await run(() => updateGroup.mutateAsync({ name: draft.name, newName: name }), 'group')
     else ok = await run(() => updateCategory.mutateAsync({ name: draft.name, updates: { newName: name } }), 'category')
+    setSubmitting(false)
     if (ok) setDraft(null)
   }
 
@@ -375,27 +382,7 @@ export function EnvelopesPage() {
                         )
                       })}
 
-                      {draft?.kind === 'new-category' && draft.group === group.name && (
-                        <li className="env-cat env-cat--draft">
-                          <span className="env-cat-icon" aria-hidden="true">
-                            •
-                          </span>
-                          <input
-                            className="env-input"
-                            autoFocus
-                            placeholder="Category name"
-                            value={draftText}
-                            onChange={(e) => setDraftText(e.target.value)}
-                            onBlur={commitDraft}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') void commitDraft()
-                              if (e.key === 'Escape') setDraft(null)
-                            }}
-                          />
-                        </li>
-                      )}
-
-                      {group.items.length === 0 && draft?.kind !== 'new-category' && (
+                      {group.items.length === 0 && (
                         <li className="env-cat env-cat--empty">Nothing in here yet.</li>
                       )}
                     </ul>
@@ -404,30 +391,99 @@ export function EnvelopesPage() {
               )
             })}
 
-            {draft?.kind === 'new-group' && (
-              <li className="env-group env-group--draft">
-                <div className="env-group-head">
-                  <span className="env-group-icon" aria-hidden="true">
-                    🗂️
-                  </span>
-                  <input
-                    className="env-input"
-                    autoFocus
-                    placeholder="Group name"
-                    value={draftText}
-                    onChange={(e) => setDraftText(e.target.value)}
-                    onBlur={commitDraft}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void commitDraft()
-                      if (e.key === 'Escape') setDraft(null)
-                    }}
-                  />
-                </div>
-              </li>
-            )}
           </ul>
         </div>
       </div>
+
+      {(draft?.kind === 'new-group' || draft?.kind === 'new-category') && (
+        <AnimatePresence>
+          <Scrim key="scrim" className="erd-modal-overlay" onClick={() => setDraft(null)}>
+            <Sheet
+              className="erd-modal-card env-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label={draft.kind === 'new-category' ? 'Add category' : 'Add group'}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="env-sheet-title">{draft.kind === 'new-category' ? 'Add category' : 'Add group'}</div>
+              <p className="env-sheet-copy">
+                {draft.kind === 'new-category'
+                  ? 'Categories live inside a group. Pick where this one belongs.'
+                  : 'Groups gather related categories: Food, Home, Transport.'}
+              </p>
+
+              <p className="env-sheet-section-label">NAME</p>
+              <div className="env-sheet-name-row">
+                <div className="env-sheet-icon-swatch" aria-hidden="true">
+                  {draft.kind === 'new-category' ? categoryEmoji(draftText, draftGroup) : groupEmoji(draftText)}
+                </div>
+                <input
+                  className="env-input"
+                  autoFocus
+                  placeholder={draft.kind === 'new-category' ? 'Groceries, fuel, gym…' : 'Transport, Health…'}
+                  value={draftText}
+                  onChange={(e) => setDraftText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void commitDraft()
+                    if (e.key === 'Escape') setDraft(null)
+                  }}
+                />
+              </div>
+              {draftText.trim() !== '' && splitEmoji(draftText).icon === '' && (
+                <p className="env-sheet-hint">
+                  💡 Tip: start the name with an emoji, like{' '}
+                  {draft.kind === 'new-category' ? '🛒 Groceries' : '🚗 Transport'}, to give it its own icon.
+                </p>
+              )}
+
+              {draft.kind === 'new-category' && (
+                <>
+                  <p className="env-sheet-section-label">GROUP</p>
+                  <div className="env-pct-row">
+                    <button
+                      type="button"
+                      className={`env-pct${draftGroup === '' ? ' is-on' : ''}`}
+                      onClick={() => setDraftGroup('')}
+                    >
+                      Other
+                    </button>
+                    {groups.map((g) => (
+                      <button
+                        type="button"
+                        key={g}
+                        className={`env-pct${draftGroup === g ? ' is-on' : ''}`}
+                        onClick={() => setDraftGroup(g)}
+                      >
+                        {groupEmoji(g)} {splitEmoji(g).text}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {error && (
+                <p className="env-sheet-hint" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <div className="env-sheet-actions">
+                <button type="button" className="auth-btn auth-btn--outline" onClick={() => setDraft(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="auth-btn auth-btn--primary"
+                  onClick={() => void commitDraft()}
+                  disabled={submitting || !draftText.trim()}
+                >
+                  {submitting ? 'Saving…' : draft.kind === 'new-category' ? 'Add category' : 'Create group'}
+                </button>
+              </div>
+            </Sheet>
+          </Scrim>
+        </AnimatePresence>
+      )}
 
       {editing && (
         <AlertThresholdPicker

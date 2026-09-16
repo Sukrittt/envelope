@@ -3,42 +3,39 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Archive, Brain, Compass, Database, History, Lock, MessageCircle, Repeat, UserRound } from 'lucide-react'
+import { useAppearance } from '@/components/AppearanceProvider'
+import { ExpenseSidebar } from '@/src/components/ExpenseSidebar'
 import '../../src/expense-redesign.css'
-
-const NAV = [
-  { href: '/account', label: 'You', icon: UserRound },
-  { href: '/account/security', label: 'Security', icon: Lock },
-  { href: '/account/data', label: 'Your data', icon: Database },
-  { href: '/account/recurring', label: 'Recurring', icon: Repeat },
-  { href: '/account/archive', label: 'Archive', icon: Archive },
-  { href: '/account/bill-scans', label: 'Bills Scanned', icon: History },
-  { href: '/account/chat-history', label: 'Chat history', icon: Brain },
-  { href: '/account/guided-tour', label: 'How this works', icon: Compass },
-  { href: '/account/help', label: 'Help', icon: MessageCircle },
-]
 
 export default function AccountLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
+  const { theme, setTheme } = useAppearance()
 
   return (
-    <div className="expense-redesign account-shell">
-      <h1 className="account-shell-title">Account</h1>
-      <div className="account-body">
-        <nav className="account-rail" aria-label="Account sections">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`account-rail-link ${pathname === item.href || (item.href === '/account/help' && pathname === '/account/feedback') ? 'is-active' : ''}`}
-            >
-              <item.icon size={16} aria-hidden="true" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="account-panel">{children}</div>
+    <section className="expense-redesign">
+      <button type="button" className="erd-theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Toggle theme">
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
+
+      <header className="erd-mobile-header">
+        <div className="erd-mobile-greet">
+          Account <span>⚙️</span>
+        </div>
+      </header>
+
+      <div className="erd-main">
+        <ExpenseSidebar />
+        <main className="erd-content">
+          <div className="account-panel">{children}</div>
+        </main>
       </div>
-    </div>
+
+      <nav className="erd-tabbar" aria-label="Primary">
+        <Link href="/expense" className="erd-tab"><span aria-hidden="true">🏠</span><span>Home</span></Link>
+        <Link href="/expense/transactions" className="erd-tab"><span aria-hidden="true">🧾</span><span>Activity</span></Link>
+        <Link href="/insights" className="erd-tab"><span aria-hidden="true">📊</span><span>Insights</span></Link>
+        <Link href="/account" className={`erd-tab ${pathname.startsWith('/account') ? 'is-active' : ''}`}><span aria-hidden="true">⚙️</span><span>More</span></Link>
+      </nav>
+    </section>
   )
 }
