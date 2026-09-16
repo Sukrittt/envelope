@@ -53,15 +53,20 @@ function CodeForm() {
 
   return (
     <div className="auth-card">
-      <button
-        type="button"
-        className="auth-back"
-        aria-label="Back"
-        onClick={() => router.push(`/email`)}
-      >
-        ←
-      </button>
-      <h1 className="auth-headline">Check your inbox</h1>
+      <div className="auth-header">
+        <button
+          type="button"
+          className="auth-back"
+          aria-label="Back"
+          onClick={() => router.push(`/email`)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5" />
+            <path d="M12 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 className="auth-headline">Check your inbox</h1>
+      </div>
       <p className="auth-subhead">
         Code sent to <strong>{email || 'your email'}</strong>
       </p>

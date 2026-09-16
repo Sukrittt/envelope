@@ -76,15 +76,19 @@ describe('EnvelopesPage', () => {
 
   it('shows a category its own thresholds, and the defaults for one with none', async () => {
     renderPage()
-    expect(await screen.findByText('25% · 50%')).toBeInTheDocument()
-    expect(screen.getAllByText('50% · 90% · 100%').length).toBeGreaterThan(0)
+    expect(
+      await screen.findByRole('button', { name: 'Spending alerts for Water: 25%, 50%' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('button', { name: /Spending alerts for .+: 50%, 90%, 100%/ }).length,
+    ).toBeGreaterThan(0)
   })
 
   it('creates a category in the group whose add button was used', async () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByLabelText('Add a category to Home'))
-    await user.type(screen.getByPlaceholderText('Category name'), 'Gas')
+    await user.type(screen.getByPlaceholderText('Groceries, fuel, gym…'), 'Gas')
     await user.keyboard('{Enter}')
     await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home'))
   })
@@ -113,7 +117,7 @@ describe('EnvelopesPage', () => {
     renderPage()
     // Water is on a custom set; switching it back to the defaults should
     // clear the override so later default changes still reach it.
-    await user.click(await screen.findByText('25% · 50%'))
+    await user.click(await screen.findByRole('button', { name: 'Spending alerts for Water: 25%, 50%' }))
     await user.click(screen.getByRole('button', { name: '25%' }))
     await user.click(screen.getByRole('button', { name: '75%' }))
     await user.click(screen.getByRole('button', { name: '90%' }))
@@ -128,11 +132,14 @@ describe('EnvelopesPage', () => {
     ;(addGroup as Mock).mockRejectedValue(new Error('Failed to add group: 409 already exists'))
     renderPage()
     await user.click(await screen.findByRole('button', { name: /New group/ }))
-    await user.type(screen.getByPlaceholderText('Group name'), 'Home')
+    await user.type(screen.getByPlaceholderText('Transport, Health…'), 'Home')
     await user.keyboard('{Enter}')
-    const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('That group already exists.')
-    expect(alert).not.toHaveTextContent('409')
+    const alerts = await screen.findAllByRole('alert')
+    expect(alerts.length).toBeGreaterThan(0)
+    for (const alert of alerts) {
+      expect(alert).toHaveTextContent('That group already exists.')
+      expect(alert).not.toHaveTextContent('409')
+    }
   })
 
   it('remembers which groups were collapsed', async () => {

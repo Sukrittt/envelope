@@ -14,12 +14,12 @@ export default async function SignInPage({
         ✉️
       </div>
       <h1 className="auth-headline">
-        Your money
+        Less guessing.
         <br />
-        in an envelope.
+        More living.
       </h1>
       <p className="auth-subhead">
-        Sign in with a one-time code or Google. No passwords to remember, ever.
+        Sign in with a one-time code. No passwords to remember, ever.
       </p>
       {authError && (
         <p className="auth-error" role="alert">
@@ -28,20 +28,20 @@ export default async function SignInPage({
       )}
 
       <div className="auth-actions">
+        {/* Google sign-in disabled for now, same as mobile.
         <a href="/api/auth/google" className="auth-btn auth-btn--outline">
           <span className="auth-google-mark" aria-hidden="true">
             G
           </span>
           Continue with Google
         </a>
+        */}
         <Link href="/email" className="auth-btn auth-btn--primary">
           Continue with email
         </Link>
         <p className="auth-legal">
           By continuing you agree to the <a href="/legal/terms">Terms</a> and{' '}
           <a href="/legal/privacy">Privacy Policy</a>.
-          <br />
-          Free and open source. Your amounts and notes are encrypted before they reach our database.
         </p>
       </div>
     </div>

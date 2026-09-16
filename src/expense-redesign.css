@@ -2753,19 +2753,28 @@
   -webkit-backdrop-filter: blur(20px);
 }
 
+.auth-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .auth-back {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   border: 1px solid var(--erd-border);
   background: var(--erd-card);
   color: var(--erd-text);
-  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+}
+
+.auth-header .auth-headline {
+  margin: 0;
 }
 
 .auth-logo {
