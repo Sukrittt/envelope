@@ -6,9 +6,20 @@ export interface SystemSettings {
   aiDisabled: boolean
   /** Banner shown across the web app and exposed at GET /api/system/status for clients. */
   maintenance: { on: boolean; message: string }
+  /** Latest store release advertised to Android clients on the More screen. Empty disables the prompt. */
+  appUpdate: { android: { latestVersion: string; storeUrl: string } }
 }
 
-const DEFAULTS: SystemSettings = { aiDisabled: false, maintenance: { on: false, message: '' } }
+const DEFAULTS: SystemSettings = {
+  aiDisabled: false,
+  maintenance: { on: false, message: '' },
+  appUpdate: {
+    android: {
+      latestVersion: '',
+      storeUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
+    },
+  },
+}
 const SETTINGS_ID = 'global'
 const CACHE_MS = 30_000
 
@@ -24,6 +35,9 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     const value: SystemSettings = {
       aiDisabled: doc?.aiDisabled ?? DEFAULTS.aiDisabled,
       maintenance: { ...DEFAULTS.maintenance, ...doc?.maintenance },
+      appUpdate: {
+        android: { ...DEFAULTS.appUpdate.android, ...doc?.appUpdate?.android },
+      },
     }
     cached = { value, at: Date.now() }
     return value

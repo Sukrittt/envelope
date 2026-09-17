@@ -7,15 +7,21 @@ import { getSystemSettings, saveSystemSettings, type SystemSettings } from '@/li
 import type { ActionResult } from '../ActionForm'
 
 const MESSAGE_MAX = 280
+const VERSION_RE = /^\d+\.\d+\.\d+$/
 
 export async function saveSettingsAction(_prev: ActionResult, form: FormData): Promise<ActionResult> {
   const adminId = await requireAdmin()
   const message = String(form.get('maintenanceMessage') ?? '').trim().slice(0, MESSAGE_MAX)
+  const latestVersion = String(form.get('androidLatestVersion') ?? '').trim().slice(0, 32)
+  const storeUrl = String(form.get('androidStoreUrl') ?? '').trim().slice(0, 500)
   const next: SystemSettings = {
     aiDisabled: form.get('aiDisabled') === 'on',
     maintenance: { on: form.get('maintenanceOn') === 'on', message },
+    appUpdate: { android: { latestVersion, storeUrl } },
   }
   if (next.maintenance.on && !message) return { ok: false, message: 'Add a banner message before turning it on' }
+  if (latestVersion && !VERSION_RE.test(latestVersion)) return { ok: false, message: 'Use an Android version like 2.3.0' }
+  if (latestVersion && !storeUrl.startsWith('https://')) return { ok: false, message: 'Add a valid HTTPS Play Store URL' }
 
   const before = await getSystemSettings()
   await saveSystemSettings(next)

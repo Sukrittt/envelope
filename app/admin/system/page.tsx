@@ -33,6 +33,29 @@ export default async function AdminSystem() {
 
             <input className="adm-input" name="maintenanceMessage" defaultValue={settings.maintenance.message} placeholder="e.g. Scheduled maintenance tonight 11pm–midnight IST" maxLength={280} />
 
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
+              <strong>Android app update</strong>
+              <div className="adm-sub">Set this after a new Play Store release. Leave the version empty to hide the update link in the app.</div>
+            </div>
+
+            <input
+              className="adm-input"
+              name="androidLatestVersion"
+              defaultValue={settings.appUpdate.android.latestVersion}
+              placeholder="Latest version, e.g. 2.3.0"
+              inputMode="decimal"
+              maxLength={32}
+            />
+
+            <input
+              className="adm-input"
+              name="androidStoreUrl"
+              defaultValue={settings.appUpdate.android.storeUrl}
+              placeholder="Google Play Store URL"
+              type="url"
+              maxLength={500}
+            />
+
             <div>
               <SubmitButton variant="primary">Save</SubmitButton>
             </div>
