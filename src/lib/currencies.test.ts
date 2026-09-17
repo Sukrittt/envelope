@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CURRENCIES, createCurrencyFormat, formatMoney, formatMoneyInput, isCurrencyCode, resolveCurrency } from './currencies'
+import { CURRENCIES, createCurrencyFormat, formatMoney, formatMoneyInput, isCurrencyCode, resolveCurrency, searchCurrencies } from './currencies'
 
 describe('display currency', () => {
   it('includes current currencies and excludes obsolete, fund and testing codes', () => {
@@ -8,6 +8,16 @@ describe('display currency', () => {
     expect(new Set(CURRENCIES.map(c => c.code)).size).toBe(CURRENCIES.length)
     expect(resolveCurrency(undefined)).toBe('INR')
     expect(resolveCurrency('unknown')).toBe('INR')
+  })
+  it('finds currencies by country, name, code or symbol', () => {
+    const codes = (q: string) => searchCurrencies(q).map(c => c.code)
+    expect(codes('korea')).toEqual(expect.arrayContaining(['KRW', 'KPW']))
+    expect(codes('South Korea')).toEqual(['KRW'])
+    expect(codes('japan')).toContain('JPY')
+    expect(codes('germany')).toContain('EUR')
+    expect(codes('₹')).toContain('INR')
+    expect(codes('  ')).toHaveLength(CURRENCIES.length)
+    for (const c of CURRENCIES) expect(c.countries.length).toBeGreaterThan(0)
   })
   it('changes display only, retaining precision even for zero-minor-unit currencies', () => {
     const value = 123456.78
