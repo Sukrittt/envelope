@@ -1,6 +1,6 @@
 import { authkit, authkitMiddleware, handleAuthkitProxy } from '@workos-inc/authkit-nextjs'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
-import { bearerToken, verifyBearerToken } from '@/lib/access'
+import { bearerToken, verifyBearerToken } from '@/lib/bearer'
 
 const refreshSession = authkitMiddleware()
 

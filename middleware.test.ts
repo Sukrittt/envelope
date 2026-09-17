@@ -8,7 +8,7 @@ vi.mock('@workos-inc/authkit-nextjs', () => ({
   handleAuthkitProxy: (_req: NextRequest, _h: Headers, opts?: { redirect?: string }) =>
     opts?.redirect ? NextResponse.redirect(new URL(opts.redirect, 'https://example.com')) : NextResponse.next(),
 }))
-vi.mock('@/lib/access', () => ({bearerToken: () => 'cron-secret', verifyBearerToken: vi.fn(async () => null)}))
+vi.mock('@/lib/bearer', () => ({bearerToken: () => 'cron-secret', verifyBearerToken: vi.fn(async () => null)}))
 const { default: middleware } = await import('./middleware')
 
 beforeEach(() => { signedIn.value = false })

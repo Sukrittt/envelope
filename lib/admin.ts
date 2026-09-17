@@ -4,6 +4,10 @@ import { withAuth } from '@workos-inc/authkit-nextjs'
 import { getDb } from './mongodb'
 import type { UserDoc } from './users'
 
+// Admin pages read `db.collection()` directly, bypassing lib/scoped.ts on
+// purpose: they are cross-tenant by design. Keep them to metadata and counts —
+// never read encrypted fields.
+
 /**
  * The signed-in admin's user id, or null. Admin = a live `users` doc with
  * `isAdmin: true` (granted only via scripts/grant-admin.mjs). Checked against
