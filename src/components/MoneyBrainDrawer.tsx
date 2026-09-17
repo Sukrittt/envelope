@@ -4,7 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
+import { ArrowLeft, ArrowUp, Clock3, Plus, Search, Sparkle, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
@@ -196,7 +196,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
             <button className="brain-icon-btn" type="button" onClick={() => setView('chat')} aria-label="Back to chat">
               <ArrowLeft size={18} />
             </button>
-          ) : <span className="brain-orbit" aria-hidden="true">✦</span>}
+          ) : <span className="brain-orbit" aria-hidden="true"><Sparkle size={20} strokeWidth={1.8} /></span>}
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions this month` : 'Reading your budget…'}</p>
@@ -207,7 +207,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                 <Clock3 size={15} />{count.data !== undefined && <span>{count.data}</span>}
               </button>
             )}
-            <button className="brain-pill-btn brain-pill-btn--accent" type="button" onClick={startNewChat}>
+            <button className="brain-pill-btn brain-pill-btn--accent" type="button" onClick={startNewChat} aria-label="New chat">
               <Plus size={15} /><span>New</span>
             </button>
             <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Money Brain">
@@ -263,9 +263,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                     <section className="brain-insight-grid">
                       {brief.data.cards.map((card) => (
                         <article key={`${card.title}-${card.valueLabel}`} className={`brain-insight brain-insight--${card.tone}`}>
-                          <span>{card.icon}</span>
+                          <span className="brain-insight-icon" aria-hidden="true">{card.icon}</span>
                           <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
-                          <b>{hideAmounts ? formatCurrency(0, true) : card.valueLabel}</b>
+                          <div className="brain-insight-value"><b>{formatCurrency(card.amount, hideAmounts)}</b><small>{card.valueLabel}</small></div>
                         </article>
                       ))}
                     </section>
