@@ -17,6 +17,9 @@ vi.mock('@/lib/mongodb', () => ({
   })),
 }))
 
+// lib/accountLifecycle.ts imports the server-only WorkOS client for its purge helper.
+vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: vi.fn() }))
+
 const { POST } = await import('./route')
 
 beforeEach(() => {

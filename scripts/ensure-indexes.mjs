@@ -83,6 +83,16 @@ const INDEXES = {
   ],
   // Future scan-history screen's list query, plus a lookup from an expense
   // back to the scan it came from.
+  // Admin page (app/admin): audit trail, newest first overall and per target user.
+  admin_audit: [
+    [{ at: -1 }, {}],
+    [{ targetUserId: 1, at: -1 }, {}],
+  ],
+  // Admin user list sorts and activity counts.
+  users: [
+    [{ createdAt: -1 }, {}],
+    [{ lastSeenAt: -1 }, {}],
+  ],
   bill_scans: [
     [{ user_id: 1, created_at: -1 }, {}],
     [{ user_id: 1, expense_id: 1 }, {}],

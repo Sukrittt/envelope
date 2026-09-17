@@ -1,8 +1,7 @@
 import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
-import { scoped } from '@/lib/scoped'
-import { COLLECTIONS } from '@/lib/models'
+import { restoreAccount } from '@/lib/accountLifecycle'
 import type { UserDoc } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
@@ -22,10 +21,7 @@ export async function POST(req: Request) {
   const account = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
   if (!account?.deleted_at) return error('account is not scheduled for deletion', 404)
 
-  for (const name of Object.values(COLLECTIONS)) {
-    await scoped(db.collection(name), auth.userId).restore({})
-  }
-  await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: { deleted_at: null } })
+  await restoreAccount(db, auth.userId)
 
   return json({ ok: true })
 }

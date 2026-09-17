@@ -1,12 +1,11 @@
 import { isCurrencyCode, resolveCurrency } from '@/src/lib/currencies'
-import { json, error, readBody, nowIST } from '@/lib/http'
+import { json, error, readBody } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { scoped } from '@/lib/scoped'
-import { COLLECTIONS } from '@/lib/models'
 import { displayName, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
+import { softDeleteAccount } from '@/lib/accountLifecycle'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,14 +96,8 @@ export async function DELETE(req: Request) {
   }
 
   // Soft delete, same as every other DELETE route (lib/scoped.ts) — a
-  // recoverable grace window, not an immediate wipe. The GC cron purges the
-  // archived rows and the WorkOS user once `GRACE_DAYS` has passed
-  // (app/api/cron/gc/route.ts), not here.
-  for (const name of Object.values(COLLECTIONS)) {
-    await scoped(db.collection(name), auth.userId).deleteMany({})
-  }
-  const deletedAt = nowIST().timestamp
-  await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: { deleted_at: deletedAt } })
+  // recoverable grace window, not an immediate wipe. See lib/accountLifecycle.ts.
+  const deletedAt = await softDeleteAccount(db, auth.userId)
 
   return json({ ok: true, deletionScheduledFor: purgesAt(deletedAt) })
 }
