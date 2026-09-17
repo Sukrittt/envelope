@@ -19,6 +19,14 @@
   gap: 16px;
   flex-wrap: wrap;
 }
+.adm h2.adm-section {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--erd-text3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 -8px;
+}
 .adm-sub {
   color: var(--erd-text3);
   font-size: 13px;
@@ -79,7 +87,7 @@
 .adm-table td {
   padding: 10px;
   border-bottom: 1px solid var(--erd-border);
-  vertical-align: top;
+  vertical-align: middle;
 }
 .adm-table tr:last-child td {
   border-bottom: none;
@@ -122,19 +130,56 @@
   color: var(--tk-warn-ink);
 }
 
-/* Daily bar chart: one flex column per day, height set inline as a percentage. */
+/* Daily bar chart: stats row, y-axis scale, one flex column per day with height set inline as a percentage. */
+.adm-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.adm-stats b {
+  display: block;
+  font-family: var(--font-fredoka);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.adm-stats span {
+  font-size: 12px;
+  color: var(--erd-text3);
+}
+.adm-chart {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+}
+.adm-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 140px;
+  margin: -6px 0;
+  font-size: 11px;
+  color: var(--erd-text3);
+  font-variant-numeric: tabular-nums;
+}
 .adm-bars {
+  flex: 1;
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 120px;
+  height: 128px;
+  border-bottom: 1px solid var(--erd-border-strong);
+  background: linear-gradient(var(--erd-border) 1px, transparent 1px) 0 0 / 100% 50%;
 }
 .adm-bars > div {
   flex: 1;
   min-width: 2px;
   background: var(--tk-accent);
   border-radius: 3px 3px 0 0;
-  min-height: 1px;
+}
+.adm-bars > div.is-zero {
+  background: transparent;
 }
 .adm-bars > div:hover {
   background: var(--tk-accent-hover);
@@ -145,6 +190,7 @@
   font-size: 11px;
   color: var(--erd-text3);
   margin-top: 6px;
+  grid-column: 2;
 }
 
 .adm-form {
@@ -166,7 +212,8 @@
 }
 .adm-btn {
   height: 36px;
-  padding: 0 14px;
+  /* The body font sits high in its line box; 2px top padding centres the glyphs optically. */
+  padding: 2px 14px 0;
   border-radius: 10px;
   border: 1px solid var(--erd-border-strong);
   background: var(--erd-card-solid);
@@ -177,7 +224,9 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  line-height: 1;
   text-decoration: none;
 }
 .adm-btn:hover {

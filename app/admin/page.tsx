@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import { COLLECTIONS } from '@/lib/models'
+import { GRACE_DAYS } from '@/lib/archive'
 import type { UserDoc } from '@/lib/users'
 import { AI_USAGE, type AiUsageDoc } from '@/lib/ai/usage'
 import { DailyBars } from './DailyBars'
@@ -9,6 +10,7 @@ import { daysAgo, fmtBytes, num, usd } from './format'
 const TZ = 'Asia/Kolkata'
 
 type DayCount = { _id: string; n: number }
+const pct = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100)}%` : '0%')
 const toMap = (rows: DayCount[]) => new Map(rows.map((r) => [r._id, r.n]))
 
 function Kpi({ label, value, note }: { label: string; value: number | string; note?: string }) {
@@ -81,26 +83,32 @@ export default async function AdminOverview() {
     <>
       <div className="adm-head">
         <h1>Overview</h1>
-        <span className="adm-sub">Live from MongoDB · active = last authenticated request</span>
+        <span className="adm-sub">Live from MongoDB</span>
       </div>
 
+      <h2 className="adm-section">Users</h2>
       <div className="adm-grid">
-        <Kpi label="Users" value={total} />
-        <Kpi label="New · 7d" value={new7} note={`${num(new30)} in 30d`} />
-        <Kpi label="Active · 24h" value={active1} />
-        <Kpi label="Active · 7d" value={active7} />
-        <Kpi label="Active · 30d" value={active30} />
-        <Kpi label="Pending deletion" value={pendingDelete} />
-        <Kpi label="AI cost · 30d" value={usd(ai?.cost ?? 0)} note={`${num(ai?.calls ?? 0)} calls`} />
+        <Kpi label="Total accounts" value={total} note="Excludes accounts pending deletion" />
+        <Kpi label="New this week" value={new7} note={`${num(new30)} new in the last 30 days`} />
+        <Kpi label="Pending deletion" value={pendingDelete} note={`Purged ${GRACE_DAYS} days after the request`} />
       </div>
+
+      <h2 className="adm-section">Activity</h2>
+      <div className="adm-grid">
+        <Kpi label="Active today" value={active1} note={`Used the app in the last 24 hours · ${pct(active1, total)} of accounts`} />
+        <Kpi label="Active this week" value={active7} note={`Last 7 days · ${pct(active7, total)} of accounts`} />
+        <Kpi label="Active this month" value={active30} note={`Last 30 days · ${pct(active30, total)} of accounts`} />
+        <Kpi label="AI spend, 30 days" value={usd(ai?.cost ?? 0)} note={`${num(ai?.calls ?? 0)} Gemini calls`} />
+      </div>
+      <p className="adm-sub">Activity is recorded from the first signed-in request after this dashboard shipped, so older users show as inactive until they open the app again.</p>
 
       <div className="adm-two">
         <section className="erd-card">
-          <h2>Signups</h2>
+          <h2>New signups per day</h2>
           <DailyBars counts={toMap(signups)} days={90} unit="signups" />
         </section>
         <section className="erd-card">
-          <h2>Transactions logged</h2>
+          <h2>Transactions added per day</h2>
           <DailyBars counts={toMap(expensesPerDay)} days={30} unit="transactions" />
         </section>
       </div>
