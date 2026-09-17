@@ -27,6 +27,10 @@ export interface UserDoc {
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null
+  /** Grants /admin. Set only by scripts/grant-admin.mjs — never writable from any route. */
+  isAdmin?: boolean
+  /** Last authenticated request, stamped at most hourly by lib/lastSeen.ts. */
+  lastSeenAt?: Date
   /** Set when the account is soft-deleted; the GC cron purges the account (and its WorkOS user) `GRACE_DAYS` after this. Null/absent = active. */
   deleted_at?: string | null
 }

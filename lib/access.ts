@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { withAuth } from '@workos-inc/authkit-nextjs'
+import { touchLastSeen } from './lastSeen'
 
 /**
  * Who a request belongs to. `userId` is the WorkOS user id (`user_…`) taken
@@ -106,12 +107,18 @@ export async function getAuth(req: Request): Promise<Auth> {
   const token = bearerToken(req)
   if (token) {
     const resolved = await verifyBearerToken(token)
-    if (resolved) return { userId: resolved.userId, readOnly: false, sessionId: resolved.sessionId }
+    if (resolved) {
+      await touchLastSeen(resolved.userId)
+      return { userId: resolved.userId, readOnly: false, sessionId: resolved.sessionId }
+    }
   }
 
   try {
     const { user, sessionId } = await withAuth()
-    if (user) return { userId: user.id, readOnly: false, sessionId: sessionId ?? null }
+    if (user) {
+      await touchLastSeen(user.id)
+      return { userId: user.id, readOnly: false, sessionId: sessionId ?? null }
+    }
   } catch {
     // No session cookie, or called outside a request scope — fall through.
   }

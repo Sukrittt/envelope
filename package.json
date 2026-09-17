@@ -18,7 +18,8 @@
     "db:sync-users": "node scripts/sync-users.mjs",
     "db:encrypt": "node --experimental-strip-types scripts/encrypt-existing.mjs",
     "check:scoping": "node scripts/check-scoping.mjs",
-    "gen:tokens": "node scripts/generate-tokens.mjs"
+    "gen:tokens": "node scripts/generate-tokens.mjs",
+    "admin:grant": "node scripts/grant-admin.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.17.1",

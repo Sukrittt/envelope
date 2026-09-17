@@ -1,0 +1,230 @@
+/* Admin pages. Built on expense-redesign.css's --erd-* / --tk-* tokens so both themes work. */
+
+.adm h1 {
+  font-family: var(--font-fredoka);
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+}
+.adm h2 {
+  font-family: var(--font-fredoka);
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.adm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.adm-sub {
+  color: var(--erd-text3);
+  font-size: 13px;
+}
+.adm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
+}
+.adm-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+.adm-kpi {
+  padding: 16px 18px;
+  background: var(--erd-card-solid);
+  border: 1px solid var(--erd-border);
+  border-radius: 16px;
+}
+.adm-kpi-label {
+  font-size: 12px;
+  color: var(--erd-text3);
+}
+.adm-kpi-value {
+  font-family: var(--font-fredoka);
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.adm-kpi-note {
+  font-size: 12px;
+  color: var(--erd-text2);
+  margin-top: 2px;
+}
+
+.adm-table-wrap {
+  overflow-x: auto;
+}
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.adm-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--erd-text3);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--erd-border);
+  white-space: nowrap;
+}
+.adm-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--erd-border);
+  vertical-align: top;
+}
+.adm-table tr:last-child td {
+  border-bottom: none;
+}
+.adm-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.adm-table a {
+  color: inherit;
+}
+.adm-muted {
+  color: var(--erd-text3);
+}
+.adm-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.adm-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--erd-pill-bg);
+  color: var(--erd-text2);
+  white-space: nowrap;
+}
+.adm-badge.is-good {
+  background: var(--tk-mint-soft);
+  color: var(--tk-mint);
+}
+.adm-badge.is-bad {
+  background: var(--tk-coral-soft);
+  color: var(--tk-coral);
+}
+.adm-badge.is-warn {
+  background: var(--tk-warn-soft);
+  color: var(--tk-warn-ink);
+}
+
+/* Daily bar chart: one flex column per day, height set inline as a percentage. */
+.adm-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+}
+.adm-bars > div {
+  flex: 1;
+  min-width: 2px;
+  background: var(--tk-accent);
+  border-radius: 3px 3px 0 0;
+  min-height: 1px;
+}
+.adm-bars > div:hover {
+  background: var(--tk-accent-hover);
+}
+.adm-bars-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--erd-text3);
+  margin-top: 6px;
+}
+
+.adm-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.adm-input,
+.adm-select {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 13px;
+}
+.adm-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-card-solid);
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.adm-btn:hover {
+  background: var(--erd-border);
+}
+.adm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.adm-btn.is-primary {
+  background: var(--tk-accent);
+  border-color: var(--tk-accent);
+  color: var(--tk-on-accent);
+}
+.adm-btn.is-danger {
+  border-color: var(--tk-coral);
+  color: var(--tk-coral);
+}
+.adm-btn.is-danger:hover {
+  background: var(--tk-coral-soft);
+}
+.adm-pager {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 14px;
+  font-size: 13px;
+}
+.adm-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 18px;
+  font-size: 13px;
+  margin: 0;
+}
+.adm-dl dt {
+  color: var(--erd-text3);
+}
+.adm-dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.adm-msg {
+  font-size: 13px;
+}
+.adm-msg.is-error {
+  color: var(--tk-coral);
+}
