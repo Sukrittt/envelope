@@ -5,7 +5,8 @@ import { GRACE_DAYS } from '@/lib/archive'
 import type { UserDoc } from '@/lib/users'
 import { AI_USAGE, type AiUsageDoc } from '@/lib/ai/usage'
 import { DailyBars } from './DailyBars'
-import { daysAgo, fmtBytes, num, usd } from './format'
+import { RangeTabs } from './RangeTabs'
+import { daysAgo, fmtBytes, num, parseRange, usd } from './format'
 
 const TZ = 'Asia/Kolkata'
 
@@ -42,7 +43,10 @@ async function collectionStats(db: Awaited<ReturnType<typeof getDb>>) {
   )
 }
 
-export default async function AdminOverview() {
+export default async function AdminOverview({ searchParams }: { searchParams: Promise<{ signups?: string; tx?: string }> }) {
+  const params = await searchParams
+  const signupDays = parseRange(params.signups)
+  const txDays = parseRange(params.tx)
   const db = await getDb()
   const users = db.collection<UserDoc>('users')
   const live = { deleted_at: null }
@@ -57,7 +61,7 @@ export default async function AdminOverview() {
     users.countDocuments({ deleted_at: { $ne: null } }),
     users
       .aggregate<DayCount>([
-        { $match: { createdAt: { $gte: daysAgo(90) } } },
+        { $match: { createdAt: { $gte: daysAgo(signupDays) } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: TZ } }, n: { $sum: 1 } } },
       ])
       .toArray(),
@@ -65,7 +69,7 @@ export default async function AdminOverview() {
     db
       .collection(COLLECTIONS.expenses)
       .aggregate<DayCount>([
-        { $match: { _id: { $gte: objectIdAt(daysAgo(30)) } } },
+        { $match: { _id: { $gte: objectIdAt(daysAgo(txDays)) } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: { $toDate: '$_id' }, timezone: TZ } }, n: { $sum: 1 } } },
       ])
       .toArray(),
@@ -104,12 +108,18 @@ export default async function AdminOverview() {
 
       <div className="adm-two">
         <section className="erd-card">
-          <h2>New signups per day</h2>
-          <DailyBars counts={toMap(signups)} days={90} unit="signups" />
+          <div className="adm-chart-head">
+            <h2>New signups</h2>
+            <RangeTabs param="signups" value={signupDays} params={params} />
+          </div>
+          <DailyBars counts={toMap(signups)} days={signupDays} unit="signups" />
         </section>
         <section className="erd-card">
-          <h2>Transactions added per day</h2>
-          <DailyBars counts={toMap(expensesPerDay)} days={30} unit="transactions" />
+          <div className="adm-chart-head">
+            <h2>Transactions added</h2>
+            <RangeTabs param="tx" value={txDays} params={params} />
+          </div>
+          <DailyBars counts={toMap(expensesPerDay)} days={txDays} unit="transactions" />
         </section>
       </div>
 

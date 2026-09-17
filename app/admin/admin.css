@@ -27,6 +27,9 @@
   letter-spacing: 0.06em;
   margin: 0 0 -8px;
 }
+.adm p.adm-sub {
+  margin: 0;
+}
 .adm-sub {
   color: var(--erd-text3);
   font-size: 13px;
@@ -128,6 +131,32 @@
 .adm-badge.is-warn {
   background: var(--tk-warn-soft);
   color: var(--tk-warn-ink);
+}
+
+.adm-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.adm-chart-head h2 {
+  margin: 0;
+}
+/* RangeTabs: links styled like the app's .erd-chart-toggle buttons. */
+.erd-chart-toggle a {
+  padding: 6px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-family: var(--font-fredoka);
+  color: var(--erd-text3);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.erd-chart-toggle a.is-active {
+  background: var(--gold-ink);
+  color: var(--erd-on-accent);
 }
 
 /* Daily bar chart: stats row, y-axis scale, one flex column per day with height set inline as a percentage. */

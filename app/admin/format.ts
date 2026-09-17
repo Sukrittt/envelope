@@ -30,6 +30,15 @@ export const daysAgo = (n: number) => new Date(Date.now() - n * 86400000)
 
 export const usd = (n: number) => `$${n < 1 ? n.toFixed(4) : n.toFixed(2)}`
 
+/** Chart ranges offered by RangeTabs, in days. */
+export const RANGES = [7, 30, 90, 365] as const
+
+/** A `?range=` search param as one of RANGES, else 30. */
+export function parseRange(value: string | undefined): number {
+  const days = Number(value)
+  return (RANGES as readonly number[]).includes(days) ? days : 30
+}
+
 export const num = (n: number) => n.toLocaleString('en-IN')
 
 /** The last `n` calendar days in IST as YYYY-MM-DD, oldest first. */

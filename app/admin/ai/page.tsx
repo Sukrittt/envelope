@@ -3,9 +3,8 @@ import { getDb } from '@/lib/mongodb'
 import { AI_USAGE, type AiUsageDoc } from '@/lib/ai/usage'
 import type { UserDoc } from '@/lib/users'
 import { DailyBars } from '../DailyBars'
-import { daysAgo, fmtDateTime, num, usd } from '../format'
-
-const DAYS = 30
+import { RangeTabs } from '../RangeTabs'
+import { daysAgo, fmtDateTime, num, parseRange, usd } from '../format'
 
 interface Totals {
   _id: string | null
@@ -29,7 +28,9 @@ const totalsGroup = (id: unknown) => ({
   },
 })
 
-export default async function AdminAi() {
+export default async function AdminAi({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const params = await searchParams
+  const DAYS = parseRange(params.range)
   const db = await getDb()
   const coll = db.collection<AiUsageDoc>(AI_USAGE)
   const match = { $match: { at: { $gte: daysAgo(DAYS) } } }
@@ -97,8 +98,9 @@ export default async function AdminAi() {
     <>
       <div className="adm-head">
         <h1>AI usage</h1>
-        <span className="adm-sub">Last {DAYS} days · cost estimated from token counts (lib/ai/pricing.ts)</span>
+        <RangeTabs param="range" value={DAYS} params={params} />
       </div>
+      <p className="adm-sub">Last {DAYS} days · cost estimated from token counts (lib/ai/pricing.ts)</p>
 
       <div className="adm-grid">
         {[
@@ -117,7 +119,7 @@ export default async function AdminAi() {
       </div>
 
       <section className="erd-card">
-        <h2>Calls per day</h2>
+        <h2>Calls</h2>
         <DailyBars counts={new Map(perDay.map((d) => [d._id, d.n]))} days={DAYS} unit="calls" />
       </section>
 
