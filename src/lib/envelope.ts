@@ -81,6 +81,11 @@ export function daysLeftInMonth(): number {
   return daysInMonth - d
 }
 
+/** Income to save so Ready to Assign (income - totalAssigned) lands on `targetReadyToAssign`. */
+export function incomeForReadyToAssign(totalAssigned: number, targetReadyToAssign: number): number {
+  return Math.round((targetReadyToAssign + totalAssigned) * 100) / 100
+}
+
 function monthSpendingByCategory(expenses: ExpenseNum[], month: string): Map<string, number> {
   const map = new Map<string, number>()
   for (const e of expenses) {

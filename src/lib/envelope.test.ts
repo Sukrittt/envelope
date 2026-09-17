@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEnvelopeState, currentMonthKey, prevMonthKey, CREDIT_CARD_CATEGORY } from './envelope'
+import { computeEnvelopeState, currentMonthKey, prevMonthKey, incomeForReadyToAssign, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 function budget(month: string, category: string, assigned: string, rolled_over = '0'): BudgetRow {
@@ -151,4 +151,36 @@ describe('computeEnvelopeState', () => {
 it('preserves paise in ready to assign', () => {
  const state = computeEnvelopeState([budget('2026-08','__income__','1000'),budget('2026-08','Rent','600.25')], [], '2026-08', [{name:'Rent',group:'Home'}], ['Home'])
  expect(state.readyToAssign).toBe(399.75)
+})
+
+describe('incomeForReadyToAssign', () => {
+  const month = '2026-09'
+  const prev = '2026-08'
+
+  function rtaAfterSaving(rows: BudgetRow[], target: number): number {
+    const before = computeEnvelopeState(rows, [], month, [], [])
+    const income = incomeForReadyToAssign(before.totalAssigned, target)
+    const saved = [...rows.filter((r) => !(r.month === month && r.category === INCOME_CATEGORY)), budget(month, INCOME_CATEGORY, String(income))]
+    return computeEnvelopeState(saved, [], month, [], []).readyToAssign
+  }
+
+  it('overrides income carried from last month so RTA lands on the typed amount', () => {
+    const rows = [budget(prev, INCOME_CATEGORY, '50000'), budget(prev, 'Food', '8000'), budget(prev, 'Rent', '20000')]
+    expect(rtaAfterSaving(rows, 5000)).toBe(5000)
+  })
+
+  it('replaces an explicit current-month income row', () => {
+    const rows = [budget(month, INCOME_CATEGORY, '40000'), budget(month, 'Food', '12000')]
+    expect(rtaAfterSaving(rows, 30000)).toBe(30000)
+  })
+
+  it('round-trips paise', () => {
+    const rows = [budget(month, INCOME_CATEGORY, '10000'), budget(month, 'Food', '1234.56')]
+    expect(rtaAfterSaving(rows, 99.99)).toBe(99.99)
+    expect(incomeForReadyToAssign(1234.56, 99.99)).toBe(1334.55)
+  })
+
+  it('sets income to exactly what is assigned when RTA is 0', () => {
+    expect(incomeForReadyToAssign(28000, 0)).toBe(28000)
+  })
 })

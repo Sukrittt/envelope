@@ -12,11 +12,10 @@ interface Props {
   envelopes: Envelope[]
   groups: string[]
   hideAmounts: boolean
-  readyToAssign: number
   onManage: () => void
   onMoveMoney: (category: string) => void
-  onAssignFromRTA: (category: string, amount: number) => void
-  onSetAssigned: (category: string, amount: number) => void
+  onAssignFromRTA: (category: string) => void
+  onSetAssigned: (category: string) => void
   onPayCreditCard?: () => void
 }
 
@@ -47,23 +46,17 @@ function lastSpentLabel(iso: string | undefined): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-type MenuMode = 'actions' | 'assign' | 'edit'
-
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
-  const { formatCurrency, currencySymbol } = useCurrency()
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
+  const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
 
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
-  const [menuMode, setMenuMode] = useState<MenuMode>('actions')
-  const [menuValue, setMenuValue] = useState('')
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   function closeMenu() {
     setMenuCategory(null)
-    setMenuMode('actions')
-    setMenuValue('')
   }
 
   useEffect(() => {
@@ -78,21 +71,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, on
   function openMenu(category: string) {
     if (menuCategory === category) return closeMenu()
     setMenuCategory(category)
-    setMenuMode('actions')
-    setMenuValue('')
-  }
-
-  function handleInputKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') {
-      setMenuMode('actions')
-      setMenuValue('')
-      return
-    }
-    if (e.key !== 'Enter' || !menuCategory) return
-    const amount = Number(menuValue)
-    if (menuMode === 'assign' && amount > 0 && amount <= readyToAssign) onAssignFromRTA(menuCategory, amount)
-    if (menuMode === 'edit' && menuValue.trim() !== '' && amount >= 0) onSetAssigned(menuCategory, amount)
-    closeMenu()
   }
 
   const ccEnvelope = useMemo(() => envelopes.find((e) => e.isCreditCardPayment) ?? null, [envelopes])
@@ -151,16 +129,14 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, on
 
         {isMenuOpen && (
           <div className="env-menu env2-menu">
-            {menuMode === 'actions' ? (
-              <>
-                <div className="env2-menu-title">{name}</div>
+            <>
                 <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
                   Move money between envelopes
                 </button>
-                <button type="button" className="env-menu-item" onClick={() => { setMenuMode('assign'); setMenuValue('') }}>
+                <button type="button" className="env-menu-item" onClick={() => { onAssignFromRTA(e.category); closeMenu() }}>
                   Assign from Ready to Assign
                 </button>
-                <button type="button" className="env-menu-item" onClick={() => { setMenuMode('edit'); setMenuValue(String(e.assigned)) }}>
+                <button type="button" className="env-menu-item" onClick={() => { onSetAssigned(e.category); closeMenu() }}>
                   Edit assigned amount
                 </button>
                 {!isCC && (
@@ -177,26 +153,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, readyToAssign, on
                     Pay credit card bill
                   </button>
                 )}
-              </>
-            ) : (
-              <div className="env-menu-assign">
-                <span className="env-menu-assign-label">
-                  {menuMode === 'assign' ? 'Assign' : 'Set'} {currencySymbol}
-                </span>
-                <input
-                  autoFocus
-                  type="number"
-                  className="env-menu-assign-input"
-                  value={menuValue}
-                  onChange={(ev) => setMenuValue(ev.target.value)}
-                  onKeyDown={handleInputKeyDown}
-                  min={menuMode === 'assign' ? 1 : 0}
-                  max={menuMode === 'assign' ? readyToAssign : undefined}
-                  step={1}
-                  placeholder="amount"
-                />
-              </div>
-            )}
+            </>
           </div>
         )}
       </div>

@@ -21,9 +21,10 @@ import { darkTokens } from '@/src/theme/tokens'
 
 /**
  * Web twins of Mobile's UI primitives (Mobile/src/components/ui/*, shared/*),
- * for the landing-page playground only. Sizes, colours, timings and easings are
- * copied from the RN source; RN Animated/Reanimated become WAAPI and motion.
- * Dark scheme only, since the landing page is dark.
+ * for the landing-page playground and the app's money screens (MoneyScreens.tsx).
+ * Sizes, colours, timings and easings are copied from the RN source; RN
+ * Animated/Reanimated become WAAPI and motion. `T` is the dark scheme, since the
+ * landing page is dark; app callers pass `var(--tk-*)` colours instead.
  */
 
 export const T = darkTokens
@@ -384,18 +385,23 @@ export function Chip({
 
 const PAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del']
 
-/** Numpad (onAccent variant): transparent keys, white labels, long-press delete clears. */
+/** Numpad: long-press delete clears. `onAccent` (the landing's log screen) is transparent keys with white labels; otherwise themed card keys. */
 export function Numpad({
   onDigit,
   onBackspace,
   onClear,
   extraKey,
+  onAccent = true,
+  disabled = false,
 }: {
   onDigit: (digit: string) => void
   onBackspace: () => void
   onClear: () => void
   extraKey?: string
+  onAccent?: boolean
+  disabled?: boolean
 }) {
+  const keyColor = onAccent ? '#ffffff' : 'var(--tk-text)'
   const timer = useRef(0)
   const longFired = useRef(false)
   const keys = PAD_KEYS.map((k, i) => (i === 9 ? (extraKey ?? '') : k))
@@ -406,7 +412,8 @@ export function Numpad({
         const keyStyle: CSSProperties = {
           width: '31.3%',
           minHeight: 56,
-          border: '1px solid transparent',
+          border: `1px solid ${onAccent ? 'transparent' : 'var(--tk-border)'}`,
+          background: onAccent ? 'transparent' : 'var(--tk-card)',
           borderRadius: radius.lg,
           ...row,
           justifyContent: 'center',
@@ -419,7 +426,8 @@ export function Numpad({
             type="button"
             className="m-key"
             aria-label={isDel ? 'Delete' : k}
-            style={{ ...resetButton, ...keyStyle }}
+            disabled={disabled}
+            style={{ ...resetButton, ...keyStyle, opacity: disabled ? 0.5 : 1 }}
             onPointerDown={() => {
               longFired.current = false
               if (!isDel) return
@@ -437,9 +445,9 @@ export function Numpad({
             }}
           >
             {isDel ? (
-              <ChevronLeft size={22} color="#ffffff" />
+              <ChevronLeft size={22} color={keyColor} />
             ) : (
-              <span style={{ color: '#ffffff', ...font.displaySemiBold, fontSize: 22 }}>{k}</span>
+              <span style={{ color: keyColor, ...font.displaySemiBold, fontSize: 22 }}>{k}</span>
             )}
           </button>
         )
@@ -448,8 +456,8 @@ export function Numpad({
   )
 }
 
-/** useAmountEntry: numpad editing with a 2-decimal cap and 9-char limit. */
-export function useAmountEntry(initial = '') {
+/** useAmountEntry: numpad editing with a 2-decimal cap and 9-char limit. `onChange` lets a screen reset state derived from the amount. */
+export function useAmountEntry(initial = '', { onChange, shakeAtZero = true }: { onChange?: () => void; shakeAtZero?: boolean } = {}) {
   const [amount, setAmount] = useState(initial)
   const [shakeRef, shake] = useShake<HTMLDivElement>()
   const pushDigit = useCallback((digit: string) => {
@@ -460,14 +468,16 @@ export function useAmountEntry(initial = '') {
       const next = (prev + digit).replace(/^0+(?=\d)/, '')
       return next.length > 9 ? prev : next
     })
-  }, [])
+    onChange?.()
+  }, [onChange])
   const handleBackspace = useCallback(() => {
-    if (Number(amount) === 0) {
+    if (shakeAtZero ? Number(amount) === 0 : amount === '') {
       shake()
       return
     }
     setAmount((prev) => prev.slice(0, -1))
-  }, [amount, shake])
+    onChange?.()
+  }, [amount, shake, onChange, shakeAtZero])
   return { amount, setAmount, pushDigit, handleBackspace, shakeRef }
 }
 

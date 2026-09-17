@@ -9,7 +9,7 @@ import { FluidDemo } from "../components/FluidDemo";
 import { SubscriptionsPanel } from "../components/SubscriptionsPanel";
 import { BirdMark } from "../components/BirdMark";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
-import { MoveMoneyModal } from "../components/MoveMoneyModal";
+import { MoveMoneyScreen, EditAssignedScreen, EditReadyToAssignScreen, AssignMoneyScreen } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { CategoryManager } from "../components/CategoryManager";
 import { SubscriptionModal } from "../components/SubscriptionModal";
@@ -21,7 +21,7 @@ import {
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
-import { useBudgets, useAddBudget, useUpdateBudget, useTransferBudget } from "../hooks/useBudgets";
+import { useBudgets, useAddBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useExpenses, useAddExpense } from "../hooks/useExpenses";
 import { useCategories } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
@@ -56,7 +56,6 @@ export function ExpensePage() {
 
   const addBudgetM = useAddBudget();
   const updateBudgetM = useUpdateBudget();
-  const transferBudgetM = useTransferBudget();
   const addExpenseM = useAddExpense();
   const cancelSubscriptionM = useCancelSubscription();
   const reactivateSubscriptionM = useReactivateSubscription();
@@ -97,6 +96,9 @@ export function ExpensePage() {
     null,
   );
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null);
+  const [editAssignedTarget, setEditAssignedTarget] = useState<string | null>(null);
+  const [assignTarget, setAssignTarget] = useState<string | null>(null);
+  const [editReady, setEditReady] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
   const [showRolloverBanner, setShowRolloverBanner] = useState(false);
@@ -142,86 +144,11 @@ export function ExpensePage() {
   }
 
   // Keep envelopeState in sync with the panel contract, while still allowing
-  // optimistic local updates (handleAssignFromRTA, etc.)
+  // local updates for the bulk-return action
   // to apply in between contract refreshes.
   useEffect(() => {
     if (panel) setEnvelopeState(panel.envelopeState);
   }, [panel]);
-
-  function handleAssignFromRTA(category: string, amount: number) {
-    setEnvelopeState((prev) => {
-      if (!prev) return prev;
-      const current = prev.envelopes.find((e) => e.category === category);
-      const prevAssigned = current?.assigned ?? 0;
-      const newAssigned = prevAssigned + amount;
-
-      const month = prev.month;
-      if (current) {
-        updateBudgetM.mutateAsync({ month, category, updates: { assigned: String(newAssigned) } }).catch(
-          () => {},
-        );
-      } else {
-        addBudgetM.mutateAsync({ month, category, assigned: String(amount) }).catch(
-          () => {},
-        );
-      }
-
-      const updated = prev.envelopes.map((e) => {
-        if (e.category === category) {
-          return {
-            ...e,
-            assigned: newAssigned,
-            available: e.available + amount,
-          };
-        }
-        return e;
-      });
-      const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0);
-      const rta = Math.round(prev.income - totalAssigned) || 0;
-      return {
-        ...prev,
-        envelopes: updated,
-        totalAssigned,
-        readyToAssign: rta,
-        isOverAssigned: rta < 0,
-      };
-    });
-  }
-
-  function handleSetAssigned(category: string, amount: number) {
-    setEnvelopeState((prev) => {
-      if (!prev) return prev;
-      const assigned = Math.round(amount) || 0;
-      const updated = prev.envelopes.map((e) => {
-        if (e.category !== category) return e;
-        const available = assigned + e.rolledOver - e.spent;
-        return {
-          ...e,
-          assigned,
-          available,
-          isOverspent: available < 0,
-          spentPct:
-            assigned > 0
-              ? Math.min(100, (e.spent / assigned) * 100)
-              : e.spent > 0
-                ? 100
-                : 0,
-        };
-      });
-      const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0);
-      const rta = Math.round(prev.income - totalAssigned) || 0;
-      updateBudgetM.mutateAsync({ month: prev.month, category, updates: { assigned: String(assigned) } }).catch(
-        () => {},
-      );
-      return {
-        ...prev,
-        envelopes: updated,
-        totalAssigned,
-        readyToAssign: rta,
-        isOverAssigned: rta < 0,
-      };
-    });
-  }
 
   function handleBulkReturnToRTA() {
     if (!envelopeState) return;
@@ -460,7 +387,7 @@ export function ExpensePage() {
         <div className="erd-home">
         <div className="erd-home-main">
           {envelopeState && (
-            <div className="erd-home-hero">
+            <button type="button" className="erd-home-hero" aria-label="Edit Ready to Assign" onClick={() => setEditReady(true)}>
               <span className="erd-home-hero-label">READY TO ASSIGN</span>
               <strong className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}>
                 {hideAmounts ? "---" : formatCurrency(envelopeState.readyToAssign)}
@@ -468,7 +395,7 @@ export function ExpensePage() {
               <span className="erd-home-hero-caption">
                 {monthLabel(panel.month)} · {daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`}
               </span>
-            </div>
+            </button>
           )}
 
           {showRolloverBanner && rolloverData && (
@@ -488,11 +415,10 @@ export function ExpensePage() {
                 envelopes={envelopeState.envelopes}
                 groups={envelopeState.groups}
                 hideAmounts={hideAmounts}
-                readyToAssign={envelopeState.readyToAssign}
                 onManage={() => setShowCategoryManager(true)}
                 onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
-                onAssignFromRTA={handleAssignFromRTA}
-                onSetAssigned={handleSetAssigned}
+                onAssignFromRTA={setAssignTarget}
+                onSetAssigned={setEditAssignedTarget}
                 onPayCreditCard={handlePayCreditCard}
               />
             </article>
@@ -628,78 +554,13 @@ export function ExpensePage() {
         </AnimatePresence>
         <AnimatePresence>
           {moveMoneyTarget && envelopeState && (
-            <MoveMoneyModal
-              targetCategory={moveMoneyTarget}
-              envelopes={envelopeState.envelopes}
-              readyToAssign={envelopeState.readyToAssign}
-              onClose={() => setMoveMoneyTarget(null)}
-              onTransfer={async (from, to, amount) => {
-                if (!envelopeState) return;
-                // Server computes the transfer from current DB state in one
-                // transaction — local state below only mirrors the result,
-                // it doesn't drive it. Awaited first: a failed transfer must
-                // never touch local state or look like it moved money.
-                await transferBudgetM.mutateAsync({
-                  month: envelopeState.month,
-                  to,
-                  sources: [{ category: from, amount }],
-                });
-                setEnvelopeState((prev) => {
-                  if (!prev) return prev;
-                  if (from === "__ready_to_assign__") {
-                    const updated = prev.envelopes.map((e) =>
-                      e.category === to
-                        ? {
-                            ...e,
-                            assigned: e.assigned + amount,
-                            available: e.available + amount,
-                          }
-                        : e,
-                    );
-                    const totalAssigned = updated.reduce(
-                      (s, e) => s + e.assigned,
-                      0,
-                    );
-                    const rta = Math.round(prev.income - totalAssigned) || 0;
-                    return {
-                      ...prev,
-                      envelopes: updated,
-                      totalAssigned,
-                      readyToAssign: rta,
-                      isOverAssigned: rta < 0,
-                    };
-                  }
-                  const updated = prev.envelopes.map((e) => {
-                    if (e.category === from)
-                      return {
-                        ...e,
-                        assigned: e.assigned - amount,
-                        available: e.available - amount,
-                      };
-                    if (e.category === to)
-                      return {
-                        ...e,
-                        assigned: e.assigned + amount,
-                        available: e.available + amount,
-                      };
-                    return e;
-                  });
-                  const totalAssigned = updated.reduce(
-                    (s, e) => s + e.assigned,
-                    0,
-                  );
-                  const rta = Math.round(prev.income - totalAssigned) || 0;
-                  return {
-                    ...prev,
-                    envelopes: updated,
-                    totalAssigned,
-                    readyToAssign: rta,
-                    isOverAssigned: rta < 0,
-                  };
-                });
-              }}
-            />
+            <MoveMoneyScreen targetCategory={moveMoneyTarget} onClose={() => setMoveMoneyTarget(null)} />
           )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {editAssignedTarget && <EditAssignedScreen category={editAssignedTarget} onClose={() => setEditAssignedTarget(null)} />}
+          {assignTarget && <AssignMoneyScreen category={assignTarget} onClose={() => setAssignTarget(null)} />}
+          {editReady && <EditReadyToAssignScreen onClose={() => setEditReady(false)} />}
         </AnimatePresence>
         <AnimatePresence>
           {showBulkReturnConfirm &&
