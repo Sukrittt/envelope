@@ -1,7 +1,7 @@
 import { formatMoney } from '@/src/lib/currencies'
 import type { Envelope } from '@/src/types/expense'
 import type { CategoryDocRow, SubscriptionDocRow, SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
-import { getEffectiveDueDate, renewalDays, INACTIVE_STATUSES, MONTH_NAMES } from '@/lib/subscriptions'
+import { getEffectiveDueDate, renewalDays, INACTIVE_STATUSES, MONTH_NAMES, formatReadableDate } from '@/lib/subscriptions'
 import type { UserDoc } from '@/lib/users'
 
 /**
@@ -148,7 +148,7 @@ function billNotifications(subscriptions: SubscriptionDocRow[], prefs: Notificat
       key: `bill:${sub.service}:${due}`,
       kind: 'bill',
       title: `${sub.service} renews soon`,
-      body: `${money(sub.amount_inr)} due in ${days} day${days === 1 ? '' : 's'} (${due}).`,
+      body: `${money(sub.amount_inr)} due in ${days} day${days === 1 ? '' : 's'} (${formatReadableDate(due)}).`,
     })
   }
 

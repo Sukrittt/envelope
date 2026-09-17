@@ -27,6 +27,15 @@ export const MONTH_NAMES = [
   'December',
 ]
 
+/** 'YYYY-MM-DD' -> "24th September", for user-facing copy (push notifications, etc). */
+export function formatReadableDate(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`)
+  if (Number.isNaN(d.getTime())) return dateStr
+  const day = d.getUTCDate()
+  const suffix = day % 10 === 1 && day !== 11 ? 'st' : day % 10 === 2 && day !== 12 ? 'nd' : day % 10 === 3 && day !== 13 ? 'rd' : 'th'
+  return `${day}${suffix} ${MONTH_NAMES[d.getUTCMonth()]}`
+}
+
 /** Advances `dateStr` by one billing cycle, inferred from `cycle`'s free-form text. */
 export function rollForward(dateStr: string, cycle: string): string {
   const d = new Date(dateStr)
