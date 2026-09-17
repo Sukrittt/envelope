@@ -8,6 +8,18 @@ export interface SystemSettings {
   maintenance: { on: boolean; message: string }
   /** Latest store release advertised to Android clients on the More screen. Empty disables the prompt. */
   appUpdate: { android: { latestVersion: string; storeUrl: string } }
+  /**
+   * Subscription launch switches, flagged independently so each can be rolled
+   * back on its own (see payment-subscriptions-plan.md, "Controlled launch").
+   * `enforced` is the only one that can lock anyone out; it stays off until
+   * the legacy-trial migration has run and purchase + export are proven.
+   */
+  billing: {
+    /** Gate access on the entitlement. Off = resolve and report honestly, block nothing. */
+    enforced: boolean
+    /** Show purchase entry points in the clients. Independent of `enforced`. */
+    purchaseEnabled: boolean
+  }
 }
 
 const DEFAULTS: SystemSettings = {
@@ -19,6 +31,7 @@ const DEFAULTS: SystemSettings = {
       storeUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
     },
   },
+  billing: { enforced: false, purchaseEnabled: false },
 }
 const SETTINGS_ID = 'global'
 const CACHE_MS = 30_000
@@ -38,6 +51,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
       appUpdate: {
         android: { ...DEFAULTS.appUpdate.android, ...doc?.appUpdate?.android },
       },
+      billing: { ...DEFAULTS.billing, ...doc?.billing },
     }
     cached = { value, at: Date.now() }
     return value

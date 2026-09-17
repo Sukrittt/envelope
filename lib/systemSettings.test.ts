@@ -22,6 +22,9 @@ describe('system settings', () => {
           storeUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
         },
       },
+      // Fails open in the safe direction: an unreachable settings doc must
+      // never start locking paying users out of their own budgets.
+      billing: { enforced: false, purchaseEnabled: false },
     })
     getDbMock.mockRejectedValueOnce(new Error('down'))
     expect(await aiDisabledResponse()).toBeNull()

@@ -56,6 +56,27 @@ export default async function AdminSystem() {
               maxLength={500}
             />
 
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
+              <strong>Subscriptions</strong>
+              <div className="adm-sub">Run scripts/billing-launch-migration.mjs before turning enforcement on — without it, every existing user is locked out.</div>
+            </div>
+
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <input type="checkbox" name="billingPurchaseEnabled" defaultChecked={settings.billing.purchaseEnabled} style={{ marginTop: 4 }} />
+              <span>
+                <strong>Show purchase options</strong>
+                <div className="adm-sub">Offers the Play Store checkout in the Android app. Nobody is locked out by this on its own.</div>
+              </span>
+            </label>
+
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <input type="checkbox" name="billingEnforced" defaultChecked={settings.billing.enforced} style={{ marginTop: 4 }} />
+              <span>
+                <strong>Enforce subscription access</strong>
+                <div className="adm-sub">Expired trials and lapsed subscriptions get 402 from app APIs. Export, billing and account controls stay open.</div>
+              </span>
+            </label>
+
             <div>
               <SubmitButton variant="primary">Save</SubmitButton>
             </div>

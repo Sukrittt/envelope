@@ -20,7 +20,8 @@
     "db:encrypt": "node --experimental-strip-types scripts/encrypt-existing.mjs",
     "check:scoping": "node scripts/check-scoping.mjs",
     "gen:tokens": "node scripts/generate-tokens.mjs",
-    "admin:grant": "node scripts/grant-admin.mjs"
+    "admin:grant": "node scripts/grant-admin.mjs",
+    "billing:migrate-trials": "node scripts/billing-launch-migration.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.17.1",
