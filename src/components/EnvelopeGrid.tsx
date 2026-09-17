@@ -1,5 +1,6 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ChevronsDownUp } from 'lucide-react'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
@@ -53,23 +54,40 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null)
+  const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const menuPortalRef = useRef<HTMLDivElement | null>(null)
 
   function closeMenu() {
     setMenuCategory(null)
+    setMenuAnchor(null)
+    setMenuPortalTarget(null)
   }
 
   useEffect(() => {
     if (!menuCategory) return
     function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) closeMenu()
+      const target = e.target as Node
+      if (menuRef.current?.contains(target)) return
+      if (menuPortalRef.current?.contains(target)) return
+      closeMenu()
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [menuCategory])
 
-  function openMenu(category: string) {
+  // Portaled to <body> with viewport-fixed coordinates so the menu escapes
+  // the card's clipping ancestors (.erd-main / .erd-content both clip
+  // overflow regardless of z-index) instead of getting cropped.
+  function openMenu(category: string, trigger: HTMLElement) {
     if (menuCategory === category) return closeMenu()
+    const rect = trigger.getBoundingClientRect()
+    setMenuAnchor({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    // Portal inside .expense-redesign (not document.body) so the menu still
+    // inherits the --erd-* theme variables scoped to that wrapper; its
+    // `overflow: hidden` doesn't clip position:fixed descendants.
+    setMenuPortalTarget(trigger.closest<HTMLElement>('.expense-redesign'))
     setMenuCategory(category)
   }
 
@@ -108,7 +126,12 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
 
     return (
       <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''}`} ref={isMenuOpen ? menuRef : undefined}>
-        <button type="button" className="env2-row-main" onClick={() => openMenu(e.category)} aria-expanded={isMenuOpen}>
+        <button
+          type="button"
+          className="env2-row-main"
+          onClick={(ev) => openMenu(e.category, ev.currentTarget)}
+          aria-expanded={isMenuOpen}
+        >
           <span className="env2-row-top">
             <span className="env2-emoji">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
             <span className="env2-name">{name}</span>
@@ -127,34 +150,37 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </button>
         <span className={`env2-available ${e.isOverspent ? 'is-neg' : ''}`}>{money(e.available)}</span>
 
-        {isMenuOpen && (
-          <div className="env-menu env2-menu">
-            <>
-                <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
-                  Move money between envelopes
-                </button>
-                <button type="button" className="env-menu-item" onClick={() => { onAssignFromRTA(e.category); closeMenu() }}>
-                  Assign from Ready to Assign
-                </button>
-                <button type="button" className="env-menu-item" onClick={() => { onSetAssigned(e.category); closeMenu() }}>
-                  Edit assigned amount
-                </button>
-                {!isCC && (
-                  <button
-                    type="button"
-                    className="env-menu-item"
-                    onClick={() => router.push(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
-                  >
-                    View transactions
-                  </button>
-                )}
-                {isCC && e.available > 0 && (
-                  <button type="button" className="env-menu-item env-menu-item-danger" onClick={() => { onPayCreditCard?.(); closeMenu() }}>
-                    Pay credit card bill
-                  </button>
-                )}
-            </>
-          </div>
+        {isMenuOpen && menuAnchor && createPortal(
+          <div
+            className="env-menu env2-menu"
+            ref={menuPortalRef}
+            style={{ position: 'fixed', top: menuAnchor.top, right: menuAnchor.right }}
+          >
+            <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
+              Move money between envelopes
+            </button>
+            <button type="button" className="env-menu-item" onClick={() => { onAssignFromRTA(e.category); closeMenu() }}>
+              Assign from Ready to Assign
+            </button>
+            <button type="button" className="env-menu-item" onClick={() => { onSetAssigned(e.category); closeMenu() }}>
+              Edit assigned amount
+            </button>
+            {!isCC && (
+              <button
+                type="button"
+                className="env-menu-item"
+                onClick={() => router.push(`/expense/transactions?category=${encodeURIComponent(e.category)}`)}
+              >
+                View transactions
+              </button>
+            )}
+            {isCC && e.available > 0 && (
+              <button type="button" className="env-menu-item env-menu-item-danger" onClick={() => { onPayCreditCard?.(); closeMenu() }}>
+                Pay credit card bill
+              </button>
+            )}
+          </div>,
+          menuPortalTarget ?? document.body
         )}
       </div>
     )

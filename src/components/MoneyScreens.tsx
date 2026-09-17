@@ -259,7 +259,13 @@ function Cta({
       onClick={onPress}
       disabled={!enabled || saving || success}
     >
-      {success ? <span role="status" aria-label="Saved"><CheckIcon color="currentColor" size={checkSize} /></span> : label}
+      {success ? (
+        <span role="status" aria-label="Saved" style={{ display: 'inline-flex' }}>
+          <CheckIcon color="currentColor" size={checkSize} />
+        </span>
+      ) : (
+        label
+      )}
     </button>
   )
 }

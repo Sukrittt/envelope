@@ -155,7 +155,7 @@
   white-space: nowrap;
 }
 .erd-chart-toggle a.is-active {
-  background: var(--gold-ink);
+  background: var(--gold);
   color: var(--erd-on-accent);
 }
 

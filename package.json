@@ -14,6 +14,7 @@
     "sync:expenses": "node scripts/sync_expenses.mjs",
     "check:ai-context": "node scripts/check-ai-context.mjs",
     "db:backfill": "node scripts/backfill-user-id.mjs",
+    "db:backfill-notify": "node scripts/backfill-notify-cadence.mjs",
     "db:indexes": "node scripts/ensure-indexes.mjs",
     "db:sync-users": "node scripts/sync-users.mjs",
     "db:encrypt": "node --experimental-strip-types scripts/encrypt-existing.mjs",

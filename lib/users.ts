@@ -68,6 +68,10 @@ export async function ensureUser(user: WorkOSUserLike): Promise<void> {
         name: user.name || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null,
         createdAt: new Date(),
         currencyCode: 'INR',
+        // Digest is opt-out, not opt-in: a new account with notifications off
+        // never hears from the app again. Seeded only on insert, so an existing
+        // user who chose 'off' stays off.
+        notifyCadence: 'daily',
       },
     },
     { upsert: true },

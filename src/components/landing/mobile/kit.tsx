@@ -274,7 +274,7 @@ export function Button({
   disabled?: boolean
   style?: CSSProperties
 }) {
-  const bg = variant === 'primary' ? T.accentInk : variant === 'secondary' ? T.pillBg : 'transparent'
+  const bg = variant === 'primary' ? T.accent : variant === 'secondary' ? T.pillBg : 'transparent'
   const fg = variant === 'primary' ? T.onAccent : T.text
   const border = variant === 'secondary' ? T.border : 'transparent'
   return (
@@ -493,6 +493,7 @@ export function CheckIcon({ color, size = 20 }: { color: string; size?: number }
       height={size}
       viewBox="0 0 24 24"
       fill="none"
+      style={{ display: 'block' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: ease.ease }}

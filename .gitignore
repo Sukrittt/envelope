@@ -47,3 +47,4 @@ scripts/check-data.mjs
 scripts/check-existing.mjs
 scripts/find-user.mjs
 scripts/generate-dummy-data.mjs
+scripts/tmp-purge-user.mjs
