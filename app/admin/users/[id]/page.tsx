@@ -6,9 +6,10 @@ import { getDb } from '@/lib/mongodb'
 import { COLLECTIONS } from '@/lib/models'
 import { purgesAt } from '@/lib/archive'
 import { ADMIN_AUDIT, type AdminAuditDoc } from '@/lib/adminAudit'
+import { AI_USAGE, type AiUsageDoc } from '@/lib/ai/usage'
 import { displayName, type UserDoc } from '@/lib/users'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { fmtDate, fmtDateTime, num, timeAgo } from '../../format'
+import { daysAgo, fmtDate, fmtDateTime, num, timeAgo, usd } from '../../format'
 import { ActionForm, SubmitButton } from '../../ActionForm'
 import { hardDeleteAction, restoreAction, revokeSessionsAction, softDeleteAction, updateUserAction } from './actions'
 
@@ -29,7 +30,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
   const user = await db.collection<UserDoc>('users').findOne({ _id: userId })
   if (!user) notFound()
 
-  const [workos, counts, notifications, auditRows] = await Promise.all([
+  const [workos, counts, notifications, auditRows, aiByFeature] = await Promise.all([
     loadWorkOS(userId),
     Promise.all(
       Object.values(COLLECTIONS).map(async (name) => {
@@ -43,6 +44,14 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
     ),
     db.collection<{ key: string; sentAt: Date }>(COLLECTIONS.notificationLog).find({ user_id: userId }).sort({ sentAt: -1 }).limit(15).toArray(),
     db.collection<AdminAuditDoc>(ADMIN_AUDIT).find({ targetUserId: userId }).sort({ at: -1 }).limit(15).toArray(),
+    db
+      .collection<AiUsageDoc>(AI_USAGE)
+      .aggregate<{ _id: string; calls: number; errors: number; cost: number }>([
+        { $match: { user_id: userId, at: { $gte: daysAgo(30) } } },
+        { $group: { _id: '$feature', calls: { $sum: 1 }, errors: { $sum: { $cond: ['$ok', 0, 1] } }, cost: { $sum: { $ifNull: ['$costUsd', 0] } } } },
+        { $sort: { calls: -1 } },
+      ])
+      .toArray(),
   ])
 
   const prefs = prefsFor(user)
@@ -149,6 +158,37 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
             <SubmitButton>Revoke all sessions</SubmitButton>
           </ActionForm>
         </div>
+      </section>
+
+      <section className="erd-card">
+        <h2>AI usage · 30d</h2>
+        <table className="adm-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th className="num">Calls</th>
+              <th className="num">Errors</th>
+              <th className="num">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {aiByFeature.map((f) => (
+              <tr key={f._id}>
+                <td>{f._id}</td>
+                <td className="num">{num(f.calls)}</td>
+                <td className="num">{f.errors ? num(f.errors) : '—'}</td>
+                <td className="num">{usd(f.cost)}</td>
+              </tr>
+            ))}
+            {aiByFeature.length === 0 && (
+              <tr>
+                <td colSpan={4} className="adm-muted">
+                  No AI calls in the last 30 days.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </section>
 
       <section className="erd-card">

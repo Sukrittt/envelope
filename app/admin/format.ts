@@ -25,6 +25,11 @@ export function fmtBytes(bytes: number): string {
   return `${(bytes / 1024 ** 2).toFixed(1)} MB`
 }
 
+/** Now minus `n` days. */
+export const daysAgo = (n: number) => new Date(Date.now() - n * 86400000)
+
+export const usd = (n: number) => `$${n < 1 ? n.toFixed(4) : n.toFixed(2)}`
+
 export const num = (n: number) => n.toLocaleString('en-IN')
 
 /** The last `n` calendar days in IST as YYYY-MM-DD, oldest first. */

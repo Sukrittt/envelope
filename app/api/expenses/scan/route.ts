@@ -95,6 +95,7 @@ export async function POST(req: Request) {
         },
         required: ['merchant', 'total', 'items'],
       },
+      { userId: auth.userId, feature: 'scan' },
     )
   } catch {
     return error('bill scan failed', 502)

@@ -2,14 +2,13 @@ import { ObjectId } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import { COLLECTIONS } from '@/lib/models'
 import type { UserDoc } from '@/lib/users'
+import { AI_USAGE, type AiUsageDoc } from '@/lib/ai/usage'
 import { DailyBars } from './DailyBars'
-import { fmtBytes, num } from './format'
+import { daysAgo, fmtBytes, num, usd } from './format'
 
-const DAY = 86400000
 const TZ = 'Asia/Kolkata'
 
 type DayCount = { _id: string; n: number }
-const since = (days: number) => new Date(Date.now() - days * DAY)
 const toMap = (rows: DayCount[]) => new Map(rows.map((r) => [r._id, r.n]))
 
 function Kpi({ label, value, note }: { label: string; value: number | string; note?: string }) {
@@ -46,17 +45,17 @@ export default async function AdminOverview() {
   const users = db.collection<UserDoc>('users')
   const live = { deleted_at: null }
 
-  const [total, new7, new30, active1, active7, active30, pendingDelete, signups, expensesPerDay, collections] = await Promise.all([
+  const [total, new7, new30, active1, active7, active30, pendingDelete, signups, expensesPerDay, collections, [ai]] = await Promise.all([
     users.countDocuments(live),
-    users.countDocuments({ ...live, createdAt: { $gte: since(7) } }),
-    users.countDocuments({ ...live, createdAt: { $gte: since(30) } }),
-    users.countDocuments({ ...live, lastSeenAt: { $gte: since(1) } }),
-    users.countDocuments({ ...live, lastSeenAt: { $gte: since(7) } }),
-    users.countDocuments({ ...live, lastSeenAt: { $gte: since(30) } }),
+    users.countDocuments({ ...live, createdAt: { $gte: daysAgo(7) } }),
+    users.countDocuments({ ...live, createdAt: { $gte: daysAgo(30) } }),
+    users.countDocuments({ ...live, lastSeenAt: { $gte: daysAgo(1) } }),
+    users.countDocuments({ ...live, lastSeenAt: { $gte: daysAgo(7) } }),
+    users.countDocuments({ ...live, lastSeenAt: { $gte: daysAgo(30) } }),
     users.countDocuments({ deleted_at: { $ne: null } }),
     users
       .aggregate<DayCount>([
-        { $match: { createdAt: { $gte: since(90) } } },
+        { $match: { createdAt: { $gte: daysAgo(90) } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: TZ } }, n: { $sum: 1 } } },
       ])
       .toArray(),
@@ -64,11 +63,18 @@ export default async function AdminOverview() {
     db
       .collection(COLLECTIONS.expenses)
       .aggregate<DayCount>([
-        { $match: { _id: { $gte: objectIdAt(since(30)) } } },
+        { $match: { _id: { $gte: objectIdAt(daysAgo(30)) } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: { $toDate: '$_id' }, timezone: TZ } }, n: { $sum: 1 } } },
       ])
       .toArray(),
     collectionStats(db),
+    db
+      .collection<AiUsageDoc>(AI_USAGE)
+      .aggregate<{ calls: number; cost: number }>([
+        { $match: { at: { $gte: daysAgo(30) } } },
+        { $group: { _id: null, calls: { $sum: 1 }, cost: { $sum: { $ifNull: ['$costUsd', 0] } } } },
+      ])
+      .toArray(),
   ])
 
   return (
@@ -85,6 +91,7 @@ export default async function AdminOverview() {
         <Kpi label="Active · 7d" value={active7} />
         <Kpi label="Active · 30d" value={active30} />
         <Kpi label="Pending deletion" value={pendingDelete} />
+        <Kpi label="AI cost · 30d" value={usd(ai?.cost ?? 0)} note={`${num(ai?.calls ?? 0)} calls`} />
       </div>
 
       <div className="adm-two">

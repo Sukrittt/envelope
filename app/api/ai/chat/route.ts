@@ -72,7 +72,7 @@ function streamReply(
         }
         const { facts, currencyCode } = await buildExpenseContext(auth)
         const systemPrompt = buildSystemPrompt(facts, currencyCode)
-        const geminiStream = await streamText(systemPrompt, contents)
+        const geminiStream = await streamText(systemPrompt, contents, { userId: auth.userId, feature: 'chat' })
 
         for await (const chunk of geminiStream) {
           const text = chunk.text

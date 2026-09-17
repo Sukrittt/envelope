@@ -88,6 +88,11 @@ const INDEXES = {
     [{ at: -1 }, {}],
     [{ targetUserId: 1, at: -1 }, {}],
   ],
+  // Per-call Gemini usage for /admin/ai; calls older than 180 days expire.
+  ai_usage: [
+    [{ user_id: 1, at: -1 }, {}],
+    [{ at: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 180 }],
+  ],
   // Cron run history for /admin/jobs; runs older than 180 days expire.
   cron_runs: [
     [{ job: 1, startedAt: -1 }, {}],

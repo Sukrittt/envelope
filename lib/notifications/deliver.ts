@@ -46,7 +46,7 @@ export async function unclaim(db: Db, userId: string, key: string): Promise<void
  * back to the plain arithmetic body from `rules.ts` on any failure — the
  * notification still sends either way.
  */
-async function enrichCoachNotification(notification: Notification, facts: string): Promise<Notification> {
+async function enrichCoachNotification(userId: string, notification: Notification, facts: string): Promise<Notification> {
   try {
     const prompt = [
       'You are writing a single push-notification nudge for a personal expense tracker, grounded strictly in the FACTS below.',
@@ -65,7 +65,7 @@ async function enrichCoachNotification(notification: Notification, facts: string
         body: { type: Type.STRING },
       },
       required: ['title', 'body'],
-    })
+    }, { userId, feature: 'coach' })
     return { ...notification, title: result.title, body: result.body }
   } catch (err) {
     console.error('notifications: coach enrichment failed, using fallback body', err)
@@ -90,7 +90,7 @@ export async function claimAndSend(db: Db, userId: string, notification: Notific
     if (!(await syncLevel(db, userId, month, category, level))) return false
   } else if (!(await claim(db, userId, notification.key))) return false
 
-  const toSend = notification.kind === 'coach' ? await enrichCoachNotification(notification, facts) : notification
+  const toSend = notification.kind === 'coach' ? await enrichCoachNotification(userId, notification, facts) : notification
 
   try {
     await sendPushNotification({

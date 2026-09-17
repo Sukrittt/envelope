@@ -1,0 +1,22 @@
+export interface TokenCounts {
+  inputTokens: number
+  outputTokens: number
+  /** Billed at the output rate. */
+  thinkingTokens: number
+}
+
+/**
+ * USD per 1M tokens, standard (paid tier) text/image rates from
+ * https://ai.google.dev/gemini-api/docs/pricing, checked 2026-09-17.
+ * Ignores the audio rate and implicit-cache discounts, so estimates run slightly high.
+ */
+const PRICES: Record<string, { input: number; output: number }> = {
+  'gemini-3.1-flash-lite': { input: 0.25, output: 1.5 },
+}
+
+/** Estimated USD cost of one call, or null when the model has no price entry. */
+export function estimateCostUsd(model: string, tokens: TokenCounts): number | null {
+  const price = PRICES[model]
+  if (!price) return null
+  return (tokens.inputTokens * price.input + (tokens.outputTokens + tokens.thinkingTokens) * price.output) / 1_000_000
+}

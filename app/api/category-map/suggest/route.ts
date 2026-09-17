@@ -64,6 +64,7 @@ export async function POST(req: Request) {
           },
         },
       },
+      { userId: auth.userId, feature: 'suggest' },
     )
   } catch {
     return error('category suggestion failed', 502)

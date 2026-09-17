@@ -86,7 +86,7 @@ export async function GET(req: Request) {
         },
       },
       required: ['narrative', 'cards', 'questions'],
-    })
+    }, { userId: auth.userId, feature: 'brief' })
 
     return json({ ...brief, meta })
   } catch (err) {

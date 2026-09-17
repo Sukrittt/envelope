@@ -1,4 +1,5 @@
-import { GoogleGenAI, type Schema } from '@google/genai'
+import { GoogleGenAI, type GenerateContentResponse, type Schema } from '@google/genai'
+import { logAiUsage, type AiCaller } from './usage'
 
 /**
  * Single source of truth for Gemini client setup — both the category-suggest
@@ -17,22 +18,37 @@ export function getGeminiClient(): GoogleGenAI {
   return client
 }
 
+/** Runs one non-streaming call and logs its tokens, cost and outcome to `ai_usage`. */
+async function tracked(caller: AiCaller, call: () => Promise<GenerateContentResponse>): Promise<GenerateContentResponse> {
+  const startedAt = Date.now()
+  try {
+    const response = await call()
+    await logAiUsage(caller, MODEL, startedAt, response.usageMetadata, null)
+    return response
+  } catch (err) {
+    await logAiUsage(caller, MODEL, startedAt, undefined, err)
+    throw err
+  }
+}
+
 /**
  * Calls the model with Gemini's native structured-output mode (responseSchema
  * + responseMimeType: 'application/json') and parses the result as T. Relies
  * on the schema's own constraints (e.g. `enum`) rather than hand-validating
  * the parsed JSON afterward.
  */
-export async function generateJSON<T>(prompt: string, responseSchema: Schema): Promise<T> {
+export async function generateJSON<T>(prompt: string, responseSchema: Schema, caller: AiCaller): Promise<T> {
   const ai = getGeminiClient()
-  const response = await ai.models.generateContent({
-    model: MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema,
-    },
-  })
+  const response = await tracked(caller, () =>
+    ai.models.generateContent({
+      model: MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema,
+      },
+    }),
+  )
   const text = response.text
   if (!text) throw new Error('Gemini returned an empty response')
   return JSON.parse(text) as T
@@ -47,16 +63,19 @@ export async function generateJSONFromImage<T>(
   prompt: string,
   image: { data: string; mimeType: string },
   responseSchema: Schema,
+  caller: AiCaller,
 ): Promise<T> {
   const ai = getGeminiClient()
-  const response = await ai.models.generateContent({
-    model: MODEL,
-    contents: [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }],
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema,
-    },
-  })
+  const response = await tracked(caller, () =>
+    ai.models.generateContent({
+      model: MODEL,
+      contents: [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema,
+      },
+    }),
+  )
   const text = response.text
   if (!text) throw new Error('Gemini returned an empty response')
   return JSON.parse(text) as T
@@ -70,16 +89,42 @@ export async function generateJSONFromImage<T>(
 export async function streamText(
   systemInstruction: string,
   contents: Array<{ role: 'user' | 'model'; parts: [{ text: string }] }>,
+  caller: AiCaller,
   maxOutputTokens = 700,
 ) {
   const ai = getGeminiClient()
-  return ai.models.generateContentStream({
-    model: MODEL,
-    contents,
-    config: {
-      systemInstruction,
-      temperature: 0.4,
-      maxOutputTokens,
-    },
-  })
+  const startedAt = Date.now()
+  let stream
+  try {
+    stream = await ai.models.generateContentStream({
+      model: MODEL,
+      contents,
+      config: {
+        systemInstruction,
+        temperature: 0.4,
+        maxOutputTokens,
+      },
+    })
+  } catch (err) {
+    await logAiUsage(caller, MODEL, startedAt, undefined, err)
+    throw err
+  }
+  return trackStream(stream, caller, startedAt)
+}
+
+/** Passes chunks through, logging usage (reported on the final chunk) once the stream ends, fails or is abandoned. */
+async function* trackStream(stream: AsyncGenerator<GenerateContentResponse>, caller: AiCaller, startedAt: number) {
+  let last: GenerateContentResponse | undefined
+  let error: unknown = null
+  try {
+    for await (const chunk of stream) {
+      last = chunk
+      yield chunk
+    }
+  } catch (err) {
+    error = err
+    throw err
+  } finally {
+    await logAiUsage(caller, MODEL, startedAt, last?.usageMetadata, error)
+  }
 }
