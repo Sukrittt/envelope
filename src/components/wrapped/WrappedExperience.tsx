@@ -11,6 +11,7 @@ import { useBudgets } from '@/src/hooks/useBudgets'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { formatDateShort } from '@/src/lib/format'
 import type { WrappedData } from '@/src/api/wrapped'
+import { LoadingCaption } from '@/src/components/LoadingCaption'
 
 const STORY_MS = 5000
 const PALETTE = ['#f2b84b', '#ee785d', '#4f9b82', '#6f67b1', '#df8c59']
@@ -161,7 +162,7 @@ export function WrappedExperience() {
   const budgets = useBudgets()
   const [hideAmounts] = useHideAmounts()
 
-  if (wrapped.isLoading) return <main className="wrapped-state"><span>Gathering your month…</span></main>
+  if (wrapped.isLoading) return <main className="wrapped-state"><LoadingCaption placement="page" /></main>
   if (wrapped.isError || !wrapped.data) return <main className="wrapped-state"><h1>We couldn&apos;t wrap this month.</h1><button type="button" onClick={() => void wrapped.refetch()}>Try again</button><Link href="/account">Back to account</Link></main>
   if (wrapped.data.totalTransactions === 0) return <main className="wrapped-state"><h1>Your story is still being written.</h1><p>Log a few expenses and come back for your monthly recap.</p><Link href="/expense">Go to your budget</Link></main>
 

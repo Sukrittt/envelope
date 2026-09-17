@@ -15,6 +15,7 @@ Audit run 2026-08-07 via `improve-animations` on commit `a8c7f22` (branch `feat/
 | 007 | Ease the heatmap day border in instead of snapping it | MEDIUM | Easing & duration | `App.css` | DONE |
 | 008 | Animate the heatmap tooltip in | LOW | Missed opportunity | `SpendingInsights.tsx`, `App.css` | DONE |
 | 009 | Replace the SparkLine gradient area fill with a solid tint | LOW | Cohesion & tokens | `SparkLine.tsx`, `FitnessPage.tsx` | DONE |
+| 011 | Mobile loading phrases and skeleton replacement | MEDIUM | Loading UX / mobile parity | Shared loader, phrase catalog, page and modal consumers | DONE |
 
 ## Recommended execution order
 

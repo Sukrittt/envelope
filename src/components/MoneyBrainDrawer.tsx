@@ -287,7 +287,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                   {messages.map((message, index) => message.text ? (
                     <div key={index} className={`brain-bubble brain-bubble--${message.role}`}>{message.text}</div>
                   ) : null)}
-                  {awaitingFirstDelta && <LoadingCaption />}
+                  {awaitingFirstDelta && <LoadingCaption feature="chatThinking" />}
                 </div>
               )}
             </div>

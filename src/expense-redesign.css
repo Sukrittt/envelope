@@ -39,9 +39,8 @@
   --erd-border-strong: var(--tk-border-strong);
   --erd-chip-active-bg: var(--tk-chip-active-bg);
 
-  /* No mobile equivalent: a shimmer tint and the heatmap ramp, both derived
-     from tokens rather than hand-picked so they follow a palette change. */
-  --erd-skeleton: color-mix(in oklab, var(--tk-text) 14%, transparent);
+  /* No mobile equivalent: the heatmap ramp is derived from tokens rather than
+     hand-picked so it follows a palette change. */
   --erd-heat-a: color-mix(in oklab, var(--tk-accent) 35%, var(--tk-bg));
   --erd-heat-b: var(--tk-accent);
 
@@ -258,34 +257,6 @@
   box-shadow: 0 8px 24px -8px oklch(0% 0 0 / 0.6);
 }
 
-/* ── Loading skeleton ──────────────────────────────────────── */
-
-.erd-skeleton {
-  position: relative;
-  overflow: hidden;
-  background: var(--erd-skeleton);
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-.erd-skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    oklch(100% 0 0 / 0.4),
-    transparent
-  );
-  animation: erd-shimmerSweep 2.2s ease-in-out infinite;
-}
-.erd-skeleton.erd-theme-toggle,
-.erd-skeleton.erd-tab-fab,
-.erd-skeleton.erd-nav-dot {
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 50%;
-}
 .expense-redesign .loading-caption-text {
   color: var(--erd-text3);
 }
@@ -449,14 +420,6 @@
   justify-content: center;
   padding: 0;
 }
-/* Kept for the loading skeleton's placeholder dots. */
-.erd-nav-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .erd-sidebar-foot {
   margin-top: auto;
   padding-top: 12px;
@@ -501,6 +464,12 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 22px;
   align-items: start;
+}
+.erd-home-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .erd-home-main,
 .erd-home-rail {
@@ -2199,6 +2168,59 @@
   flex-direction: column;
   gap: 16px;
 }
+.split-mode-toggle {
+  align-self: flex-start;
+}
+.split-visualization {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.split-viz-bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--erd-input-bg);
+}
+.split-viz-segment {
+  height: 100%;
+}
+.split-viz-segment-empty {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--erd-border),
+    var(--erd-border) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+.split-viz-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.split-viz-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.split-viz-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.split-viz-legend-label {
+  color: var(--erd-text);
+  font-weight: 600;
+  flex: 1;
+}
+.split-viz-legend-value {
+  color: var(--erd-text2);
+}
 .split-expense-line {
   padding: 12px;
   border: 1px solid var(--erd-border);
@@ -2212,6 +2234,28 @@
 .split-expense-amount {
   margin-top: 0;
   flex: 1;
+}
+.split-expense-percent-input {
+  position: relative;
+  flex: 1;
+}
+.split-expense-percent-input .split-expense-amount {
+  width: 100%;
+  padding-right: 28px;
+}
+.split-expense-percent-sign {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--erd-text2);
+  font-size: 13px;
+  pointer-events: none;
+}
+.split-expense-line-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--erd-text2);
 }
 .split-expense-remove {
   background: none;
@@ -2395,6 +2439,7 @@
 }
 
 .txn-timeline {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -2531,10 +2576,10 @@
   font-size: 13px;
 }
 .txn-timeline-loading {
-  padding: 40px 0;
-  text-align: center;
-  color: var(--erd-text2);
-  font-size: 13px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .txn-timeline-list {
@@ -4956,12 +5001,6 @@ button.account-feature-card {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
-}
-
-.erd-skeleton-block {
-  padding: 24px;
-  color: var(--erd-text3);
-  font-size: 0.85rem;
 }
 
 /* Money Brain */

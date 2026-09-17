@@ -1,4 +1,4 @@
-import { useCurrency } from '@/src/context/CurrencyContext'
+import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -55,10 +55,8 @@ export function TransactionsView({
 }: {
   hideAmounts?: boolean;
 }) {
-  const { formatCurrency } = useCurrency()
+  const { formatCurrency } = useCurrency();
 
-  // TESTING ONLY — set true to pin the page on the loading skeleton.
-  const FORCE_LOADING_SKELETON = false;
   const budgetsQuery = useBudgets();
   const deleteExpenseM = useDeleteExpense();
 
@@ -251,120 +249,6 @@ export function TransactionsView({
     setDeleting(false);
   }
 
-  if (loading || FORCE_LOADING_SKELETON) {
-    return (
-      <div
-        className="txn-timeline erd-card"
-        aria-busy="true"
-        aria-live="polite"
-      >
-        {/* Filter bar skeleton */}
-        <div className="txn-timeline-filters" aria-hidden="true">
-          <div className="mc-filter-chips">
-            {["This week", "This month", "Custom"].map((label) => (
-              <span
-                key={label}
-                className="erd-skeleton"
-                style={{ width: "92px", height: "32px", borderRadius: "100px" }}
-              />
-            ))}
-          </div>
-          <span
-            className="erd-skeleton"
-            style={{ width: "100px", height: "32px", borderRadius: "100px" }}
-          />
-          <span
-            className="erd-skeleton"
-            style={{ width: "180px", height: "32px", borderRadius: "8px" }}
-          />
-          <span
-            className="erd-skeleton"
-            style={{ width: "60px", height: "32px", borderRadius: "100px" }}
-          />
-          <span
-            className="erd-skeleton"
-            style={{ width: "90px", height: "32px", borderRadius: "100px" }}
-          />
-        </div>
-
-        {/* Log expense button skeleton */}
-        <span
-          className="erd-skeleton"
-          style={{
-            width: "128px",
-            height: "36px",
-            borderRadius: "100px",
-            marginBottom: "14px",
-          }}
-        />
-
-        {/* Loading caption */}
-        <LoadingCaption
-          className="loading-caption-inline"
-          style={{ justifyContent: "center", padding: "8px 0" }}
-        />
-
-        {/* Timeline skeleton */}
-        <div className="txn-timeline-list" aria-hidden="true">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="txn-timeline-row">
-              <span
-                className="erd-skeleton"
-                style={{ width: "40px", height: "40px", borderRadius: "20px" }}
-              />
-              <span className="txn-timeline-body">
-                <span
-                  className="erd-skeleton"
-                  style={{
-                    width: `${50 + (i % 3) * 20}%`,
-                    height: "13px",
-                    borderRadius: "6px",
-                  }}
-                />
-                <span
-                  className="erd-skeleton"
-                  style={{ width: "90px", height: "11px", borderRadius: "6px" }}
-                />
-              </span>
-              <span
-                className="erd-skeleton"
-                style={{
-                  width: "70px",
-                  height: "13px",
-                  borderRadius: "6px",
-                  marginLeft: "auto",
-                }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Footer skeleton */}
-        <div className="txn-timeline-footer">
-          <span
-            className="erd-skeleton"
-            style={{ width: "120px", height: "12px", borderRadius: "6px" }}
-          />
-          <span />
-          <span
-            className="erd-skeleton"
-            style={{ width: "100px", height: "12px", borderRadius: "6px" }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="txn-timeline erd-card">
-        <div className="txn-timeline-empty">
-          Couldn&apos;t load transactions. {error}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="txn-timeline erd-card">
       <div className="txn-timeline-filters">
@@ -444,7 +328,15 @@ export function TransactionsView({
         + Log expense
       </button>
 
-      {totalCount === 0 ? (
+      {loading ? (
+        <div className="txn-timeline-loading">
+          <LoadingCaption placement="page" />
+        </div>
+      ) : error ? (
+        <div className="txn-timeline-empty">
+          Couldn&apos;t load transactions. {error}
+        </div>
+      ) : totalCount === 0 ? (
         <div className="txn-timeline-empty">
           No transactions for this filter.
         </div>
@@ -559,35 +451,37 @@ export function TransactionsView({
         </motion.div>
       )}
 
-      <div className="txn-timeline-footer">
-        <span>
-          {totalCount} transaction{totalCount !== 1 ? "s" : ""}
-        </span>
-        {totalPages > 1 && (
-          <div className="txn-timeline-pagination">
-            <button
-              type="button"
-              className="action-button is-ghost"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Prev
-            </button>
-            <span>
-              {page} / {totalPages}
-            </span>
-            <button
-              type="button"
-              className="action-button is-ghost"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </button>
-          </div>
-        )}
-        <span>Total: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
-      </div>
+      {!loading && !error && (
+        <div className="txn-timeline-footer">
+          <span>
+            {totalCount} transaction{totalCount !== 1 ? "s" : ""}
+          </span>
+          {totalPages > 1 && (
+            <div className="txn-timeline-pagination">
+              <button
+                type="button"
+                className="action-button is-ghost"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Prev
+              </button>
+              <span>
+                {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                className="action-button is-ghost"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          <span>Total: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
+        </div>
+      )}
 
       <AnimatePresence>
         {editingTxn && (

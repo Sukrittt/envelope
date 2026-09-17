@@ -46,7 +46,6 @@ function urgency(days: number): 'coral' | 'warn' | 'calm' {
 }
 
 const archiveKey = ['archive'] as const
-const LOADING_PHRASES = ['Checking the vault…', 'Dusting off the archive…', 'Almost there…']
 const PAGE_SIZE = 10
 const RETRY = 'Check your connection and try again.'
 
@@ -175,7 +174,7 @@ export function ArchivePage() {
       )}
 
       {archiveQuery.isLoading ? (
-        <LoadingCaption phrases={LOADING_PHRASES} />
+        <LoadingCaption feature="archive" placement="page" />
       ) : archiveQuery.isError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load the archive. {RETRY}</p>

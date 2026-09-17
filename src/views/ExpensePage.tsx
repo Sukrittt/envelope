@@ -1,4 +1,4 @@
-import { useCurrency } from '@/src/context/CurrencyContext'
+import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
@@ -9,12 +9,17 @@ import { FluidDemo } from "../components/FluidDemo";
 import { SubscriptionsPanel } from "../components/SubscriptionsPanel";
 import { BirdMark } from "../components/BirdMark";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
-import { MoveMoneyScreen, EditAssignedScreen, EditReadyToAssignScreen, AssignMoneyScreen } from "../components/MoneyScreens";
+import {
+  MoveMoneyScreen,
+  EditAssignedScreen,
+  EditReadyToAssignScreen,
+  AssignMoneyScreen,
+} from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { CategoryManager } from "../components/CategoryManager";
 import { SubscriptionModal } from "../components/SubscriptionModal";
 import { Scrim, Sheet } from "../components/MotionSheet";
-import { ExpensePageSkeleton } from "../components/ExpensePageSkeletons";
+import { ExpensePageLoading } from "../components/ExpensePageLoading";
 import {
   toExpensePanelData,
   type ExpensePanelData,
@@ -37,14 +42,11 @@ import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { BudgetRow, EnvelopeState } from "../types/expense";
 import { daysLeftInMonth, monthLabel } from "../lib/envelope";
 
-
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
-  const { formatCurrency, currencyCode } = useCurrency()
+  const { formatCurrency, currencyCode } = useCurrency();
 
-  // TESTING ONLY — set true to pin the page on the loading skeleton.
-  const FORCE_LOADING_SKELETON = false;
   // One query per resource, as Mobile has, with the dashboard's derived panel
   // recomputed from them. The old single SWR fetcher both fetched and derived;
   // buildExpensePanel is the derivation half, now pure.
@@ -66,16 +68,15 @@ export function ExpensePage() {
   const groupNames = groupsQuery.data ?? EMPTY;
   const subscriptionRows = subscriptionsQuery.data ?? EMPTY;
 
-  const anyLoading =
+  const coreLoading =
     budgetsQuery.isLoading ||
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
-    groupsQuery.isLoading ||
-    subscriptionsQuery.isLoading;
+    groupsQuery.isLoading;
 
   const panel = useMemo<ExpensePanelData | null>(
     () =>
-      anyLoading
+      coreLoading
         ? null
         : toExpensePanelData(
             buildExpensePanel({
@@ -88,7 +89,15 @@ export function ExpensePage() {
             }),
             currencyCode,
           ),
-    [anyLoading, budgetRows, expenseRows, subscriptionRows, categoryRows, groupNames, currencyCode],
+    [
+      coreLoading,
+      budgetRows,
+      expenseRows,
+      subscriptionRows,
+      categoryRows,
+      groupNames,
+      currencyCode,
+    ],
   );
   // Read-only here: the toggle lives on /account, next to the theme control.
   const [hideAmounts] = useHideAmounts();
@@ -96,7 +105,9 @@ export function ExpensePage() {
     null,
   );
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null);
-  const [editAssignedTarget, setEditAssignedTarget] = useState<string | null>(null);
+  const [editAssignedTarget, setEditAssignedTarget] = useState<string | null>(
+    null,
+  );
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -233,7 +244,11 @@ export function ExpensePage() {
       // PUT /api/budgets already upserts server-side, so no fallback POST to
       // addBudget — on a real failure that would be misleading.
       try {
-        await updateBudgetM.mutateAsync({ month, category: "__income__", updates: { assigned: String(value) } });
+        await updateBudgetM.mutateAsync({
+          month,
+          category: "__income__",
+          updates: { assigned: String(value) },
+        });
         localStorage.removeItem("expense-income-override");
       } catch {
         setActionError("Couldn't save income — check your connection.");
@@ -324,7 +339,11 @@ export function ExpensePage() {
 
     const effectiveIncome = Math.max(0, income - totalOverspent);
     await addBudgetM
-      .mutateAsync({ month, category: "__income__", assigned: String(effectiveIncome) })
+      .mutateAsync({
+        month,
+        category: "__income__",
+        assigned: String(effectiveIncome),
+      })
       .catch(() => {});
 
     const allCategoryNames = [
@@ -347,8 +366,8 @@ export function ExpensePage() {
     setRolloverData(null);
   }
 
-  if (!panel || FORCE_LOADING_SKELETON) {
-    return <ExpensePageSkeleton />;
+  if (!panel) {
+    return <ExpensePageLoading />;
   }
 
   function handleSidebarMoveMoney() {
@@ -384,90 +403,106 @@ export function ExpensePage() {
           onBulkReturn={() => setShowBulkReturnConfirm(true)}
         />
         <div className="erd-content">
-        <div className="erd-home">
-        <div className="erd-home-main">
-          {envelopeState && (
-            <button type="button" className="erd-home-hero" aria-label="Edit Ready to Assign" onClick={() => setEditReady(true)}>
-              <span className="erd-home-hero-label">READY TO ASSIGN</span>
-              <strong className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}>
-                {hideAmounts ? "---" : formatCurrency(envelopeState.readyToAssign)}
-              </strong>
-              <span className="erd-home-hero-caption">
-                {monthLabel(panel.month)} · {daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`}
-              </span>
-            </button>
-          )}
+          <div className="erd-home">
+            <div className="erd-home-main">
+              {envelopeState && (
+                <button
+                  type="button"
+                  className="erd-home-hero"
+                  aria-label="Edit Ready to Assign"
+                  onClick={() => setEditReady(true)}
+                >
+                  <span className="erd-home-hero-label">READY TO ASSIGN</span>
+                  <strong
+                    className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}
+                  >
+                    {hideAmounts
+                      ? "---"
+                      : formatCurrency(envelopeState.readyToAssign)}
+                  </strong>
+                  <span className="erd-home-hero-caption">
+                    {monthLabel(panel.month)} ·{" "}
+                    {daysLeftInMonth() === 0
+                      ? "Less than 24 hrs"
+                      : `${daysLeftInMonth()} days left`}
+                  </span>
+                </button>
+              )}
 
-          {showRolloverBanner && rolloverData && (
-            <MonthRolloverBanner
-              currentMonth={panel.month}
-              lastMonth={rolloverData.lastMonth}
-              lastIncome={rolloverData.lastIncome}
-              lastAssignments={rolloverData.lastAssignments}
-              onConfirm={handleRolloverConfirm}
-              onDismiss={handleRolloverDismiss}
-            />
-          )}
+              {showRolloverBanner && rolloverData && (
+                <MonthRolloverBanner
+                  currentMonth={panel.month}
+                  lastMonth={rolloverData.lastMonth}
+                  lastIncome={rolloverData.lastIncome}
+                  lastAssignments={rolloverData.lastAssignments}
+                  onConfirm={handleRolloverConfirm}
+                  onDismiss={handleRolloverDismiss}
+                />
+              )}
 
-          {envelopeState && (
-            <article className="erd-card erd-envelopes-panel">
-              <EnvelopeGrid
-                envelopes={envelopeState.envelopes}
-                groups={envelopeState.groups}
+              {envelopeState && (
+                <article className="erd-card erd-envelopes-panel">
+                  <EnvelopeGrid
+                    envelopes={envelopeState.envelopes}
+                    groups={envelopeState.groups}
+                    hideAmounts={hideAmounts}
+                    onManage={() => setShowCategoryManager(true)}
+                    onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
+                    onAssignFromRTA={setAssignTarget}
+                    onSetAssigned={setEditAssignedTarget}
+                    onPayCreditCard={handlePayCreditCard}
+                  />
+                </article>
+              )}
+
+              <Link href="/insights" className="erd-home-insights-link">
+                Trends and daily spend <ChevronRight size={16} />
+              </Link>
+            </div>
+
+            <aside className="erd-home-rail">
+              <SubscriptionsPanel
+                active={panel.subscriptions.active}
+                cancelled={panel.subscriptions.cancelled}
                 hideAmounts={hideAmounts}
-                onManage={() => setShowCategoryManager(true)}
-                onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
-                onAssignFromRTA={setAssignTarget}
-                onSetAssigned={setEditAssignedTarget}
-                onPayCreditCard={handlePayCreditCard}
+                busyService={cancellingSub ?? reactivatingSub}
+                loading={
+                  subscriptionsQuery.isLoading && !subscriptionsQuery.data
+                }
+                error={subscriptionsQuery.isError && !subscriptionsQuery.data}
+                onAdd={() => setShowSubModal(true)}
+                onEdit={(sub) => {
+                  setEditSub({
+                    service: sub.service,
+                    amount_inr: String(sub.amountInr),
+                    billing_cycle: sub.billingCycle,
+                    next_due_date: sub.nextDueDate,
+                    notes: sub.notes,
+                    category: sub.category,
+                  });
+                  setShowSubModal(true);
+                }}
+                onCancel={async (service) => {
+                  setCancellingSub(service);
+                  try {
+                    await cancelSubscriptionM.mutateAsync(service);
+                    await refreshPanel();
+                  } catch {
+                    setCancellingSub(null);
+                  }
+                }}
+                onReactivate={async (service) => {
+                  setReactivatingSub(service);
+                  try {
+                    await reactivateSubscriptionM.mutateAsync(service);
+                    await refreshPanel();
+                  } catch {
+                    setReactivatingSub(null);
+                  }
+                }}
               />
-            </article>
-          )}
-
-          <Link href="/insights" className="erd-home-insights-link">
-            Trends and daily spend <ChevronRight size={16} />
-          </Link>
-        </div>
-
-        <aside className="erd-home-rail">
-          <SubscriptionsPanel
-            active={panel.subscriptions.active}
-            cancelled={panel.subscriptions.cancelled}
-            hideAmounts={hideAmounts}
-            busyService={cancellingSub ?? reactivatingSub}
-            onAdd={() => setShowSubModal(true)}
-            onEdit={(sub) => {
-              setEditSub({
-                service: sub.service,
-                amount_inr: String(sub.amountInr),
-                billing_cycle: sub.billingCycle,
-                next_due_date: sub.nextDueDate,
-                notes: sub.notes,
-                category: sub.category,
-              });
-              setShowSubModal(true);
-            }}
-            onCancel={async (service) => {
-              setCancellingSub(service);
-              try {
-                await cancelSubscriptionM.mutateAsync(service);
-                await refreshPanel();
-              } catch {
-                setCancellingSub(null);
-              }
-            }}
-            onReactivate={async (service) => {
-              setReactivatingSub(service);
-              try {
-                await reactivateSubscriptionM.mutateAsync(service);
-                await refreshPanel();
-              } catch {
-                setReactivatingSub(null);
-              }
-            }}
-          />
-        </aside>
-        </div>
+            </aside>
+          </div>
         </div>
         <AnimatePresence>
           {showCategoryManager && (
@@ -534,14 +569,21 @@ export function ExpensePage() {
                     saving={payPhase.saving}
                     success={payPhase.success}
                     onClick={async () => {
-                      if (payPhase.saving || payPhase.success || payCreditCardAmount == null) return;
+                      if (
+                        payPhase.saving ||
+                        payPhase.success ||
+                        payCreditCardAmount == null
+                      )
+                        return;
                       payPhase.start();
                       try {
                         await confirmPayCreditCard(payCreditCardAmount);
                         payPhase.succeed(() => setPayCreditCardAmount(null));
                       } catch {
                         payPhase.fail();
-                        setActionError("Couldn't record the payment — check your connection.");
+                        setActionError(
+                          "Couldn't record the payment — check your connection.",
+                        );
                       }
                     }}
                   >
@@ -554,13 +596,28 @@ export function ExpensePage() {
         </AnimatePresence>
         <AnimatePresence>
           {moveMoneyTarget && envelopeState && (
-            <MoveMoneyScreen targetCategory={moveMoneyTarget} onClose={() => setMoveMoneyTarget(null)} />
+            <MoveMoneyScreen
+              targetCategory={moveMoneyTarget}
+              onClose={() => setMoveMoneyTarget(null)}
+            />
           )}
         </AnimatePresence>
         <AnimatePresence>
-          {editAssignedTarget && <EditAssignedScreen category={editAssignedTarget} onClose={() => setEditAssignedTarget(null)} />}
-          {assignTarget && <AssignMoneyScreen category={assignTarget} onClose={() => setAssignTarget(null)} />}
-          {editReady && <EditReadyToAssignScreen onClose={() => setEditReady(false)} />}
+          {editAssignedTarget && (
+            <EditAssignedScreen
+              category={editAssignedTarget}
+              onClose={() => setEditAssignedTarget(null)}
+            />
+          )}
+          {assignTarget && (
+            <AssignMoneyScreen
+              category={assignTarget}
+              onClose={() => setAssignTarget(null)}
+            />
+          )}
+          {editReady && (
+            <EditReadyToAssignScreen onClose={() => setEditReady(false)} />
+          )}
         </AnimatePresence>
         <AnimatePresence>
           {showBulkReturnConfirm &&
@@ -585,7 +642,9 @@ export function ExpensePage() {
                         type="button"
                         className="move-money-close"
                         onClick={() => setShowBulkReturnConfirm(false)}
-                        disabled={bulkReturnPhase.saving || bulkReturnPhase.success}
+                        disabled={
+                          bulkReturnPhase.saving || bulkReturnPhase.success
+                        }
                       >
                         ✕
                       </button>
@@ -600,7 +659,8 @@ export function ExpensePage() {
                           Move <strong>{formatCurrency(total)}</strong> from{" "}
                           {positive.length} categor
                           {positive.length === 1 ? "y" : "ies"} back to Ready to
-                          Assign. Each category&apos;s Available will reset to {formatCurrency(0)}.
+                          Assign. Each category&apos;s Available will reset to{" "}
+                          {formatCurrency(0)}.
                         </p>
                         <div className="bulk-return-list">
                           {positive.map((e) => (
@@ -617,14 +677,18 @@ export function ExpensePage() {
                             type="button"
                             className="action-button"
                             onClick={() => setShowBulkReturnConfirm(false)}
-                            disabled={bulkReturnPhase.saving || bulkReturnPhase.success}
+                            disabled={
+                              bulkReturnPhase.saving || bulkReturnPhase.success
+                            }
                           >
                             Cancel
                           </button>
                           <SuccessButton
                             type="button"
                             className="is-active"
-                            disabled={bulkReturnPhase.saving || bulkReturnPhase.success}
+                            disabled={
+                              bulkReturnPhase.saving || bulkReturnPhase.success
+                            }
                             saving={bulkReturnPhase.saving}
                             success={bulkReturnPhase.success}
                             onClick={handleBulkReturnToRTA}

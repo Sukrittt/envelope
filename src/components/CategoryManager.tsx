@@ -3,6 +3,7 @@ import { getCategories, addCategory, updateCategory, deleteCategory, moveCategor
 import { getGroups, addGroup, updateGroup, deleteGroup } from '../api/groups'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { LoadingCaption } from './LoadingCaption'
 import type { Envelope } from '../types/expense'
 import type { CategoryRow } from '../types'
 
@@ -232,7 +233,7 @@ export function CategoryManager({ onClose, onSaved, envelopes }: Props) {
 
         <div className="category-manager-body">
           {loading ? (
-            <p className="muted">Loading…</p>
+            <LoadingCaption />
           ) : (
             <div className="category-manager-list">
               {grouped.map((group) => (

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { TransactionsView } from '../components/TransactionsView'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
+import { LoadingCaption } from '../components/LoadingCaption'
 
 export function TransactionsPage() {
   const { theme, setTheme } = useAppearance()
@@ -30,7 +31,7 @@ export function TransactionsPage() {
       <div className="erd-main">
         <ExpenseSidebar />
         <div className="erd-content">
-          <Suspense fallback={<div className="txn-timeline-loading">Loading…</div>}>
+          <Suspense fallback={<div className="txn-timeline erd-card"><LoadingCaption placement="page" /></div>}>
             <TransactionsView />
           </Suspense>
         </div>

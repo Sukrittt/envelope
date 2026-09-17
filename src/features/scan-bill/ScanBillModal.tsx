@@ -12,8 +12,6 @@ interface Props {
   onEnterManually: () => void
 }
 
-const SCANNING_PHRASES = ['Reading the bill…', 'Finding the total…', 'Spotting line items…', 'Almost done…']
-
 /**
  * Web twin of Mobile's modals/scan-bill. One dialog walks pick → scanning →
  * review → confirm; review and confirm are wide two-column layouts so the
@@ -65,7 +63,7 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
               // eslint-disable-next-line @next/next/no-img-element -- a local data URL, nothing for next/image to optimize
               <img className="scan-scanning-thumb" src={state.imageUrl} alt="" />
             )}
-            <LoadingCaption phrases={SCANNING_PHRASES} />
+            <LoadingCaption feature="scanBill" />
           </div>
         )}
 

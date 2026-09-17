@@ -15,16 +15,6 @@ import { formatDateShort } from '../lib/format'
 import { CHART_COLORS } from '../theme/chartColors'
 import type { RecurringExpenseRow } from '../types'
 
-const LOADING_PHRASES = [
-  'Checking what repeats…',
-  'Reading the calendar…',
-  'Rounding up your regulars…',
-  'Counting the usual suspects…',
-  'Lining up the due dates…',
-  "Working out what's next…",
-  'Almost there…',
-]
-
 const CADENCE_LABELS: Record<string, string> = {
   daily: 'Every day',
   weekly: 'Every week',
@@ -143,7 +133,7 @@ export function RecurringPage() {
       </div>
 
       {recurringQ.isLoading ? (
-        <LoadingCaption phrases={LOADING_PHRASES} />
+        <LoadingCaption feature="recurring" placement="page" />
       ) : recurringQ.isError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your recurring expenses. Check your connection and try again.</p>

@@ -46,16 +46,10 @@ const FIXED_TYPE_COLOR: Record<string, string> = {
   Gold: "var(--gold)",
   Crypto: "var(--coral)",
   Bonds: "var(--warn)",
+  // CHART_COLORS is the exact same six colors above, index-for-index, so
+  // cycling it for unlisted types always collides with one of them.
+  Other: "var(--erd-text3)",
 };
-
-const LOADING_PHRASES = [
-  "Waking up your portfolio…",
-  "Counting your compounding…",
-  "Polishing the allocation bar…",
-  "Watching the SIPs do their thing…",
-  "Giving Gold its moment…",
-  "Valuing your positions…",
-];
 
 type ActionType = "market_update" | "contribution" | "withdrawal";
 
@@ -177,7 +171,7 @@ export function InvestmentsPage() {
           )}
 
           {isLoading ? (
-            <LoadingCaption phrases={LOADING_PHRASES} />
+            <LoadingCaption feature="investments" placement="page" />
           ) : (
             <>
               <div className="erd-card inv-hero">

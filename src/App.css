@@ -3985,86 +3985,69 @@ input[type="date"]:hover {
   gap: var(--sp-2);
 }
 
-.expense-skeleton-card,
-.expense-skeleton-panel {
-  gap: 0.65rem;
-}
-
-.expense-skeleton {
-  display: block;
-  border-radius: 8px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--accent-strong) 12%, transparent) 0%,
-    color-mix(in oklab, var(--accent-strong) 24%, transparent) 50%,
-    color-mix(in oklab, var(--accent-strong) 12%, transparent) 100%
-  );
-  background-size: 220% 100%;
-  animation: expenseShimmer 1.2s linear infinite;
-}
-
-.expense-skeleton-line {
-  height: 12px;
-  width: 100%;
-}
-
-.expense-skeleton-line.short {
-  width: 38%;
-}
-
-.expense-skeleton-line.medium {
-  width: 62%;
-}
-
-.expense-skeleton-block {
-  height: 170px;
-  width: 100%;
-  border-radius: 12px;
-}
-
-@keyframes expenseShimmer {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-}
-
 /* ── Loading Caption ─────────────────────────────────────── */
 
 .loading-caption {
-  display: flex;
+  position: relative;
+  display: grid;
   align-items: center;
-  justify-content: center;
-  padding: var(--sp-3) var(--sp-2);
-  min-height: 32px;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: var(--sp-2);
+  overflow: hidden;
 }
 
 .loading-caption-inline {
   padding: 0;
-  min-height: unset;
-  justify-content: flex-start;
+  min-height: 24px;
   margin-bottom: 4px;
 }
 
+.loading-caption--page {
+  min-height: min(42vh, 360px);
+}
+
+.loading-caption--section {
+  min-height: 72px;
+}
+
+.loading-caption--inline {
+  min-height: 24px;
+  padding: 0;
+}
+
+.loading-caption--left { text-align: left; }
+.loading-caption--center { text-align: center; }
+.loading-caption--right { text-align: right; }
+
 .loading-caption-text {
+  position: absolute;
+  inset-inline: var(--sp-2);
+  grid-area: 1 / 1;
   font-size: var(--fs-12);
   color: var(--muted-2);
   font-weight: 500;
-  animation: loadingCaptionFade 1.4s ease-in-out infinite;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  will-change: transform, opacity;
 }
 
-@keyframes loadingCaptionFade {
-  0% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.4;
-  }
+.loading-caption--inline .loading-caption-text,
+.loading-caption-inline .loading-caption-text {
+  inset-inline: 0;
+}
+
+.loading-caption-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .error,
@@ -4762,23 +4745,6 @@ summary:focus-visible,
 .transactions-loading {
   display: grid;
   gap: var(--sp-2);
-}
-
-.skeleton-row {
-  height: 32px;
-  background: var(--panel-soft);
-  border-radius: var(--r-sm);
-  animation: skeleton-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.8;
-  }
 }
 
 /* ─── Timeline Transactions ─── */

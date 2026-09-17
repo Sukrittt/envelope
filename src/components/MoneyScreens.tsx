@@ -8,6 +8,7 @@ import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } 
 import { ArrowLeft, Search, Trash2, X } from 'lucide-react'
 import { Scrim } from './MotionSheet'
 import { useButtonPhase } from './SuccessButton'
+import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
 import { useAddBudget, useBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
@@ -276,7 +277,7 @@ interface SourceItem {
 
 export function MoveMoneyScreen({ targetCategory, onClose }: { targetCategory: string; onClose: () => void }) {
   const data = useMoneyData()
-  if (data.isLoading) return null
+  if (data.isLoading) return <Screen title="Move money" onClose={onClose} busy={false}><LoadingCaption /></Screen>
   return <MoveMoneyBody targetCategoryName={targetCategory} onClose={onClose} data={data} />
 }
 
@@ -650,7 +651,7 @@ function ProgressBar({ pct, done }: { pct: number; done: boolean }) {
 export function EditAssignedScreen({ category, onClose, assign = false }: { category: string; onClose: () => void; assign?: boolean }) {
   const data = useMoneyData()
   // Mounted only once data has settled, so the numpad seeds from the real envelope.
-  if (data.isLoading) return null
+  if (data.isLoading) return <Screen title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></Screen>
 
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
@@ -802,7 +803,7 @@ function EditAssignedBody({
  * have, and this month's income is backed out from it. */
 export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
-  if (data.isLoading) return null
+  if (data.isLoading) return <Screen title="Edit Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></Screen>
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
   return (

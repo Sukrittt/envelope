@@ -1,24 +1,10 @@
-import { useEffect, useState } from 'react'
-
-const PHRASES = [
-  "Balancing the envelopes…",
-  "Giving your money a job…",
-  "Counting what's Ready to Assign…",
-  "Chasing down last month's leftovers…",
-  "Reconciling the chaos…",
-  "Squeezing blood from the Bills envelope…",
-  "Asking Rent to behave…",
-  "Tallying the damage…",
-  "Waking up the ledger…",
-  "Making sure nothing's overspent (yet)…",
-  "Checking if Groceries survived the week…",
-  "Persuading Math to add up…",
-  "Finding where all the money went…",
-  "Teaching your budget to Budget…",
-  "Begging the spending trend to flatten…",
-  "Hoping the credit card behaves…",
-  "Refreshing your financial reality…",
-]
+import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import {
+  LOADING_PHRASES,
+  ORDERED_LOADING_FEATURES,
+  type LoadingFeature,
+} from '../lib/loadingPhrases'
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array]
@@ -32,31 +18,69 @@ function shuffleArray<T>(array: T[]): T[] {
 interface Props {
   className?: string
   style?: React.CSSProperties
-  phrases?: string[]
+  phrases?: readonly string[]
+  feature?: LoadingFeature
+  ordered?: boolean
+  placement?: 'page' | 'section' | 'inline'
+  align?: 'left' | 'center' | 'right'
 }
 
-export function LoadingCaption({ className = '', style, phrases = PHRASES }: Props) {
+export function LoadingCaption({
+  className = '',
+  style,
+  phrases,
+  feature = 'general',
+  ordered,
+  placement = 'section',
+  align = placement === 'inline' ? 'left' : 'center',
+}: Props) {
   const [phraseIndex, setPhraseIndex] = useState(0)
-  // Shuffling with Math.random() during the initial render would mismatch
-  // the server-rendered order, so start deterministic and shuffle post-mount.
-  const [shuffledPhrases, setShuffledPhrases] = useState(phrases)
+  const reduceMotion = useReducedMotion()
+  const source = phrases ?? LOADING_PHRASES[feature]
+  const preserveOrder = ordered ?? (phrases ? false : ORDERED_LOADING_FEATURES.has(feature))
+  const sourceKey = source.join('\u0000')
+  const stableSource = useMemo(() => [...source], [source])
+  // Keep the server and first client render deterministic, then mirror Mobile's
+  // one-time shuffle after hydration for the feature sets that shuffle.
+  const [displayPhrases, setDisplayPhrases] = useState(stableSource)
 
   useEffect(() => {
-    // One-time post-mount shuffle to dodge the SSR hydration mismatch noted above.
-    setShuffledPhrases(shuffleArray(phrases))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- shuffled once on mount, same as Mobile's useState initializer
-  }, [])
+    setPhraseIndex(0)
+    setDisplayPhrases(preserveOrder ? stableSource : shuffleArray(stableSource))
+  }, [preserveOrder, stableSource])
 
   useEffect(() => {
+    if (reduceMotion || displayPhrases.length < 2) return
     const interval = setInterval(() => {
-      setPhraseIndex((prev) => (prev + 1) % shuffledPhrases.length)
-    }, 1400)
+      setPhraseIndex((prev) => (prev + 1) % displayPhrases.length)
+    }, 1800)
     return () => clearInterval(interval)
-  }, [shuffledPhrases.length])
+  }, [displayPhrases.length, reduceMotion])
+
+  const phrase = displayPhrases[phraseIndex] ?? ''
 
   return (
-    <div className={`loading-caption ${className}`} style={style}>
-      <span className="loading-caption-text">{shuffledPhrases[phraseIndex]}</span>
+    <div
+      className={`loading-caption loading-caption--${placement} loading-caption--${align} ${className}`}
+      style={style}
+      aria-busy="true"
+    >
+      <span className="loading-caption-status" role="status">Loading</span>
+      <AnimatePresence initial={false} mode="sync">
+        {phrase && (
+          <motion.span
+            key={`${sourceKey}-${phraseIndex}-${phrase}`}
+            className="loading-caption-text"
+            aria-hidden="true"
+            initial={reduceMotion ? false : { y: '100%', opacity: 0 }}
+            animate={{ y: '0%', opacity: 1 }}
+            exit={reduceMotion ? undefined : { y: '-100%', opacity: 0 }}
+            transition={{ duration: 0.45, ease: [0.2, 0, 0, 1] }}
+          >
+            {phrase}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

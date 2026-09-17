@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LoadingCaption } from '@/src/components/LoadingCaption'
 
 interface Summary {
   transactionCount: number
@@ -32,6 +33,8 @@ export default function DataPage() {
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState<number | null>(null)
   const [exports, setExports] = useState<ExportsResponse | null>(null)
+  const [exportsLoading, setExportsLoading] = useState(true)
+  const [exportsLoadError, setExportsLoadError] = useState(false)
   const [starting, setStarting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
 
@@ -43,8 +46,25 @@ export default function DataPage() {
     })()
   }, [])
 
+  async function refreshExports(initial = false) {
+    if (initial) setExportsLoading(true)
+    try {
+      const next = await fetchExports()
+      if (next) {
+        setExports(next)
+        setExportsLoadError(false)
+      } else {
+        setExportsLoadError(true)
+      }
+    } catch {
+      setExportsLoadError(true)
+    } finally {
+      if (initial) setExportsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    void fetchExports().then(setExports)
+    void refreshExports(true)
   }, [])
 
   // Poll only while something's still building — the push notification is
@@ -52,7 +72,7 @@ export default function DataPage() {
   // still looking at the screen.
   useEffect(() => {
     if (!exports?.exports.some((e) => e.status === 'pending')) return
-    const id = setInterval(() => void fetchExports().then(setExports), 4000)
+    const id = setInterval(() => void refreshExports(), 4000)
     return () => clearInterval(id)
   }, [exports])
 
@@ -63,14 +83,14 @@ export default function DataPage() {
     setStarting(false)
     if (res.status === 429) {
       // The atLimit banner below already covers this once the refetch lands.
-      void fetchExports().then(setExports)
+      void refreshExports()
       return
     }
     if (!res.ok) {
       setExportError('Could not start export. Try again.')
       return
     }
-    void fetchExports().then(setExports)
+    void refreshExports()
   }
 
   async function clearTransactions() {
@@ -105,13 +125,18 @@ export default function DataPage() {
             {pending ? 'Building…' : starting ? 'Starting…' : 'Export'}
           </button>
         </div>
+        {pending ? <LoadingCaption feature="exportBuilding" placement="inline" /> : null}
         {exportError ? <div className="account-confirm-copy">{exportError}</div> : null}
         {atLimit && !exportError ? (
           <div className="account-confirm-copy">
             You&apos;ve used all {exports?.limit} exports this month. Resets next month.
           </div>
         ) : null}
-        {exports && exports.exports.length > 0 ? (
+        {exportsLoading ? (
+          <LoadingCaption feature="exports" placement="inline" />
+        ) : exportsLoadError && !exports ? (
+          <div className="account-confirm-copy" role="alert">Couldn&apos;t load your exports.</div>
+        ) : exports && exports.exports.length > 0 ? (
           <ul className="account-export-list">
             {exports.exports.map((e) => (
               <li key={e.id}>

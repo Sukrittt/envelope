@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
+import { LoadingCaption } from '@/src/components/LoadingCaption'
 
 interface SessionSummary {
   id: string
@@ -36,11 +37,15 @@ export default function ChatHistoryPage() {
   const { openMoneyBrain } = useMoneyBrain()
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null)
   const [selected, setSelected] = useState<SessionDetail | null>(null)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     void (async () => {
       const res = await fetch('/api/ai/chat/sessions')
-      if (!res.ok) return
+      if (!res.ok) {
+        setLoadError(true)
+        return
+      }
       const data = await res.json()
       setSessions(data.sessions)
     })()
@@ -94,7 +99,7 @@ export default function ChatHistoryPage() {
         <button type="button" className="account-compact-btn" onClick={() => openMoneyBrain()}>New chat</button>
       </div>
       {sessions === null ? (
-        <div className="account-row-meta">Loading…</div>
+        loadError ? <div className="account-row-meta" role="alert">Couldn&apos;t load chat history.</div> : <LoadingCaption placement="page" />
       ) : sessions.length === 0 ? (
         <div className="account-row-meta">No past chats yet. Start a conversation with Money Brain.</div>
       ) : (

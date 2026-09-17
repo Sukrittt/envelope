@@ -15,15 +15,6 @@ import { feeDiff, groupByDivisor, isFeeLine, round2 } from '../lib/split'
 import { CHART_COLORS } from '../theme/chartColors'
 import type { BillScanItem } from '../api/bills'
 
-const LOADING_PHRASES = [
-  'Pulling up your scans…',
-  'Sorting by date…',
-  'Unfolding the receipts…',
-  'Rounding up the line items…',
-  'Bringing the bills together…',
-  'Almost there…',
-]
-
 /** `/account/bill-scans`. Twin of Mobile's account/bill-scans.tsx + modals/bill-scan.tsx. */
 export function BillScansPage() {
   const { formatCurrency } = useCurrency()
@@ -53,7 +44,7 @@ export function BillScansPage() {
       </div>
 
       {scansQ.isLoading ? (
-        <LoadingCaption phrases={LOADING_PHRASES} />
+        <LoadingCaption feature="billScans" placement="page" />
       ) : scansQ.isError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your scans. Check your connection and try again.</p>
@@ -139,7 +130,7 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
         </div>
 
         {scanQ.isLoading ? (
-          <LoadingCaption phrases={['Pulling up this scan…', 'Almost there…']} />
+          <LoadingCaption feature="billScanDetail" />
         ) : !scan ? (
           <p className="account-row-meta">Couldn&apos;t find that scan.</p>
         ) : (

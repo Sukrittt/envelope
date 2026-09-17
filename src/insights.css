@@ -4,7 +4,15 @@
 
 .ins-content {
   flex: 1;
-  display: block;
+  display: flex;
+  flex-direction: column;
+}
+
+.ins-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ins-period-header {
@@ -628,18 +636,6 @@
 .ins-filter-error { margin: 8px 0; color: var(--coral); font-size: 11px; }
 .ins-filter-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
 
-.ins-skeleton-card {
-  min-height: 260px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.ins-skeleton-card:first-child { grid-column: 1 / -1; }
-.ins-skeleton-card i { display: block; height: 14px; border-radius: 99px; background: var(--erd-skeleton); animation: erd-shimmer 1.4s ease-in-out infinite; }
-.ins-skeleton-card i:first-child { width: 28%; }
-.ins-skeleton-card i:nth-child(2) { width: 90%; height: 90px; }
-.ins-skeleton-card i:last-child { width: 65%; }
 .ins-mobile-header { display: none; }
 
 @keyframes ins-bar-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
