@@ -7,6 +7,7 @@ import { streamText } from '@/lib/ai/gemini'
 import { makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
 import { COLLECTIONS } from '@/lib/models'
 import { isRateLimited } from '@/lib/rateLimit'
+import { aiDisabledResponse } from '@/lib/systemSettings'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -221,6 +222,9 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+
+  const aiOff = await aiDisabledResponse()
+  if (aiOff) return aiOff
 
   if (await rateLimited(auth)) {
     return error('Too many messages. Try again in a bit.', 429)

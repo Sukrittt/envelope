@@ -3,6 +3,7 @@ import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { generateJSONFromImage } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
+import { aiDisabledResponse } from '@/lib/systemSettings'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -35,6 +36,9 @@ export async function POST(req: Request) {
   const auth = await getAuth(req)
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
+
+  const aiOff = await aiDisabledResponse()
+  if (aiOff) return aiOff
 
   if (
     await isRateLimited(`bill-scan:${auth.userId}`, [

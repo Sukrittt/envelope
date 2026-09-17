@@ -4,6 +4,7 @@ import { getAuth, readOnlyGuard } from '@/lib/access'
 import { generateJSON } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
+import { aiDisabledResponse } from '@/lib/systemSettings'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -24,6 +25,9 @@ export async function POST(req: Request) {
   const auth = await getAuth(req)
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
+
+  const aiOff = await aiDisabledResponse()
+  if (aiOff) return aiOff
 
   if (
     await isRateLimited(`category-suggest:${auth.userId}`, [

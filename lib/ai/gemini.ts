@@ -1,5 +1,6 @@
 import { GoogleGenAI, type GenerateContentResponse, type Schema } from '@google/genai'
 import { logAiUsage, type AiCaller } from './usage'
+import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 
 /**
  * Single source of truth for Gemini client setup — both the category-suggest
@@ -18,8 +19,14 @@ export function getGeminiClient(): GoogleGenAI {
   return client
 }
 
+/** Backstop for the admin AI kill switch; routes check first (lib/systemSettings.ts) to answer a clean 503. */
+async function assertAiEnabled() {
+  if ((await getSystemSettings()).aiDisabled) throw new Error(AI_DISABLED_MESSAGE)
+}
+
 /** Runs one non-streaming call and logs its tokens, cost and outcome to `ai_usage`. */
 async function tracked(caller: AiCaller, call: () => Promise<GenerateContentResponse>): Promise<GenerateContentResponse> {
+  await assertAiEnabled()
   const startedAt = Date.now()
   try {
     const response = await call()
@@ -92,6 +99,7 @@ export async function streamText(
   caller: AiCaller,
   maxOutputTokens = 700,
 ) {
+  await assertAiEnabled()
   const ai = getGeminiClient()
   const startedAt = Date.now()
   let stream

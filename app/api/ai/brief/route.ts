@@ -6,6 +6,7 @@ import { getAuth, type Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { generateJSON } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
+import { aiDisabledResponse } from '@/lib/systemSettings'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -41,6 +42,9 @@ interface Brief {
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+
+  const aiOff = await aiDisabledResponse()
+  if (aiOff) return aiOff
 
   if (await rateLimited(auth)) {
     return error('rate limited', 429)
