@@ -170,18 +170,27 @@
   gap: 2px;
   height: 128px;
   border-bottom: 1px solid var(--erd-border-strong);
-  background: linear-gradient(var(--erd-border) 1px, transparent 1px) 0 0 / 100% 50%;
 }
+/* Each day is a full-height faint track with the bar inside, so quiet days still read as days. */
 .adm-bars > div {
   flex: 1;
   min-width: 2px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: color-mix(in srgb, var(--erd-border) 45%, transparent);
+  border-radius: 3px 3px 0 0;
+}
+.adm-bars > div > div {
+  width: 100%;
+  min-height: 3px;
   background: var(--tk-accent);
   border-radius: 3px 3px 0 0;
 }
-.adm-bars > div.is-zero {
-  background: transparent;
+.adm-bars > div > div.is-zero {
+  background: var(--erd-border-strong);
 }
-.adm-bars > div:hover {
+.adm-bars > div:hover > div {
   background: var(--tk-accent-hover);
 }
 .adm-bars-axis {
