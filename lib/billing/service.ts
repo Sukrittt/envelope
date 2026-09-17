@@ -19,6 +19,8 @@ import {
   type TrialCohort,
 } from './records'
 import { pickSubscription, resolveAccess, trialWindow, type Access } from './access'
+import { ENTITLEMENT_ID, fetchSubscriber } from './revenuecat'
+import { projectSubscriber } from './projection'
 
 /**
  * Start the 45-day clock, once, for good.
@@ -112,4 +114,54 @@ export async function completeOnboarding(
   const user = await users.findOne({ _id: userId }, { projection: { onboardedAt: 1 } })
 
   return { ok: true, onboardedAt: user?.onboardedAt ?? onboardedAt, account }
+}
+
+/**
+ * Re-verify one account against RevenueCat and write down the result.
+ *
+ * Every write path goes through here — purchase, restore, webhook, and the
+ * reconciliation job — so there is exactly one place where provider state
+ * becomes our state, and exactly one place to get the ordering right.
+ *
+ * Throws `RevenueCatError` when the provider could not be reached. That is an
+ * operational failure, not a cancellation: callers must leave the existing
+ * projection alone rather than recording an absence of evidence as evidence
+ * of absence.
+ */
+export async function refreshFromProvider(userId: string, now: Date = new Date()): Promise<Access> {
+  const subscriber = await fetchSubscriber(userId)
+  const projected = subscriber ? projectSubscriber(subscriber, ENTITLEMENT_ID, now) : null
+  const db = await getDb()
+
+  if (projected) {
+    const { storeTransactionId, provider, environment, ...rest } = projected
+    // Keyed by the purchase, not the user: if the same store transaction ever
+    // resolves to a different account, that is a transfer to investigate, not
+    // two live entitlements to hand out.
+    const key = { provider, environment, storeTransactionId }
+    const coll = db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+
+    // Insert-if-absent, then overwrite-only-if-older. Two statements rather
+    // than one upsert because a webhook and a client sync routinely race, and
+    // a single `$set` upsert lets whichever *write* lands last win — which is
+    // not the same as whichever *read of the provider* was most recent. A
+    // slow in-flight fetch must never overwrite fresher access with stale.
+    try {
+      await coll.updateOne(key, { $setOnInsert: { ...key, ...rest, userId, createdAt: now, updatedAt: now } }, { upsert: true })
+    } catch (err) {
+      // Two concurrent inserts for the same purchase: the unique index threw
+      // for the loser. The row now exists, so the conditional update below is
+      // exactly the right next step.
+      if ((err as { code?: number }).code !== 11000) throw err
+    }
+    await coll.updateOne({ ...key, verifiedAt: { $lt: now } }, { $set: { userId, ...rest, updatedAt: now } })
+  }
+
+  // A renewal clears any pending deletion: the account is in continuous use
+  // again, so the retention clock that was counting down no longer applies.
+  const access = await getAccess(userId, now)
+  if (access.mode === 'paid' || access.mode === 'trial') {
+    await db.collection<BillingAccountDoc>(BILLING_ACCOUNTS).updateOne({ _id: userId }, { $set: { retentionDeadline: null } })
+  }
+  return access
 }

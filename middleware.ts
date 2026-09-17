@@ -10,6 +10,11 @@ const refreshSession = authkitMiddleware()
 // constant-time secret check before doing anything.
 const CRON_PATHS = ['/api/notifications/run']
 
+// Provider webhooks. These carry the provider's configured shared secret as
+// `Authorization` — not a WorkOS JWT — so the Bearer gate below would 401
+// every delivery. Each handler does its own constant-time secret check.
+const WEBHOOK_PREFIX = '/api/billing/webhooks/'
+
 // The signed-in app. There is no guest mode: a signed-out visitor here goes to
 // /sign-in. Landing, legal and the sign-in flow itself stay public.
 const APP_PATHS = ['/expense', '/insights', '/investments', '/wrapped', '/account', '/onboarding']
@@ -62,7 +67,8 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 
   const response = await refreshSession(request, event)
   if (pathname.startsWith('/api/')) {
-    const token = (pathname.startsWith('/api/cron/') || CRON_PATHS.includes(pathname)) ? null : bearerToken(request)
+    const exempt = pathname.startsWith('/api/cron/') || pathname.startsWith(WEBHOOK_PREFIX) || CRON_PATHS.includes(pathname)
+    const token = exempt ? null : bearerToken(request)
     if (token && !(await verifyBearerToken(token))) {
       return NextResponse.json({ error: 'invalid or expired session' }, { status: 401 })
     }
