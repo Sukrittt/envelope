@@ -2,7 +2,8 @@
 
 import { useActionState, type ReactNode } from 'react'
 import { useFormStatus } from 'react-dom'
-import type { ActionResult } from './actions'
+
+export type ActionResult = { ok: boolean; message: string } | null
 
 type Action = (prev: ActionResult, form: FormData) => Promise<ActionResult>
 

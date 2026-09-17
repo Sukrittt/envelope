@@ -9,7 +9,7 @@ import { ADMIN_AUDIT, type AdminAuditDoc } from '@/lib/adminAudit'
 import { displayName, type UserDoc } from '@/lib/users'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { fmtDate, fmtDateTime, num, timeAgo } from '../../format'
-import { ActionForm, SubmitButton } from './UserActions'
+import { ActionForm, SubmitButton } from '../../ActionForm'
 import { hardDeleteAction, restoreAction, revokeSessionsAction, softDeleteAction, updateUserAction } from './actions'
 
 /** WorkOS view of the account. Fails soft: a user purged from WorkOS still has a local doc worth inspecting. */

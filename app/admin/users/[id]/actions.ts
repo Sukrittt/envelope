@@ -9,9 +9,9 @@ import { audit } from '@/lib/adminAudit'
 import { purgeAccountNow, restoreAccount, softDeleteAccount } from '@/lib/accountLifecycle'
 import { getDb } from '@/lib/mongodb'
 import type { UserDoc } from '@/lib/users'
+import type { ActionResult } from '../../ActionForm'
 import { getWorkOSClient } from '@/lib/workosClient'
 
-export type ActionResult = { ok: boolean; message: string } | null
 
 const NOTIFY_FLAGS = ['notifyThresholds', 'notifyBills', 'notifyCoach', 'notifyWrapped'] as const
 

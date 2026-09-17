@@ -17,6 +17,7 @@ import { occurrencesDue, isExpired, advance } from '@/lib/recurringExpense'
 import { createExpense } from '@/lib/createExpense'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { sendPushNotification } from '@/lib/push'
+import { recordCronRun, triggerOf } from '@/lib/cronRuns'
 
 export const dynamic = 'force-dynamic'
 
@@ -319,6 +320,11 @@ export async function GET(req: Request) {
     return json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  const result = await recordCronRun('notifications', triggerOf(req), runAll)
+  return json({ ok: true, ...result })
+}
+
+async function runAll(): Promise<{ sent: number }> {
   const db = await getDb()
   const users = await db
     .collection<UserDoc>('users')
@@ -377,5 +383,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return json({ ok: true, sent })
+  return { sent }
 }

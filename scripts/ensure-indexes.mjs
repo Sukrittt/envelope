@@ -88,6 +88,11 @@ const INDEXES = {
     [{ at: -1 }, {}],
     [{ targetUserId: 1, at: -1 }, {}],
   ],
+  // Cron run history for /admin/jobs; runs older than 180 days expire.
+  cron_runs: [
+    [{ job: 1, startedAt: -1 }, {}],
+    [{ startedAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 180 }],
+  ],
   // Admin user list sorts and activity counts.
   users: [
     [{ createdAt: -1 }, {}],

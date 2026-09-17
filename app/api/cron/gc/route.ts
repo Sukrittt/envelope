@@ -4,6 +4,7 @@ import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ARCHIVABLE_COLLECTIONS, GRACE_DAYS } from '@/lib/archive'
 import type { UserDoc } from '@/lib/users'
+import { recordCronRun, triggerOf } from '@/lib/cronRuns'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,11 @@ export async function GET(req: Request) {
     return json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  const result = await recordCronRun('gc', triggerOf(req), purgeExpired)
+  return json({ ok: true, ...result })
+}
+
+async function purgeExpired(): Promise<{ purged: number; accountsPurged: number }> {
   const db = await getDb()
   const cutoff = cutoffIso()
 
@@ -65,5 +71,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return json({ ok: true, purged, accountsPurged })
+  return { purged, accountsPurged }
 }
