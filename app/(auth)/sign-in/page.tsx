@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BirdMark } from '@/src/components/BirdMark'
 
 export const metadata = { title: 'Sign in — Aviary' }
 
@@ -11,7 +12,7 @@ export default async function SignInPage({
   return (
     <div className="auth-card">
       <div className="auth-logo" aria-hidden="true">
-        ✉️
+        <BirdMark size={40} />
       </div>
       <h1 className="auth-headline">
         Less guessing.
