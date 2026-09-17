@@ -27,7 +27,6 @@ interface ScanItem {
 interface ScanResult {
   merchant: string
   total: number
-  date?: string
   category?: string
   items: ScanItem[]
 }
@@ -68,8 +67,7 @@ export async function POST(req: Request) {
     result = await generateJSONFromImage<ScanResult>(
       'This is a photo or screenshot of an Indian retail bill or delivery-app ' +
         '(Blinkit/Instamart/Zomato/Swiggy-style) cart. Extract numeric amounts exactly as printed; do not convert currencies. ' +
-        'Extract the merchant name, the grand total, the bill date if visible ' +
-        '(as YYYY-MM-DD, omit the field entirely if not visible), the single ' +
+        'Extract the merchant name, the grand total, the single ' +
         'best-fit category from the allowed list, and every line item. Report ' +
         'each item\'s post-discount price (what was actually charged for that ' +
         'line, not its pre-discount MRP). Include delivery fee, handling fee, ' +
@@ -81,7 +79,6 @@ export async function POST(req: Request) {
         properties: {
           merchant: { type: Type.STRING },
           total: { type: Type.NUMBER },
-          date: { type: Type.STRING },
           category: { type: Type.STRING, format: 'enum', enum: categoryList },
           items: {
             type: Type.ARRAY,
