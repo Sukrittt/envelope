@@ -9,6 +9,7 @@ import { AppearanceProvider } from './AppearanceProvider'
 import { CurrencyProvider } from './CurrencyProvider'
 import { MoneyBrainProvider } from './MoneyBrainProvider'
 import { MaintenanceBanner } from './MaintenanceBanner'
+import { SubscriptionGate } from './SubscriptionGate'
 
 // No AuthGate: signed-out visitors use the API's read-only demo account, while
 // AuthKitProvider upgrades the same public pages when a real session exists.
@@ -20,7 +21,11 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         <CurrencyProvider><AppearanceProvider>
           <MoneyBrainProvider>
             <OnboardingGate>
-              <AppShell>{children}</AppShell>
+              {/* Inside AppShell, not around it: an expired user keeps the
+                  nav, so they can still reach export and account settings. */}
+              <AppShell>
+                <SubscriptionGate>{children}</SubscriptionGate>
+              </AppShell>
             </OnboardingGate>
           </MoneyBrainProvider>
         </AppearanceProvider></CurrencyProvider>
