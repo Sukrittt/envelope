@@ -234,6 +234,7 @@ export function TransactionsView({
     try {
       await deleteExpenseM.mutateAsync({
         id: t.id,
+        version: t.version,
         timestamp: t.timestamp,
         item: t.item,
         amountInr: t.amountInr,
@@ -242,6 +243,9 @@ export function TransactionsView({
       setActionsKey(null);
       await refreshTransactions();
     } catch (err) {
+      // A conflict requires a new confirmation after reviewing the refreshed row.
+      setDeleteKey(null);
+      setActionsKey(null);
       setDeleteError(
         err instanceof Error ? err.message : "Failed to delete transaction",
       );
@@ -337,8 +341,25 @@ export function TransactionsView({
           Couldn&apos;t load transactions. {error}
         </div>
       ) : totalCount === 0 ? (
-        <div className="txn-timeline-empty">
-          No transactions for this filter.
+        <div className="account-empty txn-timeline-empty">
+          <span aria-hidden="true">🧾</span>
+          {search || selectedCategory ? (
+            <>
+              <div className="account-empty-title">Nothing matches</div>
+              <p className="account-row-meta">No transactions for this filter.</p>
+              <button type="button" className="action-button is-active" onClick={resetFilters}>
+                Reset filters
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="account-empty-title">No transactions yet</div>
+              <p className="account-row-meta">Log an expense and it shows up here.</p>
+              <button type="button" className="action-button is-active" onClick={() => setShowLogModal(true)}>
+                Log your first expense
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <motion.div
@@ -487,6 +508,7 @@ export function TransactionsView({
         {editingTxn && (
           <TransactionEditModal
             id={editingTxn.id}
+            version={editingTxn.version}
             timestamp={editingTxn.timestamp}
             item={editingTxn.item}
             amountInr={editingTxn.amountInr}

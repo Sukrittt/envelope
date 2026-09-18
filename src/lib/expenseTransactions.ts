@@ -3,6 +3,7 @@ import type { ExpenseRow } from '@/src/types'
 /** The activity list's view shape, mapped from the wire rows. */
 export interface Transaction {
   id: string
+  version?: number
   timestamp: string
   date: string
   item: string
@@ -20,6 +21,7 @@ export interface Transaction {
 export function toTransactions(rows: ExpenseRow[]): Transaction[] {
   return rows.map((r) => ({
     id: r.id ?? '',
+    version: r.version,
     timestamp: r.timestamp ?? '',
     date: r.date ?? '',
     item: r.item ?? '',

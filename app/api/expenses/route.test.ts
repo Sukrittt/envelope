@@ -35,6 +35,7 @@ function matches(doc: Doc, filter: Record<string, unknown>): boolean {
     if (k === '_id' && v instanceof ObjectId) return doc._id.equals(v)
     if (v && typeof v === 'object' && !(v instanceof ObjectId)) {
       return Object.entries(v as Record<string, unknown>).every(([op, opVal]) => {
+        if (op === '$exists') return (doc[k] !== undefined) === opVal
         if (op === '$gte') return String(doc[k] ?? '') >= (opVal as string)
         if (op === '$lte') return String(doc[k] ?? '') <= (opVal as string)
         return true
@@ -93,7 +94,13 @@ vi.mock('@/lib/http', async (importOriginal) => {
 
 const { GET, POST, PUT, DELETE } = await import('./route')
 
-function req(method: string, body: unknown): Request {
+function req(method: string, body: Record<string, unknown>): Request {
+  // Existing arithmetic tests use a freshly loaded identity/version. Stale and
+  // versionless callers are covered separately by the replica-set tests.
+  if (method === 'PUT' || method === 'DELETE') {
+    const row = stores.expenses.find((d) => body.id ? String(d._id) === body.id : d.timestamp === body.timestamp && d.item === body.item)
+    body = { id: row ? String(row._id) : body.id, version: row?.version ?? 0, ...body }
+  }
   return new Request('https://example.com/api/expenses', {
     method,
     headers: { 'content-type': 'application/json' },
@@ -263,17 +270,16 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
     expect(stores.expenses).toHaveLength(0)
   })
 
-  it('still falls back to the timestamp/item/amount triple when no id is sent (old client compatibility)', async () => {
-    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'ts-1', date: '2026-06-01' }))
-
-    const res = await PUT(req('PUT', { timestamp: 'ts-1', item: 'Coffee', amount_inr: '150', category: 'Dining' }))
-    expect(res.status).toBe(200)
-    expect(stores.expenses[0].category).toBe('Dining')
+  it('requires a version for old clients instead of accepting an unsafe fallback', async () => {
+    const res = await PUT(new Request('https://example.com/api/expenses', {
+      method: 'PUT', body: JSON.stringify({ timestamp: 'ts-1', item: 'Coffee', amount_inr: '150', category: 'Dining' }),
+    }))
+    expect(res.status).toBe(428)
   })
 
   it('rejects a malformed id instead of throwing', async () => {
     const res = await PUT(req('PUT', { id: 'not-an-object-id', category: 'X' }))
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(400)
   })
 })
 

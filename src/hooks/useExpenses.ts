@@ -38,7 +38,7 @@ export function useExpensesPage(params: ExpensesPageParams) {
   })
 }
 
-export type AddExpenseResult = { id?: string; timestamp?: string; clientId: string; pending: boolean }
+export type AddExpenseResult = { id?: string; timestamp?: string; version?: number; clientId: string; pending: boolean }
 
 export function useAddExpense() {
   const qc = useQueryClient()
@@ -51,7 +51,7 @@ export function useAddExpense() {
       // `pending` stays in the result so callers read the same shape as their
       // mobile twins; it is never true here.
       const result = await postExpensePayload(payload)
-      return { id: result.id, timestamp: result.timestamp, clientId: payload.client_id, pending: false }
+      return { id: result.id, timestamp: result.timestamp, version: result.version, clientId: payload.client_id, pending: false }
     },
     onSuccess: (_data, row) => {
       // Both the manual screen and scan-bill's confirm land here, which is the
@@ -78,12 +78,13 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: (params: {
       id?: string
+      version?: number
       timestamp: string
       item: string
       amountInr: number
       updates: Parameters<typeof updateExpense>[4]
-    }) => updateExpense(params.id, params.timestamp, params.item, params.amountInr, params.updates),
-    onSuccess: () => {
+    }) => updateExpense(params.id, params.timestamp, params.item, params.amountInr, params.updates, params.version),
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
       // See useAddExpense — this can also rebalance the CC envelope.
@@ -96,9 +97,9 @@ export function useUpdateExpense() {
 export function useDeleteExpense() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { id?: string; timestamp: string; item: string; amountInr: number }) =>
-      deleteExpense(params.id, params.timestamp, params.item, params.amountInr),
-    onSuccess: () => {
+    mutationFn: (params: { id?: string; version?: number; timestamp: string; item: string; amountInr: number }) =>
+      deleteExpense(params.id, params.timestamp, params.item, params.amountInr, params.version),
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
       // See useAddExpense — this can also rebalance the CC envelope.

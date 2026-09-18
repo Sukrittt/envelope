@@ -45,6 +45,7 @@ export interface CreateExpenseInput {
 export interface CreateExpenseResult {
   id: string
   timestamp: string
+  version: number
   duplicate: boolean
 }
 
@@ -114,7 +115,9 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   if (clientId) {
     const existing = await coll.findOne({ client_id: clientId })
     if (existing) {
-      return { id: String(existing._id), timestamp: String(existing.timestamp), duplicate: true }
+      // Replay acknowledges the original create, not a newer edit the caller
+      // has never seen. In particular, Undo must still check creation version 0.
+      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true }
     }
   }
 
@@ -124,6 +127,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
     const inserted = await coll.insertOne(
       {
         timestamp,
+        version: 0,
         date,
         item: String(input.item),
         amount_inr: String(input.amount_inr),
@@ -159,5 +163,5 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   // failure risk.
   if (input.notify !== false) await notifyThresholdCrossed(auth, String(input.category))
 
-  return { id: String(insertedId), timestamp, duplicate: false }
+  return { id: String(insertedId), timestamp, version: 0, duplicate: false }
 }

@@ -82,3 +82,21 @@ describe('deleteExpense', () => {
     })
   })
 })
+
+
+describe('expense write versions', () => {
+  it('sends the loaded version with updates', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: true })
+    await updateExpense('id1', 'ts', 'Coffee', 150, { category: 'Travel' }, 7)
+    expect(JSON.parse(mockedApiFetch.mock.calls[0][1].body)).toMatchObject({ version: 7, category: 'Travel' })
+  })
+  it('preserves the latest record on a conflict for review', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: 'Changed elsewhere', current: { id: 'id1', version: 8, amount_inr: '200' } }) })
+    await expect(updateExpense('id1', 'ts', 'Coffee', 150, { category: 'Travel' }, 7)).rejects.toMatchObject({ status: 409, current: { version: 8, amount_inr: '200' } })
+  })
+  it('sends the loaded version with deletes', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: true })
+    await deleteExpense('id1', 'ts', 'Coffee', 150, 7)
+    expect(JSON.parse(mockedApiFetch.mock.calls[0][1].body).version).toBe(7)
+  })
+})

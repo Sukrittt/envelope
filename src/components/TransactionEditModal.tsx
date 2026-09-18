@@ -1,3 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
+import { ExpenseWriteError, expenseChanges, expenseDraft, rebaseExpenseDraft } from '../lib/expenseConflict'
+import type { ExpenseRow } from '../types'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { updateExpense, addExpense, deleteExpense } from '../api/expenses'
@@ -9,6 +12,7 @@ import { SplitExpenseEditor, makeSplitLine, type SplitLine } from './SplitExpens
 
 interface Props {
   id?: string
+  version?: number
   timestamp: string
   item: string
   amountInr: number
@@ -20,6 +24,7 @@ interface Props {
 
 export function TransactionEditModal({
   id,
+  version,
   timestamp,
   item: initialItem,
   amountInr,
@@ -30,6 +35,11 @@ export function TransactionEditModal({
 }: Props) {
   const { currencySymbol } = useCurrency()
 
+  const qc = useQueryClient()
+  const [base, setBase] = useState({ item: initialItem, amount: String(amountInr), date: initialDate.slice(0, 10), category: initialCategory })
+  const [expectedVersion, setExpectedVersion] = useState(version)
+  const [conflict, setConflict] = useState<ExpenseRow | null>(null)
+  const [deleted, setDeleted] = useState(false)
   const [item, setItem] = useState(initialItem)
   const [amount, setAmount] = useState(String(amountInr))
   const [date, setDate] = useState(initialDate.slice(0, 10))
@@ -46,8 +56,35 @@ export function TransactionEditModal({
     ? item.trim() !== '' && date.trim() !== ''
     : item.trim() !== '' && !Number.isNaN(amt) && amt >= 0 && date.trim() !== '' && category !== ''
 
+  function refresh() {
+    for (const key of ['expenses', 'budgets', 'ai-brief', 'category-map']) void qc.invalidateQueries({ queryKey: [key] })
+  }
+
+  function reviewLatest(keepDraft: boolean) {
+    if (!conflict) return
+    const draft = keepDraft ? rebaseExpenseDraft(base, { item, amount, date, category }, conflict) : expenseDraft(conflict)
+    setBase(expenseDraft(conflict))
+    setExpectedVersion(conflict.version)
+    setItem(draft.item); setAmount(draft.amount); setDate(draft.date); setCategory(draft.category)
+    setConflict(null); setError('')
+    if (!keepDraft) {
+      setIsSplit(false)
+      setSplitLines([makeSplitLine(draft.category, draft.amount)])
+    }
+  }
+
+  function handleError(err: unknown) {
+    if (err instanceof ExpenseWriteError) {
+      if (err.status === 409 && err.current) setConflict(err.current)
+      if (err.status === 404) setDeleted(true)
+    }
+    setError(err instanceof Error ? err.message : 'Failed to update transaction')
+    refresh()
+    fail()
+  }
+
   async function handleSave() {
-    if (!canSave || saving || success) return
+    if (!canSave || saving || success || conflict || deleted) return
     setError('')
 
     if (isSplit) {
@@ -59,7 +96,7 @@ export function TransactionEditModal({
       }
       start()
       try {
-        await deleteExpense(id, timestamp, initialItem, amountInr)
+        await deleteExpense(id, timestamp, initialItem, amountInr, expectedVersion)
         for (let i = 0; i < validLines.length; i++) {
           const line = validLines[i]
           await addExpense({
@@ -70,28 +107,26 @@ export function TransactionEditModal({
             notes: `Split ${i + 1}/${validLines.length} of ${amount}`,
           })
         }
+        refresh()
         onSaved()
         succeed(onClose)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to update transaction')
-        fail()
+        handleError(err)
       }
       return
     }
 
     start()
     try {
-      await updateExpense(id, timestamp, initialItem, amountInr, {
-        new_item: item.trim(),
-        new_amount_inr: String(amt),
-        new_date: date,
-        category,
-      })
+      const changes = expenseChanges(base, { item, amount, date, category })
+      if (Object.keys(changes).length) {
+        await updateExpense(id, timestamp, initialItem, amountInr, changes, expectedVersion)
+      }
+      refresh()
       onSaved()
       succeed(onClose)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update transaction')
-      fail()
+      handleError(err)
     }
   }
 
@@ -111,6 +146,23 @@ export function TransactionEditModal({
         </div>
 
         {error && <p className="txn-entry-error">{error}</p>}
+        {conflict && (
+          <div role="alert" className="txn-entry-error">
+            <h4>Review changes</h4>
+            <p>Your draft is preserved. Choose which values to review before saving again.</p>
+            <table>
+              <thead><tr><th>Field</th><th>Latest saved</th><th>Your draft</th></tr></thead>
+              <tbody>
+                <tr><th>Description</th><td>{conflict.item}</td><td>{item}</td></tr>
+                <tr><th>Amount</th><td>{conflict.amount_inr}</td><td>{amount}</td></tr>
+                <tr><th>Date</th><td>{conflict.date}</td><td>{date}</td></tr>
+                <tr><th>Category</th><td>{conflict.category}</td><td>{category}</td></tr>
+              </tbody>
+            </table>
+            <button type="button" className="action-button" onClick={() => reviewLatest(false)}>Reload latest</button>
+            <button type="button" className="action-button" onClick={() => reviewLatest(true)}>Keep my changes</button>
+          </div>
+        )}
 
         <div className="category-manager-body">
           <div className="subscription-modal-form">
@@ -170,7 +222,7 @@ export function TransactionEditModal({
           </button>
           <SuccessButton
             type="button"
-            disabled={!canSave || saving || success}
+            disabled={!canSave || saving || success || !!conflict || deleted}
             saving={saving}
             success={success}
             onClick={handleSave}

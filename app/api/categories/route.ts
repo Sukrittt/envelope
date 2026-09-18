@@ -67,8 +67,9 @@ export async function PUT(req: Request) {
     const budgetColl = await getCollection('budgets', auth)
     await budgetColl.updateMany({ category: String(body.name) }, { $set: { category: effectiveName } })
 
+    // Invalidate open expense editors too; category changes are record changes.
     const expenseColl = await getCollection('expenses', auth)
-    await expenseColl.updateMany({ category: String(body.name) }, { $set: { category: effectiveName } })
+    await expenseColl.updateMany({ category: String(body.name) }, { $set: { category: effectiveName }, $inc: { version: 1 } as never })
 
     invalidate('budgets', auth.userId)
     invalidate('expenses', auth.userId)

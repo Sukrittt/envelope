@@ -1,3 +1,4 @@
+import { ExpenseWriteError } from '@/src/lib/expenseConflict'
 import { apiFetch, HttpError } from './client'
 import { nowIST } from '@/src/lib/date'
 import type { CsvResponse, ExpenseRow } from '@/src/types'
@@ -68,15 +69,15 @@ export function mintExpensePayload(row: NewExpenseRow): ExpensePayload {
 }
 
 /** Resolves with the created (or, on a client_id replay, already-existing) row's identity. */
-export async function postExpensePayload(payload: ExpensePayload): Promise<{ id?: string; timestamp?: string }> {
+export async function postExpensePayload(payload: ExpensePayload): Promise<{ id?: string; timestamp?: string; version?: number }> {
   const resp = await apiFetch('/api/expenses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!resp.ok) throw new HttpError(resp.status, `Failed to add expense: ${resp.status}`)
-  const data: { id?: string; timestamp?: string } = await resp.json().catch(() => ({}))
-  return { id: data.id, timestamp: data.timestamp }
+  const data: { id?: string; timestamp?: string; version?: number } = await resp.json().catch(() => ({}))
+  return { id: data.id, timestamp: data.timestamp, version: data.version }
 }
 
 /**
@@ -85,17 +86,11 @@ export async function postExpensePayload(payload: ExpensePayload): Promise<{ id?
  * its own payload via `mintExpensePayload` up front so it has something to
  * enqueue if the POST itself never happens.
  */
-export async function addExpense(row: NewExpenseRow): Promise<{ id?: string; timestamp?: string }> {
+export async function addExpense(row: NewExpenseRow): Promise<{ id?: string; timestamp?: string; version?: number }> {
   return postExpensePayload(mintExpensePayload(row))
 }
 
-/**
- * `id` (the expense's real Mongo _id) addresses the exact row when present —
- * pass it whenever the caller has one. `timestamp`/`item`/`amountInr` are
- * kept as a fallback triple-match on the server for one release, so this
- * still works during rollout, but two expenses with the same timestamp/item/
- * amount are only addressed correctly via `id`.
- */
+/** Writes require the version returned when this expense was loaded. */
 export async function updateExpense(
   id: string | undefined,
   timestamp: string,
@@ -108,15 +103,16 @@ export async function updateExpense(
     new_payment_method?: string
     category?: string
   },
+  version?: number,
 ): Promise<void> {
   const resp = await apiFetch('/api/expenses', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, timestamp, item, amount_inr: String(amountInr), ...updates }),
+    body: JSON.stringify({ id, timestamp, item, amount_inr: String(amountInr), version, ...updates }),
   })
   if (!resp.ok) {
     const detail = await resp.json().catch(() => ({}))
-    throw new Error(detail.error ?? `Failed to update expense: ${resp.status}`)
+    throw new ExpenseWriteError(resp.status, detail.error ?? `Failed to update expense: ${resp.status}`, detail.current)
   }
 }
 
@@ -126,8 +122,9 @@ export async function updateExpenseCategory(
   item: string,
   amountInr: number,
   category: string,
+  version?: number,
 ): Promise<void> {
-  await updateExpense(id, timestamp, item, amountInr, { category })
+  await updateExpense(id, timestamp, item, amountInr, { category }, version)
 }
 
 export async function deleteExpense(
@@ -135,14 +132,15 @@ export async function deleteExpense(
   timestamp: string,
   item: string,
   amountInr: number,
+  version?: number,
 ): Promise<void> {
   const resp = await apiFetch('/api/expenses', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, timestamp, item, amount_inr: String(amountInr) }),
+    body: JSON.stringify({ id, timestamp, item, amount_inr: String(amountInr), version }),
   })
   if (!resp.ok) {
     const detail = await resp.json().catch(() => ({}))
-    throw new Error(detail.error ?? `Failed to delete expense: ${resp.status}`)
+    throw new ExpenseWriteError(resp.status, detail.error ?? `Failed to delete expense: ${resp.status}`, detail.current)
   }
 }

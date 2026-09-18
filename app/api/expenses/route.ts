@@ -5,7 +5,6 @@ import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
-import type { ScopedCollection } from '@/lib/scoped'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
@@ -40,13 +39,13 @@ export async function GET(req: Request) {
 
   if (!url.searchParams.has('page')) {
     const docs = await coll.find({}).toArray()
-    // `id` rides alongside the CSV-shaped headers/row rather than joining
+    // `id` and `version` ride alongside the CSV-shaped row rather than joining
     // EXPENSE_HEADERS itself, since that array is also the CSV export's column
     // set — this keeps the export unchanged while giving JSON callers a real
-    // row identity to edit/delete by by (see findExpense below).
+    // row identity and revision for conditional edits/deletes.
     return json({
       headers: EXPENSE_HEADERS,
-      rows: docs.map((d) => ({ id: String(d._id), ...toRow(EXPENSE_HEADERS, d) })),
+      rows: docs.map((d) => (expenseRow(d))),
     })
   }
 
@@ -98,41 +97,43 @@ export async function GET(req: Request) {
 
   return json({
     headers: EXPENSE_HEADERS,
-    rows: pageDocs.map((d) => ({ id: String(d._id), ...toRow(EXPENSE_HEADERS, d) })),
+    rows: pageDocs.map((d) => (expenseRow(d))),
     total,
     totalAmount,
     ...pageMeta(total, page, limit),
   })
 }
 
-type ExpenseDoc = Record<string, unknown> & { _id: ObjectId }
+// Existing records without a version start at 0; no backfill is required.
+function expenseRow(doc: Record<string, unknown>) {
+  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0) }
+}
 
-/**
- * Locate one expense row. Prefers `id` (a real Mongo _id, added to the GET
- * response above) when the caller supplies one; falls back to the legacy
- * (timestamp, item, amount) triple-match — first candidate whose amount
- * matches wins — for one release, so a stale mobile build (which only knows
- * the triple) keeps working. Drop the fallback once every client sends `id`.
- */
-async function findExpense(
-  coll: ScopedCollection,
-  body: Record<string, unknown>,
-): Promise<ExpenseDoc | null> {
-  const id = typeof body.id === 'string' ? body.id : null
-  if (id) {
-    if (!ObjectId.isValid(id)) return null
-    return (await coll.findOne({ _id: new ObjectId(id) })) as ExpenseDoc | null
+class ExpenseWriteError extends Error {
+  constructor(readonly status: number, message: string, readonly current?: Record<string, unknown>) {
+    super(message)
   }
+}
 
-  const candidates = (await coll
-    .find({ timestamp: String(body.timestamp ?? ''), item: String(body.item ?? '') })
-    .sort({ _id: 1 })
-    .toArray()) as ExpenseDoc[]
-
-  for (const c of candidates) {
-    if (Number(c.amount_inr) === Number(body.amount_inr)) return c
+function writePrecondition(body: Record<string, unknown>) {
+  if (body.version === undefined) return error('Refresh or update the app before editing or deleting transactions.', 428)
+  if (typeof body.version !== 'number' || !Number.isSafeInteger(body.version) || body.version < 0) {
+    return error('a non-negative integer version is required')
   }
+  if (typeof body.id !== 'string' || !ObjectId.isValid(body.id)) return error('a valid expense id is required', 400)
   return null
+}
+
+function checkExpense(found: Record<string, unknown> | null, version: unknown): asserts found is Record<string, unknown> {
+  if (!found) throw new ExpenseWriteError(404, 'This transaction was deleted on another device. Your changes have not been saved.')
+  if (Number(found.version ?? 0) !== version) {
+    throw new ExpenseWriteError(409, 'This transaction changed on another device. Review the latest version before saving or deleting.', expenseRow(found))
+  }
+}
+
+function writeError(err: unknown) {
+  if (!(err instanceof ExpenseWriteError)) throw err
+  return json({ error: err.message, ...(err.current ? { current: err.current } : {}) }, { status: err.status })
 }
 
 export async function POST(req: Request) {
@@ -165,8 +166,8 @@ export async function POST(req: Request) {
   // both to offer Undo without re-fetching the whole list to find the row.
   return json(
     result.duplicate
-      ? { ok: true, id: result.id, timestamp: result.timestamp, duplicate: true }
-      : { ok: true, id: result.id, timestamp: result.timestamp },
+      ? { ok: true, id: result.id, version: result.version, timestamp: result.timestamp, duplicate: true }
+      : { ok: true, id: result.id, version: result.version, timestamp: result.timestamp },
   )
 }
 
@@ -178,11 +179,9 @@ export async function PUT(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!body.id && !body.timestamp) return error('id or timestamp required')
-
+  const precondition = writePrecondition(body)
+  if (precondition) return precondition
   const coll = await getCollection('expenses', auth)
-  const found = await findExpense(coll, body)
-  if (!found) return error('expense row not found', 404)
 
   const update: Record<string, string> = {}
   if (body.category !== undefined) update.category = String(body.category)
@@ -193,51 +192,51 @@ export async function PUT(req: Request) {
   if (body.new_payment_method !== undefined) update.payment_method = String(body.new_payment_method)
   if (Object.keys(update).length === 0) return error('no fields to update')
 
-  // Keep the timestamp (date + time) in sync when only the date changes.
-  if (body.new_date !== undefined && found.timestamp !== undefined) {
-    const ts = String(found.timestamp)
-    const suffix = ts.includes('T') ? ts.slice(ts.indexOf('T')) : ''
-    update.timestamp = `${String(body.new_date)}${suffix}`
+  let outcome: { category: string; affectsCC: boolean; version: number }
+  try {
+    outcome = await withTx(async (session) => {
+      // Every retry must read again inside its snapshot. Never capture old
+      // amounts, dates, or payment methods outside this callback.
+      const found = await coll.findOne({ _id: new ObjectId(String(body.id)) }, { session })
+      checkExpense(found, body.version)
+      const version = Number(found.version ?? 0)
+      const next: Record<string, unknown> = { ...update, version: version + 1 }
+      if (body.new_date !== undefined && found.timestamp !== undefined) {
+        const ts = String(found.timestamp)
+        next.timestamp = `${String(body.new_date)}${ts.includes('T') ? ts.slice(ts.indexOf('T')) : ''}`
+      }
+      const oldIsCC = found.payment_method === 'credit_card'
+      const newIsCC = (update.payment_method ?? found.payment_method) === 'credit_card'
+      const oldMonth = String(found.date ?? '').slice(0, 7)
+      const newMonth = String(update.date ?? found.date ?? '').slice(0, 7)
+      const oldAmount = Number(found.amount_inr) || 0
+      const newAmount = Number(update.amount_inr ?? found.amount_inr) || 0
+      const result = await coll.updateOne(
+        { _id: found._id, version: found.version ?? { $exists: false } },
+        { $set: next }, { session },
+      )
+      // Throw *inside* the transaction so no side effect can commit on a miss.
+      if (result.matchedCount !== 1) throw new ExpenseWriteError(409, 'This transaction changed. Refresh and review it before saving.')
+      if (oldIsCC && newIsCC && oldMonth === newMonth) {
+        await adjustCreditCardEnvelope(auth, oldMonth, newAmount - oldAmount, session)
+      } else {
+        if (oldIsCC) await adjustCreditCardEnvelope(auth, oldMonth, -oldAmount, session)
+        if (newIsCC) await adjustCreditCardEnvelope(auth, newMonth, newAmount, session)
+      }
+      return { category: update.category ?? String(found.category ?? ''), affectsCC: oldIsCC || newIsCC, version: version + 1 }
+    })
+  } catch (err) {
+    return writeError(err)
   }
-
-  // Rebalance the Credit Card envelope when a CC expense's amount, month,
-  // and/or payment method changes (POST bumps it on add; DELETE unwinds it
-  // on remove). Unwind whatever the old state contributed, then reapply
-  // whatever the new state should contribute — handles amount-only changes,
-  // month moves, and bank<->credit_card switches uniformly.
-  const oldIsCC = String(found.payment_method ?? '') === 'credit_card'
-  const newIsCC = String(body.new_payment_method ?? found.payment_method ?? '') === 'credit_card'
-  const oldMonth = String(found.date ?? '').slice(0, 7)
-  const newMonth = String(body.new_date ?? found.date ?? '').slice(0, 7)
-  const oldAmount = Number(found.amount_inr) || 0
-  const newAmount = body.new_amount_inr !== undefined ? Number(body.new_amount_inr) : oldAmount
-
-  // The row edit and its envelope rebalance must land together — same
-  // reasoning as POST.
-  const matchedCount = await withTx(async (session) => {
-    if (oldIsCC && newIsCC && oldMonth === newMonth) {
-      if (oldAmount !== newAmount) await adjustCreditCardEnvelope(auth, oldMonth, newAmount - oldAmount, session)
-    } else {
-      if (oldIsCC) await adjustCreditCardEnvelope(auth, oldMonth, -oldAmount, session)
-      if (newIsCC) await adjustCreditCardEnvelope(auth, newMonth, newAmount, session)
-    }
-
-    return (await coll.updateOne({ _id: found._id }, { $set: update }, { session })).matchedCount
-  })
-
-  // updateOne on a wrong/stale _id silently no-ops (matchedCount 0) rather than
-  // throwing — without this check the API still answers 200 and the client
-  // invalidates + refetches into what looks like "the edit didn't take".
-  if (matchedCount === 0) return error('expense row not found', 404)
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
-  if (oldIsCC || newIsCC) invalidate('budgets', auth.userId)
+  if (outcome.affectsCC) invalidate('budgets', auth.userId)
   invalidateCategoryMap(auth.userId)
   // The category that could newly be over its threshold: wherever the edit
   // landed the expense, not where it used to be.
-  await notifyThresholdCrossed(auth, update.category ?? String(found.category ?? ''))
-  return json({ ok: true })
+  await notifyThresholdCrossed(auth, outcome.category)
+  return json({ ok: true, version: outcome.version })
 }
 
 export async function DELETE(req: Request) {
@@ -248,38 +247,37 @@ export async function DELETE(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!body.id && (!body.timestamp || !body.item || body.amount_inr === undefined)) {
-    return error('id, or timestamp/item/amount_inr, required')
-  }
-
+  const precondition = writePrecondition(body)
+  if (precondition) return precondition
   const coll = await getCollection('expenses', auth)
-  const found = await findExpense(coll, body)
-  if (!found) return error('expense row not found', 404)
-
-  const paymentMethod = String(found.payment_method ?? '')
-
-  // The delete and its envelope unwind must land together — same reasoning as POST/PUT.
-  await withTx(async (session) => {
-    await coll.deleteOne({ _id: found._id }, { session })
-
-    // Reverse the Credit Card envelope bump that POST applied for CC purchases.
-    if (paymentMethod === 'credit_card') {
-      const amountNum = Number(found.amount_inr)
-      const month = String(found.date ?? '').slice(0, 7)
-      if (!Number.isNaN(amountNum) && amountNum > 0 && month) {
-        await adjustCreditCardEnvelope(auth, month, -amountNum, session)
+  let outcome: { category: string; affectsCC: boolean }
+  try {
+    outcome = await withTx(async (session) => {
+      const found = await coll.findOne({ _id: new ObjectId(String(body.id)) }, { session })
+      checkExpense(found, body.version)
+      const result = await coll.deleteOne(
+        { _id: found._id, version: found.version ?? { $exists: false } }, { session },
+      )
+      if (result.deletedCount !== 1) throw new ExpenseWriteError(409, 'This transaction changed. Refresh and review it before deleting.')
+      const affectsCC = found.payment_method === 'credit_card'
+      const amount = Number(found.amount_inr)
+      if (affectsCC && amount > 0) {
+        await adjustCreditCardEnvelope(auth, String(found.date ?? '').slice(0, 7), -amount, session)
       }
-    }
-  })
+      return { category: String(found.category ?? ''), affectsCC }
+    })
+  } catch (err) {
+    return writeError(err)
+  }
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
-  if (paymentMethod === 'credit_card') invalidate('budgets', auth.userId)
+  if (outcome.affectsCC) invalidate('budgets', auth.userId)
   invalidateCategoryMap(auth.userId)
 
   // Deleting can drop a category back below a threshold it had crossed —
   // sync that the same way an edit-down does, so a later re-cross fires again.
-  await notifyThresholdCrossed(auth, String(found.category ?? ''))
+  await notifyThresholdCrossed(auth, outcome.category)
 
   return json({ ok: true })
 }

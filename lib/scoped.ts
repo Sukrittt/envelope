@@ -255,15 +255,15 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       return coll.replaceOne(own(filter), stamp(replacement), options) as Promise<UpdateResult<Doc>>
     },
 
-    /** Soft delete: stamps `deleted_at` rather than removing the document. See `purge` for a real delete. */
+    /** Soft delete. Expenses advance their version so restoring a row never revives a stale editor. */
     async deleteOne(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      const result = await coll.updateOne(own(filter), { $set: { deleted_at: nowIso() } } as never, options)
+      const result = await coll.updateOne(own(filter), { $set: { deleted_at: nowIso() }, ...(collectionName === 'expenses' ? { $inc: { version: 1 } } : {}) } as never, options)
       return { acknowledged: result.acknowledged, deletedCount: result.matchedCount }
     },
 
     /** Soft delete: stamps `deleted_at` on every match rather than removing them. See `purgeMany` for a real delete. */
     async deleteMany(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      const result = await coll.updateMany(own(filter), { $set: { deleted_at: nowIso() } } as never, options)
+      const result = await coll.updateMany(own(filter), { $set: { deleted_at: nowIso() }, ...(collectionName === 'expenses' ? { $inc: { version: 1 } } : {}) } as never, options)
       return { acknowledged: result.acknowledged, deletedCount: result.matchedCount }
     },
 
