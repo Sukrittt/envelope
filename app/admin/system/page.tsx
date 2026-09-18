@@ -77,6 +77,14 @@ export default async function AdminSystem() {
               </span>
             </label>
 
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <input type="checkbox" name="billingAudience" value="everyone" defaultChecked={settings.billing.audience === 'everyone'} style={{ marginTop: 4 }} />
+              <span>
+                <strong>Apply to everyone (production)</strong>
+                <div className="adm-sub">Off = the two switches above only affect billing testers (npm run billing:tester -- --email …). Everyone else sees subscriptions as off. Leave this off until launch day.</div>
+              </span>
+            </label>
+
             <div>
               <SubmitButton variant="primary">Save</SubmitButton>
             </div>

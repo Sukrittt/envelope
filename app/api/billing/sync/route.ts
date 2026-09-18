@@ -3,7 +3,7 @@ import { getAuth } from '@/lib/access'
 import { isRateLimited } from '@/lib/rateLimit'
 import { refreshFromProvider, getAccess } from '@/lib/billing/service'
 import { RevenueCatError } from '@/lib/billing/revenuecat'
-import { getSystemSettings } from '@/lib/systemSettings'
+import { billingFlagsFor } from '@/lib/billing/flags'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     return error('too many refreshes, try again shortly', 429)
   }
 
-  const purchaseEnabled = (await getSystemSettings()).billing.purchaseEnabled
+  const { purchaseEnabled } = await billingFlagsFor(auth.userId)
   try {
     const access = await refreshFromProvider(auth.userId)
     return json({ ...access, purchaseEnabled })

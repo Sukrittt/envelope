@@ -19,6 +19,15 @@ export interface SystemSettings {
     enforced: boolean
     /** Show purchase entry points in the clients. Independent of `enforced`. */
     purchaseEnabled: boolean
+    /**
+     * Who the two switches above apply to. `testers` = only users with
+     * `billingTester: true` (scripts/grant-billing-tester.mjs); everyone else
+     * behaves as if both were off. Lets the full trial/paywall flow be tested
+     * against the production backend without touching real users. Absent
+     * means `testers`, so turning a switch on can never reach real users by
+     * accident — going live is a separate, deliberate change to `everyone`.
+     */
+    audience: 'testers' | 'everyone'
   }
 }
 
@@ -31,7 +40,7 @@ const DEFAULTS: SystemSettings = {
       storeUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
     },
   },
-  billing: { enforced: false, purchaseEnabled: false },
+  billing: { enforced: false, purchaseEnabled: false, audience: 'testers' },
 }
 const SETTINGS_ID = 'global'
 const CACHE_MS = 30_000

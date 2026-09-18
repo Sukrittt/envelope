@@ -31,6 +31,8 @@ export interface UserDoc {
   lastName?: string | null
   /** Grants /admin. Set only by scripts/grant-admin.mjs — never writable from any route. */
   isAdmin?: boolean
+  /** Subject to the billing switches while `billing.audience` is `testers`. Set only by scripts/grant-billing-tester.mjs. */
+  billingTester?: boolean
   /** Last authenticated request, stamped at most hourly by lib/lastSeen.ts. */
   lastSeenAt?: Date
   /** Set when the account is soft-deleted; the GC cron purges the account (and its WorkOS user) `GRACE_DAYS` after this. Null/absent = active. */

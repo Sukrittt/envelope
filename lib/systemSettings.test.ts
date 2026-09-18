@@ -24,7 +24,7 @@ describe('system settings', () => {
       },
       // Fails open in the safe direction: an unreachable settings doc must
       // never start locking paying users out of their own budgets.
-      billing: { enforced: false, purchaseEnabled: false },
+      billing: { enforced: false, purchaseEnabled: false, audience: 'testers' },
     })
     getDbMock.mockRejectedValueOnce(new Error('down'))
     expect(await aiDisabledResponse()).toBeNull()
@@ -48,7 +48,7 @@ describe('system settings', () => {
   it('reads a settings document with no billing key as subscriptions-off', async () => {
     findOneMock.mockResolvedValue({ _id: 'global', aiDisabled: false, maintenance: { on: false, message: '' } })
     const { getSystemSettings } = await import('./systemSettings')
-    expect((await getSystemSettings()).billing).toEqual({ enforced: false, purchaseEnabled: false })
+    expect((await getSystemSettings()).billing).toEqual({ enforced: false, purchaseEnabled: false, audience: 'testers' })
   })
 
   it('backfills update defaults for an older settings document', async () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Db } from 'mongodb'
 
 vi.mock('../mongodb', () => ({ getDb: vi.fn() }))
-vi.mock('../systemSettings', () => ({ getSystemSettings: vi.fn(async () => ({ billing: { enforced: true, purchaseEnabled: false } })) }))
+vi.mock('./flags', () => ({ billingFlagsFor: vi.fn(async () => ({ enforced: true, purchaseEnabled: false })) }))
 
 const { completeOnboarding, startTrial, hasCompletedSetup } = await import('./service')
 const { TRIAL_DAYS } = await import('./records')

@@ -12,7 +12,7 @@
  */
 import { NextResponse } from 'next/server'
 import type { Auth } from '../access'
-import { getSystemSettings } from '../systemSettings'
+import { billingFlagsFor } from './flags'
 import { getAccess } from './service'
 
 /**
@@ -34,8 +34,8 @@ export async function requireAccess(auth: Auth): Promise<NextResponse | null> {
   // Checked first so the guard costs nothing while enforcement is off: this
   // sits on 51 handlers, and settings are cached in-process for 30s, so the
   // flag being off means no extra database round trip per request rather than
-  // one on every call in the app.
-  if (!(await getSystemSettings()).billing.enforced) return null
+  // one on every call in the app. Scoped per user (testers-only audience).
+  if (!(await billingFlagsFor(auth.userId)).enforced) return null
 
   const access = await getAccess(auth.userId)
   if (access.allowed) return null

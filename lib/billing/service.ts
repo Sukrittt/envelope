@@ -8,7 +8,7 @@
  */
 import type { Db } from 'mongodb'
 import { getDb } from '../mongodb'
-import { getSystemSettings } from '../systemSettings'
+import { billingFlagsFor } from './flags'
 import type { UserDoc } from '../users'
 import { INCOME_CATEGORY } from '@/src/lib/envelope'
 import {
@@ -67,16 +67,16 @@ export async function hasCompletedSetup(db: Db, userId: string): Promise<boolean
  */
 export async function getAccess(userId: string, now: Date = new Date()): Promise<Access> {
   const db = await getDb()
-  const [account, subs, settings] = await Promise.all([
+  const [account, subs, flags] = await Promise.all([
     db.collection<BillingAccountDoc>(BILLING_ACCOUNTS).findOne({ _id: userId }),
     db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).find({ userId }).toArray(),
-    getSystemSettings(),
+    billingFlagsFor(userId),
   ])
   return resolveAccess({
     now,
     account,
     subscription: pickSubscription(subs, now),
-    enforced: settings.billing.enforced,
+    enforced: flags.enforced,
   })
 }
 

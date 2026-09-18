@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Auth } from '../access'
 
-const getSystemSettingsMock = vi.fn(async () => ({ billing: { enforced: true, purchaseEnabled: true } }))
+const getSystemSettingsMock = vi.fn(async () => ({ billing: { enforced: true, purchaseEnabled: true, audience: 'everyone' } }))
 vi.mock('../systemSettings', () => ({ getSystemSettings: getSystemSettingsMock }))
 
 const getAccessMock = vi.fn()
@@ -14,7 +14,7 @@ const demo: Auth = { userId: 'demo', readOnly: true, sessionId: null }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  getSystemSettingsMock.mockResolvedValue({ billing: { enforced: true, purchaseEnabled: true } })
+  getSystemSettingsMock.mockResolvedValue({ billing: { enforced: true, purchaseEnabled: true, audience: 'everyone' } })
 })
 
 describe('requireAccess', () => {
@@ -34,7 +34,7 @@ describe('requireAccess', () => {
   })
 
   it('costs nothing while enforcement is off — no access lookup at all', async () => {
-    getSystemSettingsMock.mockResolvedValue({ billing: { enforced: false, purchaseEnabled: false } })
+    getSystemSettingsMock.mockResolvedValue({ billing: { enforced: false, purchaseEnabled: false, audience: 'everyone' } })
     expect(await requireAccess(user)).toBeNull()
     // This guard sits on 51 handlers; a lookup per request while the feature
     // is dark would be a cost paid by every user for nothing.

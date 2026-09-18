@@ -1,7 +1,7 @@
 import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getAccess } from '@/lib/billing/service'
-import { getSystemSettings } from '@/lib/systemSettings'
+import { billingFlagsFor } from '@/lib/billing/flags'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +14,6 @@ export async function GET(req: Request) {
   const auth = await getAuth(req)
   if (auth.readOnly) return error('unauthorized', 401)
 
-  const [access, settings] = await Promise.all([getAccess(auth.userId), getSystemSettings()])
-  return json({ ...access, purchaseEnabled: settings.billing.purchaseEnabled })
+  const [access, flags] = await Promise.all([getAccess(auth.userId), billingFlagsFor(auth.userId)])
+  return json({ ...access, purchaseEnabled: flags.purchaseEnabled })
 }

@@ -25,6 +25,7 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
     billing: {
       enforced: form.get('billingEnforced') === 'on',
       purchaseEnabled: form.get('billingPurchaseEnabled') === 'on',
+      audience: form.get('billingAudience') === 'everyone' ? 'everyone' : 'testers',
     },
   }
   if (next.maintenance.on && !message) return { ok: false, message: 'Add a banner message before turning it on' }
