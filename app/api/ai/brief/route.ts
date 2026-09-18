@@ -3,6 +3,7 @@ import { resolveCurrency } from '@/src/lib/currencies'
 import { Type } from '@google/genai'
 import { json, error } from '@/lib/http'
 import { getAuth, type Auth } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { generateJSON } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
@@ -42,6 +43,8 @@ interface Brief {
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
 
   const aiOff = await aiDisabledResponse()
   if (aiOff) return aiOff

@@ -1,6 +1,7 @@
 import { after } from 'next/server'
 import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { storeBillScanImage } from '@/lib/billScan'
 
 export const dynamic = 'force-dynamic'
@@ -14,6 +15,8 @@ const LIST_LIMIT = 50
  */
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const coll = await getCollection('bill_scans', auth)
   const docs = await coll.find({}).sort({ created_at: -1 }).limit(LIST_LIMIT).toArray()
 
@@ -80,6 +83,8 @@ function parseItems(raw: unknown): BillItemInput[] | null {
  */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 

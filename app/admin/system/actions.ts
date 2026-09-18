@@ -18,6 +18,14 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
     aiDisabled: form.get('aiDisabled') === 'on',
     maintenance: { on: form.get('maintenanceOn') === 'on', message },
     appUpdate: { android: { latestVersion, storeUrl } },
+    // Two independent switches, on purpose: purchase entry can go live for a
+    // test cohort while nobody is locked out yet, and enforcement can be
+    // rolled back without hiding the way to pay. See
+    // payment-subscriptions-plan.md, "Controlled launch".
+    billing: {
+      enforced: form.get('billingEnforced') === 'on',
+      purchaseEnabled: form.get('billingPurchaseEnabled') === 'on',
+    },
   }
   if (next.maintenance.on && !message) return { ok: false, message: 'Add a banner message before turning it on' }
   if (latestVersion && !VERSION_RE.test(latestVersion)) return { ok: false, message: 'Use an Android version like 2.3.0' }

@@ -13,6 +13,7 @@ import { updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
 import { addCategory } from '../../src/api/categories'
 import { updateUser } from '../../src/api/account'
+import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
 
 // Twin of Mobile's app/setup.tsx: income → groups → categories → assign →
@@ -228,8 +229,12 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         await updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' })
       }
 
-      const savedUser = await updateUser({ currencyCode, onboardedAt: new Date().toISOString() })
-      qc.setQueryData(['user'], savedUser)
+      // Two calls rather than one: the currency is an ordinary profile field,
+      // but completing onboarding starts the 45-day trial, so its instant is
+      // the server's — the browser's clock has no say in when the trial ends.
+      await updateUser({ currencyCode })
+      const { user } = await completeOnboarding()
+      qc.setQueryData(['user'], user)
       await qc.invalidateQueries()
 
       setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount, assigned: assignedTotal() })

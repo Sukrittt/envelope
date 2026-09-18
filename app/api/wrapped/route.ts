@@ -1,5 +1,6 @@
 import { json, getCollection, nowIST } from '@/lib/http'
 import { getAuth } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { cachedRead } from '@/lib/cache'
 import { currentEdition, monthRange } from '@/lib/wrapped'
@@ -9,6 +10,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const month = new URL(req.url).searchParams.get('month') ?? currentEdition(nowIST().date)
   const { start, end } = monthRange(month)
   const data = await cachedRead(

@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb'
 import { getCollection, json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { getBillScanImageUrl } from '@/lib/billScan'
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!ObjectId.isValid(id)) return error('invalid id', 400)
 
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const coll = await getCollection('bill_scans', auth)
   const doc = await coll.findOne({ _id: new ObjectId(id) })
   if (!doc) return error('not found', 404)

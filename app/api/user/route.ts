@@ -1,24 +1,15 @@
-import { isCurrencyCode, resolveCurrency } from '@/src/lib/currencies'
+import { isCurrencyCode } from '@/src/lib/currencies'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { displayName, type UserDoc } from '@/lib/users'
+import { serializeUser, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
+import { completeOnboarding } from '@/lib/billing/service'
 
 export const dynamic = 'force-dynamic'
 
-function serialize(user: UserDoc | null) {
-  if (!user) return null
-  return {
-    ...user,
-    currencyCode: resolveCurrency(user.currencyCode),
-    name: displayName(user),
-    emailVerified: user.emailVerified ?? true,
-    deletionScheduledFor: user.deleted_at ? purgesAt(user.deleted_at) : null,
-  }
-}
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
@@ -26,7 +17,7 @@ export async function GET(req: Request) {
 
   const db = await getDb()
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
-  return json(serialize(user))
+  return json(serializeUser(user))
 }
 
 export async function PATCH(req: Request) {
@@ -41,7 +32,6 @@ export async function PATCH(req: Request) {
       UserDoc,
       | 'currencyCode'
       | 'name'
-      | 'onboardedAt'
       | 'notifyCadence'
       | 'notifyThresholds'
       | 'notifyBills'
@@ -55,7 +45,6 @@ export async function PATCH(req: Request) {
     updates.currencyCode = body.currencyCode
   }
   if (name !== undefined) updates.name = name || null
-  if (typeof body.onboardedAt === 'string' || body.onboardedAt === null) updates.onboardedAt = body.onboardedAt as string | null
   if (body.notifyCadence === 'off' || body.notifyCadence === 'weekly' || body.notifyCadence === 'daily') {
     updates.notifyCadence = body.notifyCadence
   }
@@ -66,16 +55,33 @@ export async function PATCH(req: Request) {
   }
   if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
   if (typeof body.notifyWrapped === 'boolean') updates.notifyWrapped = body.notifyWrapped
-  if (Object.keys(updates).length === 0) return error('no valid fields')
+
+  // `onboardedAt` is no longer a client-writable profile field: completing
+  // onboarding is what starts the 45-day trial clock, so its instant has to
+  // be the server's. Released app versions still PATCH it here, so the key
+  // is honoured as a *request to complete onboarding* — the value they send
+  // is discarded — and routed through the same server-owned action as
+  // POST /api/onboarding/complete. See lib/billing/service.ts.
+  const completing = 'onboardedAt' in body
+  if (!completing && Object.keys(updates).length === 0) return error('no valid fields')
 
   if (name !== undefined) {
     await getWorkOSClient().userManagement.updateUser({ userId: auth.userId, name: name || undefined })
   }
 
   const db = await getDb()
-  await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: updates })
+  if (Object.keys(updates).length > 0) {
+    await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: updates })
+  }
+  if (completing) {
+    // Lenient on purpose — see completeOnboarding. This is the path released
+    // app versions use, and they cannot be fixed by redeploying the API.
+    // POST /api/onboarding/complete, which new clients use, stays strict:
+    // that client can react to a 409 by retrying after its writes land.
+    await completeOnboarding(db, auth.userId, new Date(), { requireSetup: false })
+  }
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
-  return json(serialize(user))
+  return json(serializeUser(user))
 }
 
 export async function DELETE(req: Request) {

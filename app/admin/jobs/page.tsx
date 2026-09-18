@@ -14,6 +14,12 @@ const JOBS: Array<{ job: CronJob; label: string; schedule: string; confirm: stri
     confirm: 'Run notifications now? This sends real pushes and logs due recurring/subscription expenses for every user.',
   },
   { job: 'gc', label: 'Garbage collection', schedule: 'Daily 04:00 UTC', confirm: 'Run GC now? Archived rows and accounts past their grace window are purged permanently.' },
+  {
+    job: 'billing',
+    label: 'Billing reconciliation',
+    schedule: 'Daily 05:00 UTC',
+    confirm: 'Reconcile billing now? Re-verifies lapsing subscriptions and failed webhook events against RevenueCat. Safe to run any time.',
+  },
 ]
 
 export default async function AdminJobs() {

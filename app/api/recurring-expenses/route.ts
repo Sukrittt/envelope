@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { RECURRING_EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { FREQUENCIES, firstRunOnOrAfter, type Frequency } from '@/lib/recurringExpense'
@@ -17,6 +18,8 @@ function isFrequency(value: string): value is Frequency {
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const coll = await getCollection('recurring_expenses', auth)
   const docs = await coll.find({}).toArray()
   // `id` rides alongside the CSV-shaped headers/rows rather than joining
@@ -30,6 +33,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
@@ -78,6 +83,8 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'PUT')
   if (guard) return guard
 
@@ -151,6 +158,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'DELETE')
   if (guard) return guard
 

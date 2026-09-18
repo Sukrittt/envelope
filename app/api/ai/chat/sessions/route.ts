@@ -1,5 +1,6 @@
 import { getCollection, json } from '@/lib/http'
 import { getAuth } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { COLLECTIONS } from '@/lib/models'
 import { makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
 
@@ -21,6 +22,8 @@ const MAX_LIMIT = 100
  */
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const sessions = await getCollection(COLLECTIONS.chatSessions, auth)
 
   const url = new URL(req.url)

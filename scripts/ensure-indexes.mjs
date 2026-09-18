@@ -107,6 +107,33 @@ const INDEXES = {
     [{ user_id: 1, created_at: -1 }, {}],
     [{ user_id: 1, expense_id: 1 }, {}],
   ],
+  // Selling access to Envelope (lib/billing/*). Note these are NOT the
+  // `subscriptions` collection above — that one is a user's own recurring
+  // expenses. `billing_accounts._id` is the WorkOS user id, so one trial per
+  // identity is already enforced by the primary key.
+  billing_accounts: [
+    // The reminder job's query: trials ending inside the next few days.
+    [{ trialEndsAt: 1 }, {}],
+    // The retention job's query, sparse because most accounts have no deadline.
+    [{ retentionDeadline: 1 }, { partialFilterExpression: { retentionDeadline: { $type: 'date' } } }],
+  ],
+  billing_subscriptions: [
+    [{ userId: 1 }, {}],
+    // One store purchase entitles exactly one account. Without this, a
+    // restore on a second account would silently duplicate the entitlement.
+    [{ provider: 1, environment: 1, storeTransactionId: 1 }, { unique: true }],
+    // Reconciliation sweeps entitlements that have lapsed or are about to.
+    [{ expiresAt: 1 }, {}],
+  ],
+  billing_events: [
+    // Idempotent ingest: a duplicate webhook delivery throws E11000 instead
+    // of applying a second state change.
+    [{ provider: 1, environment: 1, eventId: 1 }, { unique: true }],
+    [{ state: 1, receivedAt: 1 }, {}],
+    // Reclaimed after 90 days — far past any provider retry window, so the
+    // dedupe guarantee above still covers every delivery that can arrive.
+    [{ receivedAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }],
+  ],
 }
 
 async function main() {

@@ -1,5 +1,6 @@
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { applyHoldingAction } from '@/lib/holdings'
 
 export const dynamic = 'force-dynamic'
@@ -8,6 +9,8 @@ const ACTIONS = new Set(['market_update', 'contribution', 'withdrawal'])
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
