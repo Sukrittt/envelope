@@ -125,6 +125,19 @@ describe('projectSubscriber — identity and environment', () => {
     expect(project(renewed)?.storeTransactionId).toBe(project(subscriber({}))?.storeTransactionId)
   })
 
+  it('strips the renewal suffix when the store gave no original id', () => {
+    // Seen from RevenueCat's test store (and Play renewals follow the same
+    // GPA.x..N order-id convention): original_store_transaction_id is null and
+    // each renewal carries a new ..N suffix. Keying on that raw id inserted a
+    // new row per renewal, leaving the old ones "active" with past expiries.
+    const first = subscriber({}, { envelope_individual: subscription({ original_store_transaction_id: null, store_transaction_id: 'test_17897_abc' }) })
+    const renewed = subscriber({ expires_date: iso(50) }, {
+      envelope_individual: subscription({ expires_date: iso(50), original_store_transaction_id: null, store_transaction_id: 'test_17897_abc..0' }),
+    })
+    expect(project(first)?.storeTransactionId).toBe('test_17897_abc')
+    expect(project(renewed)?.storeTransactionId).toBe('test_17897_abc')
+  })
+
   it('falls back to a synthetic key when the store gave no transaction id', () => {
     const s = subscriber({}, { envelope_individual: subscription({ store_transaction_id: null, original_store_transaction_id: null }) })
     expect(project(s)?.storeTransactionId).toBe('user_a:envelope_individual')

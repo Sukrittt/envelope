@@ -95,9 +95,13 @@ export function projectSubscriber(
     basePlanId: typedSub?.product_plan_identifier ?? entitlement?.product_plan_identifier ?? null,
     // The *original* transaction id stays stable across renewals, so a renewal
     // updates this row rather than inserting a second one — which is what
-    // makes the unique index mean "one purchase, one account".
+    // makes the unique index mean "one purchase, one account". When the store
+    // omits it, the latest id minus Play's `..N` renewal suffix is the same
+    // original order id.
     storeTransactionId:
-      typedSub?.original_store_transaction_id ?? typedSub?.store_transaction_id ?? `${subscriber.original_app_user_id}:${productId}`,
+      typedSub?.original_store_transaction_id ??
+      typedSub?.store_transaction_id?.replace(/\.\.\d+$/, '') ??
+      `${subscriber.original_app_user_id}:${productId}`,
     status: statusOf(typedSub, entitled),
     autoRenew: entitled && !typedSub?.unsubscribe_detected_at && !typedSub?.refunded_at,
     expiresAt: entitlementEnd ?? date(typedSub?.expires_date),
