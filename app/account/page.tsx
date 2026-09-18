@@ -217,7 +217,7 @@ export default function AccountPage() {
           {/* Twin of Mobile's Plan & billing row: tapping it shows the plan once
               billing is live, or the trial notice before then. The badge is a
               sibling of the link, since an anchor can't nest inside one. */}
-          <div style={{ display: 'flex', alignItems: 'center', paddingRight: 16 }}>
+          <div className="account-row-wrap" style={{ display: 'flex', alignItems: 'center', paddingRight: 16 }}>
             <Link
               href={showBilling ? '#subscription' : '/account/trial-notice?from=more'}
               className="account-row"

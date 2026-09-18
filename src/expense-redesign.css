@@ -4011,7 +4011,10 @@ button.account-row:hover {
   background: var(--erd-input-bg);
 }
 
-.account-row + .account-row {
+.account-row + .account-row,
+.account-row-wrap + .account-row,
+.account-row + .account-row-wrap,
+.account-row-wrap + .account-row-wrap {
   border-top: 1px solid var(--erd-border);
 }
 
