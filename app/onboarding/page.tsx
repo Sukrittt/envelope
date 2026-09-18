@@ -15,12 +15,15 @@ import { addCategory } from '../../src/api/categories'
 import { updateUser } from '../../src/api/account'
 import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
+import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
+import { Confetti } from '../../src/components/onboarding/Confetti'
 
 // Twin of Mobile's app/setup.tsx: income → groups → categories → assign →
 // done. Writes land on finish, same reasoning as mobile — groups/categories
 // aren't renameable server-side until they exist. No numpad/bottom-sheet
 // here: those exist on mobile because a thumb keyboard is painful, and a
-// desktop already has a real one, so plain number inputs replace them.
+// desktop already has a real one, so a plain input (under the ticker) and
+// inline number fields replace them.
 const EMOJI_CYCLE = ['🏠', '🎬', '🌱', '🛒', '💡', '🚌', '🍜', '📺', '🛍', '🛟', '📈', '🎓', '🐶', '💊', '✈️', '🎁']
 const QUICK_PICKS = ['30000', '50000', '75000', '100000']
 
@@ -117,6 +120,12 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   const [step, setStep] = useState(0)
   const [income, setIncome] = useState('')
+  // Drive AmountTicker's roll/flash/delta animation, same as mobile: `tick`
+  // replays it, `dir` picks the roll direction, `delta` (quick-pick jumps
+  // only) floats a badge.
+  const [tick, setTick] = useState(0)
+  const [dir, setDir] = useState<1 | -1>(1)
+  const [delta, setDelta] = useState(0)
   const [groups, setGroups] = useState<Item[]>(defaultGroups)
   const [cats, setCats] = useState<Record<string, Item[]>>(defaultCats)
   const [amounts, setAmounts] = useState<Record<string, number>>({})
@@ -195,6 +204,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setAmount(key, Math.max(0, (Number(income) || 0) - rest))
   }
 
+  const changeIncome = (v: string, jump = false) => {
+    const prev = Number(income) || 0
+    const next = Number(v) || 0
+    setIncome(v)
+    setTick((t) => t + 1)
+    setDir(next >= prev ? 1 : -1)
+    setDelta(jump ? next - prev : 0)
+  }
+
   const back = () => {
     setError('')
     setStep((s) => Math.max(0, s - 1))
@@ -263,7 +281,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   if (step === 5 && result) {
     return (
       <div className="expense-redesign setup-page">
-        <SetupDone result={result} onFinish={() => router.push('/expense')} />
+        <SetupDone result={result} onFinish={() => router.push('/account/guided-tour?fresh=1')} />
       </div>
     )
   }
@@ -303,7 +321,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             <span key={n} className={`setup-dot ${n <= step ? 'is-active' : ''}`} />
           ))}
         </div>
-        <span className="setup-step-counter">step {step + 1}/5</span>
+        <span className="setup-step-counter">{step + 1}/5</span>
       </div>
 
       <h1 className="setup-title">{title}</h1>
@@ -313,24 +331,26 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
       {step === 1 && (
         <div className="setup-body">
-          <div className="setup-amount-wrap">
-            <span className="setup-amount">{income ? formatMoney(Number(income)) : formatMoney(0)}</span>
-          </div>
-          <input
-            type="number"
-            className="txn-entry-input setup-amount-input"
-            placeholder="Type an amount"
-            value={income}
-            min={0}
-            onChange={(e) => setIncome(e.target.value.replace(/^0+/, '').slice(0, 9))}
-          />
+          <label className="setup-amount-field">
+            <AmountTicker text={formatMoney(Number(income) || 0)} tick={tick} dir={dir} delta={delta} dimmed={!income} />
+            <input
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              className="setup-amount-hidden"
+              aria-label="Monthly income"
+              value={income}
+              onChange={(e) => changeIncome(e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9))}
+            />
+          </label>
+          <p className="setup-amount-hint">{income ? '' : 'Type an amount, or pick one below'}</p>
           <div className="setup-quick-row">
             {QUICK_PICKS.map((v) => (
               <button
                 key={v}
                 type="button"
                 className={`setup-chip ${income === v ? 'is-active' : ''}`}
-                onClick={() => setIncome(v)}
+                onClick={() => changeIncome(v, true)}
               >
                 {formatMoney(Number(v))}
               </button>
@@ -516,6 +536,7 @@ function SetupDone({
 
   return (
     <div className="setup-done">
+      <Confetti />
       <div className="setup-done-badge">✓</div>
       <h1 className="setup-done-title">Your budget is ready to go.</h1>
       <p className="setup-done-blurb">Everything below can be changed later from Envelopes.</p>
@@ -529,7 +550,7 @@ function SetupDone({
         ))}
       </div>
       <button type="button" className="setup-cta" onClick={onFinish}>
-        Go to my dashboard
+        Show me how it works
       </button>
     </div>
   )

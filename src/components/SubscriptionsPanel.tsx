@@ -245,7 +245,14 @@ export function SubscriptionsPanel({
           Couldn&apos;t load subscriptions.
         </p>
       ) : active.length === 0 && cancelled.length === 0 ? (
-        <p className="subp-empty">No subscriptions tracked yet.</p>
+        <div className="account-empty">
+          <span aria-hidden="true">🔁</span>
+          <div className="account-empty-title">No subscriptions yet</div>
+          <p className="account-row-meta">Track renewals so bills never surprise you.</p>
+          <button type="button" className="action-button is-active" onClick={onAdd}>
+            Add a subscription
+          </button>
+        </div>
       ) : (
         <>
           <div className="subp-eyebrow">RECURRING / MONTH</div>

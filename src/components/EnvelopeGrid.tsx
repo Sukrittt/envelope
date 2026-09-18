@@ -207,7 +207,14 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
       </div>
 
       {!envelopes.length ? (
-        <p className="env2-empty">No envelopes yet. Hit Manage to add your first one.</p>
+        <div className="account-empty">
+          <span aria-hidden="true">🗂️</span>
+          <div className="account-empty-title">No envelopes yet</div>
+          <p className="account-row-meta">Envelopes hold your money for each kind of spending.</p>
+          <button type="button" className="action-button is-active" onClick={onManage}>
+            Add your first envelope
+          </button>
+        </div>
       ) : (
         <div className="env2-list">
           {grouped.map(({ label, items }) => {

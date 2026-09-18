@@ -27,7 +27,7 @@ describe('currency onboarding', () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'USD' } })
     fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(screen.getByText('$0')).toBeTruthy()
+    expect(screen.getByRole('img', { name: '$0' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '←' }))
     expect(screen.getByRole('button', { name: /US Dollar/ }).getAttribute('aria-pressed')).toBe('true')
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
