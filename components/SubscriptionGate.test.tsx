@@ -1,0 +1,62 @@
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+
+const usePathnameMock = vi.fn(() => '/expense')
+vi.mock('next/navigation', () => ({ usePathname: () => usePathnameMock() }))
+
+const useBillingStatusMock = vi.fn()
+vi.mock('@/src/hooks/useBillingStatus', () => ({
+  useBillingStatus: (enabled?: boolean) => useBillingStatusMock(enabled),
+  useSyncBilling: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, data: undefined }),
+}))
+
+const { SubscriptionGate } = await import('./SubscriptionGate')
+
+const app = <div>budgeting app</div>
+const expired = { data: { allowed: false, mode: 'expired', renewalState: null, trialDaysRemaining: 0, retentionDeadline: null } }
+
+function renderAt(pathname: string, status: unknown) {
+  usePathnameMock.mockReturnValue(pathname)
+  useBillingStatusMock.mockReturnValue(status)
+  return render(<SubscriptionGate>{app}</SubscriptionGate>)
+}
+
+describe('SubscriptionGate', () => {
+  it('replaces a budgeting screen when access has lapsed', () => {
+    renderAt('/expense', expired)
+    expect(screen.queryByText('budgeting app')).toBeNull()
+    expect(screen.getByText('Subscription needed')).toBeTruthy()
+  })
+
+  it.each(['/account', '/account/data', '/onboarding', '/', '/admin/system', '/legal/terms'])(
+    'leaves %s reachable — these are the exit routes',
+    (pathname) => {
+      // An expired user has to be able to get their data out, manage their
+      // account, and read the terms. Locking these would be holding their own
+      // records hostage.
+      renderAt(pathname, expired)
+      expect(screen.getByText('budgeting app')).toBeTruthy()
+    },
+  )
+
+  it('renders the app while the status is still unknown', () => {
+    // Blocking on "unknown" flashes a paywall at paying users on every cold
+    // load. The API enforces this independently, so guessing wrong here costs
+    // a 402 on the data underneath, not a data leak.
+    renderAt('/expense', { data: undefined })
+    expect(screen.getByText('budgeting app')).toBeTruthy()
+  })
+
+  it('does not ask for billing status outside the app routes', () => {
+    // This provider tree wraps the public landing page, where there is no
+    // session and /api/billing/status answers 401 — one failing request, plus
+    // a retry, for every anonymous visitor.
+    renderAt('/', expired)
+    expect(useBillingStatusMock).toHaveBeenCalledWith(false)
+  })
+
+  it('renders the app for an allowed account', () => {
+    renderAt('/expense', { data: { ...expired.data, allowed: true, mode: 'trial', trialDaysRemaining: 30 } })
+    expect(screen.getByText('budgeting app')).toBeTruthy()
+  })
+})

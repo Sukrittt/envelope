@@ -31,6 +31,7 @@ import { useMoneyBrain } from '../../components/MoneyBrainProvider'
 import { LogExpenseModal } from '../../src/components/LogExpenseModal'
 import { ScanBillModal } from '../../src/features/scan-bill/ScanBillModal'
 import { SignOutDialog } from '../../src/components/ConfirmDialog'
+import { SubscriptionSection } from '../../src/components/billing/SubscriptionSection'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
@@ -113,6 +114,8 @@ export default function AccountPage() {
         </div>
         <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
       </Link>
+
+      <SubscriptionSection />
 
       <div>
         <div className="account-section-label" style={{ marginBottom: 10 }}>
