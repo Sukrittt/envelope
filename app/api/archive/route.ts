@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import { ARCHIVABLE_COLLECTIONS, isArchivableCollection, purgesAt, type ArchivableCollection } from '@/lib/archive'
@@ -76,6 +77,8 @@ function extraInvalidations(collection: ArchivableCollection): string[] {
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const url = new URL(req.url)
   const requested = url.searchParams.get('collection')
   if (requested === null) {
@@ -109,6 +112,8 @@ async function listArchive(auth: Awaited<ReturnType<typeof getAuth>>, names: rea
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
@@ -142,6 +147,8 @@ export async function POST(req: Request) {
 /** Manual "delete forever" — purges an already-archived row before the GC cron would. */
 export async function DELETE(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'DELETE')
   if (guard) return guard
 

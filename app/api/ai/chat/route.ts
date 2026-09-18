@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb'
 import { readBody, error, getCollection } from '@/lib/http'
 import { getAuth, type Auth } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { buildSystemPrompt } from '@/lib/ai/moneyBrainPrompt'
 import { streamText } from '@/lib/ai/gemini'
@@ -222,6 +223,8 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
 
   const aiOff = await aiDisabledResponse()
   if (aiOff) return aiOff

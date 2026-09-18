@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection, parsePageParams, pageMeta } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
@@ -32,6 +33,8 @@ const SORT = { date: -1, timestamp: -1, _id: -1 } as const
  */
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const coll = await getCollection('expenses', auth)
   const url = new URL(req.url)
 
@@ -134,6 +137,8 @@ async function findExpense(
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
@@ -167,6 +172,8 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'PUT')
   if (guard) return guard
 
@@ -235,6 +242,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'DELETE')
   if (guard) return guard
 

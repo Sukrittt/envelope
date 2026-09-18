@@ -2,6 +2,7 @@ import type { ClientSession } from 'mongodb'
 import { json, error, readBody, getCollection } from '@/lib/http'
 import type { ScopedCollection } from '@/lib/scoped'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
 import { casRetry } from '@/lib/cas'
@@ -30,6 +31,8 @@ interface Source {
  */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 

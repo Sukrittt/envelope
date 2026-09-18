@@ -1,11 +1,14 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const coll = await getCollection('categories', auth)
   const docs = await coll.find({}).sort({ order: 1 }).toArray()
   return json(
@@ -21,6 +24,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
@@ -39,6 +44,8 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'PUT')
   if (guard) return guard
 
@@ -89,6 +96,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   const auth = await getAuth(req)
+  const gate = await requireAccess(auth)
+  if (gate) return gate
   const guard = readOnlyGuard(auth, 'DELETE')
   if (guard) return guard
 
