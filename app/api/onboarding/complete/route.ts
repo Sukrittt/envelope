@@ -2,6 +2,7 @@ import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { completeOnboarding, getAccess } from '@/lib/billing/service'
+import { serializeUser, type UserDoc } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,5 +25,12 @@ export async function POST(req: Request) {
   const result = await completeOnboarding(db, auth.userId)
   if (!result.ok) return error('initial budget setup not found', 409)
 
-  return json({ onboardedAt: result.onboardedAt, access: await getAccess(auth.userId) })
+  // The updated profile comes back too, so the client can seed its `user`
+  // cache in one step rather than firing a second request to learn the
+  // onboardedAt it just caused.
+  const [user, access] = await Promise.all([
+    db.collection<UserDoc>('users').findOne({ _id: auth.userId }),
+    getAccess(auth.userId),
+  ])
+  return json({ onboardedAt: result.onboardedAt, user: serializeUser(user), access })
 }

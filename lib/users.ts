@@ -1,5 +1,7 @@
 import { getDb } from './mongodb'
 import { getWorkOSClient } from './workosClient'
+import { resolveCurrency } from '@/src/lib/currencies'
+import { purgesAt } from './archive'
 
 export interface UserDoc {
   currencyCode?: string
@@ -86,4 +88,21 @@ export async function ensureUserById(userId: string): Promise<void> {
 
   const user = await getWorkOSClient().userManagement.getUser(userId)
   await ensureUser(user)
+}
+
+/**
+ * The user shape both clients consume. Lives here rather than in the /api/user
+ * route because Next forbids route files exporting anything but handlers, and
+ * /api/onboarding/complete returns the same object so a just-onboarded client
+ * can seed its profile cache without a second request.
+ */
+export function serializeUser(user: UserDoc | null) {
+  if (!user) return null
+  return {
+    ...user,
+    currencyCode: resolveCurrency(user.currencyCode),
+    name: displayName(user),
+    emailVerified: user.emailVerified ?? true,
+    deletionScheduledFor: user.deleted_at ? purgesAt(user.deleted_at) : null,
+  }
 }

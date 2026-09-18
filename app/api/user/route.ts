@@ -1,25 +1,15 @@
-import { isCurrencyCode, resolveCurrency } from '@/src/lib/currencies'
+import { isCurrencyCode } from '@/src/lib/currencies'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { displayName, type UserDoc } from '@/lib/users'
+import { serializeUser, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
 import { completeOnboarding } from '@/lib/billing/service'
 
 export const dynamic = 'force-dynamic'
 
-function serialize(user: UserDoc | null) {
-  if (!user) return null
-  return {
-    ...user,
-    currencyCode: resolveCurrency(user.currencyCode),
-    name: displayName(user),
-    emailVerified: user.emailVerified ?? true,
-    deletionScheduledFor: user.deleted_at ? purgesAt(user.deleted_at) : null,
-  }
-}
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
@@ -27,7 +17,7 @@ export async function GET(req: Request) {
 
   const db = await getDb()
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
-  return json(serialize(user))
+  return json(serializeUser(user))
 }
 
 export async function PATCH(req: Request) {
@@ -88,7 +78,7 @@ export async function PATCH(req: Request) {
     if (!result.ok) return error('initial budget setup not found', 409)
   }
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
-  return json(serialize(user))
+  return json(serializeUser(user))
 }
 
 export async function DELETE(req: Request) {
