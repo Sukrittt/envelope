@@ -8,6 +8,7 @@ import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { generateJSON } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
 import { aiDisabledResponse } from '@/lib/systemSettings'
+import { aiAllowanceResponse } from '@/lib/ai/allowance'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -48,6 +49,9 @@ export async function GET(req: Request) {
 
   const aiOff = await aiDisabledResponse()
   if (aiOff) return aiOff
+
+  const overAllowance = await aiAllowanceResponse(auth)
+  if (overAllowance) return overAllowance
 
   if (await rateLimited(auth)) {
     return error('rate limited', 429)

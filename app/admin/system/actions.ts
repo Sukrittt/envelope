@@ -14,8 +14,12 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
   const message = String(form.get('maintenanceMessage') ?? '').trim().slice(0, MESSAGE_MAX)
   const latestVersion = String(form.get('androidLatestVersion') ?? '').trim().slice(0, 32)
   const storeUrl = String(form.get('androidStoreUrl') ?? '').trim().slice(0, 500)
+  const capRaw = String(form.get('aiMonthlyCostUsd') ?? '').trim()
+  const cap = capRaw === '' ? null : Number(capRaw)
+  if (cap !== null && (!Number.isFinite(cap) || cap <= 0)) return { ok: false, message: 'AI allowance must be a positive USD amount, or empty for no cap' }
   const next: SystemSettings = {
     aiDisabled: form.get('aiDisabled') === 'on',
+    aiMonthlyCostUsd: cap,
     maintenance: { on: form.get('maintenanceOn') === 'on', message },
     appUpdate: { android: { latestVersion, storeUrl } },
     // Two independent switches, on purpose: purchase entry can go live for a
@@ -26,6 +30,7 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
       enforced: form.get('billingEnforced') === 'on',
       purchaseEnabled: form.get('billingPurchaseEnabled') === 'on',
       audience: form.get('billingAudience') === 'everyone' ? 'everyone' : 'testers',
+      retentionDeleteEnabled: form.get('billingRetentionDelete') === 'on',
     },
   }
   if (next.maintenance.on && !message) return { ok: false, message: 'Add a banner message before turning it on' }

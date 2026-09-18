@@ -64,6 +64,7 @@ async function purgeExpired(): Promise<{ purged: number; accountsPurged: number 
       // WorkOS first: if it fails, the local row stays intact and this user
       // is retried on the next run instead of being orphaned in WorkOS.
       await getWorkOSClient().userManagement.deleteUser(user._id)
+      await db.collection('billing_accounts').deleteOne({ _id: user._id as never })
       await db.collection<UserDoc>('users').deleteOne({ _id: user._id })
       accountsPurged++
     } catch (err) {

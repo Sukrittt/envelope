@@ -7,12 +7,14 @@ function collectionDeleteMany(name: string) {
 
 const usersFindMock = vi.fn((): { toArray: () => Promise<Array<{ _id: string; deleted_at: string }>> } => ({ toArray: async () => [] }))
 const usersDeleteOneMock = vi.fn(async () => ({ deletedCount: 1 }))
+const billingDeleteOneMock = vi.fn(async () => ({ deletedCount: 1 }))
 const deleteUserMock = vi.fn(async () => undefined)
 
 vi.mock('@/lib/mongodb', () => ({
   getDb: vi.fn(async () => ({
     collection: (name: string) => {
       if (name === 'users') return { find: usersFindMock, deleteOne: usersDeleteOneMock }
+      if (name === 'billing_accounts') return { deleteOne: billingDeleteOneMock }
       return { deleteMany: collectionDeleteMany(name) }
     },
   })),
@@ -72,6 +74,8 @@ describe('GET /api/cron/gc', () => {
     expect(body.accountsPurged).toBe(1)
     expect(deleteUserMock).toHaveBeenCalledWith('user_a')
     expect(usersDeleteOneMock).toHaveBeenCalledWith({ _id: 'user_a' })
+    // The trial record goes with the account.
+    expect(billingDeleteOneMock).toHaveBeenCalledWith({ _id: 'user_a' })
 
     const workosOrder = deleteUserMock.mock.invocationCallOrder[0]
     const localOrder = usersDeleteOneMock.mock.invocationCallOrder[0]

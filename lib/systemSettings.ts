@@ -4,6 +4,13 @@ import { error } from './http'
 export interface SystemSettings {
   /** Kill switch: every Gemini-backed feature answers 503 and the coach push falls back to its plain body. */
   aiDisabled: boolean
+  /**
+   * Per-user monthly Gemini spend cap in USD, enforced server-side on the AI
+   * routes (lib/ai/allowance.ts). `null` = no cap — the allowance is a number
+   * to be chosen from real usage (/admin/ai), not guessed, so none is
+   * enforced until one is set.
+   */
+  aiMonthlyCostUsd: number | null
   /** Banner shown across the web app and exposed at GET /api/system/status for clients. */
   maintenance: { on: boolean; message: string }
   /** Latest store release advertised to Android clients on the More screen. Empty disables the prompt. */
@@ -28,11 +35,20 @@ export interface SystemSettings {
      * accident — going live is a separate, deliberate change to `everyone`.
      */
     audience: 'testers' | 'everyone'
+    /**
+     * Let the retention job actually delete accounts whose twelve-month
+     * window has passed. Off = it still sets deadlines, sends the 30/7/1-day
+     * notices and reports what it *would* delete, but destroys nothing.
+     * Flagged separately from `enforced` so the destructive step is its own
+     * deliberate decision.
+     */
+    retentionDeleteEnabled: boolean
   }
 }
 
 const DEFAULTS: SystemSettings = {
   aiDisabled: false,
+  aiMonthlyCostUsd: null,
   maintenance: { on: false, message: '' },
   appUpdate: {
     android: {
@@ -40,7 +56,7 @@ const DEFAULTS: SystemSettings = {
       storeUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
     },
   },
-  billing: { enforced: false, purchaseEnabled: false, audience: 'testers' },
+  billing: { enforced: false, purchaseEnabled: false, audience: 'testers', retentionDeleteEnabled: false },
 }
 const SETTINGS_ID = 'global'
 const CACHE_MS = 30_000
@@ -56,6 +72,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     const doc = await db.collection<Partial<SystemSettings> & { _id: string }>('system_settings').findOne({ _id: SETTINGS_ID })
     const value: SystemSettings = {
       aiDisabled: doc?.aiDisabled ?? DEFAULTS.aiDisabled,
+      aiMonthlyCostUsd: doc?.aiMonthlyCostUsd ?? DEFAULTS.aiMonthlyCostUsd,
       maintenance: { ...DEFAULTS.maintenance, ...doc?.maintenance },
       appUpdate: {
         android: { ...DEFAULTS.appUpdate.android, ...doc?.appUpdate?.android },

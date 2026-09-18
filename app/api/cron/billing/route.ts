@@ -4,6 +4,7 @@ import { getDb } from '@/lib/mongodb'
 import { recordCronRun, triggerOf } from '@/lib/cronRuns'
 import { BILLING_EVENTS, BILLING_SUBSCRIPTIONS, type BillingEventDoc, type BillingSubscriptionDoc } from '@/lib/billing/records'
 import { refreshFromProvider } from '@/lib/billing/service'
+import { runRetention, sendTrialReminders, type RetentionResult } from '@/lib/billing/lifecycle'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -29,6 +30,9 @@ const MAX_PER_RUN = 200
  * Two queues, both re-verified the same way:
  *  - subscriptions whose entitlement has lapsed or lapses within a day and a half
  *  - accounts whose last webhook failed to process
+ *
+ * Then the lifecycle jobs (lib/billing/lifecycle.ts): trial reminders, and the
+ * retention window.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
@@ -41,7 +45,7 @@ export async function GET(req: Request) {
   return json({ ok: true, ...result })
 }
 
-async function reconcile(): Promise<{ checked: number; failed: number }> {
+async function reconcile(): Promise<{ checked: number; failed: number; trialReminders: number; retention: RetentionResult }> {
   const db = await getDb()
   const horizon = new Date(Date.now() + LOOKAHEAD_MS)
 
@@ -77,5 +81,12 @@ async function reconcile(): Promise<{ checked: number; failed: number }> {
     }
   }
 
-  return { checked: userIds.length, failed }
+  // Reminders and retention run *after* reconciliation on purpose: the projection
+  // they read has just been repaired, so a renewal whose webhook went missing
+  // is not mistaken for a lapse.
+  const now = new Date()
+  const { sent } = await sendTrialReminders(db, now)
+  const retention = await runRetention(db, now)
+
+  return { checked: userIds.length, failed, trialReminders: sent, retention }
 }
