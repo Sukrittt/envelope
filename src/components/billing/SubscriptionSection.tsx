@@ -2,7 +2,7 @@
 
 import { ExternalLink, RefreshCw } from 'lucide-react'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
-import { formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
+import { billingVisible, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
 
 /**
  * Subscription status on the account page: what the plan is, when it renews
@@ -19,10 +19,10 @@ export function SubscriptionSection() {
 
   // Hidden entirely until subscriptions are switched on, so nobody is shown a
   // plan they cannot buy and a countdown that does not apply to them yet.
-  if (isLoading || !data || (!data.enforced && !data.purchaseEnabled && data.mode !== 'paid')) return null
+  if (isLoading || !data || !billingVisible(data)) return null
 
   return (
-    <div>
+    <div id="subscription">
       <div className="account-section-label" style={{ marginBottom: 10 }}>
         Subscription
       </div>

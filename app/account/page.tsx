@@ -32,6 +32,8 @@ import { LogExpenseModal } from '../../src/components/LogExpenseModal'
 import { ScanBillModal } from '../../src/features/scan-bill/ScanBillModal'
 import { SignOutDialog } from '../../src/components/ConfirmDialog'
 import { SubscriptionSection } from '../../src/components/billing/SubscriptionSection'
+import { billingVisible, planSummary } from '../../src/components/billing/copy'
+import { useBillingStatus } from '../../src/hooks/useBillingStatus'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
@@ -58,6 +60,8 @@ const NOTIFY_OPTIONS = [
 
 export default function AccountPage() {
   const { user } = useAuth()
+  const billing = useBillingStatus().data
+  const showBilling = billingVisible(billing)
   const { preference, setPreference } = useAppearance()
   const { openMoneyBrain } = useMoneyBrain()
   const [hideAmounts, setHideAmounts] = useHideAmounts()
@@ -210,18 +214,30 @@ export default function AccountPage() {
           <AccountRow icon={Lock} label="Account & security" href="/account/security" />
           <AccountRow icon={Database} label="Your data" href="/account/data" />
           <AccountRow icon={History} label="Bills Scanned" href="/account/bill-scans" />
-          <div className="account-row" style={{ cursor: 'default' }}>
-            <CreditCard size={16} aria-hidden="true" style={{ opacity: 0.5 }} />
-            <span className="account-row-label" style={{ color: 'var(--erd-text3)', textDecoration: 'line-through' }}>
-              Plan &amp; billing
-            </span>
+          {/* Twin of Mobile's Plan & billing row: tapping it shows the plan once
+              billing is live, or the trial notice before then. The badge is a
+              sibling of the link, since an anchor can't nest inside one. */}
+          <div style={{ display: 'flex', alignItems: 'center', paddingRight: 16 }}>
+            <Link
+              href={showBilling ? '#subscription' : '/account/trial-notice?from=more'}
+              className="account-row"
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              <CreditCard size={16} aria-hidden="true" />
+              <span className="account-row-label">
+                Plan &amp; billing
+                <span className="account-row-hint">
+                  {showBilling && billing ? planSummary(billing) : "You're on the trial plan"}
+                </span>
+              </span>
+            </Link>
             <a
               className="account-badge"
               href="https://github.com/Sukrittt/envelope-mobile"
               target="_blank"
               rel="noreferrer"
             >
-              Free &amp; open source
+              Open source
             </a>
           </div>
           <AccountRow icon={Compass} label="How this works" href="/account/guided-tour" />

@@ -75,3 +75,13 @@ describe('formatDate', () => {
     expect(formatDate(undefined)).toBe('—')
   })
 })
+
+describe('planSummary', () => {
+  it('summarises the plan for the account row', async () => {
+    const { planSummary, billingVisible } = await import('./copy')
+    expect(planSummary({ ...base, trialDaysRemaining: 3 })).toBe('Free trial · 3 days left')
+    expect(planSummary({ ...base, mode: 'expired', productId: null })).toBe('Trial ended')
+    expect(billingVisible({ ...base, enforced: false, purchaseEnabled: false })).toBe(false)
+    expect(billingVisible(undefined)).toBe(false)
+  })
+})

@@ -14,6 +14,30 @@ export function shouldWarnAboutTrial(status: BillingStatus | undefined): boolean
   return status?.mode === 'trial' && status.trialDaysRemaining <= REMINDER_DAYS[0]
 }
 
+/**
+ * Whether billing is worth mentioning at all. Before launch both server flags
+ * are off and nobody has paid, so the app keeps its pre-launch copy instead of
+ * a countdown to nothing. Mirrors Mobile's billingVisible.
+ */
+export function billingVisible(status: BillingStatus | undefined): boolean {
+  return !!status && (status.enforced || status.purchaseEnabled || status.mode === 'paid')
+}
+
+/** One line for the account page's Plan & billing row. Mirrors Mobile's planSummary. */
+export function planSummary(status: BillingStatus): string {
+  switch (status.mode) {
+    case 'trial':
+      return `Free trial · ${trialRemainingLabel(status.trialDaysRemaining)}`
+    case 'paid':
+      if (status.renewalState === 'grace') return 'Payment issue · fix in Google Play'
+      return status.autoRenew ? `Renews ${formatDate(status.paidExpiresAt)}` : `Ends ${formatDate(status.paidExpiresAt)}`
+    case 'expired':
+      return status.trialEndsAt && !status.productId ? 'Trial ended' : 'Subscription ended'
+    default:
+      return 'Finish setup to start your trial'
+  }
+}
+
 /** "3 days left", "Last day" — the phrase used everywhere the trial is mentioned. */
 export function trialRemainingLabel(daysRemaining: number): string {
   if (daysRemaining <= 0) return 'Last day'
