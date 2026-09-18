@@ -74,8 +74,11 @@ export async function PATCH(req: Request) {
     await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: updates })
   }
   if (completing) {
-    const result = await completeOnboarding(db, auth.userId)
-    if (!result.ok) return error('initial budget setup not found', 409)
+    // Lenient on purpose — see completeOnboarding. This is the path released
+    // app versions use, and they cannot be fixed by redeploying the API.
+    // POST /api/onboarding/complete, which new clients use, stays strict:
+    // that client can react to a 409 by retrying after its writes land.
+    await completeOnboarding(db, auth.userId, new Date(), { requireSetup: false })
   }
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
   return json(serializeUser(user))

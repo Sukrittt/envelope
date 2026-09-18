@@ -148,10 +148,16 @@ describe('PATCH /api/user — onboarding from a released app version', () => {
     expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { currencyCode: 'USD' } })
   })
 
-  it('answers 409, not a 500, when the initial budget setup is not actually there', async () => {
+  it('does not strand the user when our setup check disagrees with their app', async () => {
+    // Released builds cannot be fixed by redeploying the API. If this path
+    // rejected them, the user would sit on the setup screen retrying a
+    // request that fails every time, with no way forward. New clients use
+    // POST /api/onboarding/complete, which stays strict because they can
+    // react to a 409 by retrying once their writes land.
     completeOnboardingMock.mockResolvedValueOnce({ ok: false, reason: 'setup_incomplete' } as never)
     const res = await PATCH(patchRequest({ currencyCode: 'USD', onboardedAt: '2020-01-01T00:00:00.000Z' }))
-    expect(res.status).toBe(409)
+    expect(res.status).toBe(200)
+    expect(completeOnboardingMock).toHaveBeenCalledWith(expect.anything(), 'user_a', expect.any(Date), { requireSetup: false })
   })
 
   it('leaves an ordinary settings change alone — no onboardedAt key, no trial', async () => {

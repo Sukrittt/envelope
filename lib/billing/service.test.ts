@@ -112,6 +112,23 @@ describe('completeOnboarding', () => {
     expect(store.billing_accounts).toHaveLength(1)
   })
 
+  /**
+   * The path every app version already on Play uses. Those installs cannot be
+   * fixed by redeploying the API, so a heuristic disagreeing with them must
+   * never strand a user on the setup screen retrying a doomed request.
+   */
+  it('still completes for a legacy client when the setup check disagrees', async () => {
+    const { db, store } = fakeDb({ users: [{ _id: 'user_a', onboardedAt: null }] })
+    const result = await completeOnboarding(db, 'user_a', NOW, { requireSetup: false })
+    expect(result).toMatchObject({ ok: true, onboardedAt: NOW.toISOString() })
+    expect(store.billing_accounts).toHaveLength(1)
+  })
+
+  it('stays strict by default, so a new client can retry after its writes land', async () => {
+    const { db } = fakeDb({ users: [{ _id: 'user_a', onboardedAt: null }] })
+    expect(await completeOnboarding(db, 'user_a', NOW)).toEqual({ ok: false, reason: 'setup_incomplete' })
+  })
+
   it('is idempotent — a replay moves neither date', async () => {
     const { db, store } = fakeDb(structuredClone(setupDone))
     const first = await completeOnboarding(db, 'user_a', NOW)

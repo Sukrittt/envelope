@@ -101,8 +101,20 @@ export async function completeOnboarding(
   db: Db,
   userId: string,
   now: Date = new Date(),
+  opts: { requireSetup?: boolean } = {},
 ): Promise<CompleteOnboardingResult> {
-  if (!(await hasCompletedSetup(db, userId))) return { ok: false, reason: 'setup_incomplete' }
+  const requireSetup = opts.requireSetup ?? true
+  if (!(await hasCompletedSetup(db, userId))) {
+    if (requireSetup) return { ok: false, reason: 'setup_incomplete' }
+    // The legacy PATCH path passes `requireSetup: false`. An app version
+    // already on Play has finished its wizard by the time it calls this, and
+    // our check is a heuristic about what that wizard wrote — so being wrong
+    // here must not leave someone stuck on the setup screen forever, retrying
+    // a request that will keep failing. Granting the trial early costs
+    // nothing: it is one trial per account either way, and starting it sooner
+    // can only shorten the user's own.
+    console.warn('[billing] completing onboarding for', userId, 'without a verified initial setup')
+  }
 
   const account = await startTrial(db, userId, 'onboarding-v1', now)
 

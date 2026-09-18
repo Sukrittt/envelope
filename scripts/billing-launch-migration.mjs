@@ -6,11 +6,20 @@
 // anchoring to any historical date would hand some of them an already-dead
 // trial on day one.
 //
-// The launch instant is passed in explicitly and recorded on every row, so
-// reruns (a crash halfway, a second invocation, a retry after a network
-// blip) are idempotent: `$setOnInsert` under the user-id primary key means an
-// account that already has a trial keeps the dates it already has. A trial
-// clock is never restarted by this script.
+// Two cohorts, both ending up with the same fresh window:
+//
+//   1. Onboarded users with no billing account at all — granted a trial.
+//   2. Users who onboarded *after the backend shipped but before launch*.
+//      Their clock started at onboarding, weeks before subscriptions existed
+//      as a product, so some of them would arrive at launch with a trial that
+//      has already run out and be locked out on day one. Their window is
+//      moved to the launch instant.
+//
+// Both are idempotent, and neither can restart a clock that legitimately ran:
+// case 1 uses `$setOnInsert`, and case 2 is selected by `trialCohort:
+// 'onboarding-v1'` plus a start date before launch, then stamped
+// 'legacy-launch-v1' — so a rerun matches nothing. A trial granted after the
+// launch instant is never touched.
 //
 // Usage:
 //   node scripts/billing-launch-migration.mjs --at 2026-10-01T00:00:00Z --dry-run
@@ -52,6 +61,10 @@ try {
   )
   const toGrant = cohort.filter((u) => !existing.has(u._id))
 
+  // Trials that started before subscriptions were a product. See the header.
+  const prelaunchFilter = { trialCohort: 'onboarding-v1', trialStartedAt: { $lt: startedAt } }
+  const toReset = await db.collection('billing_accounts').countDocuments(prelaunchFilter)
+
   console.log(`cohort: ${cohort.length} onboarded live user(s); ${existing.size} already have a billing account`)
   console.log(`trial window: ${startedAt.toISOString()} → ${endsAt.toISOString()} (${TRIAL_DAYS} days, cohort ${COHORT})`)
 
@@ -59,8 +72,18 @@ try {
     console.log(`would grant a fresh trial to ${toGrant.length} user(s)`)
     for (const u of toGrant.slice(0, 20)) console.log(`  ${u._id}`)
     if (toGrant.length > 20) console.log(`  … and ${toGrant.length - 20} more`)
-  } else if (toGrant.length > 0) {
+    console.log(`would move ${toReset} pre-launch trial(s) onto the launch window`)
+  } else if (toGrant.length > 0 || toReset > 0) {
     const now = new Date()
+    if (toReset > 0) {
+      const reset = await db
+        .collection('billing_accounts')
+        .updateMany(prelaunchFilter, { $set: { trialStartedAt: startedAt, trialEndsAt: endsAt, trialCohort: COHORT } })
+      console.log(`moved ${reset.modifiedCount} pre-launch trial(s) onto the launch window`)
+    }
+    if (toGrant.length === 0) {
+      console.log('no new trials to grant')
+    } else {
     const result = await db.collection('billing_accounts').bulkWrite(
       toGrant.map((u) => ({
         updateOne: {
@@ -80,6 +103,7 @@ try {
       { ordered: false },
     )
     console.log(`granted ${result.upsertedCount} trial(s); ${toGrant.length - result.upsertedCount} already existed`)
+    }
   } else {
     console.log('nothing to grant')
   }
