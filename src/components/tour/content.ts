@@ -27,7 +27,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: 'Envelopes & Ready to Assign',
     blurb: 'Money gets a job before it gets spent.',
-    kicker: 'CHAPTER 1 OF 6',
+    kicker: 'CHAPTER 1 OF 7',
     lede: "Every category is an envelope. Your income shows up as one number, Ready to Assign, and you hand it out until there's nothing left to hand out.",
     nudge: 'Fund all four. Get Ready to Assign to zero.',
     linkLabel: 'Open Home',
@@ -37,7 +37,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: 'Logging money',
     blurb: 'One expense drains one envelope. Nothing else.',
-    kicker: 'CHAPTER 2 OF 6',
+    kicker: 'CHAPTER 2 OF 7',
     lede: 'Log what you spent and it comes out of that envelope only. So Fun going wild never quietly eats Groceries.',
     nudge: 'Log one and watch exactly one bar move.',
     linkLabel: 'Open Log expense',
@@ -47,7 +47,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: 'Move money',
     blurb: 'Short somewhere? Borrow from somewhere with slack.',
-    kicker: 'CHAPTER 3 OF 6',
+    kicker: 'CHAPTER 3 OF 7',
     lede: "An envelope can't cover a bill. Pull the difference from one that can. Sources are ranked by how much room they actually have.",
     nudge: 'Cover the ₹1,400 shortfall. Pick a source.',
     linkLabel: 'Open Home',
@@ -57,7 +57,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: 'The new month',
     blurb: "Your plan carries. Your leftovers don't.",
-    kicker: 'CHAPTER 4 OF 6',
+    kicker: 'CHAPTER 4 OF 7',
     lede: 'This is the bit everyone gets wrong, so we made it a quiz.',
     nudge: 'Answer, then flip to October 1.',
     linkLabel: 'Open Insights',
@@ -66,7 +66,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: 'Understanding your money',
     blurb: 'Insights, plus a brain you can interrogate.',
-    kicker: 'CHAPTER 5 OF 6',
+    kicker: 'CHAPTER 5 OF 7',
     lede: 'Insights steps back month by month: normal or not, where it went, a daily heatmap. Money Brain answers in plain language, having actually read your envelopes.',
     nudge: 'Ask it something nosy.',
     linkLabel: 'Open Money Brain',
@@ -74,9 +74,19 @@ export const CHAPTERS: Chapter[] = [
     linkNote: 'Opens the Money Brain drawer',
   },
   {
+    title: 'Notifications',
+    blurb: 'What pings you, when, and how to hush it.',
+    kicker: 'CHAPTER 6 OF 7',
+    lede: 'Nothing here pings you for fun. Every notification is tied to your envelopes, your bills or your month, and every one has a switch.',
+    nudge: 'Push Groceries past its thresholds, then try three kinds.',
+    linkLabel: 'Open Account',
+    href: '/account',
+    linkNote: 'Digest cadence lives under Notifications',
+  },
+  {
     title: 'Everything else',
-    blurb: 'Seven smaller things, one line each.',
-    kicker: 'CHAPTER 6 OF 6',
+    blurb: 'Six smaller things, one line each.',
+    kicker: 'CHAPTER 7 OF 7',
     lede: "The rest of the app on one screen. Click whatever you're curious about.",
     nudge: 'Open a couple.',
     linkLabel: 'Open Archive',
@@ -192,11 +202,6 @@ export const EXTRAS = [
     desc: 'Log holdings by type, from equity and FDs to mutual funds, gold, crypto and bonds, then see the portfolio total plus allocation at a glance.',
   },
   {
-    name: 'Alerts & digests',
-    emoji: '🔔',
-    desc: 'Per-envelope warnings at 50%, 90% and 100%, or your own number, bill reminders 1, 3 or 7 days ahead, and a daily or weekly digest if you want one.',
-  },
-  {
     name: 'Scan a bill',
     emoji: '📷',
     desc: 'Photograph or drag in a receipt and it reads the line items, splits them by however many people ate, and files each into an envelope before logging.',
@@ -205,5 +210,69 @@ export const EXTRAS = [
     name: 'Your data & privacy',
     emoji: '🔒',
     desc: 'Export everything to a file or wipe your transactions. Yours, always. Light, dark or system theme, and a switch that blurs every amount the moment the page opens.',
+  },
+] as const
+
+/** Chapter 6's envelope: tap to spend and watch the alert thresholds fire. */
+export const NOTIFY_ENVELOPE = { name: 'Groceries', emoji: '🛒', plan: 9000, spent: 3000, step: 1700 } as const
+export const NOTIFY_PCTS = [50, 90, 100] as const
+
+export type NotifyCadence = 'off' | 'weekly' | 'daily'
+
+/**
+ * Every other kind of push the app sends, mirroring Web's
+ * lib/notifications/rules.ts and the cron in app/api/notifications/run.
+ * `digestGated` kinds go quiet when the digest cadence is Off, same as the server.
+ */
+export const NOTIFY_KINDS = [
+  {
+    id: 'bill',
+    label: 'Bill reminder',
+    emoji: '🧾',
+    title: 'Netflix renews soon',
+    body: '₹649 due in 3 days (Oct 3).',
+    when: 'Before a subscription renews: 1, 3 or 7 days ahead, you pick.',
+    control: 'Its own switch, plus lead time. Rides along with the digest, so Off silences it.',
+    digestGated: true,
+  },
+  {
+    id: 'digest',
+    label: 'Digest',
+    emoji: '📊',
+    title: 'Your spending update',
+    body: '₹18,400 spent this month · ₹23,600 left · 8 days to go.',
+    when: 'Daily: one line every day, so the month never sneaks up on you. Weekly: the same line once a week, if daily feels chatty.',
+    control: 'Off, Weekly or Daily. Off by default.',
+    digestGated: true,
+  },
+  {
+    id: 'coach',
+    label: 'AI coach',
+    emoji: '🧠',
+    title: 'Heads up on this month',
+    body: 'Shopping is running hot. Fun has ₹4,000 of slack that could cover it guilt-free.',
+    when: "At most once a week, and only when you're on pace to overspend or an envelope already has. AI reads your real envelopes and writes one concrete fix. It never invents a number, and if AI is down you get the plain math instead.",
+    control: 'Smart nudge switch. Rides along with the digest, so Off silences it.',
+    digestGated: true,
+  },
+  {
+    id: 'auto',
+    label: 'Auto-added',
+    emoji: '🔁',
+    title: 'Spotify charged',
+    body: '₹119 auto-added for Spotify.',
+    when: 'The day a subscription, recurring expense or SIP comes due, it logs itself and tells you. Think receipt, not nudge.',
+    control: 'Always on while the recurring item exists. Pause or delete the item to stop it.',
+    digestGated: false,
+  },
+  {
+    id: 'wrapped',
+    label: 'Wrapped',
+    emoji: '🎧',
+    title: 'Your Wrapped is ready',
+    body: 'Your September Expense Wrapped just unlocked.',
+    when: "Once a month, on the 1st, when last month's story is ready.",
+    control: 'Its own switch. Works even with the digest Off.',
+    digestGated: false,
   },
 ] as const

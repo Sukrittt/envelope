@@ -1,8 +1,13 @@
+'use client'
+
 import { useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { ENVELOPE_SPRING, SpringCollapse } from '@/src/components/SpringCollapse'
 import { EXTRAS } from '@/src/components/tour/content'
 
-/** Chapter 6: the rest of the app, one accordion row each. */
+/** Chapter 7: the rest of the app, one accordion row each. */
 export function ExtrasList({ onComplete }: { onComplete: () => void }) {
+  const reduce = useReducedMotion()
   const [open, setOpen] = useState<Record<number, boolean>>({})
 
   function toggle(index: number) {
@@ -18,14 +23,29 @@ export function ExtrasList({ onComplete }: { onComplete: () => void }) {
       {EXTRAS.map((extra, index) => {
         const isOpen = !!open[index]
         return (
-          <div key={extra.name} className={`tour-extra-row ${isOpen ? 'is-open' : ''}`}>
+          // `layout` springs the siblings below as the row grows, like Mobile's LinearTransition.
+          <motion.div
+            key={extra.name}
+            layout={reduce ? false : 'position'}
+            transition={ENVELOPE_SPRING}
+            className={`tour-extra-row ${isOpen ? 'is-open' : ''}`}
+          >
             <button type="button" className="tour-extra-head" aria-expanded={isOpen} onClick={() => toggle(index)}>
               <div className="tour-row-tile">{extra.emoji}</div>
               <span className="tour-extra-name">{extra.name}</span>
-              <span className={`tour-extra-plus ${isOpen ? 'is-open' : ''}`}>+</span>
+              <motion.span
+                className={`tour-extra-plus ${isOpen ? 'is-open' : ''}`}
+                initial={false}
+                animate={{ rotate: isOpen ? 45 : 0 }}
+                transition={reduce ? { duration: 0 } : ENVELOPE_SPRING}
+              >
+                +
+              </motion.span>
             </button>
-            {isOpen && <p className="tour-extra-desc">{extra.desc}</p>}
-          </div>
+            <SpringCollapse open={isOpen}>
+              <p className="tour-extra-desc">{extra.desc}</p>
+            </SpringCollapse>
+          </motion.div>
         )
       })}
     </div>

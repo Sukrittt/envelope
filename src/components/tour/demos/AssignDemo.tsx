@@ -1,6 +1,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 
+import { AmountText, type as tokenType } from '@/src/components/landing/mobile/kit'
 import { TourRow } from '@/src/components/tour/parts'
 import { ASSIGN_ROWS, TOUR_INCOME } from '@/src/components/tour/content'
 
@@ -23,6 +24,7 @@ export function AssignDemo({ onComplete }: { onComplete: () => void }) {
   }
 
   const heroClass = readyToAssign === 0 ? 'is-mint' : readyToAssign < 0 ? 'is-coral' : ''
+  const heroColor = readyToAssign === 0 ? 'var(--mint)' : readyToAssign < 0 ? 'var(--coral)' : 'var(--erd-text)'
   const note =
     readyToAssign === 0
       ? 'All your money has a job ✓'
@@ -34,7 +36,14 @@ export function AssignDemo({ onComplete }: { onComplete: () => void }) {
     <div className="tour-demo">
       <div className="tour-hero">
         <span className="tour-hero-label">READY TO ASSIGN</span>
-        <span className={`tour-hero-value ${heroClass}`}>{formatCurrency(readyToAssign)}</span>
+        <AmountText
+          value={readyToAssign}
+          size={tokenType.display}
+          color={heroColor}
+          weight="displayBold"
+          animate
+          id="tour-rta"
+        />
         <span className={`tour-hero-note ${heroClass}`}>{note}</span>
       </div>
 

@@ -5505,6 +5505,8 @@ button.account-feature-card {
   text-align: center;
 }
 
+  .tour-dot, .tour-log-card .env-bar-fill, .tour-notify-fill, .tour-notify-tick { transition: none; }
+  .tour-quiz-mark { animation: none; }
 .tour-hero-label {
   font-size: 11px;
   font-weight: 700;
@@ -5512,17 +5514,10 @@ button.account-feature-card {
   color: var(--erd-text2);
 }
 
-.tour-hero-value {
-  font-family: var(--font-fredoka);
-  font-size: 34px;
-}
-
-.tour-hero-value.is-mint,
 .tour-hero-note.is-mint {
   color: var(--mint);
 }
 
-.tour-hero-value.is-coral,
 .tour-hero-note.is-coral {
   color: var(--coral);
 }
@@ -5927,12 +5922,11 @@ button.account-feature-card {
 .tour-extra-plus {
   font-size: 18px;
   color: var(--erd-text3);
-  transition: transform 0.2s ease;
+  display: inline-block;
 }
 
 .tour-extra-plus.is-open {
   color: var(--gold-ink);
-  transform: rotate(45deg);
 }
 
 .tour-extra-desc {
@@ -6072,7 +6066,24 @@ button.account-feature-card {
 }
 
 .tour-done .setup-cta,
-.tour-hub .setup-cta {
+.tour-hub .setup-cta,
+.tour-footer .setup-cta {
+  width: 100%;
+}
+
+/* PopIn wrappers keep the grouped-card dividers that .account-row + .account-row drew. */
+.account-card > .tour-pop + .tour-pop {
+  border-top: 1px solid var(--erd-border);
+}
+
+.tour-done-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tour-done-actions {
   width: 100%;
 }
 
@@ -6285,6 +6296,7 @@ button.account-feature-card {
   font-size: 12px;
   font-weight: 700;
   color: var(--erd-text);
+  transition: width 250ms ease, background-color 250ms ease;
 }
 .scan-subtitle { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: var(--erd-text2); }
 .scan-drop { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 18px; padding: 36px 24px; border: 1.5px dashed var(--erd-border-strong); border-radius: 20px; background: var(--erd-input-bg); text-align: center; transition: border-color 0.15s ease, background-color 0.15s ease; }
@@ -6370,6 +6382,212 @@ button.account-feature-card {
   .archive-row { flex-wrap: wrap; }
   .archive-row-clock { width: auto; flex: 1 0 100%; order: 3; }
 }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-quiz-mark {
+  animation: tour-fade-in 120ms ease-out;
+}
+
+@keyframes tour-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mobile's ProgressBar tween on a logged expense: waits 500ms, then 900ms in-out-cubic, colour handing over on the way. */
+.tour-log-card .env-bar-track {
+  max-width: none;
+  height: 5px;
+}
+
+.tour-log-card .env-bar-fill {
+  transition:
+    width 900ms cubic-bezier(0.65, 0, 0.35, 1) 500ms,
+    background-color 900ms cubic-bezier(0.65, 0, 0.35, 1) 500ms;
+}
+
+.tour-pill.is-accent {
+  border: none;
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  font-weight: 800;
+}
+
+.tour-card.is-over {
+  border-color: var(--coral);
+}
+
+/* Chapter 6: lock screen, alert bar with threshold ticks, digest segments */
+.tour-notify-lock {
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid var(--erd-border);
+  background: var(--erd-input-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tour-notify-clock {
+  font-family: var(--font-fredoka);
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.tour-notify-quiet {
+  margin: 0;
+  padding-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--erd-text3);
+  text-align: center;
+}
+
+.tour-notify-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--erd-border);
+  background: var(--erd-card-solid);
+}
+
+.tour-notify-banner-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--erd-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tour-notify-banner-body {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--erd-text2);
+}
+
+.tour-notify-now {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--erd-text3);
+  align-self: flex-start;
+}
+
+.tour-notify-track-wrap {
+  position: relative;
+  height: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.tour-notify-track {
+  width: 100%;
+  height: 9px;
+  border-radius: 100px;
+  background: var(--erd-input-bg);
+  overflow: hidden;
+}
+
+.tour-notify-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: var(--gold);
+  transition: width 420ms cubic-bezier(0.33, 1, 0.68, 1), background-color 420ms ease;
+}
+
+.tour-notify-fill.is-coral {
+  background: var(--coral);
+}
+
+.tour-notify-tick {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 15px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--erd-border-strong);
+  transition: background-color 200ms ease;
+}
+
+.tour-notify-tick.is-hit {
+  background: var(--gold-ink);
+}
+
+.tour-segmented {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 100px;
+  background: var(--erd-input-bg);
+}
+
+.tour-segment {
+  flex: 1;
+  height: 32px;
+  border: none;
+  border-radius: 100px;
+  background: transparent;
+  color: var(--erd-text2);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tour-segment.is-active {
+  background: var(--gold);
+  color: var(--erd-on-accent);
+}
+
+.tour-notify-cadence-note {
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--erd-text3);
+}
+
+.tour-android-cta {
+  align-self: flex-start;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 100px;
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.tour-chip.is-silenced {
+  opacity: 0.5;
+}
+
+.tour-notify-silenced {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold-ink);
+}
+
+.tour-notify-detail {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--erd-text);
+}
+
+.tour-notify-detail b,
+.tour-result-note b {
+  font-weight: 800;
 
 @media (prefers-reduced-motion: reduce) {
   .scan-item, .scan-bucket, .scan-scanning-thumb { animation: none; }

@@ -1,7 +1,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 
-import { TourRow } from '@/src/components/tour/parts'
+import { FadeIn, Reaction, TourRow } from '@/src/components/tour/parts'
 import { useTourContent } from '@/src/components/tour/useTourContent'
 import { ROLLOVER_ROWS } from '@/src/components/tour/content'
 
@@ -32,8 +32,8 @@ export function RolloverDemo({ onComplete }: { onComplete: () => void }) {
           const good = revealed && option.correct
           const bad = answer === option.id && !option.correct
           return (
+            <Reaction key={option.id} on={good || bad} kind={bad ? 'wobble' : 'bounce'} by={1.04}>
             <button
-              key={option.id}
               type="button"
               className={`tour-quiz-option ${good ? 'is-good' : bad ? 'is-bad' : ''}`}
               onClick={() => {
@@ -41,12 +41,17 @@ export function RolloverDemo({ onComplete }: { onComplete: () => void }) {
                 if (option.correct) onComplete()
               }}
             >
-              <span className="tour-quiz-dot">{good ? '✓' : bad ? '✕' : ''}</span>
+              <span className="tour-quiz-dot">{(good || bad) && <span className="tour-quiz-mark">{good ? '✓' : '✕'}</span>}</span>
               <span className="tour-quiz-label">{option.label}</span>
             </button>
+            </Reaction>
           )
         })}
-        {picked && <p className={`tour-quiz-feedback ${picked.correct ? 'is-mint' : 'is-warn'}`}>{picked.feedback}</p>}
+        {picked && (
+          <FadeIn ms={200} key={picked.id}>
+            <p className={`tour-quiz-feedback ${picked.correct ? 'is-mint' : 'is-warn'}`}>{picked.feedback}</p>
+          </FadeIn>
+        )}
       </div>
 
       <div className="tour-tabs" role="tablist">

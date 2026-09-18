@@ -5,18 +5,21 @@ import { useRouter } from 'next/navigation'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { useTourContent } from '@/src/components/tour/useTourContent'
+import { motion, useReducedMotion } from 'motion/react'
+import { FadeIn, PopIn } from '@/src/components/tour/parts'
 
 import { AssignDemo } from '../../../src/components/tour/demos/AssignDemo'
 import { LogDemo } from '../../../src/components/tour/demos/LogDemo'
 import { MoveDemo } from '../../../src/components/tour/demos/MoveDemo'
 import { RolloverDemo } from '../../../src/components/tour/demos/RolloverDemo'
 import { InsightsDemo } from '../../../src/components/tour/demos/InsightsDemo'
+import { NotifyDemo } from '../../../src/components/tour/demos/NotifyDemo'
 import { ExtrasList } from '../../../src/components/tour/demos/ExtrasList'
 
 type View3 = 'hub' | 'chapter' | 'done'
 
 /**
- * The guided tour: six chapters that explain the app by letting you poke at a
+ * The guided tour: seven chapters that explain the app by letting you poke at a
  * fake copy of it. Every demo is local state over the constants in
  * src/components/tour/content.ts, so nothing here can touch real money.
  * Twin of Mobile's app/account/guided-tour.tsx, sidebar-nested per the parity
@@ -91,7 +94,9 @@ export default function GuidedTourPage() {
             {done.has(chapter) ? 'Nice. That is the whole idea.' : current.nudge}
           </p>
 
-          <ChapterDemo index={chapter} onComplete={() => complete(chapter)} />
+          <FadeIn ms={180} key={chapter} className="tour-demo-wrap">
+            <ChapterDemo index={chapter} onComplete={() => complete(chapter)} />
+          </FadeIn>
 
           {!isLast && (
             <button type="button" className="tour-try-real" onClick={openReal}>
@@ -141,7 +146,10 @@ export default function GuidedTourPage() {
             setChapter(i)
             setView('chapter')
           }}
-          onFinish={() => router.push('/account')}
+          // Fresh onboarding links here with ?fresh=1 so the trial notice shows
+          // once, right before the app's first real screen. Reopening the tour
+          // later from the account page has no param and exits straight back.
+          onFinish={() => router.push(new URLSearchParams(window.location.search).has('fresh') ? '/account/trial-notice' : '/account')}
           onStartOver={() => {
             setDone(new Set())
             setChapter(0)
@@ -159,6 +167,7 @@ function ChapterDemo({ index, onComplete }: { index: number; onComplete: () => v
   if (index === 2) return <MoveDemo onComplete={onComplete} />
   if (index === 3) return <RolloverDemo onComplete={onComplete} />
   if (index === 4) return <InsightsDemo onComplete={onComplete} />
+  if (index === 5) return <NotifyDemo onComplete={onComplete} />
   return <ExtrasList onComplete={onComplete} />
 }
 
@@ -176,14 +185,22 @@ function Hub({
   onStart: () => void
 }) {
   const { CHAPTERS } = useTourContent()
+  const reduce = useReducedMotion()
 
   return (
     <div className="tour-hub">
       <div className="tour-hub-hero">
-        <div className="tour-hub-badge">✉️</div>
+        {/* Mobile's badge bob: 1.7s each way, up 7px while tilting -2° → 2°. */}
+        <motion.div
+          className="tour-hub-badge"
+          animate={reduce ? undefined : { y: [0, -7, 0], rotate: [-2, 2, -2] }}
+          transition={{ duration: 3.4, ease: 'easeInOut', repeat: Infinity }}
+        >
+          ✉️
+        </motion.div>
         <div className="tour-row-body">
           <h2 className="tour-hub-title">Your money gets a job.</h2>
-          <p className="tour-hub-subtitle">Six short chapters. All of them are pokeable, none of them touch your real money.</p>
+          <p className="tour-hub-subtitle">Seven short chapters. All of them are pokeable, none of them touch your real money.</p>
         </div>
       </div>
 
@@ -198,16 +215,18 @@ function Hub({
         {CHAPTERS.map((c, i) => {
           const isDone = done.has(i)
           return (
-            <button key={c.title} type="button" className={`account-row tour-hub-row ${isDone ? 'is-done' : ''}`} onClick={() => onOpen(i)}>
-              <span className={`tour-hub-badge-num ${isDone ? 'is-done' : ''}`}>{isDone ? '✓' : i + 1}</span>
-              <span className="tour-hub-row-body">
-                <span className="account-row-label">{c.title}</span>
-                <span className="tour-hub-row-blurb">{c.blurb}</span>
-              </span>
-              <span className="account-row-arrow" aria-hidden="true">
-                →
-              </span>
-            </button>
+            <PopIn key={c.title} delay={i * 40} className="tour-pop">
+              <button type="button" className={`account-row tour-hub-row ${isDone ? 'is-done' : ''}`} onClick={() => onOpen(i)}>
+                <span className={`tour-hub-badge-num ${isDone ? 'is-done' : ''}`}>{isDone ? '✓' : i + 1}</span>
+                <span className="tour-hub-row-body">
+                  <span className="account-row-label">{c.title}</span>
+                  <span className="tour-hub-row-blurb">{c.blurb}</span>
+                </span>
+                <span className="account-row-arrow" aria-hidden="true">
+                  →
+                </span>
+              </button>
+            </PopIn>
           )
         })}
       </div>
@@ -215,7 +234,7 @@ function Hub({
       <button type="button" className="setup-cta" onClick={onStart}>
         {doneCount === 0 ? 'Start the tour' : firstOpen === -1 ? 'See the recap' : `Continue · chapter ${firstOpen + 1}`}
       </button>
-      <p className="tour-hub-footnote">Jump in anywhere · about 2 minutes end to end</p>
+      <p className="tour-hub-footnote">Jump in anywhere · about 3 minutes end to end</p>
     </div>
   )
 }
@@ -237,32 +256,42 @@ function Done({
 
   return (
     <div className="tour-done">
-      <div className="tour-done-medal">🏅</div>
-      <h2 className="tour-done-title">{doneCount === CHAPTERS.length ? 'You know the whole app.' : `Tour done · ${doneCount} of ${CHAPTERS.length} poked.`}</h2>
-      <p className="tour-done-subtitle">
-        Fund the envelopes, log as you go, move money when life happens, start clean on the 1st. That is the entire loop.
-      </p>
+      <PopIn>
+        <div className="tour-done-medal">🏅</div>
+      </PopIn>
+      <PopIn delay={80} className="tour-done-copy">
+        <h2 className="tour-done-title">{doneCount === CHAPTERS.length ? 'You know the whole app.' : `Tour done · ${doneCount} of ${CHAPTERS.length} poked.`}</h2>
+        <p className="tour-done-subtitle">
+          Fund the envelopes, log as you go, move money when life happens, start clean on the 1st. That is the entire loop.
+        </p>
+      </PopIn>
 
       <div className="account-card tour-done-recap">
         {CHAPTERS.map((c, i) => (
-          <div key={c.title} className="account-row" style={{ cursor: 'default' }}>
-            <span className={`tour-done-tick ${done.has(i) ? 'is-done' : ''}`}>{done.has(i) ? '✓' : '○'}</span>
-            <span className="account-row-label" style={{ flex: 1 }}>
-              {c.title}
-            </span>
-            <button type="button" className="tour-center-link" onClick={() => onOpen(i)}>
-              {done.has(i) ? 'Revisit' : 'Try it'}
-            </button>
-          </div>
+          <PopIn key={c.title} delay={160 + i * 60} className="tour-pop">
+            <div className="account-row" style={{ cursor: 'default' }}>
+              <span className={`tour-done-tick ${done.has(i) ? 'is-done' : ''}`}>
+                {done.has(i) ? <PopIn delay={160 + i * 60 + 120}>✓</PopIn> : '○'}
+              </span>
+              <span className="account-row-label" style={{ flex: 1 }}>
+                {c.title}
+              </span>
+              <button type="button" className="tour-center-link" onClick={() => onOpen(i)}>
+                {done.has(i) ? 'Revisit' : 'Try it'}
+              </button>
+            </div>
+          </PopIn>
         ))}
       </div>
 
-      <button type="button" className="setup-cta" onClick={onFinish}>
-        Back to my money
-      </button>
-      <button type="button" className="tour-center-link" onClick={onStartOver}>
-        Start over
-      </button>
+      <PopIn delay={160 + CHAPTERS.length * 60} className="tour-done-actions">
+        <button type="button" className="setup-cta" onClick={onFinish}>
+          Back to my money
+        </button>
+        <button type="button" className="tour-center-link" onClick={onStartOver}>
+          Start over
+        </button>
+      </PopIn>
     </div>
   )
 }

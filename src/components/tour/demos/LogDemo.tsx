@@ -44,7 +44,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
             </div>
             <div className="env-bar-track">
               <div
-                className={`env-bar-fill ${pct >= 100 ? 'is-coral' : pct >= 85 ? 'is-warn' : 'is-mint'}`}
+                className={`env-bar-fill ${pct === 100 ? 'is-done' : pct > 90 ? 'is-coral' : pct > 75 ? 'is-warn' : 'is-mint'}`}
                 style={{ width: `${pct}%` }}
               />
             </div>

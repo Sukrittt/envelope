@@ -1,7 +1,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 
-import { SectionLabel, ResultCard } from '@/src/components/tour/parts'
+import { SectionLabel, ResultCard, FadeIn, Reaction } from '@/src/components/tour/parts'
 import { MOVE_AMOUNT, MOVE_IN_ENVELOPE, MOVE_NEED, MOVE_SOURCES } from '@/src/components/tour/content'
 
 /** Chapter 3: cover a shortfall by borrowing from an envelope with slack. */
@@ -32,8 +32,8 @@ export function MoveDemo({ onComplete }: { onComplete: () => void }) {
         const taken = moved?.id === source.id ? moved.amount : 0
         const isProtected = 'protected' in source && source.protected
         return (
+          <Reaction key={source.id} on={taken > 0}>
           <button
-            key={source.id}
             type="button"
             className={`tour-source ${taken ? 'is-taken' : isProtected ? 'is-protected' : ''}`}
             onClick={() => {
@@ -53,10 +53,12 @@ export function MoveDemo({ onComplete }: { onComplete: () => void }) {
               <span className="tour-kicker">AVAILABLE</span>
             </div>
           </button>
+          </Reaction>
         )
       })}
 
       {moved && (
+        <FadeIn ms={200}>
         <ResultCard tone="mint">
           <span className="tour-move-result-title">
             {formatCurrency(moved.amount)} moved from {moved.name}
@@ -66,6 +68,7 @@ export function MoveDemo({ onComplete }: { onComplete: () => void }) {
             Undo
           </button>
         </ResultCard>
+        </FadeIn>
       )}
     </div>
   )

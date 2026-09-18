@@ -177,7 +177,15 @@ export default function AccountPage() {
             />
           </label>
           <div className="account-row" style={{ cursor: 'default' }}>
-            <span className="account-row-label">Notifications</span>
+            <span className="account-row-label">
+              Notifications
+              <span className="account-row-hint">
+                Alerts only arrive on the Android app.{' '}
+                <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--gold-ink)', fontWeight: 700 }}>
+                  Get it
+                </a>
+              </span>
+            </span>
             <div className="account-segmented" role="group" aria-label="Notification cadence">
               {NOTIFY_OPTIONS.map((opt) => (
                 <button
