@@ -1,6 +1,9 @@
+import { ExpenseNoticeDialog } from './ExpenseNoticeDialog';
+import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ReceiptText } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
@@ -98,7 +101,7 @@ export function TransactionsView({
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState<{ status?: number } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [actionsKey, setActionsKey] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
@@ -230,7 +233,7 @@ export function TransactionsView({
   async function handleDelete(t: Transaction) {
     if (deleting) return;
     setDeleting(true);
-    setDeleteError(null);
+    setDeleteNotice(null);
     try {
       await deleteExpenseM.mutateAsync({
         id: t.id,
@@ -246,9 +249,7 @@ export function TransactionsView({
       // A conflict requires a new confirmation after reviewing the refreshed row.
       setDeleteKey(null);
       setActionsKey(null);
-      setDeleteError(
-        err instanceof Error ? err.message : "Failed to delete transaction",
-      );
+      setDeleteNotice({ status: err instanceof ExpenseWriteError ? err.status : undefined });
     }
     setDeleting(false);
   }
@@ -322,7 +323,7 @@ export function TransactionsView({
         </button>
       </div>
 
-      {deleteError && <p className="txn-entry-error">{deleteError}</p>}
+      {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
       <button
         type="button"
@@ -342,7 +343,9 @@ export function TransactionsView({
         </div>
       ) : totalCount === 0 ? (
         <div className="account-empty txn-timeline-empty">
-          <span aria-hidden="true">🧾</span>
+          <span aria-hidden="true">
+            <ReceiptText size={30} strokeWidth={1.8} />
+          </span>
           {search || selectedCategory ? (
             <>
               <div className="account-empty-title">Nothing matches</div>

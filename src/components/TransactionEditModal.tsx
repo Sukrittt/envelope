@@ -1,8 +1,9 @@
+import { ExpenseNoticeDialog } from './ExpenseNoticeDialog'
 import { useQueryClient } from '@tanstack/react-query'
 import { ExpenseWriteError, expenseChanges, expenseDraft, rebaseExpenseDraft } from '../lib/expenseConflict'
 import type { ExpenseRow } from '../types'
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { updateExpense, addExpense, deleteExpense } from '../api/expenses'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -39,7 +40,10 @@ export function TransactionEditModal({
   const [base, setBase] = useState({ item: initialItem, amount: String(amountInr), date: initialDate.slice(0, 10), category: initialCategory })
   const [expectedVersion, setExpectedVersion] = useState(version)
   const [conflict, setConflict] = useState<ExpenseRow | null>(null)
+  const reviewRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (conflict) reviewRef.current?.focus() }, [conflict])
   const [deleted, setDeleted] = useState(false)
+  const [showDeletedNotice, setShowDeletedNotice] = useState(false)
   const [item, setItem] = useState(initialItem)
   const [amount, setAmount] = useState(String(amountInr))
   const [date, setDate] = useState(initialDate.slice(0, 10))
@@ -76,7 +80,9 @@ export function TransactionEditModal({
   function handleError(err: unknown) {
     if (err instanceof ExpenseWriteError) {
       if (err.status === 409 && err.current) setConflict(err.current)
-      if (err.status === 404) setDeleted(true)
+      if (err.status === 404) {
+        setDeleted(true); setShowDeletedNotice(true); setError(''); refresh(); fail(); return
+      }
     }
     setError(err instanceof Error ? err.message : 'Failed to update transaction')
     refresh()
@@ -130,6 +136,14 @@ export function TransactionEditModal({
     }
   }
 
+  const merged = conflict ? rebaseExpenseDraft(base, { item, amount, date, category }, conflict) : null
+  const reviewRows = conflict && merged ? [
+    { label: 'Description', saved: conflict.item, next: merged.item, changed: conflict.item !== base.item || item.trim() !== base.item },
+    { label: 'Amount', saved: `${currencySymbol}${Number(conflict.amount_inr).toLocaleString()}`, next: `${currencySymbol}${Number(merged.amount).toLocaleString()}`, changed: Number(conflict.amount_inr) !== Number(base.amount) || Number(amount) !== Number(base.amount) },
+    { label: 'Date', saved: conflict.date.slice(0, 10), next: merged.date, changed: conflict.date.slice(0, 10) !== base.date || date !== base.date },
+    { label: 'Category', saved: conflict.category, next: merged.category, changed: conflict.category !== base.category || category !== base.category },
+  ].filter((row) => row.changed) : []
+
   return (
     <Scrim
       className="category-manager-overlay"
@@ -137,6 +151,7 @@ export function TransactionEditModal({
         if (e.target === e.currentTarget) onClose()
       }}
     >
+      {showDeletedNotice && <ExpenseNoticeDialog status={404} action="edit" onBack={() => setShowDeletedNotice(false)} />}
       <Sheet className="category-manager subscription-modal">
         <div className="category-manager-header">
           <h3>Edit transaction</h3>
@@ -145,25 +160,36 @@ export function TransactionEditModal({
           </button>
         </div>
 
-        {error && <p className="txn-entry-error">{error}</p>}
+        {error && !conflict && <p className="txn-entry-error">{error}</p>}
         {conflict && (
-          <div role="alert" className="txn-entry-error">
-            <h4>Review changes</h4>
-            <p>Your draft is preserved. Choose which values to review before saving again.</p>
-            <table>
-              <thead><tr><th>Field</th><th>Latest saved</th><th>Your draft</th></tr></thead>
-              <tbody>
-                <tr><th>Description</th><td>{conflict.item}</td><td>{item}</td></tr>
-                <tr><th>Amount</th><td>{conflict.amount_inr}</td><td>{amount}</td></tr>
-                <tr><th>Date</th><td>{conflict.date}</td><td>{date}</td></tr>
-                <tr><th>Category</th><td>{conflict.category}</td><td>{category}</td></tr>
-              </tbody>
-            </table>
-            <button type="button" className="action-button" onClick={() => reviewLatest(false)}>Reload latest</button>
-            <button type="button" className="action-button" onClick={() => reviewLatest(true)}>Keep my changes</button>
+          <div className="txn-review" ref={reviewRef} tabIndex={-1} role="region" aria-labelledby="txn-review-title">
+            <span className="txn-review-icon" aria-hidden="true">↻</span>
+            <h4 id="txn-review-title">This transaction was updated</h4>
+            <p className="txn-review-intro">A newer version was saved elsewhere. Your edits are still here.</p>
+            {reviewRows.length > 0 && (
+              <div className="txn-review-comparison">
+                <div className="txn-review-columns" aria-hidden="true"><span>Latest saved</span><span>With your changes</span></div>
+                {reviewRows.map((row) => (
+                  <div className="txn-review-row" key={row.label}>
+                    <div className="txn-review-label">{row.label}</div>
+                    <div className="txn-review-values">
+                      <span><span className="txn-review-sr-only">Latest saved: </span>{row.saved}</span>
+                      <span className={row.saved !== row.next ? 'txn-review-changed' : ''}><span className="txn-review-sr-only">With your changes: </span>{row.next}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="txn-review-note">Continue with your edits and keep other updates. You can review everything before saving.</p>
+            <div className="txn-review-actions">
+              <button type="button" className="txn-review-primary" onClick={() => reviewLatest(true)}>Continue with my changes <span aria-hidden="true">→</span></button>
+              <button type="button" className="txn-review-secondary" onClick={() => reviewLatest(false)}>Use latest instead</button>
+            </div>
+            <p className="txn-review-footnote">Nothing will be saved until you confirm.</p>
           </div>
         )}
 
+        {!conflict && <>
         <div className="category-manager-body">
           <div className="subscription-modal-form">
             <label className="subscription-modal-field">
@@ -196,15 +222,6 @@ export function TransactionEditModal({
               <DatePicker mode="single" value={date} onChange={setDate} />
             </label>
 
-            <label className="erd-split-toggle">
-              <input
-                type="checkbox"
-                checked={isSplit}
-                onChange={(e) => setIsSplit(e.target.checked)}
-              />
-              Split this expense across categories
-            </label>
-
             {isSplit ? (
               <SplitExpenseEditor total={amt || 0} lines={splitLines} onChange={setSplitLines} />
             ) : (
@@ -230,6 +247,7 @@ export function TransactionEditModal({
             Save changes
           </SuccessButton>
         </div>
+        </>}
       </Sheet>
     </Scrim>
   )

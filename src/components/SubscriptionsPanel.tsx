@@ -2,7 +2,7 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus, Repeat2 } from "lucide-react";
 import { getEffectiveDueDate } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
 import { CHART_COLORS } from "../theme/chartColors";
@@ -229,12 +229,13 @@ export function SubscriptionsPanel({
         <h3>Subscriptions</h3>
         <button
           type="button"
-          className="erd-manage-btn"
+          className="action-button is-active subp-add-button"
           onClick={onAdd}
           title="Add subscription"
           disabled={loading}
         >
-          + Add
+          <Plus size={14} aria-hidden="true" />
+          Add
         </button>
       </div>
 
@@ -246,7 +247,9 @@ export function SubscriptionsPanel({
         </p>
       ) : active.length === 0 && cancelled.length === 0 ? (
         <div className="account-empty">
-          <span aria-hidden="true">🔁</span>
+          <span aria-hidden="true">
+            <Repeat2 size={30} strokeWidth={1.8} />
+          </span>
           <div className="account-empty-title">No subscriptions yet</div>
           <p className="account-row-meta">Track renewals so bills never surprise you.</p>
           <button type="button" className="action-button is-active" onClick={onAdd}>
