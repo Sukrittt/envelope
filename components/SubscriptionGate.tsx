@@ -16,14 +16,25 @@ import { TrialBanner } from '@/src/components/billing/TrialBanner'
  * list wrong shows someone an empty screen, not someone else's data.
  *
  * Everything else stays open on purpose: the landing page, sign-in,
- * onboarding, /admin, and all of /account — which is where export, account
- * deletion and support live. Those are the exit routes an expired user has to
- * keep.
+ * onboarding, /admin, and the /account pages an expired user has to keep:
+ * data (export), security (sign out, delete), help, feedback and the tour.
+ * The /account hub itself is gated: it's a menu into budgeting features, and
+ * the lock screen lists those exit routes instead.
  */
-const GATED_PREFIXES = ['/expense', '/insights', '/investments', '/wrapped']
+const GATED_PREFIXES = [
+  '/expense',
+  '/insights',
+  '/investments',
+  '/wrapped',
+  '/account/recurring',
+  '/account/archive',
+  '/account/bill-scans',
+  '/account/chat-history',
+]
+const GATED_EXACT = ['/account']
 
 function isGated(pathname: string): boolean {
-  return GATED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  return GATED_EXACT.includes(pathname) || GATED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
 /**

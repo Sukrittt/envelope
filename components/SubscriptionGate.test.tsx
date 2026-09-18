@@ -28,7 +28,16 @@ describe('SubscriptionGate', () => {
     expect(screen.getByText('Subscription needed')).toBeTruthy()
   })
 
-  it.each(['/account', '/account/data', '/onboarding', '/', '/admin/system', '/legal/terms'])(
+  it.each(['/account', '/account/recurring', '/account/archive', '/account/bill-scans'])(
+    'locks %s too: the account hub and its budgeting features',
+    (pathname) => {
+      renderAt(pathname, expired)
+      expect(screen.queryByText('budgeting app')).toBeNull()
+      expect(screen.getByText('Subscription needed')).toBeTruthy()
+    },
+  )
+
+  it.each(['/account/data', '/account/security', '/account/help', '/account/guided-tour', '/onboarding', '/', '/admin/system', '/legal/terms'])(
     'leaves %s reachable — these are the exit routes',
     (pathname) => {
       // An expired user has to be able to get their data out, manage their
