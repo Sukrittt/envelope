@@ -229,7 +229,7 @@ export function SubscriptionsPanel({
         <h3>Subscriptions</h3>
         <button
           type="button"
-          className="action-button is-active subp-add-button"
+          className="action-button is-active erd-accent-action subp-add-button"
           onClick={onAdd}
           title="Add subscription"
           disabled={loading}
@@ -252,7 +252,7 @@ export function SubscriptionsPanel({
           </span>
           <div className="account-empty-title">No subscriptions yet</div>
           <p className="account-row-meta">Track renewals so bills never surprise you.</p>
-          <button type="button" className="action-button is-active" onClick={onAdd}>
+          <button type="button" className="action-button is-active erd-accent-action" onClick={onAdd}>
             Add a subscription
           </button>
         </div>

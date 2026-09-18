@@ -893,7 +893,7 @@
   font-family: var(--font-fredoka);
   transition: transform 0.15s ease;
   white-space: nowrap;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 .erd-log-btn:hover {
   transform: translateY(-2px);
@@ -2387,6 +2387,15 @@
   color: var(--erd-on-accent);
   border-color: var(--gold);
 }
+/* App.css also owns the legacy `.action-button.is-active` pattern. Keep the
+   redesign's primary actions explicit so import order cannot turn them back
+   into the old translucent button. */
+.expense-redesign .action-button.is-active.erd-accent-action {
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  border-color: var(--gold);
+  box-shadow: none;
+}
 .expense-redesign .action-button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -2572,6 +2581,8 @@
 }
 
 .expense-redesign .txn-timeline {
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
 }
 .expense-redesign .txn-timeline-empty {

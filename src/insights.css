@@ -504,9 +504,7 @@
 }
 
 .ins-trend-summary {
-  min-height: 150px;
-  margin: 0;
-  padding: 62px 0;
+  margin: 32px 0 0;
   color: var(--erd-text2);
   font-size: 14px;
 }

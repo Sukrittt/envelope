@@ -266,7 +266,7 @@ export function TransactionsView({
             <button
               key={key}
               type="button"
-              className={`action-button ${period === key ? "is-active" : ""}`}
+              className={`action-button ${period === key ? "is-active erd-accent-action" : ""}`}
               onClick={() => setPeriod(key)}
             >
               {key === "week"
