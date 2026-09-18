@@ -6,7 +6,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => usePathnameMock() }))
 
 const useBillingStatusMock = vi.fn()
 vi.mock('@/src/hooks/useBillingStatus', () => ({
-  useBillingStatus: () => useBillingStatusMock(),
+  useBillingStatus: (enabled?: boolean) => useBillingStatusMock(enabled),
   useSyncBilling: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, data: undefined }),
 }))
 
@@ -45,6 +45,14 @@ describe('SubscriptionGate', () => {
     // a 402 on the data underneath, not a data leak.
     renderAt('/expense', { data: undefined })
     expect(screen.getByText('budgeting app')).toBeTruthy()
+  })
+
+  it('does not ask for billing status outside the app routes', () => {
+    // This provider tree wraps the public landing page, where there is no
+    // session and /api/billing/status answers 401 — one failing request, plus
+    // a retry, for every anonymous visitor.
+    renderAt('/', expired)
+    expect(useBillingStatusMock).toHaveBeenCalledWith(false)
   })
 
   it('renders the app for an allowed account', () => {

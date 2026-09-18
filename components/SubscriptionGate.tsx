@@ -38,9 +38,12 @@ function isGated(pathname: string): boolean {
  */
 export function SubscriptionGate({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
-  const { data } = useBillingStatus()
+  const gated = isGated(pathname)
+  // Every gated route is also a middleware-protected app route, so asking
+  // only here guarantees the request always carries a session.
+  const { data } = useBillingStatus(gated)
 
-  if (!isGated(pathname)) return <>{children}</>
+  if (!gated) return <>{children}</>
   if (data && !data.allowed) return <RestrictedNotice />
   return (
     <>

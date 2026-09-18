@@ -14,12 +14,17 @@ export const billingKey = ['billing-status'] as const
  * the user buys on their phone, comes back to this tab, and expects the app
  * to have caught up.
  */
-export function useBillingStatus() {
+export function useBillingStatus(enabled = true) {
   return useQuery({
     queryKey: billingKey,
     queryFn: getBillingStatus,
     staleTime: 30_000,
     refetchOnWindowFocus: true,
+    // Off by default on anything but a signed-in app route. This provider
+    // tree wraps the public landing page too, and /api/billing/status answers
+    // 401 with no session — so leaving it always-on would fire a failing
+    // request, plus React Query's retry, for every anonymous visitor.
+    enabled,
   })
 }
 
