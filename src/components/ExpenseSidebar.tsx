@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import {
   ArrowLeftRight,
@@ -24,6 +24,7 @@ import { SignOutDialog } from "./ConfirmDialog";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { usePersistentState } from "../hooks/usePersistentState";
+import { useAccessAllowed } from "../hooks/useBillingStatus";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
@@ -52,6 +53,12 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
   const [showScan, setShowScan] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
+  const router = useRouter();
+  const allowed = useAccessAllowed();
+  // A locked account gets the lock screen (SubscriptionGate on /expense)
+  // instead of a dialog whose save or question would only come back 402.
+  const gated = (action: () => void) => () => (allowed ? action() : router.push("/expense"));
+
   // Collapsed rows show only their icon, so the label moves to a native tooltip.
   const tip = (label: string) => (collapsed ? label : undefined);
 
@@ -75,11 +82,11 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
         </div>
 
         <div className="erd-side-actions">
-          <button type="button" className="erd-side-cta" onClick={() => setShowLog(true)} title={tip("Log expense")}>
+          <button type="button" className="erd-side-cta" onClick={gated(() => setShowLog(true))} title={tip("Log expense")}>
             <Plus size={18} strokeWidth={2.5} />
             <span className="erd-side-label">Log expense</span>
           </button>
-          <button type="button" className="erd-side-cta is-secondary" onClick={() => setShowScan(true)} title={tip("Scan a bill")}>
+          <button type="button" className="erd-side-cta is-secondary" onClick={gated(() => setShowScan(true))} title={tip("Scan a bill")}>
             <ScanLine size={18} />
             <span className="erd-side-label">Scan a bill</span>
           </button>
@@ -98,7 +105,7 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
               <span className="erd-side-label">{label}</span>
             </Link>
           ))}
-          <button type="button" className="erd-nav-item" onClick={() => openMoneyBrain()} title={tip("Money Brain")}>
+          <button type="button" className="erd-nav-item" onClick={gated(() => openMoneyBrain())} title={tip("Money Brain")}>
             <Sparkles size={18} />
             <span className="erd-side-label">Money Brain</span>
           </button>

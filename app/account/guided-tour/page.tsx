@@ -212,7 +212,7 @@ function Hub({
         })}
       </div>
 
-      <button type="button" className="setup-cta" onClick={onStart}>
+      <button type="button" className="setup-cta" style={{ width: '100%' }} onClick={onStart}>
         {doneCount === 0 ? 'Start the tour' : firstOpen === -1 ? 'See the recap' : `Continue · chapter ${firstOpen + 1}`}
       </button>
       <p className="tour-hub-footnote">Jump in anywhere · about 2 minutes end to end</p>
