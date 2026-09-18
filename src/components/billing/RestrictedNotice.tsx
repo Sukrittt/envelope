@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Download, ExternalLink, Lock, RefreshCw, Settings } from 'lucide-react'
+import { ChevronRight, Compass, Database, ExternalLink, Lock, MessageCircle, RefreshCw, type LucideIcon } from 'lucide-react'
+import '@/src/expense-redesign.css'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
-import { formatDate, lockedReason, PLAY_STORE_URL } from './copy'
+import { lockedReason, PLAY_STORE_URL } from './copy'
 
 /**
  * Shown in place of the budgeting app when the account has no valid trial or
@@ -107,54 +108,31 @@ export function RestrictedNotice() {
         {sync.isSuccess && !sync.data.allowed && (
           <p role="status" style={{ margin: 0, color: 'var(--tk-text3)', fontSize: 13 }}>
             {sync.data.refreshed === false
-              ? 'Could not reach the store just now. Your access is unchanged — try again shortly.'
+              ? "Couldn't reach the store just now. Your access hasn't changed, so try again shortly."
               : 'No active subscription found on this account yet.'}
           </p>
         )}
       </div>
 
-      <div style={{ display: 'grid', gap: 10 }}>
-        <ExitRoute
-          href="/account/data"
-          icon={<Download size={16} aria-hidden />}
-          label="Export your data"
-          hint={
-            status?.retentionDeadline
-              ? `Free, with or without a subscription. Your data is kept until ${formatDate(status.retentionDeadline)}.`
-              : 'Free, with or without a subscription. Downloading your full history never needs a subscription.'
-          }
-        />
-        <ExitRoute
-          href="/account"
-          icon={<Settings size={16} aria-hidden />}
-          label="Account settings"
-          hint="Change your email, sign out, or delete your account."
-        />
+      {/* The account page's own rows, minus anything that needs access
+          (bill scans) or has nothing to say here (plan, legal). Each one
+          opens the real page, so nothing is duplicated on this screen. */}
+      <div className="account-card">
+        <ExitRow icon={Lock} label="Account & security" href="/account/security" />
+        <ExitRow icon={Database} label="Your data" href="/account/data" />
+        <ExitRow icon={Compass} label="How this works" href="/account/guided-tour" />
+        <ExitRow icon={MessageCircle} label="Help & feedback" href="/account/help" />
       </div>
     </div>
   )
 }
 
-function ExitRoute({ href, icon, label, hint }: { href: string; icon: React.ReactNode; label: string; hint: string }) {
+function ExitRow({ icon: Icon, label, href }: { icon: LucideIcon; label: string; href: string }) {
   return (
-    <Link
-      href={href}
-      style={{
-        display: 'flex',
-        gap: 12,
-        padding: 16,
-        borderRadius: 14,
-        border: '1px solid var(--tk-border)',
-        background: 'var(--tk-card)',
-        color: 'var(--tk-text)',
-        textDecoration: 'none',
-      }}
-    >
-      <span style={{ marginTop: 2, color: 'var(--tk-text2)' }}>{icon}</span>
-      <span>
-        <strong style={{ display: 'block' }}>{label}</strong>
-        <span style={{ color: 'var(--tk-text2)', fontSize: 13, lineHeight: 1.5 }}>{hint}</span>
-      </span>
+    <Link href={href} className="account-row">
+      <Icon size={16} aria-hidden="true" />
+      <span className="account-row-label">{label}</span>
+      <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
     </Link>
   )
 }
