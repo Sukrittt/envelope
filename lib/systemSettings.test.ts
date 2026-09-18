@@ -38,6 +38,19 @@ describe('system settings', () => {
     expect(findOneMock).toHaveBeenCalledTimes(1)
   })
 
+  /**
+   * The production `system_settings` document predates billing and has no
+   * `billing` key at all. Deploying the backend ahead of the app depends
+   * entirely on that absence reading as "off" — if it ever read as "on",
+   * every user of the released app is locked out of their own budgets the
+   * moment the deploy goes live, with no app update available to fix it.
+   */
+  it('reads a settings document with no billing key as subscriptions-off', async () => {
+    findOneMock.mockResolvedValue({ _id: 'global', aiDisabled: false, maintenance: { on: false, message: '' } })
+    const { getSystemSettings } = await import('./systemSettings')
+    expect((await getSystemSettings()).billing).toEqual({ enforced: false, purchaseEnabled: false })
+  })
+
   it('backfills update defaults for an older settings document', async () => {
     findOneMock.mockResolvedValue({ _id: 'global', aiDisabled: false, maintenance: { on: true, message: 'Soon' } })
     const { getSystemSettings } = await import('./systemSettings')
