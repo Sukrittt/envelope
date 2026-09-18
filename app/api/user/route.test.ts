@@ -29,6 +29,9 @@ vi.mock('@/lib/mongodb', () => ({
   })),
 }))
 
+const completeOnboardingMock = vi.fn(async () => ({ ok: true, onboardedAt: '2026-09-18T12:00:00.000Z', account: {} }))
+vi.mock('@/lib/billing/service', () => ({ completeOnboarding: completeOnboardingMock }))
+
 const { DELETE, PATCH } = await import('./route')
 
 function patchRequest(body: unknown): Request {
@@ -50,6 +53,7 @@ function deleteRequest(body: unknown): Request {
 beforeEach(() => {
   vi.clearAllMocks()
   usersFindOneMock.mockResolvedValue({ email: 'real-owner@example.com' })
+  completeOnboardingMock.mockResolvedValue({ ok: true, onboardedAt: '2026-09-18T12:00:00.000Z', account: {} })
 })
 
 describe('DELETE /api/user', () => {
@@ -115,5 +119,44 @@ describe('PATCH /api/user currency', () => {
   it('returns INR for a legacy profile without currency', async () => {
     const res = await PATCH(patchRequest({ name: 'Test' }))
     expect((await res.json()).currencyCode).toBe('INR')
+  })
+})
+
+/**
+ * Every app version already on Play finishes onboarding by PATCHing
+ * `{ currencyCode, onboardedAt }` here. Those installs keep calling this
+ * deployed API for as long as their users take to update, so the route has to
+ * keep honouring that body — the trial just starts from the server's clock
+ * now instead of the device's.
+ */
+describe('PATCH /api/user — onboarding from a released app version', () => {
+  it('accepts the legacy body and completes onboarding server-side', async () => {
+    const res = await PATCH(patchRequest({ currencyCode: 'USD', onboardedAt: '2020-01-01T00:00:00.000Z' }))
+    expect(res.status).toBe(200)
+    expect(completeOnboardingMock).toHaveBeenCalled()
+  })
+
+  it('never lets the client-supplied instant reach the database', async () => {
+    await PATCH(patchRequest({ currencyCode: 'USD', onboardedAt: '2020-01-01T00:00:00.000Z' }))
+    // A device clock — or a forged body — must not be able to move the trial.
+    expect(JSON.stringify(usersUpdateOneMock.mock.calls)).not.toContain('onboardedAt')
+    expect(JSON.stringify(completeOnboardingMock.mock.calls)).not.toContain('2020')
+  })
+
+  it('still writes the currency that rode along in the same request', async () => {
+    await PATCH(patchRequest({ currencyCode: 'USD', onboardedAt: '2020-01-01T00:00:00.000Z' }))
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { currencyCode: 'USD' } })
+  })
+
+  it('answers 409, not a 500, when the initial budget setup is not actually there', async () => {
+    completeOnboardingMock.mockResolvedValueOnce({ ok: false, reason: 'setup_incomplete' } as never)
+    const res = await PATCH(patchRequest({ currencyCode: 'USD', onboardedAt: '2020-01-01T00:00:00.000Z' }))
+    expect(res.status).toBe(409)
+  })
+
+  it('leaves an ordinary settings change alone — no onboardedAt key, no trial', async () => {
+    const res = await PATCH(patchRequest({ notifyCadence: 'weekly' }))
+    expect(res.status).toBe(200)
+    expect(completeOnboardingMock).not.toHaveBeenCalled()
   })
 })
