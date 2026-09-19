@@ -45,6 +45,8 @@ const CATEGORY_EMOJI: Record<string, string> = {
   vacation: '🏖️',
   football: '⚽',
   outings: '🎡',
+  entertainment: '🎬',
+  software: '💻',
   shopping: '🛍️',
   clothes: '👕',
   haircut: '💇',
