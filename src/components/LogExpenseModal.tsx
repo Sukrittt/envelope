@@ -18,6 +18,13 @@ interface Props {
   onSaved: () => void
 }
 
+/** Shortest item text worth asking the model about — "T" or "Tr" can't be categorised. */
+const MIN_LLM_CHARS = 3
+
+// Model answers per item text, for the page's lifetime. '' (nothing fits) is
+// cached too, so retyping or backspacing never re-asks for the same text.
+const llmAnswers = new Map<string, string>()
+
 function toDateInputValue(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
@@ -41,9 +48,11 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [categoryTouched, setCategoryTouched] = useState(false)
   const categoryTouchedRef = useRef(categoryTouched)
   const llmDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Categories load async, after this component's first render — fall back
-  // to the first one instead of syncing it into state once it arrives.
-  const effectiveCategory = category || categories[0] || ''
+  // The item text the latest keystroke produced; a model reply for any other text is stale.
+  const latestItemRef = useRef('')
+  // No suggestion means nothing selected. Defaulting to the first category
+  // silently filed items like "Travel" under whatever category came first.
+  const effectiveCategory = category
 
   useEffect(() => {
     getCategoryMap()
@@ -62,8 +71,24 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     }
   }, [])
 
+  function applyLlmAnswer(value: string, llmCategory: string) {
+    if (categoryTouchedRef.current || latestItemRef.current !== value) return
+    if (llmCategory && categories.includes(llmCategory)) {
+      setCategory(llmCategory)
+      // Mirror the server's word overrides so the same words match locally, instantly, next time.
+      const learned = Object.fromEntries(
+        value.toLowerCase().split(/\s+/).filter((w) => w.length >= 2).map((w) => [w, llmCategory]),
+      )
+      setCategoryWords((words) => ({ ...words, ...learned }))
+      return
+    }
+    const misc = categories.find((c) => c.toLowerCase().includes('miscellaneous'))
+    setCategory(misc ?? '')
+  }
+
   function handleItemChange(value: string) {
     setItem(value)
+    latestItemRef.current = value
     if (llmDebounceRef.current) {
       clearTimeout(llmDebounceRef.current)
       llmDebounceRef.current = null
@@ -81,18 +106,19 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         return
       }
     }
-    if (!value.trim()) return
+    const key = value.trim().toLowerCase()
+    if (key.length < MIN_LLM_CHARS) return
+    const known = llmAnswers.get(key)
+    if (known !== undefined) {
+      applyLlmAnswer(value, known)
+      return
+    }
 
     // No local match — debounce an LLM fallback lookup instead of firing per keystroke.
     llmDebounceRef.current = setTimeout(() => {
       suggestCategoryLLM(value, categories).then((llmCategory) => {
-        if (categoryTouchedRef.current) return
-        if (llmCategory) {
-          setCategory(llmCategory)
-          return
-        }
-        const misc = categories.find((c) => c.toLowerCase().includes('miscellaneous'))
-        if (misc) setCategory(misc)
+        if (llmCategory !== null) llmAnswers.set(key, llmCategory)
+        applyLlmAnswer(value, llmCategory ?? '')
       })
     }, 300)
   }

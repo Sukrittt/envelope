@@ -7,8 +7,12 @@ export async function getCategoryMap(): Promise<CategoryMap> {
   return resp.json()
 }
 
-/** LLM fallback for when the local keyword match finds nothing. Never throws. */
-export async function suggestCategoryLLM(item: string, categories: string[]): Promise<string> {
+/**
+ * LLM fallback for when the local keyword match finds nothing. Never throws.
+ * '' means the model found no fitting category; null means the request failed
+ * (offline, rate limited), so callers can retry later instead of remembering "no fit".
+ */
+export async function suggestCategoryLLM(item: string, categories: string[]): Promise<string | null> {
   if (!item.trim()) return ''
   try {
     const resp = await apiFetch('/api/category-map/suggest', {
@@ -16,10 +20,10 @@ export async function suggestCategoryLLM(item: string, categories: string[]): Pr
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ item, categories }),
     })
-    if (!resp.ok) return ''
+    if (!resp.ok) return null
     const data: { category?: string } = await resp.json()
     return data.category ?? ''
   } catch {
-    return ''
+    return null
   }
 }

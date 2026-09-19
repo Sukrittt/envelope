@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
@@ -62,22 +63,25 @@ export async function POST(req: Request) {
     return error('category suggestion failed', 502)
   }
 
+  // The category map writes don't change this reply, so they run after it's sent.
   if (category) {
-    const overridesColl = await getCollection('category_map_overrides', auth)
-    const words = item.toLowerCase().split(/\s+/)
-    const now = new Date().toISOString()
-    await Promise.all(
-      words
-        .filter((word) => word.length >= 2)
-        .map((word) =>
-          overridesColl.updateOne(
-            { word },
-            { $set: { word, category, source: 'llm', createdAt: now } },
-            { upsert: true },
+    after(async () => {
+      const overridesColl = await getCollection('category_map_overrides', auth)
+      const words = item.toLowerCase().split(/\s+/)
+      const now = new Date().toISOString()
+      await Promise.all(
+        words
+          .filter((word) => word.length >= 2)
+          .map((word) =>
+            overridesColl.updateOne(
+              { word },
+              { $set: { word, category, source: 'llm', createdAt: now } },
+              { upsert: true },
+            ),
           ),
-        ),
-    )
-    invalidateCategoryMap(auth.userId)
+      )
+      invalidateCategoryMap(auth.userId)
+    })
   }
 
   return json({ category })
