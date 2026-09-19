@@ -4,6 +4,7 @@ const logMock = vi.fn(async () => undefined)
 const evaluate = vi.fn()
 
 vi.mock('./usage', () => ({ logAiUsage: (...args: unknown[]) => logMock(...(args as [])) }))
+vi.mock('next/server', () => ({ after: (fn: () => unknown) => fn() }))
 vi.mock('ai', () => ({ experimental_evaluate: (...args: unknown[]) => evaluate(...args) }))
 vi.mock('../systemSettings', () => ({
   AI_DISABLED_MESSAGE: 'AI is off',

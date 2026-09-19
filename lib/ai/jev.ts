@@ -1,4 +1,5 @@
 import { experimental_evaluate as evaluate } from 'ai'
+import { after } from 'next/server'
 import { logAiUsage, type AiCaller } from './usage'
 import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 
@@ -15,6 +16,9 @@ const MODEL = 'typesafe-ai/jev'
 const MIN_CONFIDENCE = 0.8
 
 /**
+ * Must be called inside a request: the usage record is written with `after()`
+ * so its database round trip never delays the reply.
+ *
  * Picks the best-fit category for an expense item from the user's own list,
  * or '' when Jev isn't confident — callers treat '' as "no suggestion", so a
  * shaky guess never gets written into the category map.
@@ -36,18 +40,17 @@ export async function pickCategory(item: string, categories: string[], caller: A
       // zeroDataRetention would be stronger but needs Vercel Pro (403 on Hobby).
       providerOptions: { gateway: { disallowPromptTraining: true } },
     })
-    console.info('suggest timing jev', Date.now() - startedAt)
-    await logAiUsage(caller, MODEL, startedAt, {
+    after(() => logAiUsage(caller, MODEL, startedAt, {
       promptTokenCount: result.usage.inputTokens,
       candidatesTokenCount: result.usage.outputTokens,
-    }, null)
+    }, null))
 
     const { choice, probabilities } = result.answers.category
     if (!categories.includes(choice)) return ''
     if (probabilities && (probabilities[choice] ?? 0) < MIN_CONFIDENCE) return ''
     return choice
   } catch (err) {
-    await logAiUsage(caller, MODEL, startedAt, undefined, err)
+    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
     throw err
   }
 }

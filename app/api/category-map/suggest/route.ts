@@ -14,7 +14,7 @@ export const maxDuration = 30
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const BURST_WINDOW_MS = 60 * 1000
-const BURST_LIMIT = 10
+const BURST_LIMIT = 20
 const MAX_ITEM_LEN = 200
 const MAX_CATEGORIES = 100
 const MAX_CATEGORY_LEN = 60
@@ -43,16 +43,6 @@ export async function POST(req: Request) {
   if (overAllowance) return overAllowance
   lap('aiGates')
 
-  if (
-    await isRateLimited(`category-suggest:${auth.userId}`, [
-      { windowMs: BURST_WINDOW_MS, limit: BURST_LIMIT },
-      { windowMs: RATE_WINDOW_MS, limit: SIGNED_IN_LIMIT },
-    ])
-  ) {
-    return error('rate limited', 429)
-  }
-  lap('rateLimit')
-
   const body = await readBody(req)
   const item = typeof body.item === 'string' ? body.item.trim().slice(0, MAX_ITEM_LEN) : ''
   const rawCategories = Array.isArray(body.categories) ? body.categories : null
@@ -68,14 +58,20 @@ export async function POST(req: Request) {
 
   const categoryList = rawCategories as string[]
 
-  let category: string
-  try {
-    category = await pickCategory(item, categoryList, { userId: auth.userId, feature: 'suggest' })
-    lap('model')
-    console.info('suggest timing', JSON.stringify(timings))
-  } catch {
-    return error('category suggestion failed', 502)
-  }
+  // The rate-limit check (two database round trips) runs alongside the model
+  // call rather than before it. A limited request still spends one Jev call
+  // (~$0.00002), which the gateway key's spend cap bounds.
+  const [limited, category] = await Promise.all([
+    isRateLimited(`category-suggest:${auth.userId}`, [
+      { windowMs: BURST_WINDOW_MS, limit: BURST_LIMIT },
+      { windowMs: RATE_WINDOW_MS, limit: SIGNED_IN_LIMIT },
+    ]),
+    pickCategory(item, categoryList, { userId: auth.userId, feature: 'suggest' }).catch(() => null),
+  ])
+  lap('rateLimitAndModel')
+  console.info('suggest timing', JSON.stringify(timings))
+  if (limited) return error('rate limited', 429)
+  if (category === null) return error('category suggestion failed', 502)
 
   // The category map writes don't change this reply, so they run after it's sent.
   if (category) {

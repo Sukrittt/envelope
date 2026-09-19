@@ -120,7 +120,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         if (llmCategory !== null) llmAnswers.set(key, llmCategory)
         applyLlmAnswer(value, llmCategory ?? '')
       })
-    }, 300)
+    }, 200)
   }
 
   function handleCategoryPick(c: string) {
