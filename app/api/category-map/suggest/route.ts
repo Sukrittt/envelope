@@ -1,8 +1,7 @@
-import { Type } from '@google/genai'
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
-import { generateJSON } from '@/lib/ai/gemini'
+import { pickCategory } from '@/lib/ai/jev'
 import { isRateLimited } from '@/lib/rateLimit'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import { aiDisabledResponse } from '@/lib/systemSettings'
@@ -18,10 +17,6 @@ const BURST_LIMIT = 10
 const MAX_ITEM_LEN = 200
 const MAX_CATEGORIES = 100
 const MAX_CATEGORY_LEN = 60
-
-interface SuggestResult {
-  category: string
-}
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -60,28 +55,12 @@ export async function POST(req: Request) {
 
   const categoryList = rawCategories as string[]
 
-  let result: SuggestResult
+  let category: string
   try {
-    result = await generateJSON<SuggestResult>(
-      `Pick the single best-fit budgeting category for this expense item: "${item}".\n` +
-        `Choose exactly one value from the allowed category list. If none fit well, omit the category field entirely.`,
-      {
-        type: Type.OBJECT,
-        properties: {
-          category: {
-            type: Type.STRING,
-            format: 'enum',
-            enum: categoryList,
-          },
-        },
-      },
-      { userId: auth.userId, feature: 'suggest' },
-    )
+    category = await pickCategory(item, categoryList, { userId: auth.userId, feature: 'suggest' })
   } catch {
     return error('category suggestion failed', 502)
   }
-
-  const category = result.category ?? ''
 
   if (category) {
     const overridesColl = await getCollection('category_map_overrides', auth)
