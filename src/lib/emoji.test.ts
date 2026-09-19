@@ -39,11 +39,11 @@ describe('categoryEmoji', () => {
   })
 
   it('falls back to the category lookup table (case-insensitive)', () => {
-    expect(categoryEmoji('Groceries')).toBe('🍅')
+    expect(categoryEmoji('Groceries')).toBe('🛒')
   })
 
   it('falls back to the group emoji when the category is unknown', () => {
-    expect(categoryEmoji('Mystery Category', 'Travel')).toBe('🛵')
+    expect(categoryEmoji('Mystery Category', 'Travel')).toBe('✈️')
   })
 
   it('falls back to a default money icon when nothing matches', () => {

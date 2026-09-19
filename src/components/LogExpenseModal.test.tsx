@@ -14,7 +14,7 @@ vi.mock('./CategoryPicker', () => ({ CategoryPicker: ({ value }: { value: string
 vi.mock('./DatePicker', () => ({ DatePicker: () => null }))
 
 const llm = vi.mocked(suggestCategoryLLM)
-const type = (value: string) => fireEvent.change(screen.getByLabelText('What did you buy?'), { target: { value } })
+const type = (value: string) => fireEvent.change(screen.getByLabelText('What was it for?'), { target: { value } })
 const category = () => screen.getByLabelText('Category').textContent
 
 function deferred<T>() {
