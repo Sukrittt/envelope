@@ -20,8 +20,18 @@ const MAX_CATEGORIES = 100
 const MAX_CATEGORY_LEN = 60
 
 export async function POST(req: Request) {
+  // Temporary: per-step latency for the "suggestions feel slow" investigation (read via `vercel logs`).
+  let mark = Date.now()
+  const timings: Record<string, number> = {}
+  const lap = (step: string) => {
+    const now = Date.now()
+    timings[step] = now - mark
+    mark = now
+  }
   const auth = await getAuth(req)
+  lap('auth')
   const gate = await requireAccess(auth)
+  lap('access')
   if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
@@ -31,6 +41,7 @@ export async function POST(req: Request) {
 
   const overAllowance = await aiAllowanceResponse(auth)
   if (overAllowance) return overAllowance
+  lap('aiGates')
 
   if (
     await isRateLimited(`category-suggest:${auth.userId}`, [
@@ -40,6 +51,7 @@ export async function POST(req: Request) {
   ) {
     return error('rate limited', 429)
   }
+  lap('rateLimit')
 
   const body = await readBody(req)
   const item = typeof body.item === 'string' ? body.item.trim().slice(0, MAX_ITEM_LEN) : ''
@@ -59,6 +71,8 @@ export async function POST(req: Request) {
   let category: string
   try {
     category = await pickCategory(item, categoryList, { userId: auth.userId, feature: 'suggest' })
+    lap('model')
+    console.info('suggest timing', JSON.stringify(timings))
   } catch {
     return error('category suggestion failed', 502)
   }

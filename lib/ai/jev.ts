@@ -36,6 +36,7 @@ export async function pickCategory(item: string, categories: string[], caller: A
       // zeroDataRetention would be stronger but needs Vercel Pro (403 on Hobby).
       providerOptions: { gateway: { disallowPromptTraining: true } },
     })
+    console.info('suggest timing jev', Date.now() - startedAt)
     await logAiUsage(caller, MODEL, startedAt, {
       promptTokenCount: result.usage.inputTokens,
       candidatesTokenCount: result.usage.outputTokens,
