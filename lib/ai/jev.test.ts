@@ -28,6 +28,8 @@ describe('pickCategory', () => {
     expect(model).toBe('typesafe-ai/jev')
     expect(questions.category.type).toBe('choice')
     expect(Object.keys(questions.category.criteria)).toEqual(['Food', 'Travel'])
+    // Zero Data Retention needs Vercel Pro; the gateway 403s every call on Hobby.
+    expect(evaluate.mock.calls[0][0].providerOptions).toEqual({ gateway: { disallowPromptTraining: true } })
   })
 
   it('returns the choice when it is confident', async () => {
@@ -36,8 +38,9 @@ describe('pickCategory', () => {
   })
 
   it('returns empty when no option clears the confidence bar', async () => {
-    evaluate.mockResolvedValue(answer('Food', { Food: 0.4, Travel: 0.35, Rent: 0.25 }))
-    expect(await pickCategory('misc thing', ['Food', 'Travel', 'Rent'], caller)).toBe('')
+    // Real Jev answer for the gibberish item "zxqv 42": Shopping at 0.62.
+    evaluate.mockResolvedValue(answer('Shopping', { Shopping: 0.62, Food: 0.2, Travel: 0.18 }))
+    expect(await pickCategory('zxqv 42', ['Shopping', 'Food', 'Travel'], caller)).toBe('')
   })
 
   it('trusts the choice when no distribution comes back', async () => {

@@ -10,8 +10,9 @@ import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
  */
 const MODEL = 'typesafe-ai/jev'
 
-// ponytail: fixed guess at calibration; tune from ai_usage / override quality once real traffic lands.
-const MIN_CONFIDENCE = 0.5
+// Real items came back at 1.00 in a live check; gibberish ("zxqv 42") still scored 0.62.
+// ponytail: calibrated on a handful of items; retune from override quality once real traffic lands.
+const MIN_CONFIDENCE = 0.8
 
 /**
  * Picks the best-fit category for an expense item from the user's own list,
@@ -32,7 +33,8 @@ export async function pickCategory(item: string, categories: string[], caller: A
           criteria: Object.fromEntries(categories.map((c) => [c, null])),
         },
       },
-      providerOptions: { gateway: { zeroDataRetention: true } },
+      // zeroDataRetention would be stronger but needs Vercel Pro (403 on Hobby).
+      providerOptions: { gateway: { disallowPromptTraining: true } },
     })
     await logAiUsage(caller, MODEL, startedAt, {
       promptTokenCount: result.usage.inputTokens,
