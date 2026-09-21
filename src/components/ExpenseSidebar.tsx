@@ -115,9 +115,9 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
           <div className="erd-nav-group">
             <div className="erd-nav-label erd-side-label">Budget</div>
             {onMoveMoney && (
-              <button type="button" className="erd-nav-item" onClick={onMoveMoney} title={tip("Move money")}>
+              <button type="button" className="erd-nav-item" onClick={onMoveMoney} title={tip("Pull money")}>
                 <ArrowLeftRight size={18} />
-                <span className="erd-side-label">Move money</span>
+                <span className="erd-side-label">Pull money</span>
               </button>
             )}
             {onBulkReturn && (

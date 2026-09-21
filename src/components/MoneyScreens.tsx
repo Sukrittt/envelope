@@ -283,7 +283,7 @@ interface SourceItem {
 
 export function MoveMoneyScreen({ targetCategory, onClose }: { targetCategory: string; onClose: () => void }) {
   const data = useMoneyData()
-  if (data.isLoading) return <Screen title="Move money" onClose={onClose} busy={false}><LoadingCaption /></Screen>
+  if (data.isLoading) return <Screen title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></Screen>
   return <MoveMoneyBody targetCategoryName={targetCategory} onClose={onClose} data={data} />
 }
 
@@ -398,7 +398,7 @@ function MoveMoneyBody({
       phase.succeed(onClose)
     } catch {
       phase.fail()
-      setError("Couldn't move money. Check your connection and try again.")
+      setError("Couldn't pull money. Check your connection and try again.")
     }
   }
 
@@ -406,7 +406,7 @@ function MoveMoneyBody({
 
   if (noOptions) {
     return (
-      <Screen title="Move money" onClose={onClose} busy={false}>
+      <Screen title="Pull money" onClose={onClose} busy={false}>
         <div className="money-body">
           <p className="money-hint">
             {!target ? `${targetCategoryName} isn't set up as an envelope.` : 'No funds available to pull from.'}
@@ -436,7 +436,7 @@ function MoveMoneyBody({
 
   if (step === 'amount') {
     return (
-      <Screen title="Move money" onClose={onClose} busy={busy} showHeader={false}>
+      <Screen title="Pull money" onClose={onClose} busy={busy} showHeader={false}>
         <div className="money-body">
           {stepRow}
           <SubjectCard
@@ -500,7 +500,7 @@ function MoveMoneyBody({
   }
 
   return (
-    <Screen title="Move money" onClose={onClose} onBack={() => setStep('amount')} busy={busy} showHeader={false}>
+    <Screen title="Pull money" onClose={onClose} onBack={() => setStep('amount')} busy={busy} showHeader={false}>
       <div className="money-sources-head">
         {stepRow}
         <div className="money-cover-row">

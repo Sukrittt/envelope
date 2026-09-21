@@ -52,7 +52,7 @@ export function BudgetEnvelopeCard({ envelope, hideAmounts, onMoveMoney }: Props
         </span>
         {isOverspent && (
           <button type="button" className="envelope-move-money" onClick={() => onMoveMoney(category)}>
-            Move money →
+            Pull money →
           </button>
         )}
       </div>

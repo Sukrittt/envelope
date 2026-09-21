@@ -157,7 +157,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             style={{ position: 'fixed', top: menuAnchor.top, right: menuAnchor.right }}
           >
             <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
-              Move money between envelopes
+              Pull money from other envelopes
             </button>
             <button type="button" className="env-menu-item" onClick={() => { onAssignFromRTA(e.category); closeMenu() }}>
               Assign from Ready to Assign

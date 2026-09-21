@@ -52,7 +52,7 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
       succeed(onClose)
     } catch {
       fail()
-      setSubmitError('Could not move money. Check your connection and try again.')
+      setSubmitError('Could not pull money. Check your connection and try again.')
     }
   }
 
@@ -61,7 +61,7 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
       <Scrim className="move-money-overlay" onClick={onClose}>
         <Sheet className="move-money-modal" onClick={(e) => e.stopPropagation()}>
           <div className="move-money-header">
-            <h4>Move Money</h4>
+            <h4>Pull Money</h4>
             <button type="button" className="move-money-close" onClick={onClose}>✕</button>
           </div>
           {!target ? (
@@ -79,7 +79,7 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
     <Scrim className="move-money-overlay" onClick={saving || success ? undefined : onClose}>
       <Sheet className="move-money-modal" onClick={(e) => e.stopPropagation()}>
         <div className="move-money-header">
-          <h4>Move Money</h4>
+          <h4>Pull Money</h4>
           <button type="button" className="move-money-close" onClick={onClose} disabled={saving || success}>✕</button>
         </div>
 
@@ -87,7 +87,7 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
           {isOverspent ? (
             <>Cover <strong>{formatCurrency(Math.abs(targetAvail))}</strong> overspent in <strong>{targetCategory}</strong></>
           ) : (
-            <>Move money to <strong>{targetCategory}</strong> (currently {formatCurrency(targetAvail)} available)</>
+            <>Pull money into <strong>{targetCategory}</strong> (currently {formatCurrency(targetAvail)} available)</>
           )}
         </p>
 

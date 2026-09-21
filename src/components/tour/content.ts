@@ -45,14 +45,14 @@ export const CHAPTERS: Chapter[] = [
     linkNote: 'Click "Log expense" on Home',
   },
   {
-    title: 'Move money',
+    title: 'Pull money',
     blurb: 'Short somewhere? Borrow from somewhere with slack.',
     kicker: 'CHAPTER 3 OF 7',
     lede: "An envelope can't cover a bill. Pull the difference from one that can. Sources are ranked by how much room they actually have.",
     nudge: 'Cover the ₹1,400 shortfall. Pick a source.',
     linkLabel: 'Open Home',
     href: '/expense',
-    linkNote: 'Click a category, then "Move money between envelopes"',
+    linkNote: 'Click a category, then "Pull money from other envelopes"',
   },
   {
     title: 'The new month',
