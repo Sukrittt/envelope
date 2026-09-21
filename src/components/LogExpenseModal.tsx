@@ -6,12 +6,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker } from './DatePicker'
-import { addExpense } from '../api/expenses'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { CategoryPicker } from './CategoryPicker'
 import { useCategories } from '../hooks/useCategories'
+import { useAddExpense } from '../hooks/useExpenses'
 import { EMPTY } from '../lib/constants'
 
 interface Props {
@@ -42,6 +42,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const { currencySymbol } = useCurrency()
 
   const categoriesQ = useCategories()
+  const addExpenseM = useAddExpense()
   const categories = useMemo(
     () => (categoriesQ.data ?? EMPTY).map((c) => c.name).filter(Boolean),
     [categoriesQ.data],
@@ -173,7 +174,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     start()
     setError('')
     try {
-      await addExpense({
+      await addExpenseM.mutateAsync({
         item: item.trim(),
         amount_inr: String(Math.round(parsed)),
         category: effectiveCategory,

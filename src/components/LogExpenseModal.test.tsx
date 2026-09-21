@@ -3,14 +3,24 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LogExpenseModal } from './LogExpenseModal'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 
-vi.mock('../api/expenses', () => ({ addExpense: vi.fn() }))
+const { addExpenseMutation } = vi.hoisted(() => ({ addExpenseMutation: vi.fn() }))
+vi.mock('../hooks/useExpenses', () => ({
+  useAddExpense: () => ({ mutateAsync: addExpenseMutation }),
+}))
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))
 vi.mock('../hooks/useCategories', () => ({
   useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Rent' }, { name: 'Eating out' }] }),
 }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹' }) }))
-vi.mock('./CategoryPicker', () => ({ CategoryPicker: ({ value }: { value: string }) => <output aria-label="Category">{value}</output> }))
+vi.mock('./CategoryPicker', () => ({
+  CategoryPicker: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+    <>
+      <output aria-label="Category">{value}</output>
+      <button type="button" onClick={() => onChange('Groceries')}>Choose Groceries</button>
+    </>
+  ),
+}))
 vi.mock('./DatePicker', () => ({ DatePicker: () => null }))
 
 const llm = vi.mocked(suggestCategoryLLM)
@@ -23,7 +33,28 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-beforeEach(() => llm.mockReset())
+beforeEach(() => {
+  llm.mockReset().mockResolvedValue('')
+  addExpenseMutation.mockReset()
+})
+
+it('saves through the expense mutation so Activity is invalidated immediately', async () => {
+  addExpenseMutation.mockResolvedValue({ id: 'expense-1', pending: false })
+  const onSaved = vi.fn()
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={onSaved} />)
+
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '450' } })
+  type('Milk')
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+
+  await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({
+    item: 'Milk',
+    amount_inr: '450',
+    category: 'Groceries',
+  })))
+  expect(onSaved).toHaveBeenCalledOnce()
+})
 
 describe('LogExpenseModal category suggestion', () => {
   it('leaves the category empty when nothing fits, instead of defaulting to the first one', async () => {
