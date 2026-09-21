@@ -36,8 +36,8 @@ interface Props {
 
 const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
   { href: "/expense", label: "Home", icon: House },
-  { href: "/expense/envelopes", label: "Envelopes", icon: Mail },
   { href: "/expense/transactions", label: "Activity", icon: ReceiptText },
+  { href: "/expense/envelopes", label: "Envelopes", icon: Mail },
   { href: "/insights", label: "Insights", icon: LineChart },
 ];
 
