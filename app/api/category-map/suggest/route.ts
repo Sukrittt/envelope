@@ -1,11 +1,12 @@
-import { Type } from '@google/genai'
+import { after } from 'next/server'
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
-import { generateJSON } from '@/lib/ai/gemini'
+import { pickCategory } from '@/lib/ai/jev'
 import { isRateLimited } from '@/lib/rateLimit'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import { aiDisabledResponse } from '@/lib/systemSettings'
+import { aiAllowanceResponse } from '@/lib/ai/allowance'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -13,14 +14,10 @@ export const maxDuration = 30
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const BURST_WINDOW_MS = 60 * 1000
-const BURST_LIMIT = 10
+const BURST_LIMIT = 20
 const MAX_ITEM_LEN = 200
 const MAX_CATEGORIES = 100
 const MAX_CATEGORY_LEN = 60
-
-interface SuggestResult {
-  category: string
-}
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -32,14 +29,8 @@ export async function POST(req: Request) {
   const aiOff = await aiDisabledResponse()
   if (aiOff) return aiOff
 
-  if (
-    await isRateLimited(`category-suggest:${auth.userId}`, [
-      { windowMs: BURST_WINDOW_MS, limit: BURST_LIMIT },
-      { windowMs: RATE_WINDOW_MS, limit: SIGNED_IN_LIMIT },
-    ])
-  ) {
-    return error('rate limited', 429)
-  }
+  const overAllowance = await aiAllowanceResponse(auth)
+  if (overAllowance) return overAllowance
 
   const body = await readBody(req)
   const item = typeof body.item === 'string' ? body.item.trim().slice(0, MAX_ITEM_LEN) : ''
@@ -56,45 +47,38 @@ export async function POST(req: Request) {
 
   const categoryList = rawCategories as string[]
 
-  let result: SuggestResult
-  try {
-    result = await generateJSON<SuggestResult>(
-      `Pick the single best-fit budgeting category for this expense item: "${item}".\n` +
-        `Choose exactly one value from the allowed category list. If none fit well, omit the category field entirely.`,
-      {
-        type: Type.OBJECT,
-        properties: {
-          category: {
-            type: Type.STRING,
-            format: 'enum',
-            enum: categoryList,
-          },
-        },
-      },
-      { userId: auth.userId, feature: 'suggest' },
-    )
-  } catch {
-    return error('category suggestion failed', 502)
-  }
+  // The rate-limit check (two database round trips) runs alongside the model
+  // call rather than before it. A limited request still spends one Jev call
+  // (~$0.00002), which the gateway key's spend cap bounds.
+  const [limited, category] = await Promise.all([
+    isRateLimited(`category-suggest:${auth.userId}`, [
+      { windowMs: BURST_WINDOW_MS, limit: BURST_LIMIT },
+      { windowMs: RATE_WINDOW_MS, limit: SIGNED_IN_LIMIT },
+    ]),
+    pickCategory(item, categoryList, { userId: auth.userId, feature: 'suggest' }).catch(() => null),
+  ])
+  if (limited) return error('rate limited', 429)
+  if (category === null) return error('category suggestion failed', 502)
 
-  const category = result.category ?? ''
-
+  // The category map writes don't change this reply, so they run after it's sent.
   if (category) {
-    const overridesColl = await getCollection('category_map_overrides', auth)
-    const words = item.toLowerCase().split(/\s+/)
-    const now = new Date().toISOString()
-    await Promise.all(
-      words
-        .filter((word) => word.length >= 2)
-        .map((word) =>
-          overridesColl.updateOne(
-            { word },
-            { $set: { word, category, source: 'llm', createdAt: now } },
-            { upsert: true },
+    after(async () => {
+      const overridesColl = await getCollection('category_map_overrides', auth)
+      const words = item.toLowerCase().split(/\s+/)
+      const now = new Date().toISOString()
+      await Promise.all(
+        words
+          .filter((word) => word.length >= 2)
+          .map((word) =>
+            overridesColl.updateOne(
+              { word },
+              { $set: { word, category, source: 'llm', createdAt: now } },
+              { upsert: true },
+            ),
           ),
-        ),
-    )
-    invalidateCategoryMap(auth.userId)
+      )
+      invalidateCategoryMap(auth.userId)
+    })
   }
 
   return json({ category })

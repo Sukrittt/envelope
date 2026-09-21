@@ -9,6 +9,7 @@ import { makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
 import { COLLECTIONS } from '@/lib/models'
 import { isRateLimited } from '@/lib/rateLimit'
 import { aiDisabledResponse } from '@/lib/systemSettings'
+import { aiAllowanceResponse } from '@/lib/ai/allowance'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -228,6 +229,9 @@ export async function POST(req: Request) {
 
   const aiOff = await aiDisabledResponse()
   if (aiOff) return aiOff
+
+  const overAllowance = await aiAllowanceResponse(auth)
+  if (overAllowance) return overAllowance
 
   if (await rateLimited(auth)) {
     return error('Too many messages. Try again in a bit.', 429)

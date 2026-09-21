@@ -32,11 +32,11 @@ export async function isRateLimited(key: string, opts: RateLimitTier | RateLimit
   const tiers = Array.isArray(opts) ? opts : [opts]
   const now = new Date()
 
-  for (const tier of tiers) {
-    const cutoff = new Date(now.getTime() - tier.windowMs)
-    const count = await coll.countDocuments({ key, ts: { $gte: cutoff } })
-    if (count >= tier.limit) return true
-  }
+  // Tiers are counted in parallel: one database round trip instead of one per tier.
+  const counts = await Promise.all(
+    tiers.map((tier) => coll.countDocuments({ key, ts: { $gte: new Date(now.getTime() - tier.windowMs) } })),
+  )
+  if (tiers.some((tier, i) => counts[i] >= tier.limit)) return true
 
   await coll.insertOne({ key, ts: now })
   return false

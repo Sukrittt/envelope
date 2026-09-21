@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Per-user "now" reads the users collection; these suites fake the clock via `nowIST` instead.
+vi.mock('@/lib/userCurrency', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/userCurrency')>()),
+  nowForUser: async () => (await import('@/lib/http')).nowIST(),
+}))
+
+
 /**
  * The recurring-expense pass of the nightly cron. Kept in its own file rather
  * than folded into `route.test.ts`: this one needs `getCollection` faked, which
@@ -83,6 +90,8 @@ const base = {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-09-07T03:00:00Z')) // 08:30 IST
   process.env.CRON_SECRET = 'test-secret'
   recurrences = []
   createExpenseMock.mockReset().mockResolvedValue({ id: 'e1', timestamp: '', duplicate: false })

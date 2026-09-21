@@ -11,10 +11,18 @@ vi.mock('../hooks/useExpenses', () => ({
   useDeleteExpense: () => ({ mutateAsync: remove }),
 }))
 
+it('opens the transaction actions when the row is clicked', () => {
+  render(<TransactionsView />)
+  expect(screen.getByText('₹100')).not.toHaveClass('is-expense')
+  fireEvent.click(screen.getByRole('button', { name: 'Open actions for Lunch' }))
+  expect(screen.getByText('Edit transaction')).toBeInTheDocument()
+  expect(screen.getByText('Delete transaction')).toBeInTheDocument()
+})
+
 it.each([[409, 'This transaction was updated'], [404, 'This transaction is already deleted']])('opens a friendly dialog after a delete returns %s', async (status, title) => {
   remove.mockReset().mockRejectedValueOnce(new ExpenseWriteError(Number(status), 'Raw API error'))
   render(<TransactionsView />)
-  fireEvent.click(screen.getByRole('button', { name: 'Transaction actions' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Open actions for Lunch' }))
   fireEvent.click(screen.getByText('Delete transaction'))
   fireEvent.click(screen.getByText('Remove'))
   await screen.findByRole('dialog', { name: String(title) })

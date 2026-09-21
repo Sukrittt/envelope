@@ -1,5 +1,6 @@
 import type { ClientSession } from 'mongodb'
-import { getCollection, nowIST } from '@/lib/http'
+import { getCollection } from '@/lib/http'
+import { nowForUser } from '@/lib/userCurrency'
 import type { Auth } from '@/lib/access'
 import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
@@ -98,7 +99,7 @@ export async function adjustCreditCardEnvelope(
 }
 
 export async function createExpense(auth: Auth, input: CreateExpenseInput): Promise<CreateExpenseResult> {
-  const ist = nowIST()
+  const ist = await nowForUser(auth.userId)
   const date = String(input.date || ist.date)
   const timestamp = String(input.timestamp || `${date}T${ist.timestamp.slice(11)}`)
   const paymentMethod = String(input.payment_method ?? 'bank')

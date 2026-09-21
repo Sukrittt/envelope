@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
 
+// Per-user "now" reads the users collection; these suites fake the clock via `nowIST` instead.
+vi.mock('@/lib/userCurrency', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/userCurrency')>()),
+  nowForUser: async () => (await import('@/lib/http')).nowIST(),
+}))
+
+
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
   readOnlyGuard: vi.fn(() => null),

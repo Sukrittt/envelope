@@ -123,7 +123,7 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
   return out
 }
 
-function billNotifications(subscriptions: SubscriptionDocRow[], prefs: NotificationPrefs): Notification[] {
+function billNotifications(subscriptions: SubscriptionDocRow[], prefs: NotificationPrefs, today: string): Notification[] {
   const money = (n: number) => formatMoney(Math.round(n), prefs.currencyCode)
   if (!prefs.bills) return []
   const out: Notification[] = []
@@ -138,9 +138,9 @@ function billNotifications(subscriptions: SubscriptionDocRow[], prefs: Notificat
       renewalOrEndMonth: sub.renewal_or_end_month,
       timestamp: sub.timestamp ?? '',
     }
-    if (renewalDays(dueInput) !== prefs.billLeadDays) continue
+    if (renewalDays(dueInput, today) !== prefs.billLeadDays) continue
 
-    const due = getEffectiveDueDate(dueInput)
+    const due = getEffectiveDueDate(dueInput, today)
     if (!due) continue
 
     const days = prefs.billLeadDays
@@ -231,7 +231,7 @@ export function buildNotifications(input: {
   // limit alerts (those have `prefs.thresholds`), but still gates bills and
   // the coaching nudge alongside the digest itself.
   if (prefs.cadence !== 'off') {
-    notifications.push(...billNotifications(subscriptions, prefs))
+    notifications.push(...billNotifications(subscriptions, prefs, today))
 
     const digest = digestNotification(meta, prefs, today)
     if (digest) notifications.push(digest)

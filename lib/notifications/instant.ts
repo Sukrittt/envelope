@@ -1,5 +1,5 @@
 import { getDb } from '@/lib/mongodb'
-import { nowIST } from '@/lib/http'
+import { nowIn } from '@/lib/http'
 import type { Auth } from '@/lib/access'
 import type { UserDoc } from '@/lib/users'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
@@ -30,7 +30,7 @@ export async function notifyThresholdCrossed(auth: Auth, category: string): Prom
     if (!prefs.thresholds) return
 
     const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth)
-    const { date: today } = nowIST()
+    const { date: today } = nowIn(user.timezone)
     const month = today.slice(0, 7)
 
     const notifications = buildNotifications({

@@ -12,6 +12,8 @@ export interface TokenCounts {
  */
 const PRICES: Record<string, { input: number; output: number }> = {
   'gemini-3.1-flash-lite': { input: 0.25, output: 1.5 },
+  // https://vercel.com/ai-gateway/models/jev, checked 2026-09-19: input only, no output charge.
+  'typesafe-ai/jev': { input: 0.042, output: 0 },
 }
 
 /** Estimated USD cost of one call, or null when the model has no price entry. */

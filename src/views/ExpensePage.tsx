@@ -1,6 +1,7 @@
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { ChevronRight } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
@@ -16,7 +17,6 @@ import {
   AssignMoneyScreen,
 } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
-import { CategoryManager } from "../components/CategoryManager";
 import { SubscriptionModal } from "../components/SubscriptionModal";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageLoading } from "../components/ExpensePageLoading";
@@ -45,6 +45,7 @@ import { daysLeftInMonth, monthLabel } from "../lib/envelope";
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
+  const router = useRouter();
   const { formatCurrency, currencyCode } = useCurrency();
 
   // One query per resource, as Mobile has, with the dashboard's derived panel
@@ -110,7 +111,6 @@ export function ExpensePage() {
   );
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
-  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
   const [showRolloverBanner, setShowRolloverBanner] = useState(false);
   const [rolloverData, setRolloverData] = useState<{
@@ -446,7 +446,7 @@ export function ExpensePage() {
                     envelopes={envelopeState.envelopes}
                     groups={envelopeState.groups}
                     hideAmounts={hideAmounts}
-                    onManage={() => setShowCategoryManager(true)}
+                    onManage={() => router.push("/expense/envelopes")}
                     onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
                     onAssignFromRTA={setAssignTarget}
                     onSetAssigned={setEditAssignedTarget}
@@ -504,15 +504,6 @@ export function ExpensePage() {
             </aside>
           </div>
         </div>
-        <AnimatePresence>
-          {showCategoryManager && (
-            <CategoryManager
-              onClose={() => setShowCategoryManager(false)}
-              onSaved={refreshPanel}
-              envelopes={envelopeState?.envelopes ?? null}
-            />
-          )}
-        </AnimatePresence>
         <AnimatePresence>
           {showSubModal && (
             <SubscriptionModal

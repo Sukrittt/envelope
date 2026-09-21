@@ -162,6 +162,29 @@ describe('POST /api/budgets/transfer', () => {
     expect(row('2026-03', 'Shopping')?.assigned).toBe('2000')
   })
 
+  it('carries forward a target with no row this month instead of dropping its prior assignment', async () => {
+    // Shopping showed 2000 assigned (carried from February). Crediting it must
+    // land on 2000 + 2500, not just 2500 — otherwise the 2000 silently flows
+    // back into Ready to Assign.
+    store.push({ _id: 1, month: '2026-02', category: 'Football', assigned: '5000', rolled_over: '0' })
+    store.push({ _id: 2, month: '2026-02', category: 'Shopping', assigned: '2000', rolled_over: '0' })
+
+    const res = await POST(req({ month: '2026-03', to: 'Shopping', from: 'Football', amount: 2500 }))
+    expect(res.status).toBe(200)
+
+    expect(row('2026-03', 'Football')?.assigned).toBe('2500')
+    expect(row('2026-03', 'Shopping')?.assigned).toBe('4500')
+  })
+
+  it('moving from Ready to Assign into a carried target keeps its prior assignment', async () => {
+    store.push({ _id: 1, month: '2026-02', category: 'Shopping', assigned: '2000', rolled_over: '0' })
+
+    const res = await POST(req({ month: '2026-03', to: 'Shopping', from: '__ready_to_assign__', amount: 500 }))
+    expect(res.status).toBe(200)
+
+    expect(row('2026-03', 'Shopping')?.assigned).toBe('2500')
+  })
+
   it('never carries forward the credit-card envelope', async () => {
     store.push({ _id: 1, month: '2026-02', category: '__credit_card__', assigned: '500', rolled_over: '0' })
     store.push({ _id: 2, month: '2026-03', category: 'Shopping', assigned: '1000', rolled_over: '0' })

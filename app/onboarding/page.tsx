@@ -64,6 +64,8 @@ function defaultCats(): Record<string, Item[]> {
     ],
     g2: [
       { id: makeId(), emoji: '🍜', name: 'Eating out', on: true },
+      { id: makeId(), emoji: '🎬', name: 'Entertainment', on: true },
+      { id: makeId(), emoji: '💻', name: 'Software', on: false },
       { id: makeId(), emoji: '📺', name: 'Subscriptions', on: false },
       { id: makeId(), emoji: '🛍', name: 'Shopping', on: false },
     ],

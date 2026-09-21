@@ -5,6 +5,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { generateJSONFromImage } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
 import { aiDisabledResponse } from '@/lib/systemSettings'
+import { aiAllowanceResponse } from '@/lib/ai/allowance'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
 
   const aiOff = await aiDisabledResponse()
   if (aiOff) return aiOff
+
+  const overAllowance = await aiAllowanceResponse(auth)
+  if (overAllowance) return overAllowance
 
   if (
     await isRateLimited(`bill-scan:${auth.userId}`, [

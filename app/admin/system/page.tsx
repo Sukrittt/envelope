@@ -23,6 +23,15 @@ export default async function AdminSystem() {
               </span>
             </label>
 
+            <input
+              className="adm-input"
+              name="aiMonthlyCostUsd"
+              defaultValue={settings.aiMonthlyCostUsd ?? ''}
+              placeholder="Monthly AI allowance per user in USD, e.g. 0.10 (empty = no cap)"
+              inputMode="decimal"
+              maxLength={12}
+            />
+
             <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <input type="checkbox" name="maintenanceOn" defaultChecked={settings.maintenance.on} style={{ marginTop: 4 }} />
               <span>
@@ -82,6 +91,14 @@ export default async function AdminSystem() {
               <span>
                 <strong>Apply to everyone (production)</strong>
                 <div className="adm-sub">Off = the two switches above only affect billing testers (npm run billing:tester -- --email …). Everyone else sees subscriptions as off. Leave this off until launch day.</div>
+              </span>
+            </label>
+
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <input type="checkbox" name="billingRetentionDelete" defaultChecked={settings.billing.retentionDeleteEnabled} style={{ marginTop: 4 }} />
+              <span>
+                <strong>Delete accounts after the retention window</strong>
+                <div className="adm-sub">Irreversible. Twelve months after access ends, the account and all its data are purged. Off = the job still sets deadlines and sends the 30/7/1-day notices, and /admin/jobs reports how many it would delete.</div>
               </span>
             </label>
 

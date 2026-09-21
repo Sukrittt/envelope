@@ -2301,6 +2301,142 @@
   font-size: 13px;
   margin: 10px 0 0;
 }
+
+/* ── Log expense modal — compact, uniform-rhythm layout ─────────
+   Card becomes a column: pinned header + footer, body scrolls. */
+.expense-redesign .erd-modal-card.erd-log-card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow: hidden;
+}
+.expense-redesign .erd-log-card .erd-modal-head {
+  margin-bottom: 24px;
+  flex: 0 0 auto;
+}
+.erd-log-card .erd-log-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+/* Uniform 24px between sections (8px base system), 8px label → field. */
+.erd-log-card .erd-log-section + .erd-log-section {
+  margin-top: 24px;
+}
+.erd-log-card .erd-log-label {
+  margin: 0 0 8px;
+}
+.erd-log-card #erd-log-item {
+  margin-top: 8px;
+}
+.erd-log-card .erd-log-input {
+  margin-top: 0;
+  height: 50px;
+  border-radius: 16px;
+}
+.erd-log-card .category-picker {
+  margin-top: 0;
+}
+
+/* Amount — the primary input: big, left-aligned, borderless with a bottom divider. */
+.erd-amount-field {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 0 10px;
+  border-bottom: 1.5px solid var(--erd-border-strong);
+  transition: border-color 0.15s ease;
+}
+.erd-amount-field:focus-within {
+  border-bottom-color: var(--gold);
+}
+.erd-amount-symbol {
+  font-family: var(--font-fredoka);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+.erd-amount-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--erd-text);
+  font-family: var(--font-fredoka);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.15;
+  caret-color: var(--gold);
+}
+.erd-amount-input::placeholder {
+  color: var(--erd-text3);
+}
+.erd-amount-input::-webkit-outer-spin-button,
+.erd-amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Date quick chips — compact row instead of a full-width dropdown. */
+.erd-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.erd-date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font-family: var(--font-nunito);
+  transition: all 0.15s ease;
+}
+.erd-date-chip.is-active {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold-hover);
+}
+.erd-log-card .date-picker-field-wrap {
+  margin-top: 8px;
+}
+
+/* Category picker — one flat wrap of 36px chips, icon + label. */
+.category-picker .erd-chip {
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.category-picker .erd-chip-row {
+  max-height: none;
+  overflow: visible;
+}
+.erd-chip-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Save — pinned to the sheet bottom, 24px above it. */
+.expense-redesign .erd-log-card .erd-log-footer {
+  flex: 0 0 auto;
+  padding-top: 24px;
+}
+.erd-log-card .erd-log-submit {
+  margin-top: 0;
+  height: 52px;
+  padding: 0;
+}
 @keyframes erd-success-pop {
   from {
     transform: scale(0.6);
@@ -2311,35 +2447,160 @@
     opacity: 1;
   }
 }
+
+/* ── New subscription modal — same rhythm as Log expense ─────────
+   Card becomes a column: pinned header + footer, body scrolls.
+   Reuses .erd-log-label / .erd-log-input / .erd-amount-* /
+   .erd-date-row / .category-picker / .erd-log-submit. */
+.expense-redesign .erd-modal-card.erd-sub-card {
+  display: flex;
+  flex-direction: column;
+  width: 640px;
+  padding: 24px;
+  overflow: hidden;
+}
+.expense-redesign .erd-sub-card .erd-modal-head {
+  margin-bottom: 24px;
+  flex: 0 0 auto;
+}
+.erd-sub-card .erd-sub-body {
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.erd-sub-card .erd-log-label {
+  margin: 0 0 8px;
+}
+.erd-sub-card .erd-log-input {
+  margin-top: 0;
+  height: 50px;
+  border-radius: 16px;
+}
+.erd-sub-card .category-picker {
+  margin-top: 0;
+}
+
+/* Amount suffix ("/ month") glued to the typed digits, muted and regular. */
+.erd-sub-card .erd-sub-amount-input {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.erd-sub-unit {
+  font-family: var(--font-nunito);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--erd-text2);
+}
+
+/* Service quick picks */
+.erd-sub-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.erd-sub-picks .erd-chip {
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+}
+.erd-sub-picks .erd-chip:hover {
+  border-color: var(--gold);
+  color: var(--gold-hover);
+}
+
+/* Inline helper text — small, dim, sits 8px BELOW its chips so the section
+   gap above the next field stays uniform at 24px. */
+.erd-sub-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--erd-text2);
+  margin: 8px 0 0;
+}
+
+/* Resolved due date shown under the date chips once picked. */
+.erd-sub-due {
+  font-size: 12px;
+  color: var(--erd-text2);
+  margin: 8px 0 0;
+}
+
+/* Billing cycle — segmented control, one tap, state always visible */
+.erd-seg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.erd-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font-family: var(--font-nunito);
+  transition: all 0.15s ease;
+}
+.erd-seg-btn:hover {
+  border-color: var(--gold);
+}
+.erd-seg-btn.is-active {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold-hover);
+}
+
+/* Collapsed "Add note" reveal — plain muted text, not another chip. */
+.erd-sub-note-toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  color: var(--erd-text3);
+  font-family: var(--font-fredoka);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.erd-sub-note-toggle:hover {
+  color: var(--gold-hover);
+}
+
+/* Save — pinned to the sheet bottom. */
+.expense-redesign .erd-sub-card .erd-sub-footer {
+  flex: 0 0 auto;
+  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+}
+.expense-redesign .erd-sub-card .erd-log-submit {
+  margin-top: 0;
+  height: 52px;
+  padding: 0;
+}
+/* Why Save is disabled — tiny, dim, under the button. */
+.erd-sub-save-hint {
+  font-size: 12px;
+  color: var(--erd-text2);
+  margin: 8px 0 0;
+  text-align: center;
+}
 @keyframes erd-check-draw {
   to {
     stroke-dashoffset: 0;
   }
 }
 
-/* Category manager + subscription modal internals, light restyle */
-.expense-redesign .category-manager-body {
-  margin-top: 14px;
-}
-.expense-redesign .cm-group-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 4px;
-  font-family: var(--font-fredoka);
-  font-size: 13px;
-  color: var(--erd-text2);
-}
-.expense-redesign .cm-group-count {
-  font-size: 11px;
-  color: var(--erd-text3);
-}
-.expense-redesign .category-manager-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 4px;
-}
 .expense-redesign .txn-entry-input {
   flex: 1;
   padding: 9px 12px;
@@ -2606,15 +2867,31 @@
 }
 .txn-timeline-row {
   display: grid;
-  grid-template-columns: 40px 1fr auto 36px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--erd-border);
+  padding: 11px 4px;
+  border: 0;
+  border-radius: 0;
+  position: relative;
 }
-.txn-timeline-row:hover {
-  background: var(--erd-border);
-  border-radius: 12px;
+.expense-redesign .txn-timeline-row:hover,
+.expense-redesign .txn-timeline-row.is-open {
+  background: transparent;
+}
+.txn-row-trigger {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.txn-row-trigger:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
 }
 .txn-timeline-icon {
   width: 40px;
@@ -2624,21 +2901,30 @@
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
 .txn-timeline-body {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
 .txn-timeline-item {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--erd-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-nunito);
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
 .txn-timeline-meta {
   font-size: 12px;
@@ -2649,24 +2935,27 @@
 }
 .txn-timeline-amount {
   text-align: right;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--erd-text);
   white-space: nowrap;
+  font-family: var(--font-nunito);
 }
 .txn-timeline-amount.is-income {
   color: var(--mint);
 }
 
 .txn-actions {
-  display: flex;
-  justify-content: flex-end;
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  z-index: 20;
+  width: 0;
+  height: 0;
 }
-.txn-kebab-trigger {
-  color: var(--erd-text3);
-  opacity: 1;
-  transition: background 0.15s ease, color 0.15s ease;
+.txn-actions .env-menu {
+  top: 10px;
 }
 .txn-kebab-confirm {
   padding: 9px 12px;
@@ -2716,6 +3005,18 @@
     max-width: none;
     border-radius: 28px 24px 0 0;
     padding: 22px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+  .expense-redesign .erd-modal-card.erd-log-card {
+    padding: 24px 20px 0;
+  }
+  .expense-redesign .erd-modal-card.erd-sub-card {
+    padding: 24px 20px 0;
+  }
+  .expense-redesign .erd-log-card .erd-log-footer {
+    padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
+  }
+  .expense-redesign .erd-sub-card .erd-sub-footer {
+    padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
   }
 }
 

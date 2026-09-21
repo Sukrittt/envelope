@@ -13,7 +13,6 @@ import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
 
 import { LoadingCaption } from "./LoadingCaption";
-import { getCategoryColor } from "../data/categoryColors";
 import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { DatePicker } from "./DatePicker";
@@ -47,10 +46,22 @@ function formatShortDate(iso: string): string {
   return `${day} ${month} '${year}`;
 }
 
-// Mirrors Mobile's activity.tsx avatarColorFor — reuses this app's existing
-// per-category color instead of inventing a second palette.
-function avatarTint(category: string): string {
-  return `color-mix(in oklab, ${getCategoryColor(category)} 30%, transparent)`;
+// Keep the same stable, soft-hue cycle as Mobile's Activity avatars.
+const AVATAR_HUES = [
+  "var(--mint-soft)",
+  "var(--violet-soft)",
+  "var(--blue-soft)",
+  "var(--gold-soft)",
+  "var(--warn-soft)",
+  "var(--coral-soft)",
+];
+
+function avatarColorFor(category: string): string {
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_HUES[hash % AVATAR_HUES.length];
 }
 
 export function TransactionsView({
@@ -109,6 +120,7 @@ export function TransactionsView({
   useEffect(() => {
     if (!actionsKey) return;
     function handleClick(e: MouseEvent) {
+      if ((e.target as Element).closest(".txn-row-trigger")) return;
       if (
         actionsMenuRef.current &&
         !actionsMenuRef.current.contains(e.target as Node)
@@ -229,6 +241,13 @@ export function TransactionsView({
   // The mutation hooks invalidate the expense and budget queries themselves,
   // so there is nothing left for callers to refresh by hand.
   function refreshTransactions() {}
+
+  function toggleActions(rowKey: string) {
+    setActionsKey((key) => {
+      setDeleteKey(null);
+      return key === rowKey ? null : rowKey;
+    });
+  }
 
   async function handleDelete(t: Transaction) {
     if (deleting) return;
@@ -377,11 +396,22 @@ export function TransactionsView({
             const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
             const categoryName = splitEmoji(t.category).text;
             return (
-              <div key={`t-${t.timestamp}-${i}`} className="txn-timeline-row">
+              <div
+                key={`t-${t.timestamp}-${i}`}
+                className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="txn-row-trigger"
+                  aria-label={`Open actions for ${t.item}`}
+                  aria-haspopup="menu"
+                  aria-expanded={actionsKey === rowKey}
+                  onClick={() => toggleActions(rowKey)}
+                />
                 <span
                   className="txn-timeline-icon"
                   title={categoryName}
-                  style={{ background: avatarTint(categoryName) }}
+                  style={{ background: avatarColorFor(categoryName) }}
                 >
                   {categoryEmoji(t.category)}
                 </span>
@@ -392,34 +422,20 @@ export function TransactionsView({
                   </span>
                 </span>
                 <span
-                  className={`txn-timeline-amount ${isIncome ? "is-income" : "is-expense"} ${hideAmounts ? "amount-hidden" : ""}`}
+                  className={`txn-timeline-amount ${isIncome ? "is-income" : ""} ${hideAmounts ? "amount-hidden" : ""}`}
                 >
                   {hideAmounts
                     ? "---"
-                    : `${isIncome ? "+" : "-"}${formatCurrency(t.amountInr)}`}
+                    : formatCurrency(t.amountInr)}
                 </span>
-                <span className="txn-actions">
+                <span
+                  className="txn-actions"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
                   <div className="env-action-wrap">
-                    <button
-                      type="button"
-                      className={`env-menu-trigger txn-kebab-trigger ${actionsKey === rowKey ? "is-open" : ""}`}
-                      title="Actions"
-                      aria-label="Transaction actions"
-                      onClick={() =>
-                        setActionsKey((k) => {
-                          if (k === rowKey) {
-                            setDeleteKey(null);
-                            return null;
-                          }
-                          setDeleteKey(null);
-                          return rowKey;
-                        })
-                      }
-                    >
-                      ⋯
-                    </button>
                     {actionsKey === rowKey && (
-                      <div className="env-menu" ref={actionsMenuRef}>
+                      <div className="env-menu" ref={actionsMenuRef} role="menu">
                         {deleteKey === rowKey ? (
                           <div className="txn-kebab-confirm">
                             <span className="txn-kebab-confirm-label">

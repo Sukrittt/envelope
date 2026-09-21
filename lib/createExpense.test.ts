@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
 
+// Per-user "now" reads the users collection; these suites fake the clock via `nowIST` instead.
+vi.mock('@/lib/userCurrency', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/userCurrency')>()),
+  nowForUser: async () => (await import('@/lib/http')).nowIST(),
+}))
+
+
 /**
  * Guards the behaviour `createExpense` inherited when it was lifted out of
  * `app/api/expenses`'s POST handler — the three things `lib/subscriptionExpense.ts`

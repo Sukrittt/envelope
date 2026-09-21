@@ -5,6 +5,8 @@ import { purgesAt } from './archive'
 
 export interface UserDoc {
   currencyCode?: string
+  /** IANA zone (e.g. `America/New_York`) reported by the client. Absent = IST, which is what every pre-existing account was. */
+  timezone?: string
   _id: string
   email: string
   /**

@@ -63,6 +63,11 @@ export async function purgeAccountNow(db: Db, userId: string): Promise<{ rows: n
     }
   }
 
+  // The trial record goes with the account. `billing_subscriptions` rows stay:
+  // they hold store transaction ids and dates, no budgeting content, and are
+  // what lets a late refund or renewal event be matched to a purchase.
+  await db.collection('billing_accounts').deleteOne({ _id: userId as never })
+
   await db.collection<UserDoc>('users').deleteOne({ _id: userId })
   return { rows, blobs }
 }

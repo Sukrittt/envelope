@@ -1,4 +1,5 @@
-import { json, error, readBody, getCollection, escapeRegExp, nowIST } from '@/lib/http'
+import { json, error, readBody, getCollection, escapeRegExp } from '@/lib/http'
+import { nowForUser } from '@/lib/userCurrency'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { HOLDING_HEADERS, toRow } from '@/lib/models'
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   if (exists) return error('holding already exists', 409)
 
   const isRecurring = body.is_recurring === true || body.is_recurring === 'true'
-  const { date: today } = nowIST()
+  const { date: today } = await nowForUser(auth.userId)
 
   await coll.insertOne({
     name: String(body.name),
@@ -85,7 +86,7 @@ export async function PUT(req: Request) {
       // for the first time needs its cadence set, same as POST, but editing
       // just the amount on an already-recurring holding must not reset it.
       if (!existing.recurring_day) {
-        const { date: today } = nowIST()
+        const { date: today } = await nowForUser(auth.userId)
         update.recurring_day = String(Number(today.slice(8, 10)))
         update.recurring_last_run = today.slice(0, 7)
       }

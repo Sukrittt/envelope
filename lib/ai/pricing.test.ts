@@ -7,6 +7,10 @@ describe('estimateCostUsd', () => {
     expect(estimateCostUsd('gemini-3.1-flash-lite', { inputTokens: 1_000_000, outputTokens: 500_000, thinkingTokens: 500_000 })).toBeCloseTo(1.75, 10)
   })
 
+  it('prices Jev on input tokens only', () => {
+    expect(estimateCostUsd('typesafe-ai/jev', { inputTokens: 1_000_000, outputTokens: 75, thinkingTokens: 0 })).toBeCloseTo(0.042, 10)
+  })
+
   it('is zero for no tokens', () => {
     expect(estimateCostUsd('gemini-3.1-flash-lite', { inputTokens: 0, outputTokens: 0, thinkingTokens: 0 })).toBe(0)
   })

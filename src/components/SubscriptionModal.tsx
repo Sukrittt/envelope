@@ -1,11 +1,17 @@
+'use client'
+
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useEffect, useState } from 'react'
-import { addSubscription, updateSubscription } from '../api/subscriptions'
-import { getCategories } from '../api/categories'
-import type { CategoryRow } from '../types'
+import { useState } from 'react'
+import { Calendar } from 'lucide-react'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
+import { CategoryPicker } from './CategoryPicker'
+import { useAddSubscription, useUpdateSubscription } from '../hooks/useSubscriptions'
+import { useCategories } from '../hooks/useCategories'
+import { splitEmoji } from '../lib/emoji'
+import { EMPTY } from '../lib/constants'
+import type { CategoryRow } from '../types'
 
 interface SubscriptionEdit {
   service: string
@@ -22,7 +28,44 @@ interface Props {
   editData?: SubscriptionEdit
 }
 
-const BILLING_CYCLES = ['monthly', 'yearly', 'quarterly', 'weekly', 'one-time']
+const BILLING_CYCLES = ['weekly', 'monthly', 'quarterly', 'yearly', 'one-time'] as const
+type BillingCycle = (typeof BILLING_CYCLES)[number]
+
+/** Display casing — never CSS `capitalize`, which would mangle "one-time". */
+const CYCLE_LABEL: Record<BillingCycle, string> = {
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  yearly: 'Yearly',
+  'one-time': 'One-time',
+}
+
+/** "/ month"-style suffix next to the amount, matching the picked cycle. */
+const CYCLE_NOUN: Record<BillingCycle, string> = {
+  weekly: 'week',
+  monthly: 'month',
+  quarterly: 'quarter',
+  yearly: 'year',
+  'one-time': '',
+}
+
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+interface ServiceSuggestion {
+  name: string
+  amount: string
+  cycle: BillingCycle
+  /** Suggested category — only applied when the user actually has one like it. */
+  category?: string
+}
+
+/** Common Indian prices — filled only as a suggestion, plans change. */
+const SERVICE_SUGGESTIONS: ServiceSuggestion[] = [
+  { name: 'Netflix', amount: '199', cycle: 'monthly', category: 'Entertainment' },
+  { name: 'Spotify', amount: '99', cycle: 'monthly', category: 'Entertainment' },
+  { name: 'YouTube', amount: '149', cycle: 'monthly', category: 'Entertainment' },
+  { name: 'Amazon Prime', amount: '1499', cycle: 'yearly', category: 'Subscriptions' },
+]
 
 function toDateInput(iso: string): string {
   if (!iso) return ''
@@ -30,26 +73,92 @@ function toDateInput(iso: string): string {
   return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10)
 }
 
+/** Date as a local `YYYY-MM-DD` string. */
+function toDateInputValue(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function futureDate(daysFromNow: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + daysFromNow)
+  return toDateInputValue(d)
+}
+
+function firstOfNextMonth(): string {
+  const d = new Date()
+  return toDateInputValue(new Date(d.getFullYear(), d.getMonth() + 1, 1))
+}
+
+function formatDueDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return `${d} ${SHORT_MONTHS[m - 1]} ${y}`
+}
+
+/** The closest real category in the user's set to a suggested name, if any. */
+function findCategory(categories: CategoryRow[], target: string): string {
+  const key = target.trim().toLowerCase()
+  const row = categories.find((c) => splitEmoji(c.name).text.trim().toLowerCase() === key)
+  return row ? row.name : ''
+}
+
 export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
   const { currencySymbol } = useCurrency()
+  const categoriesQ = useCategories()
+  const categories = categoriesQ.data ?? EMPTY
 
   const isEdit = !!editData
   const [service, setService] = useState(editData?.service ?? '')
   const [amount, setAmount] = useState(editData?.amount_inr ?? '')
-  const [billingCycle, setBillingCycle] = useState(editData?.billing_cycle ?? 'monthly')
-  const [dueDate, setDueDate] = useState(toDateInput(editData?.next_due_date ?? ''))
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(
+    (editData?.billing_cycle as BillingCycle) ?? 'monthly',
+  )
+  // Deliberately unselected — a guessed default would silently create the wrong reminder.
+  const [dueDate, setDueDate] = useState(() =>
+    editData?.next_due_date ? toDateInput(editData.next_due_date) : '',
+  )
+  const [showNote, setShowNote] = useState(() => !!editData?.notes?.trim())
   const [notes, setNotes] = useState(editData?.notes ?? '')
   const [category, setCategory] = useState(editData?.category ?? '')
-  const [categories, setCategories] = useState<CategoryRow[]>([])
+  const [showCalendar, setShowCalendar] = useState(false)
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    getCategories().then(setCategories).catch(() => setCategories([]))
-  }, [])
+  const addSub = useAddSubscription()
+  const updateSub = useUpdateSubscription()
 
   const amt = parseFloat(amount)
-  const canSave = service.trim() !== '' && amount.trim() !== '' && !Number.isNaN(amt) && amt > 0
+  const amountOk = amount.trim() !== '' && !Number.isNaN(amt) && amt > 0
+  const canSave = service.trim() !== '' && amountOk && dueDate !== ''
+
+  const missing: string[] = []
+  if (!service.trim()) missing.push('a service')
+  if (!amountOk) missing.push('an amount')
+  if (!dueDate) missing.push('a due date')
+
+  const unitNoun = CYCLE_NOUN[billingCycle]
+  const in7 = futureDate(7)
+  const in30 = futureDate(30)
+  const firstNext = firstOfNextMonth()
+  const customDate = dueDate !== '' && dueDate !== in7 && dueDate !== in30 && dueDate !== firstNext
+
+  function handleAmountChange(value: string) {
+    if (/[^0-9.]/.test(value)) return
+    setAmount(value)
+  }
+
+  function pickSuggestion(s: ServiceSuggestion) {
+    setService(s.name)
+    setAmount(s.amount)
+    setBillingCycle(s.cycle)
+    if (!category && s.category) {
+      setCategory(findCategory(categories, s.category))
+    }
+  }
+
+  function handleDatePick(value: string) {
+    setDueDate(value)
+    setShowCalendar(false)
+  }
 
   async function handleSave() {
     if (!canSave || saving || success) return
@@ -63,9 +172,9 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
         if (dueDate !== toDateInput(editData!.next_due_date)) updates.next_due_date = dueDate || ''
         if (notes !== editData!.notes) updates.notes = notes.trim()
         if (category !== editData!.category) updates.category = category
-        await updateSubscription(editData!.service, updates)
+        await updateSub.mutateAsync({ service: editData!.service, updates })
       } else {
-        await addSubscription({
+        await addSub.mutateAsync({
           service: service.trim(),
           amount_inr: String(amt),
           billing_cycle: billingCycle,
@@ -83,100 +192,183 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
   }
 
   return (
-    <Scrim className="category-manager-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <Sheet className="category-manager subscription-modal">
-        <div className="category-manager-header">
-          <h3>{isEdit ? 'Edit Subscription' : 'New Subscription'}</h3>
-          <button type="button" className="action-button is-ghost" onClick={onClose} disabled={success}>✕</button>
+    <Scrim className="erd-modal-overlay" onClick={success ? undefined : onClose}>
+      <Sheet className="erd-modal-card erd-sub-card" onClick={(e) => e.stopPropagation()}>
+        <div className="erd-modal-head">
+          <h3>{isEdit ? 'Edit subscription' : 'New subscription'}</h3>
+          <button
+            type="button"
+            className="erd-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+            disabled={success}
+          >
+            ✕
+          </button>
         </div>
 
-        {error && <p className="txn-entry-error">{error}</p>}
+        <div className="erd-sub-body">
+          {error && <p className="erd-log-error">{error}</p>}
 
-        <div className="category-manager-body">
-          <div className="subscription-modal-form">
-            <label className="subscription-modal-field">
-              <span>Service</span>
-              <input
-                type="text"
-                className="txn-entry-input"
-                value={service}
-                onChange={(e) => setService(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && canSave) handleSave() }}
-                placeholder="Netflix"
-                autoFocus
-              />
+          <section className="erd-sub-section">
+            <label className="erd-log-label" htmlFor="erd-sub-service">
+              Service
             </label>
+            <input
+              id="erd-sub-service"
+              className="erd-log-input"
+              placeholder="e.g. Hotstar"
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              autoFocus
+            />
+            <div className="erd-sub-picks">
+              {SERVICE_SUGGESTIONS.map((s) => (
+                <button
+                  key={s.name}
+                  type="button"
+                  className="erd-chip"
+                  onClick={() => pickSuggestion(s)}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            <p className="erd-sub-hint">Tap to autofill name and amount</p>
+          </section>
 
-            <label className="subscription-modal-field">
-              <span>Amount ({currencySymbol})</span>
+          <section className="erd-sub-section">
+            <label className="erd-log-label" htmlFor="erd-sub-amount">
+              Amount
+            </label>
+            <div className="erd-amount-field">
+              <span className="erd-amount-symbol" aria-hidden="true">
+                {currencySymbol}
+              </span>
               <input
-                type="number"
-                step="any"
-                min="0"
-                className="txn-entry-input"
+                id="erd-sub-amount"
+                className="erd-amount-input erd-sub-amount-input"
+                type="text"
+                inputMode="decimal"
+                placeholder="0"
+                size={Math.max(4, amount.length)}
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && canSave) handleSave() }}
-                placeholder="199"
+                onChange={(e) => handleAmountChange(e.target.value)}
               />
-            </label>
+              {unitNoun && (
+                <span className="erd-sub-unit" aria-hidden="true">
+                  / {unitNoun}
+                </span>
+              )}
+            </div>
+          </section>
 
-            <label className="subscription-modal-field">
-              <span>Billing cycle</span>
-              <select
-                className="txn-entry-input"
-                value={billingCycle}
-                onChange={(e) => setBillingCycle(e.target.value)}
+          <section className="erd-sub-section">
+            <div className="erd-log-label">Billing cycle</div>
+            <div className="erd-seg-row" role="group" aria-label="Billing cycle">
+              {BILLING_CYCLES.map((cycle) => (
+                <button
+                  key={cycle}
+                  type="button"
+                  className={`erd-seg-btn${billingCycle === cycle ? ' is-active' : ''}`}
+                  aria-pressed={billingCycle === cycle}
+                  onClick={() => setBillingCycle(cycle)}
+                >
+                  {CYCLE_LABEL[cycle]}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="erd-sub-section">
+            <div className="erd-log-label">Next due date</div>
+            <div className="erd-date-row" role="group" aria-label="Next due date">
+              <button
+                type="button"
+                className={`erd-date-chip${dueDate === in7 ? ' is-active' : ''}`}
+                onClick={() => handleDatePick(in7)}
               >
-                {BILLING_CYCLES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </label>
+                In 7 days
+              </button>
+              <button
+                type="button"
+                className={`erd-date-chip${dueDate === in30 ? ' is-active' : ''}`}
+                onClick={() => handleDatePick(in30)}
+              >
+                In 30 days
+              </button>
+              <button
+                type="button"
+                className={`erd-date-chip${dueDate === firstNext ? ' is-active' : ''}`}
+                onClick={() => handleDatePick(firstNext)}
+              >
+                1st of next month
+              </button>
+              <button
+                type="button"
+                className={`erd-date-chip${showCalendar ? ' is-active' : ''}`}
+                onClick={() => setShowCalendar((v) => !v)}
+              >
+                <Calendar size={15} aria-hidden="true" />
+                {showCalendar ? 'Close' : customDate ? formatDueDate(dueDate) : 'Pick date'}
+              </button>
+            </div>
+            {dueDate && <p className="erd-sub-due">Due {formatDueDate(dueDate)}</p>}
+            {showCalendar && (
+              <DatePicker
+                mode="single"
+                value={dueDate}
+                onChange={handleDatePick}
+                disableFuture={false}
+              />
+            )}
+          </section>
 
-            <label className="subscription-modal-field">
-              <span>Next due date</span>
-              <DatePicker mode="single" value={dueDate} onChange={setDueDate} disableFuture={false} />
-            </label>
+          <section className="erd-sub-section">
+            <div className="erd-log-label">Category (optional)</div>
+            <CategoryPicker value={category} onChange={setCategory} />
+            <p className="erd-sub-hint">Used when this is logged as an expense.</p>
+          </section>
 
-            <label className="subscription-modal-field">
-              <span>Notes</span>
+          {showNote ? (
+            <section className="erd-sub-section">
+              <label className="erd-log-label" htmlFor="erd-sub-notes">
+                Note
+              </label>
               <input
-                type="text"
-                className="txn-entry-input"
+                id="erd-sub-notes"
+                className="erd-log-input"
+                placeholder="Anything worth remembering"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && canSave) handleSave() }}
-                placeholder="Optional"
               />
-            </label>
-
-            <label className="subscription-modal-field">
-              <span>Category</span>
-              <select
-                className="txn-entry-input"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="">No category linked</option>
-                {categories.map((c) => (
-                  <option key={c.name} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-              {category && (
-                <p className="subscription-modal-hint">
-                  We&apos;ll auto-add an expense for this subscription in {category} on its due date.
-                </p>
-              )}
-            </label>
-          </div>
+            </section>
+          ) : (
+            <button
+              type="button"
+              className="erd-sub-note-toggle"
+              onClick={() => setShowNote(true)}
+            >
+              + Add note
+            </button>
+          )}
         </div>
 
-        <div className="subscription-modal-actions">
-          <button type="button" className="action-button is-ghost" onClick={onClose} disabled={success}>Cancel</button>
-          <SuccessButton type="button" disabled={!canSave || saving || success} saving={saving} success={success} onClick={handleSave}>
+        <div className="erd-sub-footer">
+          <SuccessButton
+            type="button"
+            baseClass="erd-log-submit"
+            saving={saving}
+            success={success}
+            successLabel="Subscription saved"
+            disabled={!canSave || saving || success}
+            onClick={handleSave}
+          >
             {isEdit ? 'Save changes' : 'Add subscription'}
           </SuccessButton>
+          {!canSave && missing.length > 0 && (
+            <p className="erd-sub-save-hint">Enter {missing.join(' and ')} to save.</p>
+          )}
         </div>
       </Sheet>
     </Scrim>

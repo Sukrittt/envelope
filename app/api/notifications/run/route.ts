@@ -1,7 +1,7 @@
 import { formatMoney } from '@/src/lib/currencies'
 import { timingSafeEqual, createHash } from 'node:crypto'
 import type { Db } from 'mongodb'
-import { json, nowIST, getCollection } from '@/lib/http'
+import { json, nowIn, getCollection } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import type { Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
@@ -34,7 +34,7 @@ async function runForUser(db: Db, user: UserDoc): Promise<number> {
 
   const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
   const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth)
-  const { date: today } = nowIST()
+  const { date: today } = nowIn(user.timezone)
 
   const notifications = buildNotifications({
     envelopes,
@@ -65,8 +65,9 @@ async function runForUser(db: Db, user: UserDoc): Promise<number> {
  * ponytail: one count per user. Upgrade to a single grouped aggregation over
  * `expenses` if the user base grows large enough for N queries to matter.
  */
-async function runWrappedForUser(db: Db, user: UserDoc, month: string): Promise<number> {
+async function runWrappedForUser(db: Db, user: UserDoc): Promise<number> {
   const prefs = prefsFor(user)
+  const month = currentEdition(nowIn(user.timezone).date)
   const notification = wrappedNotification(month, prefs)
   if (!notification) return 0
 
@@ -340,7 +341,6 @@ async function runAll(): Promise<{ sent: number }> {
     }
   }
 
-  const wrappedMonth = currentEdition(nowIST().date)
   const wrappedUsers = await db
     .collection<UserDoc>('users')
     .find({ notifyWrapped: { $ne: false }, deleted_at: null })
@@ -348,7 +348,7 @@ async function runAll(): Promise<{ sent: number }> {
 
   for (const user of wrappedUsers) {
     try {
-      sent += await runWrappedForUser(db, user, wrappedMonth)
+      sent += await runWrappedForUser(db, user)
     } catch (err) {
       console.error('notifications/run: wrapped failed for', user._id, err)
     }
@@ -357,10 +357,9 @@ async function runAll(): Promise<{ sent: number }> {
   // Not filtered by notifyCadence — a recurring investment is its own opt-in,
   // set per-holding, independent of the digest.
   const investmentUsers = await db.collection<UserDoc>('users').find({ deleted_at: null }).toArray()
-  const { date: today } = nowIST()
   for (const user of investmentUsers) {
     try {
-      sent += await runRecurringInvestmentsForUser(db, user, today)
+      sent += await runRecurringInvestmentsForUser(db, user, nowIn(user.timezone).date)
     } catch (err) {
       console.error('notifications/run: investments failed for', user._id, err)
     }
@@ -369,15 +368,15 @@ async function runAll(): Promise<{ sent: number }> {
   // Also unfiltered by notifyCadence, same reasoning as investments above —
   // a subscription's or a recurrence's own due date isn't a digest preference.
   // Both share this pass rather than each re-running the identical query.
-  const autoExpenseUsers = await db.collection<UserDoc>('users').find({ deleted_at: null }).toArray()
+  const autoExpenseUsers = investmentUsers
   for (const user of autoExpenseUsers) {
     try {
-      sent += await runSubscriptionExpensesForUser(db, user, today)
+      sent += await runSubscriptionExpensesForUser(db, user, nowIn(user.timezone).date)
     } catch (err) {
       console.error('notifications/run: subscription expenses failed for', user._id, err)
     }
     try {
-      sent += await runRecurringExpensesForUser(db, user, today)
+      sent += await runRecurringExpensesForUser(db, user, nowIn(user.timezone).date)
     } catch (err) {
       console.error('notifications/run: recurring expenses failed for', user._id, err)
     }

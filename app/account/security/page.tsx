@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { clearLocalPrefs } from '../../../src/lib/localPref'
+import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 
 interface UserDoc {
   email: string
@@ -69,6 +70,9 @@ function SecurityContent() {
   const [signingOutAll, setSigningOutAll] = useState(false)
 
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const { data: billing } = useBillingStatus()
+  // Deleting the account cannot cancel a Google Play subscription — only the Play Store can.
+  const renewingSubscription = billing?.mode === 'paid' && billing.autoRenew
   const [deleteEmailDraft, setDeleteEmailDraft] = useState('')
   const [deleting, setDeleting] = useState(false)
 
@@ -503,6 +507,12 @@ function SecurityContent() {
               You&apos;ll have 7 days to restore before this is permanent. Type <strong>{doc?.email}</strong> to
               confirm.
             </div>
+            {renewingSubscription ? (
+              <div className="account-confirm-copy">
+                <strong>Your subscription is still active.</strong> Deleting your account doesn&apos;t cancel it. Cancel in
+                the Google Play Store first, or you&apos;ll keep being billed.
+              </div>
+            ) : null}
             <input
               type="email"
               className="account-inline-input"

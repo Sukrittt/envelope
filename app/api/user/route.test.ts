@@ -116,6 +116,16 @@ describe('PATCH /api/user currency', () => {
     expect(res.status).toBe(400)
     expect(usersUpdateOneMock).not.toHaveBeenCalled()
   })
+  it('stores a valid IANA timezone', async () => {
+    const res = await PATCH(patchRequest({ timezone: 'America/New_York' }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { timezone: 'America/New_York' } })
+  })
+  it.each(['Mars/Base', '', null, 5])('rejects invalid timezone %s', async timezone => {
+    const res = await PATCH(patchRequest({ timezone }))
+    expect(res.status).toBe(400)
+    expect(usersUpdateOneMock).not.toHaveBeenCalled()
+  })
   it('returns INR for a legacy profile without currency', async () => {
     const res = await PATCH(patchRequest({ name: 'Test' }))
     expect((await res.json()).currencyCode).toBe('INR')
