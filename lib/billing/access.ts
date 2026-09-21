@@ -43,6 +43,15 @@ export interface Access {
   autoRenew: boolean
   /** The verified store status, surfaced so the client can say *why* (grace, on hold, pending). */
   renewalState: SubscriptionStatus | null
+  /**
+   * True when an admin's gifted plan is what is entitling the account.
+   * Deliberately not a separate `mode`: shipped clients switch on the four
+   * known modes, and an unrecognised fifth would fall through to "finish
+   * setup". A gift *is* a paid plan as far as the app is concerned — this
+   * flag only exists so copy can say who paid for it, and so revenue counts
+   * can leave it out.
+   */
+  gifted: boolean
   retentionDeadline: string | null
 }
 
@@ -60,6 +69,24 @@ function subscriptionEntitles(sub: BillingSubscriptionDoc | null, now: Date): bo
   return sub.expiresAt !== null && sub.expiresAt.getTime() > now.getTime()
 }
 
+/** A gift entitles until its instant, exactly like a purchase's `expiresAt`. */
+function compEntitles(account: BillingAccountDoc | null, now: Date): boolean {
+  const comp = account?.comp
+  return !!comp && comp.until.getTime() > now.getTime()
+}
+
+/**
+ * Where a trial ends once an admin adds `days` to it.
+ *
+ * Extending a live trial adds to what is left; extending one that already ran
+ * out counts from now. Either way "give them 14 more days" means fourteen days
+ * of usable access, which is the only reading an admin ever means.
+ */
+export function extendTrialEnd(currentEnd: Date, days: number, now: Date): Date {
+  const from = Math.max(currentEnd.getTime(), now.getTime())
+  return new Date(from + days * DAY_MS)
+}
+
 /**
  * Resolve what an account may do right now.
  *
@@ -69,7 +96,11 @@ function subscriptionEntitles(sub: BillingSubscriptionDoc | null, now: Date): bo
  * action, so no account means no clock has started.
  */
 export function resolveAccess({ now, account, subscription, enforced }: AccessInput): Access {
-  const paid = subscriptionEntitles(subscription, now)
+  const purchased = subscriptionEntitles(subscription, now)
+  // A purchase outranks a gift for display: it is the one with a renewal to
+  // explain. The gift keeps entitling underneath either way.
+  const gifted = !purchased && compEntitles(account, now)
+  const paid = purchased || gifted
   const trial = account !== null && account.trialEndsAt.getTime() > now.getTime()
 
   // ponytail: a legacy user who onboarded before billing shipped has no
@@ -89,9 +120,10 @@ export function resolveAccess({ now, account, subscription, enforced }: AccessIn
     trialDaysRemaining: Math.max(0, Math.floor(msLeft / DAY_MS)),
     productId: subscription?.productId ?? null,
     basePlanId: subscription?.basePlanId ?? null,
-    paidExpiresAt: subscription?.expiresAt?.toISOString() ?? null,
-    autoRenew: subscription?.autoRenew ?? false,
+    paidExpiresAt: gifted ? account!.comp!.until.toISOString() : (subscription?.expiresAt?.toISOString() ?? null),
+    autoRenew: gifted ? false : (subscription?.autoRenew ?? false),
     renewalState: subscription?.status ?? null,
+    gifted,
     retentionDeadline: account?.retentionDeadline?.toISOString() ?? null,
   }
 }

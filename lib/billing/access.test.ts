@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveAccess, trialWindow, pickSubscription } from './access'
+import { resolveAccess, trialWindow, pickSubscription, extendTrialEnd } from './access'
 import { TRIAL_DAYS, type BillingAccountDoc, type BillingSubscriptionDoc, type SubscriptionStatus } from './records'
 
 const NOW = new Date('2026-09-18T12:00:00.000Z')
@@ -114,6 +114,46 @@ describe('resolveAccess states', () => {
       mode: 'expired',
       allowed: false,
     })
+  })
+})
+
+describe('resolveAccess gifted plans', () => {
+  const gift = (until: Date) => ({ comp: { until, reason: 'beta tester', grantedBy: 'admin_1', grantedAt: NOW } })
+  const deadTrial = new Date(NOW.getTime() - DAY)
+
+  it('entitles an account whose only grant is a live gift', () => {
+    const access = resolve({ account: account({ trialEndsAt: deadTrial, ...gift(new Date(NOW.getTime() + 30 * DAY)) }) })
+    expect(access).toMatchObject({ mode: 'paid', allowed: true, gifted: true, autoRenew: false, renewalState: null })
+    expect(access.paidExpiresAt).toBe(new Date(NOW.getTime() + 30 * DAY).toISOString())
+  })
+
+  it('stops entitling exactly at the gift instant', () => {
+    expect(resolve({ account: account({ trialEndsAt: deadTrial, ...gift(NOW) }) })).toMatchObject({ mode: 'expired', allowed: false, gifted: false })
+  })
+
+  it('hides a running trial, so no trial-ending reminder reaches a gifted user', () => {
+    expect(resolve({ account: account(gift(new Date(NOW.getTime() + 300 * DAY))) }).mode).toBe('paid')
+  })
+
+  it('lets a real purchase drive the copy when a gift also applies', () => {
+    const access = resolve({ account: account(gift(new Date(NOW.getTime() + 300 * DAY))), subscription: sub('active', new Date(NOW.getTime() + DAY)) })
+    expect(access).toMatchObject({ mode: 'paid', gifted: false, autoRenew: true, renewalState: 'active' })
+    expect(access.paidExpiresAt).toBe(new Date(NOW.getTime() + DAY).toISOString())
+  })
+
+  it('carries a lapsed gift into expired without claiming the account is gifted', () => {
+    const access = resolve({ account: account({ trialEndsAt: deadTrial, ...gift(deadTrial) }) })
+    expect(access).toMatchObject({ mode: 'expired', gifted: false, paidExpiresAt: null })
+  })
+})
+
+describe('extendTrialEnd', () => {
+  it('adds to what is left of a live trial', () => {
+    expect(extendTrialEnd(new Date(NOW.getTime() + 5 * DAY), 10, NOW).toISOString()).toBe(new Date(NOW.getTime() + 15 * DAY).toISOString())
+  })
+
+  it('restarts from now when the trial already ran out, so the days given are days usable', () => {
+    expect(extendTrialEnd(new Date(NOW.getTime() - 20 * DAY), 10, NOW).toISOString()).toBe(new Date(NOW.getTime() + 10 * DAY).toISOString())
   })
 })
 

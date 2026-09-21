@@ -20,6 +20,8 @@ export interface BillingStatus {
   paidExpiresAt: string | null
   autoRenew: boolean
   renewalState: 'active' | 'cancelled' | 'grace' | 'on_hold' | 'paused' | 'expired' | 'revoked' | 'pending' | null
+  /** `mode: 'paid'` because an admin gifted the plan, not because anything was bought. Absent from older servers. */
+  gifted?: boolean
   retentionDeadline: string | null
   purchaseEnabled: boolean
   /** Present and false when a sync returned stale data because the provider was unreachable. */

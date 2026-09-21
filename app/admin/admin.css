@@ -1,5 +1,13 @@
 /* Admin pages. Built on expense-redesign.css's --erd-* / --tk-* tokens so both themes work. */
 
+/* Admin leans on secondary text far harder than the dashboard does — notes,
+   hints, table captions, axis labels. The shared --tk-text3 lands at 2.9:1 on
+   these surfaces, so lift it toward the foreground for /admin only. Mixed from
+   the live tokens rather than hardcoded, so it follows both themes. */
+.adm {
+  --erd-text3: color-mix(in srgb, var(--tk-text3) 75%, var(--tk-text));
+}
+
 .adm h1 {
   font-family: var(--font-fredoka);
   font-size: 28px;
@@ -36,12 +44,14 @@
 }
 .adm-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
   gap: 14px;
 }
 .adm-two {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  /* min(380px, 100%) rather than a bare 380px: a fixed minimum keeps the
+     track at 380px on a 390px phone and pushes the card past the viewport. */
+  grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
   gap: 22px;
   align-items: start;
 }
@@ -470,4 +480,520 @@
   .adm-change-label {
     min-width: 100%;
   }
+}
+
+/* ─── Subscriptions ───────────────────────────────────────────────────────
+   One hue per access state, carried by --tone / --tone-soft so the KPI card,
+   share bar, runway chart, table badge and dialog can never disagree about
+   what "gifted" looks like. */
+.adm-tone {
+  --tone: var(--erd-text2);
+  --tone-soft: var(--erd-pill-bg);
+}
+.adm-tone.t-trial {
+  --tone: var(--tk-blue);
+  --tone-soft: var(--tk-blue-soft);
+}
+.adm-tone.t-paid {
+  --tone: var(--tk-mint);
+  --tone-soft: var(--tk-mint-soft);
+}
+.adm-tone.t-gift {
+  --tone: var(--tk-violet);
+  --tone-soft: var(--tk-violet-soft);
+}
+.adm-tone.t-expired {
+  --tone: var(--tk-coral);
+  --tone-soft: var(--tk-coral-soft);
+}
+
+.adm-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.adm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-card-solid);
+  color: var(--erd-text2);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.adm-chip.adm-tone {
+  border-color: color-mix(in srgb, var(--tone) 45%, transparent);
+  background: var(--tone-soft);
+  color: var(--tone);
+}
+.adm-chip.is-off {
+  color: var(--erd-text3);
+}
+.adm-chip.is-off svg {
+  opacity: 0.6;
+}
+
+.adm-notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--tk-warn) 40%, transparent);
+  background: var(--tk-warn-soft);
+  color: var(--tk-warn-ink);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.adm-notice svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.adm-notice p {
+  margin: 0;
+  max-width: 82ch;
+}
+
+.adm-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+}
+/* State card: icon and share up top, then the number it is really about. */
+.adm-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 15px 17px 16px;
+}
+.adm-stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.adm-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--tone-soft);
+  color: var(--tone);
+}
+.adm-stat-share {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--erd-text2);
+}
+.adm-stat .adm-kpi-value {
+  margin: 0;
+  line-height: 1.05;
+}
+.adm-stat .adm-kpi-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--erd-text);
+  margin-top: 4px;
+}
+.adm-stat .adm-kpi-note {
+  margin-top: 3px;
+}
+
+/* Share of accounts by state: the four cards above, as one line. */
+.adm-share {
+  margin-top: -6px;
+}
+.adm-split {
+  display: flex;
+  gap: 3px;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--erd-border) 55%, transparent);
+}
+.adm-split > span {
+  background: var(--tone);
+  min-width: 4px;
+}
+.adm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 11px;
+  font-size: 12px;
+  color: var(--erd-text2);
+}
+.adm-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.adm-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--tone);
+}
+.adm-legend b {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Runway: one stacked column per week, segments in state order. */
+.adm-stack > div {
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+  overflow: hidden;
+}
+.adm-stack > div > i {
+  display: block;
+  width: 100%;
+  min-height: 3px;
+  background: var(--tone);
+  border-radius: 2px;
+}
+.adm-stack > div > i:first-child {
+  border-radius: 3px 3px 2px 2px;
+}
+.adm-stack > div:hover > i {
+  filter: brightness(1.12);
+}
+
+.adm-funnel {
+  display: grid;
+  gap: 12px;
+}
+.adm-funnel-row {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr) 74px;
+  align-items: center;
+  gap: 14px;
+}
+.adm-funnel-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--erd-text2);
+}
+.adm-funnel-label svg {
+  color: var(--tone);
+}
+.adm-funnel-track {
+  display: block;
+  height: 24px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--erd-border) 50%, transparent);
+  overflow: hidden;
+}
+.adm-funnel-fill {
+  display: block;
+  height: 100%;
+  border-radius: 8px;
+  background: var(--tone);
+}
+.adm-funnel-value {
+  text-align: right;
+  font-family: var(--font-fredoka);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.adm-funnel-value em {
+  display: block;
+  font-family: inherit;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--erd-text3);
+}
+
+/* How much of a window is left, as a bar plus the number. */
+.adm-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--erd-text2);
+  white-space: nowrap;
+}
+.adm-meter-track {
+  display: block;
+  width: 48px;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--erd-border) 70%, transparent);
+  overflow: hidden;
+}
+.adm-meter-track.is-wide {
+  width: 100%;
+  height: 6px;
+  margin-top: 10px;
+}
+.adm-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--tone);
+}
+
+.adm-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 18px 2px;
+  color: var(--erd-text3);
+  font-size: 13px;
+}
+.adm-empty svg {
+  color: var(--tk-mint);
+}
+
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.adm-badge.adm-tone {
+  background: var(--tone-soft);
+  color: var(--tone);
+}
+.adm-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.adm-accounts td {
+  padding: 12px 10px;
+}
+.adm-user {
+  font-weight: 700;
+}
+.adm-user:hover {
+  text-decoration: underline;
+}
+
+/* ─── Manage dialog ─────────────────────────────────────────────────────── */
+.adm-dialog {
+  width: min(660px, 94vw);
+  max-height: 88vh;
+  padding: 0;
+  margin: auto;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 24px;
+  background: var(--erd-modal-bg);
+  backdrop-filter: blur(30px);
+  box-shadow: 0 30px 80px -20px oklch(0% 0 0 / 0.8);
+  color: var(--erd-text);
+  overflow: hidden;
+}
+.adm-dialog::backdrop {
+  background: oklch(0% 0 0 / 0.6);
+  backdrop-filter: blur(4px);
+}
+.adm-dialog[open] {
+  animation: adm-dialog-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.adm-dialog[open]::backdrop {
+  animation: adm-backdrop-in 220ms ease-out;
+}
+@keyframes adm-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+@keyframes adm-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+.adm-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--erd-border);
+}
+.adm-dialog-head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+.adm-dialog-email {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.adm-dialog-head-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.adm-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.adm-icon-btn:hover {
+  background: var(--erd-border);
+  color: var(--erd-text);
+}
+.adm-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 22px 20px;
+  overflow-y: auto;
+  max-height: calc(88vh - 88px);
+}
+
+.adm-runway {
+  padding: 13px 15px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--tone) 32%, transparent);
+  background: var(--tone-soft);
+}
+.adm-runway-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.adm-runway-head strong {
+  font-size: 15px;
+  color: var(--tone);
+}
+.adm-runway-head span {
+  color: var(--erd-text2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-dl-split {
+  gap: 10px 18px;
+}
+.adm-dl-split dd {
+  text-align: right;
+}
+
+.adm-group {
+  border-top: 1px solid var(--erd-border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Specificity deliberately at (0,2,1): `.expense-redesign h3` sets the display
+   face at (0,1,1), and which of the two lands last in the bundle is not ours
+   to control. These are field labels, not headings — body face, always. */
+.adm .adm-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-family: var(--font-nunito), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--erd-text3);
+}
+.adm .adm-group h3 svg {
+  color: var(--erd-text3);
+}
+.adm-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--erd-text2);
+}
+/* Days and Months sit in different groups but read as one column — hold the
+   label width so their inputs start on the same line. */
+.adm-field > span {
+  min-width: 46px;
+}
+.adm-field .adm-input {
+  width: 74px;
+}
+.adm-grow {
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+.adm-hint {
+  font-size: 12px;
+  color: var(--erd-text3);
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+.adm-dialog-foot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  /* Sized as a tap target, not as a line of text — it is the only link in a
+     sheet that is thumb-reachable on a phone. */
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--erd-text2);
+}
+.adm-dialog-foot:hover {
+  color: var(--erd-text);
+}
+
+@media (max-width: 720px) {
+  .adm-funnel-row {
+    grid-template-columns: 120px minmax(0, 1fr) 62px;
+    gap: 10px;
+  }
+  .adm-dialog {
+    width: 100%;
+    max-width: none;
+    max-height: 92vh;
+    margin: auto auto 0;
+    border-radius: 28px 28px 0 0;
+  }
+  .adm-dialog-body {
+    max-height: calc(92vh - 88px);
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+  .adm-dl-split dd {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-dialog[open],
+  .adm-dialog[open]::backdrop {
+    animation: none;
+  }
+}
+
+/* Trial starts belong to the trial hue, like every other trial number here. */
+.adm-trial-chart .adm-bars > div > div {
+  background: var(--tk-blue);
+}
+.adm-trial-chart .adm-bars > div:hover > div {
+  background: color-mix(in srgb, var(--tk-blue) 82%, white);
+}
+.adm-trial-chart .adm-bars > div > div.is-zero {
+  background: var(--erd-border-strong);
 }

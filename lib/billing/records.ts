@@ -24,6 +24,24 @@ export const TRIAL_DAYS = 45
 export type TrialCohort = 'onboarding-v1' | 'legacy-launch-v1'
 
 /**
+ * A gifted plan: access an admin granted by hand, with no purchase behind it.
+ *
+ * Kept on the account rather than faked as a `billing_subscriptions` row on
+ * purpose. Reconciliation overwrites that collection from RevenueCat, so a
+ * fake row there would be wiped by the next sync — and every revenue count
+ * would include people who never paid.
+ */
+export interface CompGrant {
+  /** Access ends at this instant, exactly like a paid entitlement's `expiresAt`. */
+  until: Date
+  /** Why it was given. Shown in the admin list and recorded in the audit entry. */
+  reason: string
+  /** The admin user id that granted it. */
+  grantedBy: string
+  grantedAt: Date
+}
+
+/**
  * One per paying identity, keyed by the WorkOS user id — the same id
  * `lib/access.ts` resolves from a bearer token or a session cookie. Trial
  * dates here are server-owned and immutable: only ever written with
@@ -36,6 +54,8 @@ export interface BillingAccountDoc {
   trialCohort: TrialCohort
   /** When budgeting data becomes eligible for deletion. Set by the retention job (phase 5), cleared on renewal. */
   retentionDeadline?: Date | null
+  /** Admin-granted free access. Null/absent = none. Revocable; only ever written from /admin/subscriptions. */
+  comp?: CompGrant | null
   createdAt: Date
 }
 

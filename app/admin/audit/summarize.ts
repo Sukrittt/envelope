@@ -15,6 +15,11 @@ export const ACTIONS: Record<string, { label: string; tone: Tone }> = {
   'user.soft_delete': { label: 'Deletion scheduled', tone: 'warn' },
   'user.restore': { label: 'Account restored', tone: 'good' },
   'user.hard_delete': { label: 'Account deleted', tone: 'bad' },
+  'billing.extend_trial': { label: 'Trial extended', tone: 'good' },
+  'billing.gift_grant': { label: 'Plan gifted', tone: 'good' },
+  'billing.gift_revoke': { label: 'Gift revoked', tone: 'warn' },
+  'billing.tester': { label: 'Billing tester', tone: undefined },
+  'billing.resync': { label: 'Purchases re-synced', tone: undefined },
 }
 
 const LABELS: Record<string, string> = {
@@ -28,6 +33,7 @@ const LABELS: Record<string, string> = {
   'billing.purchaseEnabled': 'Purchases enabled',
   'billing.audience': 'Billing audience',
   'billing.retentionDeleteEnabled': 'Retention deletes',
+  billingTester: 'Billing tester',
   name: 'Name',
   currencyCode: 'Currency',
   notifyCadence: 'Digest cadence',

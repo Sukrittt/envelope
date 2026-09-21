@@ -30,6 +30,7 @@ export function planSummary(status: BillingStatus): string {
       return `Free trial · ${trialRemainingLabel(status.trialDaysRemaining)}`
     case 'paid':
       if (status.renewalState === 'grace') return 'Payment issue · fix in Google Play'
+      if (status.gifted) return `Gifted plan · ends ${formatDate(status.paidExpiresAt)}`
       return status.autoRenew ? `Renews ${formatDate(status.paidExpiresAt)}` : `Ends ${formatDate(status.paidExpiresAt)}`
     case 'expired':
       return status.trialEndsAt && !status.productId ? 'Trial ended' : 'Subscription ended'
