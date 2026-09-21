@@ -2601,29 +2601,6 @@
   }
 }
 
-/* Category manager + subscription modal internals, light restyle */
-.expense-redesign .category-manager-body {
-  margin-top: 14px;
-}
-.expense-redesign .cm-group-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 4px;
-  font-family: var(--font-fredoka);
-  font-size: 13px;
-  color: var(--erd-text2);
-}
-.expense-redesign .cm-group-count {
-  font-size: 11px;
-  color: var(--erd-text3);
-}
-.expense-redesign .category-manager-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 4px;
-}
 .expense-redesign .txn-entry-input {
   flex: 1;
   padding: 9px 12px;
