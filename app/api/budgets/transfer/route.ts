@@ -128,8 +128,16 @@ export async function POST(req: Request) {
         )
         return 'done'
       }
+      // Same carry-forward as the debit side: a target with no row this month
+      // still displays its prior assignment, so the new row must build on it.
+      // Inserting just totalAmount dropped the carried balance, which flowed
+      // back into Ready to Assign.
+      const carried = await carriedAssigned(budgetColl, to, month, session)
       try {
-        await budgetColl.insertOne({ month, category: to, assigned: String(totalAmount), rolled_over: '0' }, { session })
+        await budgetColl.insertOne(
+          { month, category: to, assigned: String(carried + totalAmount), rolled_over: '0' },
+          { session },
+        )
         return 'done'
       } catch (err) {
         if (isDuplicateKeyError(err)) return 'retry'
