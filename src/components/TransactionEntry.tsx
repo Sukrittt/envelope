@@ -3,6 +3,7 @@ import { addExpense } from '../api/expenses'
 import { suggestCategory, invalidateCategoryCache, getTodayISO } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
+import { Select } from './Select'
 
 interface Props {
   categories: string[]
@@ -92,11 +93,8 @@ export function TransactionEntry({ categories, onSaved }: Props) {
           value={item} onChange={(e) => setItem(e.target.value)} aria-label="Item" />
         <input type="number" step="any" className="txn-entry-input txn-entry-amount" placeholder="Amount"
           value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Amount" />
-        <select className="txn-entry-input txn-entry-cat" value={category}
-          onChange={(e) => setCategory(e.target.value)} aria-label="Category">
-          <option value="">Assign to</option>
-          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <Select className="txn-entry-cat" value={category} onChange={setCategory} aria-label="Category"
+          placeholder="Assign to" options={categories.map((c) => ({ value: c, label: c }))} />
         <div className="txn-entry-date">
           <DatePicker mode="single" value={date} onChange={setDate} />
         </div>

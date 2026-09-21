@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import type { Envelope } from '../types/expense'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { Select } from './Select'
 
 
 interface Props {
@@ -94,18 +95,17 @@ export function MoveMoneyModal({ targetCategory, envelopes, readyToAssign, onClo
         <form onSubmit={handleSubmit} className="move-money-form">
           <label className="move-money-field">
             <span>From</span>
-            <select value={selectedSource} onChange={(e) => setSelectedSource(e.target.value)}>
-              {readyToAssign > 0 && (
-                <option value={RTA_SENTINEL}>
-                  Ready to Assign ({formatCurrency(readyToAssign)} available)
-                </option>
-              )}
-              {envelopeSources.map((e) => (
-                <option key={e.category} value={e.category}>
-                  {e.category} ({formatCurrency(e.available)} available)
-                </option>
-              ))}
-            </select>
+            <Select
+              value={selectedSource}
+              onChange={setSelectedSource}
+              aria-label="From"
+              options={[
+                ...(readyToAssign > 0
+                  ? [{ value: RTA_SENTINEL, label: 'Ready to Assign', hint: `${formatCurrency(readyToAssign)} available` }]
+                  : []),
+                ...envelopeSources.map((e) => ({ value: e.category, label: e.category, hint: `${formatCurrency(e.available)} available` })),
+              ]}
+            />
           </label>
 
           {parsedAmount > 0 && resultingBalance !== null && (
