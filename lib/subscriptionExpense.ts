@@ -1,4 +1,4 @@
-import { nowIST } from '@/lib/http'
+import { nowForUser } from '@/lib/userCurrency'
 import { createExpense } from '@/lib/createExpense'
 import type { Auth } from '@/lib/access'
 
@@ -21,7 +21,7 @@ export async function applySubscriptionExpense(
 ): Promise<SubscriptionExpenseResult> {
   if (!sub.category) return { ok: false, reason: 'no-category' }
 
-  const { date } = nowIST()
+  const { date } = await nowForUser(auth.userId)
   const notes = sub.notes ? `Auto-added from subscription · ${sub.notes}` : 'Auto-added from subscription'
 
   const result = await createExpense(auth, {

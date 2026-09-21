@@ -1,4 +1,5 @@
-import { json, getCollection, nowIST } from '@/lib/http'
+import { json, getCollection } from '@/lib/http'
+import { nowForUser } from '@/lib/userCurrency'
 import { getAuth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
   const auth = await getAuth(req)
   const gate = await requireAccess(auth)
   if (gate) return gate
-  const month = new URL(req.url).searchParams.get('month') ?? currentEdition(nowIST().date)
+  const month = new URL(req.url).searchParams.get('month') ?? currentEdition((await nowForUser(auth.userId)).date)
   const { start, end } = monthRange(month)
   const data = await cachedRead(
     'wrapped',

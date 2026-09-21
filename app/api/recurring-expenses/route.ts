@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb'
-import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
+import { json, error, readBody, getCollection } from '@/lib/http'
+import { nowForUser } from '@/lib/userCurrency'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { RECURRING_EXPENSE_HEADERS, toRow } from '@/lib/models'
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
   const paymentMethod = String(body.payment_method ?? 'bank')
   if (!PAYMENT_METHODS.has(paymentMethod)) return error('payment_method must be bank or credit_card')
 
-  const { date: today, timestamp } = nowIST()
+  const { date: today, timestamp } = await nowForUser(auth.userId)
 
   const coll = await getCollection('recurring_expenses', auth)
   const inserted = await coll.insertOne({
@@ -148,7 +149,7 @@ export async function PUT(req: Request) {
   // rather than leaving a `next_run_date` that belongs to the old schedule.
   if (resuming || update.frequency !== undefined || update.start_date !== undefined) {
     const frequency = update.frequency ?? String(existing.frequency)
-    update.next_run_date = firstRunOnOrAfter(startDate, frequency, nowIST().date)
+    update.next_run_date = firstRunOnOrAfter(startDate, frequency, (await nowForUser(auth.userId)).date)
   }
 
   await coll.updateOne({ _id: existing._id }, { $set: update })

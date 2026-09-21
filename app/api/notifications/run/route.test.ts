@@ -70,6 +70,8 @@ function req(bearer?: string): Request {
 
 describe('GET /api/notifications/run', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-07T03:00:00Z')) // 08:30 IST
     process.env.CRON_SECRET = 'test-secret'
     logInsertOneMock.mockReset().mockResolvedValue({ insertedId: 'x' })
     sendPushNotificationMock.mockReset().mockResolvedValue(undefined)
@@ -95,6 +97,21 @@ describe('GET /api/notifications/run', () => {
     expect(body.sent).toBeGreaterThan(0)
     expect(sendPushNotificationMock).toHaveBeenCalled()
     expect(logInsertOneMock).toHaveBeenCalled()
+  })
+
+  it("dates each user's notifications by their own timezone, not IST", async () => {
+    // 03:00Z is already Sep 7 in IST but still the evening of Sep 6 in New York.
+    usersFindMock.mockReturnValue({
+      toArray: async () => [
+        { ...USER, _id: 'ist_user', notifyCadence: 'daily' },
+        { ...USER, _id: 'ny_user', notifyCadence: 'daily', timezone: 'America/New_York' },
+      ],
+    })
+    await GET(req('test-secret'))
+    const logged = logInsertOneMock.mock.calls as unknown as [{ user_id: string; key: string }][]
+    const keys = (uid: string) => logged.map(([d]) => d).filter((d) => d.user_id === uid).map((d) => d.key)
+    expect(keys('ist_user')).toContain('digest:2026-09-07')
+    expect(keys('ny_user')).toContain('digest:2026-09-06')
   })
 
   it('does not re-send a notification whose key is already claimed', async () => {

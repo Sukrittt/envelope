@@ -67,9 +67,44 @@ export function pageMeta(total: number, page: number, limit: number): { page: nu
   return { page, pageCount: Math.max(1, Math.ceil(total / limit)) }
 }
 
-/** Current instant as IST wall-clock date/timestamp strings (always +05:30, regardless of server locale). */
+/** Zone used for users with no `timezone` on their doc — every account predating per-user zones was IST. */
+export const DEFAULT_TIMEZONE = 'Asia/Kolkata'
+
+export function isValidTimezone(tz: unknown): tz is string {
+  if (typeof tz !== 'string' || !tz) return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
+
+function zoneParts(tz: string | undefined, at: Date): Record<string, string> {
+  const zone = isValidTimezone(tz) ? tz : DEFAULT_TIMEZONE
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(at)
+  return Object.fromEntries(parts.map((p) => [p.type, p.value]))
+}
+
+/**
+ * Current instant as wall-clock date/timestamp strings in `tz` (an IANA name),
+ * offset-suffixed like `2026-04-01T01:30:00+05:30`. Unset/invalid `tz` is IST.
+ */
 // Keep in sync with Mobile/src/lib/date.ts.
+export function nowIn(tz?: string, at: Date = new Date()): { date: string; timestamp: string } {
+  const p = zoneParts(tz, at)
+  const local = `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`
+  const offsetMin = Math.round((Date.parse(`${local}Z`) - Math.floor(at.getTime() / 1000) * 1000) / 60000)
+  const sign = offsetMin < 0 ? '-' : '+'
+  const abs = Math.abs(offsetMin)
+  const offset = `${sign}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`
+  return { date: `${p.year}-${p.month}-${p.day}`, timestamp: `${local}${offset}` }
+}
+
+/** IST now — for system-level stamps with no owning user (admin, exports, GC). Per-user code uses `nowIn(user.timezone)`. */
 export function nowIST(): { date: string; timestamp: string } {
-  const iso = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString()
-  return { date: iso.slice(0, 10), timestamp: `${iso.slice(0, 19)}+05:30` }
+  return nowIn(DEFAULT_TIMEZONE)
 }

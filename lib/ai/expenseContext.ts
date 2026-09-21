@@ -1,7 +1,7 @@
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
-import { getUserCurrency } from '@/lib/userCurrency'
+import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
 import { computeEnvelopeState } from '@/src/lib/envelope'
-import { getCollection, nowIST } from '@/lib/http'
+import { getCollection } from '@/lib/http'
 import type { Auth } from '@/lib/access'
 import type { Envelope } from '@/src/lib/envelope'
 import type { BudgetRow as WireBudgetRow, ExpenseRow as WireExpenseRow } from '@/src/types'
@@ -363,7 +363,7 @@ export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpenses
     updated_at: d.updated_at ? String(d.updated_at) : undefined,
   }))
 
-  const { date: today } = nowIST()
+  const { date: today } = await nowForUser(auth.userId)
   const currentMonth = today.slice(0, 7)
 
   const currencyCode = await getUserCurrency(auth.userId)

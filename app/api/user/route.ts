@@ -1,5 +1,5 @@
 import { isCurrencyCode } from '@/src/lib/currencies'
-import { json, error, readBody } from '@/lib/http'
+import { json, error, readBody, isValidTimezone } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
@@ -31,6 +31,7 @@ export async function PATCH(req: Request) {
     Pick<
       UserDoc,
       | 'currencyCode'
+      | 'timezone'
       | 'name'
       | 'notifyCadence'
       | 'notifyThresholds'
@@ -43,6 +44,10 @@ export async function PATCH(req: Request) {
   if ('currencyCode' in body) {
     if (!isCurrencyCode(body.currencyCode)) return error('invalid currency code')
     updates.currencyCode = body.currencyCode
+  }
+  if ('timezone' in body) {
+    if (!isValidTimezone(body.timezone)) return error('invalid timezone')
+    updates.timezone = body.timezone
   }
   if (name !== undefined) updates.name = name || null
   if (body.notifyCadence === 'off' || body.notifyCadence === 'weekly' || body.notifyCadence === 'daily') {
