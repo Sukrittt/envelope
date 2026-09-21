@@ -251,10 +251,10 @@ export function EnvelopesPage() {
 
       <div className="erd-main">
         <ExpenseSidebar />
-        <div className="erd-content">
+        <div className="erd-content env-page">
           <div className="erd-panel-head">
             <div>
-              <div className="erd-panel-title">Envelopes</div>
+              <div className="erd-panel-title env-page-title">Envelopes</div>
               <div className="erd-panel-head-sub">
                 {categories.length}{" "}
                 {categories.length === 1 ? "category" : "categories"} in{" "}
@@ -264,7 +264,7 @@ export function EnvelopesPage() {
             <div className="erd-panel-tools">
               <button
                 type="button"
-                className="erd-manage-btn"
+                className="erd-manage-btn env-collapse-btn"
                 onClick={() =>
                   setCollapsed(
                     allCollapsed ? new Set<string>() : new Set(allKeys),
@@ -442,7 +442,7 @@ export function EnvelopesPage() {
                               <GripVertical size={14} aria-hidden="true" />
                             </span>
                             <span className="env-cat-icon" aria-hidden="true">
-                              {parts.icon || "•"}
+                              {categoryEmoji(category.name)}
                             </span>
                             {draft?.kind === "rename-category" &&
                             draft.name === category.name ? (

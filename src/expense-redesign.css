@@ -5336,6 +5336,24 @@ button.account-feature-card {
    column of rows with a long-press action sheet; here the actions sit inline
    on hover, because a pointer can reveal them without a gesture. */
 
+.expense-redesign .erd-content.env-page {
+  padding: 32px 20px 56px;
+}
+@media (max-width: 900px) {
+  .expense-redesign .erd-content.env-page {
+    padding: 16px;
+  }
+}
+.expense-redesign .env-page-title {
+  font-family: var(--font-fredoka);
+  font-size: 1.6rem;
+  font-weight: 650;
+}
+.expense-redesign .env-collapse-btn {
+  color: var(--gold);
+  font-weight: 650;
+}
+
 .env-group-list {
   list-style: none;
   margin: 0;
