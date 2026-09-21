@@ -2861,11 +2861,11 @@
   justify-content: center;
 }
 
-.txn-timeline-list {
+.expense-redesign .txn-timeline-list {
   display: flex;
   flex-direction: column;
 }
-.txn-timeline-row {
+.expense-redesign .txn-timeline-row {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
@@ -2879,7 +2879,7 @@
 .expense-redesign .txn-timeline-row.is-open {
   background: transparent;
 }
-.txn-row-trigger {
+.expense-redesign .txn-row-trigger {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -2889,11 +2889,11 @@
   background: transparent;
   cursor: pointer;
 }
-.txn-row-trigger:focus-visible {
+.expense-redesign .txn-row-trigger:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 1px;
 }
-.txn-timeline-icon {
+.expense-redesign .txn-timeline-icon {
   width: 40px;
   height: 40px;
   border-radius: 20px;
@@ -2905,7 +2905,7 @@
   z-index: 2;
   pointer-events: none;
 }
-.txn-timeline-body {
+.expense-redesign .txn-timeline-body {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2914,7 +2914,7 @@
   z-index: 2;
   pointer-events: none;
 }
-.txn-timeline-item {
+.expense-redesign .txn-timeline-item {
   font-size: 15px;
   font-weight: 600;
   color: var(--erd-text);
@@ -2926,14 +2926,14 @@
   z-index: 2;
   pointer-events: none;
 }
-.txn-timeline-meta {
+.expense-redesign .txn-timeline-meta {
   font-size: 12px;
   color: var(--erd-text3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.txn-timeline-amount {
+.expense-redesign .txn-timeline-amount {
   text-align: right;
   font-size: 15px;
   font-weight: 600;
@@ -2942,11 +2942,11 @@
   white-space: nowrap;
   font-family: var(--font-nunito);
 }
-.txn-timeline-amount.is-income {
+.expense-redesign .txn-timeline-amount.is-income {
   color: var(--mint);
 }
 
-.txn-actions {
+.expense-redesign .txn-actions {
   position: absolute;
   top: 50%;
   right: 4px;
@@ -2954,7 +2954,7 @@
   width: 0;
   height: 0;
 }
-.txn-actions .env-menu {
+.expense-redesign .txn-actions .env-menu {
   top: 10px;
 }
 .txn-kebab-confirm {
