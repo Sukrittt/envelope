@@ -19,6 +19,9 @@ interface ExportsResponse {
   exports: ExportRow[]
   usedThisMonth: number
   limit: number
+  canExport: boolean
+  /** The one export a lapsed account gets after access ends, with the monthly cap spent. */
+  exitExport: boolean
 }
 
 async function fetchExports(): Promise<ExportsResponse | null> {
@@ -109,7 +112,9 @@ export default function DataPage() {
     }
   }
 
-  const atLimit = exports ? exports.usedThisMonth >= exports.limit : false
+  // The server decides, not the count: the cap can be spent and an export
+  // still be allowed, so an expired account can take its data with it.
+  const atLimit = exports ? !exports.canExport : false
   const pending = exports?.exports.some((e) => e.status === 'pending') ?? false
 
   return (
@@ -130,6 +135,11 @@ export default function DataPage() {
         {atLimit && !exportError ? (
           <div className="account-confirm-copy">
             You&apos;ve used all {exports?.limit} exports this month. Resets next month.
+          </div>
+        ) : null}
+        {exports?.exitExport && !exportError ? (
+          <div className="account-confirm-copy">
+            Your subscription is inactive. This is your final export, so it isn&apos;t counted against the monthly limit.
           </div>
         ) : null}
         {exportsLoading ? (

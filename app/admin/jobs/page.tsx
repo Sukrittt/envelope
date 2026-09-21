@@ -50,6 +50,10 @@ export default async function AdminJobs() {
       <div className="adm-two">
         {JOBS.map(({ job, label, schedule, confirm }, i) => {
           const last = latest[i]
+          // A run that returned while leaving accounts unreconciled is not "ok" —
+          // the badge read `last.ok` alone, so 47 failed accounts showed green.
+          const failed = Number(last?.result?.failed ?? 0)
+          const healthy = last?.ok && failed === 0
           return (
             <section key={job} className="erd-card">
               <h2>{label}</h2>
@@ -62,7 +66,13 @@ export default async function AdminJobs() {
                 <dd>
                   {last ? (
                     <>
-                      {timeAgo(last.startedAt)} · {last.ok ? <span className="adm-badge is-good">ok</span> : <span className="adm-badge is-bad">failed</span>} · {(last.durationMs / 1000).toFixed(1)}s
+                      {timeAgo(last.startedAt)} ·{' '}
+                      {healthy ? (
+                        <span className="adm-badge is-good">ok</span>
+                      ) : (
+                        <span className="adm-badge is-bad">{failed > 0 ? `${failed} failed` : 'failed'}</span>
+                      )}{' '}
+                      · {(last.durationMs / 1000).toFixed(1)}s
                     </>
                   ) : (
                     'never recorded'

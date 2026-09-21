@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
 
-const countReadyExportsThisMonth = vi.fn(async () => 0)
+const exportAllowance = vi.fn(async () => ({ usedThisMonth: 0, limit: 3, allowed: true, exitExport: false }))
 const buildAndStoreExport = vi.fn(async () => {})
 
 vi.mock('@/lib/exports', () => ({
   EXPORT_LIMIT: 3,
   currentMonthKey: () => '2026-09',
-  countReadyExportsThisMonth: (...args: unknown[]) =>
-    countReadyExportsThisMonth(...(args as Parameters<typeof countReadyExportsThisMonth>)),
+  exportAllowance: (...args: unknown[]) => exportAllowance(...(args as Parameters<typeof exportAllowance>)),
   buildAndStoreExport: (...args: unknown[]) => buildAndStoreExport(...(args as Parameters<typeof buildAndStoreExport>)),
 }))
 
@@ -52,14 +51,14 @@ function req(): Request {
 beforeEach(() => {
   store.length = 0
   queuedAfter.length = 0
-  countReadyExportsThisMonth.mockClear().mockResolvedValue(0)
+  exportAllowance.mockClear().mockResolvedValue({ usedThisMonth: 0, limit: 3, allowed: true, exitExport: false })
   buildAndStoreExport.mockClear()
   auth = { userId: 'user_a', readOnly: false, sessionId: null }
 })
 
 describe('POST /api/data/export', () => {
   it('kicks off a background export and returns 202 with remaining quota', async () => {
-    countReadyExportsThisMonth.mockResolvedValue(1)
+    exportAllowance.mockResolvedValue({ usedThisMonth: 1, limit: 3, allowed: true, exitExport: false })
     const res = await POST(req())
     expect(res.status).toBe(202)
     const body = (await res.json()) as { id: string; status: string; remaining: number }
@@ -75,11 +74,21 @@ describe('POST /api/data/export', () => {
   })
 
   it('rejects with 429 once the monthly quota is used, without inserting a doc', async () => {
-    countReadyExportsThisMonth.mockResolvedValue(3)
+    exportAllowance.mockResolvedValue({ usedThisMonth: 3, limit: 3, allowed: false, exitExport: false })
     const res = await POST(req())
     expect(res.status).toBe(429)
     expect(store).toHaveLength(0)
     expect(queuedAfter).toHaveLength(0)
+  })
+
+  it('starts the post-expiry exit export even with the monthly quota spent', async () => {
+    exportAllowance.mockResolvedValue({ usedThisMonth: 3, limit: 3, allowed: true, exitExport: true })
+    const res = await POST(req())
+    expect(res.status).toBe(202)
+    const body = (await res.json()) as { remaining: number; exitExport: boolean }
+    expect(body.exitExport).toBe(true)
+    expect(body.remaining).toBe(0) // never negative, even though the cap is spent
+    expect(queuedAfter).toHaveLength(1)
   })
 
   it('blocks the read-only demo user', async () => {

@@ -7,6 +7,7 @@ import { scoped, type ScopedCollection } from '@/lib/scoped'
 import { getCollection, nowIST } from '@/lib/http'
 import { sendPushNotification } from '@/lib/push'
 import type { Auth } from '@/lib/access'
+import { getAccess } from '@/lib/billing/service'
 import { COLLECTIONS } from '@/lib/models'
 import { exportColumns, readableSheetName } from '@/lib/exportFormat'
 
@@ -50,6 +51,51 @@ async function fetchExpensesByMonth(coll: ScopedCollection): Promise<Record<stri
 export async function countReadyExportsThisMonth(auth: Auth): Promise<number> {
   const coll = await getCollection('exports', auth)
   return coll.countDocuments({ status: 'ready', month: currentMonthKey() })
+}
+
+export interface ExportAllowance {
+  usedThisMonth: number
+  limit: number
+  /** May another export be started right now? */
+  allowed: boolean
+  /** True only when the monthly cap is spent and this is the one post-expiry export. */
+  exitExport: boolean
+}
+
+/** When continuous access ended: the later of the trial's end and any purchase's paid-through date. */
+function accessEndedAt(access: { trialEndsAt: string | null; paidExpiresAt: string | null }): number {
+  return Math.max(...[access.trialEndsAt, access.paidExpiresAt].map((v) => (v ? Date.parse(v) : 0)))
+}
+
+/** The most recent ready export's instant, or null — `created_at` is an offset-suffixed IST string, so parse it rather than comparing text. */
+async function lastReadyExportAt(auth: Auth): Promise<number | null> {
+  const coll = await getCollection('exports', auth)
+  const [latest] = await coll.find({ status: 'ready' }).sort({ created_at: -1 }).limit(1).toArray()
+  return latest ? Date.parse(String(latest.created_at)) : null
+}
+
+/**
+ * Whether this account may start an export, and why.
+ *
+ * The monthly cap exists to bound workbook builds, not to hold anyone's data
+ * hostage: an account whose access has ended is on its way out, and refusing
+ * it the export traps someone who has already stopped paying us with no way
+ * to take their data along until the 1st. So a lapsed account gets exactly
+ * one export after access ends, regardless of what it spent that month.
+ * Billing is only read on the capped path, so the ordinary export costs no
+ * extra query.
+ */
+export async function exportAllowance(auth: Auth): Promise<ExportAllowance> {
+  const usedThisMonth = await countReadyExportsThisMonth(auth)
+  const base = { usedThisMonth, limit: EXPORT_LIMIT }
+  if (usedThisMonth < EXPORT_LIMIT) return { ...base, allowed: true, exitExport: false }
+
+  const access = await getAccess(auth.userId)
+  if (access.mode !== 'expired') return { ...base, allowed: false, exitExport: false }
+
+  const lastAt = await lastReadyExportAt(auth)
+  const taken = lastAt !== null && lastAt > accessEndedAt(access)
+  return { ...base, allowed: !taken, exitExport: !taken }
 }
 
 const EXPORT_DOWNLOAD_TTL_MS = 5 * 60 * 1000

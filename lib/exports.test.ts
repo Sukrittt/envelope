@@ -5,6 +5,12 @@ import * as XLSX from 'xlsx'
 const put = vi.fn(async (pathname: string, _body: unknown, _opts: unknown) => ({ url: `https://blob.example/${pathname}` }))
 vi.mock('@vercel/blob', () => ({ put: (...args: Parameters<typeof put>) => put(...args) }))
 
+type AccessStub = { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null }
+const getAccess = vi.fn(async (): Promise<AccessStub> => ({ mode: 'trial', trialEndsAt: null, paidExpiresAt: null }))
+vi.mock('@/lib/billing/service', () => ({
+  getAccess: (...args: unknown[]) => getAccess(...(args as Parameters<typeof getAccess>)),
+}))
+
 const sendPushNotification = vi.fn(async () => {})
 vi.mock('@/lib/push', () => ({
   sendPushNotification: (...args: Parameters<typeof sendPushNotification>) => sendPushNotification(...args),
@@ -36,6 +42,7 @@ function fakeCollection(name: string) {
   return {
     collectionName: name,
     findOne: async (filter: Record<string, unknown>) => store.find(d => matches(d, filter)) ?? null,
+    countDocuments: async (filter: Record<string, unknown> = {}) => store.filter((d) => matches(d, filter)).length,
     find: (filter: Record<string, unknown> = {}) => {
       let results = store.filter((d) => matches(d, filter))
       const cursor = {
@@ -68,7 +75,7 @@ vi.mock('@/lib/mongodb', () => ({
   getDb: vi.fn(async () => ({ collection: (name: string) => fakeCollection(name) })),
 }))
 
-const { buildAndStoreExport } = await import('./exports')
+const { buildAndStoreExport, exportAllowance, currentMonthKey, EXPORT_LIMIT } = await import('./exports')
 
 beforeEach(() => {
   stores.expenses = []
@@ -76,6 +83,54 @@ beforeEach(() => {
   stores.exports = []
   put.mockClear()
   sendPushNotification.mockClear()
+  getAccess.mockClear().mockResolvedValue({ mode: 'trial', trialEndsAt: null, paidExpiresAt: null })
+})
+
+const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+
+/** A ready export for `user_a`, counted against this month's quota. */
+function readyExport(created_at: string): Doc {
+  return { _id: new ObjectId(), user_id: 'user_a', status: 'ready', month: currentMonthKey(), created_at } as Doc
+}
+
+describe('exportAllowance', () => {
+  it('allows an export while under the monthly cap', async () => {
+    stores.exports.push(readyExport('2026-09-01T10:00:00+05:30'))
+
+    expect(await exportAllowance(auth)).toEqual({ usedThisMonth: 1, limit: EXPORT_LIMIT, allowed: true, exitExport: false })
+    expect(getAccess).not.toHaveBeenCalled() // no billing read on the ordinary path
+  })
+
+  it('refuses at the cap while the account still has access', async () => {
+    for (let i = 0; i < EXPORT_LIMIT; i++) stores.exports.push(readyExport(`2026-09-0${i + 1}T10:00:00+05:30`))
+
+    expect(await exportAllowance(auth)).toEqual({ usedThisMonth: 3, limit: EXPORT_LIMIT, allowed: false, exitExport: false })
+  })
+
+  it('allows one export at the cap once access has ended', async () => {
+    for (let i = 0; i < EXPORT_LIMIT; i++) stores.exports.push(readyExport(`2026-09-0${i + 1}T10:00:00+05:30`))
+    getAccess.mockResolvedValue({ mode: 'expired', trialEndsAt: '2026-09-10T00:00:00.000Z', paidExpiresAt: null })
+
+    expect(await exportAllowance(auth)).toEqual({ usedThisMonth: 3, limit: EXPORT_LIMIT, allowed: true, exitExport: true })
+  })
+
+  it('refuses a second exit export once one was taken after access ended', async () => {
+    for (let i = 0; i < EXPORT_LIMIT; i++) stores.exports.push(readyExport(`2026-09-0${i + 1}T10:00:00+05:30`))
+    stores.exports.push(readyExport('2026-09-11T10:00:00+05:30')) // taken after the trial ended
+    getAccess.mockResolvedValue({ mode: 'expired', trialEndsAt: '2026-09-10T00:00:00.000Z', paidExpiresAt: null })
+
+    expect(await exportAllowance(auth)).toMatchObject({ allowed: false, exitExport: false })
+  })
+
+  it('measures from the later of trial end and paid expiry', async () => {
+    for (let i = 0; i < EXPORT_LIMIT; i++) stores.exports.push(readyExport(`2026-09-0${i + 1}T10:00:00+05:30`))
+    // Exported after the trial ended, but the subscription ran on past it —
+    // that export was taken while they still had access, so it isn't the exit one.
+    stores.exports.push(readyExport('2026-09-11T10:00:00+05:30'))
+    getAccess.mockResolvedValue({ mode: 'expired', trialEndsAt: '2026-09-10T00:00:00.000Z', paidExpiresAt: '2026-09-15T00:00:00.000Z' })
+
+    expect(await exportAllowance(auth)).toMatchObject({ allowed: true, exitExport: true })
+  })
 })
 
 describe('buildAndStoreExport', () => {

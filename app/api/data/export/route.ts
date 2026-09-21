@@ -1,7 +1,7 @@
 import { after } from 'next/server'
 import { json, error, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { EXPORT_LIMIT, countReadyExportsThisMonth, currentMonthKey, buildAndStoreExport } from '@/lib/exports'
+import { EXPORT_LIMIT, exportAllowance, currentMonthKey, buildAndStoreExport } from '@/lib/exports'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +15,10 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
-  const usedThisMonth = await countReadyExportsThisMonth(auth)
-  if (usedThisMonth >= EXPORT_LIMIT) {
+  // `allowed` is not simply "under the cap": a lapsed account gets one last
+  // export after access ends, so it can leave with its data. See lib/exports.ts.
+  const allowance = await exportAllowance(auth)
+  if (!allowance.allowed) {
     return error('monthly export limit reached', 429)
   }
 
@@ -32,7 +34,12 @@ export async function POST(req: Request) {
   // Not decremented for this pending export: quota only counts `ready` exports
   // (a failed one shouldn't have looked like it used a slot).
   return json(
-    { id: insertedId.toString(), status: 'pending', remaining: EXPORT_LIMIT - usedThisMonth },
+    {
+      id: insertedId.toString(),
+      status: 'pending',
+      remaining: Math.max(0, EXPORT_LIMIT - allowance.usedThisMonth),
+      exitExport: allowance.exitExport,
+    },
     { status: 202 },
   )
 }

@@ -1,7 +1,7 @@
 import { timingSafeEqual, createHash } from 'node:crypto'
 import { json } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
-import { recordCronRun, triggerOf } from '@/lib/cronRuns'
+import { recordCronRun, triggerOf, alertAdminsOnRepeatFailure } from '@/lib/cronRuns'
 import { BILLING_EVENTS, BILLING_SUBSCRIPTIONS, type BillingEventDoc, type BillingSubscriptionDoc } from '@/lib/billing/records'
 import { refreshFromProvider } from '@/lib/billing/service'
 import { runRetention, sendTrialReminders, type RetentionResult } from '@/lib/billing/lifecycle'
@@ -12,6 +12,8 @@ export const maxDuration = 60
 function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(createHash('sha256').update(a).digest(), createHash('sha256').update(b).digest())
 }
+
+const ALERT_TITLE = 'Billing reconciliation failing'
 
 /** How far ahead of an entitlement's expiry to start re-checking it. */
 const LOOKAHEAD_MS = 36 * 60 * 60 * 1000
@@ -41,8 +43,18 @@ export async function GET(req: Request) {
     return json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const result = await recordCronRun('billing', triggerOf(req), reconcile)
-  return json({ ok: true, ...result })
+  // A run that returns is not the same as a run that worked: accounts that
+  // failed to re-verify are counted, not thrown. Both shapes of bad run are
+  // reported, and the alert itself decides whether it's bad twice over.
+  try {
+    const result = await recordCronRun('billing', triggerOf(req), reconcile)
+    const problem = result.failed > 0 ? `${result.failed} of ${result.checked} accounts didn't re-verify` : null
+    await alertAdminsOnRepeatFailure('billing', ALERT_TITLE, problem)
+    return json({ ok: true, ...result })
+  } catch (err) {
+    await alertAdminsOnRepeatFailure('billing', ALERT_TITLE, `run errored: ${(err as Error).message}`)
+    throw err
+  }
 }
 
 async function reconcile(): Promise<{ checked: number; failed: number; trialReminders: number; retention: RetentionResult }> {

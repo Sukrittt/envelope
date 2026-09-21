@@ -1,4 +1,7 @@
 import { getDb } from './mongodb'
+import { claim, unclaim } from './notifications/deliver'
+import { sendPushNotification } from './push'
+import type { UserDoc } from './users'
 
 export const CRON_RUNS = 'cron_runs'
 export const CRON_JOBS = { notifications: '/api/notifications/run', gc: '/api/cron/gc', billing: '/api/cron/billing' } as const
@@ -47,4 +50,55 @@ export async function recordCronRun<T extends Record<string, unknown>>(job: Cron
     await save(false, null, (err as Error).message)
     throw err
   }
+}
+
+/** A run that threw, or finished with work it could not complete. */
+function isBadRun(run: CronRunDoc | null | undefined): boolean {
+  return !!run && (!run.ok || Number(run.result?.failed ?? 0) > 0)
+}
+
+/**
+ * Pushes the admins when `job` goes bad twice in a row. Returns whether
+ * anyone was actually notified.
+ *
+ * `cron_runs` and /admin/jobs are a record, not a signal — nobody opens them
+ * until something is already known to be wrong. Billing reconciliation is the
+ * repair path for webhooks that never arrived, so it failing quietly means a
+ * user whose renewal went missing is locked out of an account they are still
+ * paying for, and we hear about it from them.
+ *
+ * Two runs rather than one: a provider blip repairs itself on the next run,
+ * and an alert that fires on every blip stops being read. Claim-deduped per
+ * UTC day, so a job that stays broken doesn't re-push on a manual re-run.
+ *
+ * ponytail: a job that stops running entirely (bad CRON_SECRET → 401 before
+ * `recordCronRun`, or Vercel dropping the schedule) records nothing and so
+ * alerts nothing. A staleness check on the latest run would catch that —
+ * worth adding if a schedule ever does go missing.
+ */
+export async function alertAdminsOnRepeatFailure(job: CronJob, title: string, problem: string | null): Promise<boolean> {
+  if (!problem) return false
+
+  const db = await getDb()
+  // [0] is the run that just finished — `recordCronRun` has already inserted it.
+  const [, previous] = await db.collection<CronRunDoc>(CRON_RUNS).find({ job }).sort({ startedAt: -1 }).limit(2).toArray()
+  if (!isBadRun(previous)) return false
+
+  const key = `cron-alert:${job}:${new Date().toISOString().slice(0, 10)}`
+  const admins = await db.collection<UserDoc>('users').find({ isAdmin: true, deleted_at: null }, { projection: { _id: 1 } }).toArray()
+
+  let sent = false
+  for (const admin of admins) {
+    if (!(await claim(db, admin._id, key))) continue
+    try {
+      await sendPushNotification({ userId: admin._id, title, body: `Two runs in a row: ${problem}. Check /admin/jobs.` })
+      sent = true
+    } catch (err) {
+      // Same reason as the lifecycle reminders: a burnt claim would silence
+      // this alert permanently, which is worse than sending it a day late.
+      console.error('cron alert: push failed for', admin._id, key, err)
+      await unclaim(db, admin._id, key)
+    }
+  }
+  return sent
 }
