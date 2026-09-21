@@ -2,7 +2,7 @@
 
 Follow-up to `plans/expense-write-concurrency.md`. That plan covers expenses only. This one covers the three other places where concurrent writes can lose data or leave it inconsistent. Everything else (groups, subscriptions, recurring expenses, group/category move) is low-frequency and low-stakes, and is deliberately out of scope.
 
-Status: proposed, not implemented. Not verified: client behavior for budgets/holdings editors and the notification cron's interaction with these rows. Check both before starting.
+Status: parts 3 and 4 implemented; parts 1 and 2 proposed. Not verified: client behavior for budgets/holdings editors and the notification cron's interaction with these rows. Check both before starting.
 
 ## Problem
 
@@ -10,7 +10,7 @@ Status: proposed, not implemented. Not verified: client behavior for budgets/hol
 | --- | --- | --- |
 | Budget `assigned` (`app/api/budgets/route.ts`, PUT) | Blind upsert by `(month, category)` | Two devices editing the same envelope silently overwrite each other |
 | Holdings PUT (`app/api/holdings/route.ts`) | `findOne` then blind `updateOne` by name | Stale read; `value` is overwritten without the editor having seen the latest |
-| Category rename (`app/api/categories/route.ts`) and reorder (`app/api/categories/reorder/route.ts`) | Several sequential writes, no transaction | A crash or concurrent write partway leaves budgets, expenses and categories with different names, or duplicate `order` values |
+| Category rename (`app/api/categories/route.ts`) and reorder (`app/api/categories/move/route.ts`) | Several sequential writes, no transaction | A crash or concurrent write partway leaves budgets, expenses and categories with different names, or duplicate `order` values | (done)
 
 ## 1. Budget `assigned`: versioned edits
 
@@ -32,13 +32,26 @@ Same contract as budgets, keyed by holding.
 - `applyHoldingAction` (`lib/holdings.ts`, already in `withTx`) and any other writer of `value` must bump the version. Decide whether the notification cron's `recurring_last_run` update (`app/api/notifications/run/route.ts`) bumps it: it is bookkeeping, not a user-visible edit, so probably not, but that means it must not be a field an editor can overwrite.
 - Rename changes the lookup key (`name`). Keep the version check keyed on the loaded name and make sure a rename racing an edit fails cleanly rather than 404ing ambiguously.
 
-## 3. Category rename and reorder: transactions only
+## 3. Category rename and reorder: transactions only — done
 
-No version and no client work. This is atomicity, not stale-edit detection.
+No version and no client work; mobile and web were both unaffected. This is atomicity, not stale-edit detection.
 
-- Rename: wrap the category `updateOne`, the budgets `updateMany` and the expenses `updateMany` (already `$inc`s expense versions) in one `withTx`, passing `{ session }` to each.
-- Reorder: wrap the two swapping `updateOne` calls in one `withTx`.
-- Keep the callback to pure DB writes. It can rerun on a transient error, so cache invalidation and notifications go after it resolves (see `lib/mongodb.ts`).
+- Rename: the category `updateOne`, the budgets `updateMany` and the expenses `updateMany` run in one `withTx`. `alertPcts` validation moved ahead of the transaction so a bad threshold list cannot roll back an otherwise-fine rename.
+- Reorder: `app/api/categories/reorder/route.ts` had no callers — both clients reorder through `/api/categories/move` — so it was deleted rather than transactioned. `move` now reads the group and runs its renumbering `bulkWrite` in one `withTx`.
+- Rename and create both map Mongo's duplicate-key error to the 409 the clients already render: the `findOne` pre-check loses to a concurrent write, and the unique `(user_id, name)` index is what actually decides.
+- The callbacks are pure DB writes. They can rerun on a transient error, so cache invalidation happens after they resolve (see `lib/mongodb.ts`).
+- Verified by `app/api/categories/concurrency.test.ts`.
+
+## 4. Stale category references — done
+
+Categories are keyed by their own mutable `name`, so versioning the row would not have helped here: a client holding a category list from before a rename is not editing the category, it is *referencing* it. Writing the old name through orphaned the row — it showed under a category in no group and counted against no envelope.
+
+- The rename cascade now covers every collection that stores a category name. It previously reached only `budgets` and `expenses`, which meant a rename silently broke `recurring_expenses` (the nightly cron kept logging under the dead name), `bill_scans` and `category_map_overrides`. All five run in the same `withTx`.
+- Rename `$push`es the old name onto the category's `previousNames`. `lib/categoryName.ts::resolveCategoryName` maps a name forward through it, preferring a live category so a recreated name is never redirected. No index needed — a user has tens of categories.
+- Resolution runs on the three writes that take a category name from a client: `lib/createExpense.ts` (also covers the offline flush and the recurring cron), `app/api/budgets/route.ts` PUT (which otherwise upserted a ghost envelope and lost the assignment), and `app/api/expenses/route.ts` PUT (recategorize).
+- Rejecting these writes with a 409 was the alternative. It was dropped because a mobile expense logged offline and flushed after a rename would be refused — the user loses a transaction they already recorded.
+- Known ceiling: resolution runs inside the writer's transaction, so a rename committing between that read and the insert can still orphan one row. The window is the commit gap, not the minutes-long stale-list case. Re-keying categories to `_id` is the real fix and is not done.
+- Category DELETE still has no cascade at all: expenses, budgets and recurring rows keep pointing at a deleted category. Open.
 
 ## Release
 
@@ -60,6 +73,6 @@ Test first (money/balance math and concurrency bugs are in the TDD list). Extend
 
 ## Order of work
 
-1. Category rename/reorder transactions (smallest, no release coordination).
+1. ~~Category rename/reorder transactions (smallest, no release coordination).~~ Done.
 2. Budget `assigned` versioning (highest real-world conflict risk, money).
 3. Holdings PUT versioning.

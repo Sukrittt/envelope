@@ -53,7 +53,9 @@ function matches(doc: Doc, filter: Record<string, unknown>): boolean {
 }
 
 function fakeCollection(base: string) {
-  const store = stores[base]
+  // Any collection the handlers touch incidentally (e.g. `categories`, read by
+  // resolveCategoryName) starts empty rather than undefined.
+  const store = (stores[base] ??= [])
   return {
     find: (filter: Record<string, unknown> = {}) => {
       let rows = store.filter((d) => matches(d, filter))

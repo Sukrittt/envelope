@@ -40,7 +40,9 @@ function matches(doc: Doc, filter: Record<string, unknown>): boolean {
 }
 
 function fakeCollection(base: string) {
-  const store = stores[base]
+  // `categories` is read by resolveCategoryName; start any incidental
+  // collection empty rather than undefined.
+  const store = (stores[base] ??= [])
   return {
     find: (filter: Record<string, unknown> = {}) => ({
       toArray: async () => store.filter((d) => matches(d, filter)),

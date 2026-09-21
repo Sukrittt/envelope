@@ -8,6 +8,13 @@ vi.mock('@/lib/access', () => ({
 const invalidateMock = vi.fn()
 vi.mock('@/lib/cache', () => ({ invalidate: invalidateMock }))
 
+// These tests drive in-memory collection doubles, so there is no real client to
+// start a session on; run the transaction callback inline.
+vi.mock('@/lib/mongodb', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/mongodb')>()),
+  withTx: async (fn: (session: unknown) => unknown) => fn(undefined),
+}))
+
 interface Doc {
   name: string
   group?: string

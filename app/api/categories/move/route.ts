@@ -2,8 +2,13 @@ import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
+import { withTx } from '@/lib/mongodb'
 
 export const dynamic = 'force-dynamic'
+
+/** Handled failures, thrown inside the transaction so nothing partial commits. */
+class NotFound extends Error {}
+class OutOfRange extends Error {}
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -16,25 +21,39 @@ export async function POST(req: Request) {
   if (!body.name || typeof body.toIndex !== 'number') return error('name, toIndex required')
 
   const coll = await getCollection('categories', auth)
-  const current = await coll.findOne({ name: String(body.name) })
-  if (!current) return error('category not found', 404)
 
-  const group = current.group ?? ''
-  const groupDocs = await coll.find({ group }).sort({ order: 1 }).toArray()
-  const names = groupDocs.map((d) => d.name)
-  const fromPos = names.indexOf(String(body.name))
-  if (fromPos < 0) return error('category group not found', 404)
-  if (body.toIndex < 0 || body.toIndex >= names.length) return error('toIndex out of range', 400)
+  // Read and renumber in one transaction: the bulkWrite rewrites every order
+  // in the group, so a failure or a concurrent move partway through it would
+  // leave two categories sharing an order.
+  try {
+    await withTx(async (session) => {
+      const current = await coll.findOne({ name: String(body.name) }, { session })
+      if (!current) throw new NotFound('category not found')
 
-  const rest = names.filter((n) => n !== body.name)
-  rest.splice(body.toIndex, 0, String(body.name))
+      const group = current.group ?? ''
+      const groupDocs = await coll.find({ group }, { session }).sort({ order: 1 }).toArray()
+      const names = groupDocs.map((d) => d.name)
+      const fromPos = names.indexOf(String(body.name))
+      if (fromPos < 0) throw new NotFound('category group not found')
+      if (Number(body.toIndex) < 0 || Number(body.toIndex) >= names.length) throw new OutOfRange('toIndex out of range')
 
-  const minOrder = Math.min(...groupDocs.map((d) => (typeof d.order === 'number' ? d.order : 0)))
-  await coll.bulkWrite(
-    rest.map((name, i) => ({
-      updateOne: { filter: { name }, update: { $set: { order: minOrder + i } } },
-    })),
-  )
+      const rest = names.filter((n) => n !== body.name)
+      rest.splice(Number(body.toIndex), 0, String(body.name))
+
+      const minOrder = Math.min(...groupDocs.map((d) => (typeof d.order === 'number' ? d.order : 0)))
+      await coll.bulkWrite(
+        rest.map((name, i) => ({
+          updateOne: { filter: { name }, update: { $set: { order: minOrder + i } } },
+        })),
+        { session },
+      )
+    })
+  } catch (err) {
+    if (err instanceof NotFound) return error(err.message, 404)
+    if (err instanceof OutOfRange) return error(err.message, 400)
+    throw err
+  }
+
   invalidate('categories', auth.userId)
   return json({ ok: true })
 }

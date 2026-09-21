@@ -7,6 +7,7 @@ import { invalidateCategoryMap } from '@/lib/categoryMap'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { casRetry } from '@/lib/cas'
+import { resolveCategoryName } from '@/lib/categoryName'
 
 /**
  * The one way an expense gets created. Lifted out of `app/api/expenses`'s POST
@@ -124,7 +125,12 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
 
   // The expense insert and its Credit Card envelope bump must land together —
   // a partial write here leaves an expense with no matching envelope bump.
-  const insertedId = await withTx(async (session) => {
+  const { insertedId, category } = await withTx(async (session) => {
+    // A caller can be working from a category list loaded before a rename (a
+    // stale mobile screen, an offline queue flushed later, the recurring cron);
+    // resolve it here so the row lands in the renamed category rather than
+    // orphaning under a name that no longer exists.
+    const category = await resolveCategoryName(auth, String(input.category), session)
     const inserted = await coll.insertOne(
       {
         timestamp,
@@ -132,7 +138,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
         date,
         item: String(input.item),
         amount_inr: String(input.amount_inr),
-        category: String(input.category),
+        category,
         notes: String(input.notes ?? ''),
         source: String(input.source ?? 'manual'),
         amount: '',
@@ -151,7 +157,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
       }
     }
 
-    return inserted.insertedId
+    return { insertedId: inserted.insertedId, category }
   })
 
   invalidate('expenses', auth.userId)
@@ -162,7 +168,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   // instant the response is sent, so a background call here could just never
   // run. notifyThresholdCrossed never throws, so this only adds latency, not
   // failure risk.
-  if (input.notify !== false) await notifyThresholdCrossed(auth, String(input.category))
+  if (input.notify !== false) await notifyThresholdCrossed(auth, category)
 
   return { id: String(insertedId), timestamp, version: 0, duplicate: false }
 }

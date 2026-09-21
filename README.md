@@ -71,7 +71,6 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/api/expenses` | GET, POST, PUT | Transaction log; PUT also recategorizes |
 | `/api/budgets` | GET, POST, PUT, DELETE | Monthly envelope budgets |
 | `/api/categories` | GET, POST, PUT, DELETE | Envelope categories |
-| `/api/categories/reorder` | POST | Move a category up/down |
 | `/api/categories/move` | POST | Drag a category to an index |
 | `/api/category-map` | GET | Keyword → category suggestions |
 | `/api/category-map/suggest` | POST | LLM-assisted suggestion fallback (Gemini) |

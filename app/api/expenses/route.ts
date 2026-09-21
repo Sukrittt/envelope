@@ -8,6 +8,7 @@ import { invalidateCategoryMap } from '@/lib/categoryMap'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
+import { resolveCategoryName } from '@/lib/categoryName'
 
 export const dynamic = 'force-dynamic'
 
@@ -200,6 +201,10 @@ export async function PUT(req: Request) {
       const found = await coll.findOne({ _id: new ObjectId(String(body.id)) }, { session })
       checkExpense(found, body.version)
       const version = Number(found.version ?? 0)
+      // Recategorizing from a list loaded before a rename must not park the
+      // row under a name no category has any more (lib/categoryName.ts).
+      // Idempotent on retry: a live name resolves to itself.
+      if (update.category !== undefined) update.category = await resolveCategoryName(auth, update.category, session)
       const next: Record<string, unknown> = { ...update, version: version + 1 }
       if (body.new_date !== undefined && found.timestamp !== undefined) {
         const ts = String(found.timestamp)

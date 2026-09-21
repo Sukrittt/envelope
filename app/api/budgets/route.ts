@@ -3,6 +3,7 @@ import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { BUDGET_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
+import { resolveCategoryName } from '@/lib/categoryName'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,13 +66,18 @@ export async function PUT(req: Request) {
   if (body.rolled_over !== undefined) update.rolled_over = String(body.rolled_over)
   if (body.newCategory !== undefined) update.category = String(body.newCategory)
 
+  // The category list this came from may predate a rename; resolving keeps the
+  // assignment on the real envelope instead of upserting a ghost row under a
+  // name no category has any more. See lib/categoryName.ts.
+  const category = await resolveCategoryName(auth, String(body.category))
+
   const coll = await getCollection('budgets', auth)
   // Upsert: an envelope's category may have no budget row yet (e.g. a
   // subscription category whose assigned comes from rollover/spend only).
   // updateBudget (PUT) must create the row then, not 404 — otherwise the
   // client's optimistic local edit never reaches the DB and reverts on reload.
   await coll.updateOne(
-    { month: String(body.month), category: String(body.category) },
+    { month: String(body.month), category },
     { $set: update },
     { upsert: true },
   )
