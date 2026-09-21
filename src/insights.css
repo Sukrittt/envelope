@@ -16,34 +16,30 @@
 }
 
 .ins-period-header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 0 24px;
-}
-
-.ins-desktop-back { justify-self: start; }
-
-.ins-period-nav {
-  grid-column: 2;
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 0 16px;
+}
+
+.ins-period-nav {
+  display: flex;
+  align-items: center;
+  gap: 32px;
 }
 
 .ins-period-copy {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  min-width: 240px;
+  gap: 4px;
   text-align: center;
 }
 
 .ins-period-copy h1 {
   margin: 0;
-  font-size: clamp(26px, 2.6vw, 36px);
+  font-size: clamp(22px, 2vw, 28px);
   line-height: 1.05;
   white-space: nowrap;
 }
@@ -116,19 +112,75 @@
   padding-bottom: 34px;
 }
 
+.ins-card {
+  animation: ins-card-rise 420ms cubic-bezier(.2,.8,.2,1) both;
+}
+
 .ins-trend-card {
   grid-column: 1 / -1;
 }
 
+/* Under 3 months of data the card holds a single sentence, not a chart —
+   shrink it to a strip so it stops reserving chart-sized height. */
+.ins-trend-card.is-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 20px;
+  padding: 14px 20px;
+}
+
+.ins-trend-card.is-strip .ins-card-heading { flex: none; gap: 10px; align-items: center; }
+.ins-trend-card.is-strip .ins-card-heading p { display: none; }
+.ins-trend-card.is-strip .ins-trend-summary { margin: 0; }
+
+.ins-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
 .ins-breakdown-card {
-  order: 2;
   animation-delay: 70ms;
 }
 
 .ins-heatmap-card {
-  align-self: start;
-  order: 1;
+  animation-delay: 190ms;
+}
+
+.ins-top-card {
   animation-delay: 130ms;
+}
+
+.ins-top-list {
+  margin-top: 10px;
+}
+
+.expense-redesign .ins-top-row {
+  width: auto;
+  margin: 0 -8px;
+  padding: 9px 8px;
+  border-radius: 15px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  animation: ins-row-slide 340ms cubic-bezier(.2,.8,.2,1) both;
+  transition: background 160ms ease;
+}
+
+.expense-redesign .ins-top-row:hover { background: var(--erd-input-bg); }
+.expense-redesign .ins-top-row:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.ins-top-empty {
+  margin: 14px 0 0;
+  color: var(--erd-text3);
+  font-size: 12px;
 }
 
 .ins-card-heading,
@@ -518,13 +570,15 @@
 }
 
 .ins-heatmap-shell {
-  max-width: 440px;
-  margin: 22px auto 0;
+  margin: 22px 0 0;
 }
 
+/* Full card width, height falling out of the viewBox aspect. Capping height
+   instead would letterbox the calendar and hand the width back. */
 .ins-heatmap-svg {
   display: block;
   width: 100%;
+  height: auto;
   overflow: visible;
 }
 
@@ -542,12 +596,17 @@
 
 .ins-heatmap-day.is-bright { fill: var(--erd-on-accent); }
 
+/* transform-origin comes per-cell from the component (view-box coordinates)
+   — `fill-box` on an SVG group is not dependable across browsers. */
+.ins-heatmap-cell {
+  animation: ins-cell-pop 620ms cubic-bezier(.34, 1.56, .64, 1) both;
+}
+
 .ins-heatmap-cell rect {
   fill: var(--erd-chip-active-bg);
   stroke: transparent;
   transform-box: fill-box;
   transform-origin: center;
-  animation: ins-cell-pop 320ms cubic-bezier(.2,.8,.2,1) both;
   transition: filter 150ms ease, transform 150ms ease;
 }
 
@@ -638,12 +697,13 @@
 
 @keyframes ins-bar-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes ins-allocation-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes ins-cell-pop { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
+@keyframes ins-card-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ins-row-slide { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@keyframes ins-cell-pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
 
 @media (max-width: 1120px) {
   .insights-grid { grid-template-columns: 1fr; }
   .ins-trend-card { grid-column: auto; }
-  .ins-breakdown-card, .ins-heatmap-card { order: 0; }
 }
 
 @media (max-width: 900px) {
@@ -651,12 +711,10 @@
   .ins-mobile-header { display: flex; align-items: center; gap: 13px; }
   .ins-mobile-header .ins-back-btn { flex: none; }
   .ins-content { padding: 16px; overflow-y: auto; }
-  .ins-period-header { display: flex; justify-content: center; padding: 0 0 16px; }
-  .ins-desktop-back { display: none; }
-  .ins-period-nav { gap: 12px; }
-  .ins-period-copy { min-width: 0; }
+  .ins-period-header { justify-content: center; }
+  .ins-period-nav { gap: 16px; }
   .ins-period-copy h1 { font-size: 22px; }
-  .insights-grid { gap: 16px; }
+  .insights-grid, .ins-left-col { gap: 16px; }
   .ins-card { padding: 19px 18px 18px; }
 }
 
@@ -668,9 +726,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ins-card,
+  .ins-top-row,
   .ins-allocation-segment,
   .ins-trend-bar,
-  .ins-heatmap-cell rect,
+  .ins-heatmap-cell,
   .ins-filter-dialog {
     animation: none !important;
   }

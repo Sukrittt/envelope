@@ -69,7 +69,10 @@ export function Heatmap({ cells, todayDate, hideAmounts = false, onSelectDate }:
               tabIndex={interactive ? 0 : undefined}
               aria-label={label}
               className={interactive ? 'ins-heatmap-cell is-interactive' : 'ins-heatmap-cell'}
-              style={{ animationDelay: `${130 + col * 55 + row * 14}ms` }}
+              style={{
+                transformOrigin: `${x + CELL / 2}px ${y + CELL / 2}px`,
+                animationDelay: `${260 + col * 70 + row * 15}ms`,
+              }}
               onClick={() => interactive && onSelectDate?.(cell.date)}
               onKeyDown={(event) => {
                 if (interactive && (event.key === 'Enter' || event.key === ' ')) {

@@ -26,14 +26,21 @@ import { useExpenses } from "@/src/hooks/useExpenses";
 import { useGroups } from "@/src/hooks/useGroups";
 import { useHideAmounts } from "@/src/hooks/useHideAmounts";
 import {
+  CREDIT_CARD_CATEGORY,
+  INCOME_CATEGORY,
   currentMonthKey,
   monthAbbrev,
   monthLabel,
   prevMonthKey,
   shiftMonthKey,
 } from "@/src/lib/envelope";
+import {
+  avatarColorFor,
+  categoryEmoji,
+  splitEmoji,
+} from "@/src/lib/emoji";
 import { todayIST } from "@/src/lib/date";
-import { formatDateShort } from "@/src/lib/format";
+import { formatDateShort, formatShortDate } from "@/src/lib/format";
 import {
   categoryBreakdown,
   leftoverFor,
@@ -45,6 +52,7 @@ import { EMPTY } from "@/src/lib/constants";
 
 const TREND_MONTHS = 12;
 const HEATMAP_WEEKS = 12;
+const TOP_SPENDS = 5;
 
 function monthsBack(month: string, currentMonth: string) {
   const [y1, m1] = month.split("-").map(Number);
@@ -282,6 +290,41 @@ export function InsightsPage() {
     categoryGroupMap,
   ]);
 
+  /** Biggest single expenses of the month, under whatever breakdown filter is
+   *  active — same CC/income exclusion and same selection filter the heatmap
+   *  beside it uses, so the two halves of the left column always agree. */
+  const topSpends = useMemo(() => {
+    return expenses
+      .filter(
+        (expense) =>
+          expense.date.startsWith(insightMonth) &&
+          expense.category !== CREDIT_CARD_CATEGORY &&
+          expense.category !== INCOME_CATEGORY &&
+          matchesSelection(expense.category),
+      )
+      .map((expense) => ({
+        id: expense.id ?? `${expense.date}-${expense.item}-${expense.amount_inr}`,
+        date: expense.date,
+        item: expense.item || splitEmoji(expense.category).text,
+        category: splitEmoji(expense.category).text,
+        emoji: categoryEmoji(
+          expense.category,
+          categoryGroupMap.get(expense.category),
+        ),
+        amount: Number(expense.amount_inr) || 0,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, TOP_SPENDS);
+    // matchesSelection closes over the selection and category mapping listed below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    expenses,
+    insightMonth,
+    selectedBreakdownKey,
+    breakdownMode,
+    categoryGroupMap,
+  ]);
+
   const selectedRow =
     breakdownRows.find((row) => row.key === selectedBreakdownKey) ?? null;
   const back = monthsBack(insightMonth, currentMonth);
@@ -316,14 +359,6 @@ export function InsightsPage() {
         <ExpenseSidebar />
         <main className="erd-content ins-content">
           <header className="ins-period-header">
-            <button
-              type="button"
-              className="ins-back-btn ins-desktop-back"
-              onClick={() => router.back()}
-              aria-label="Back"
-            >
-              <ArrowLeft size={18} />
-            </button>
             <div className="ins-period-nav">
               <button
                 type="button"
@@ -388,7 +423,9 @@ export function InsightsPage() {
             </div>
           ) : (
             <div className="insights-grid">
-              <article className="erd-card ins-card ins-trend-card">
+              <article
+                className={`erd-card ins-card ins-trend-card${trendSummary ? " is-strip" : ""}`}
+              >
                 <div className="ins-card-heading">
                   <div>
                     <h2>Spending trend</h2>
@@ -440,6 +477,92 @@ export function InsightsPage() {
                 )}
               </article>
 
+              <div className="ins-left-col">
+                <article className="erd-card ins-card ins-top-card">
+                  <div className="ins-card-heading">
+                    <div>
+                      <h2>Biggest spends</h2>
+                      <p>
+                        {selectedRow
+                          ? selectedRow.label
+                          : monthLabel(insightMonth)}
+                      </p>
+                    </div>
+                  </div>
+                  {topSpends.length === 0 ? (
+                    <p className="ins-top-empty">Nothing logged yet.</p>
+                  ) : (
+                    <div className="txn-timeline-list ins-top-list">
+                      {topSpends.map((spend, index) => (
+                        <button
+                          key={spend.id}
+                          type="button"
+                          className="txn-timeline-row ins-top-row"
+                          style={{ animationDelay: `${220 + index * 55}ms` }}
+                          onClick={() =>
+                            router.push(`/expense/transactions?date=${spend.date}`)
+                          }
+                        >
+                          <span
+                            className="txn-timeline-icon"
+                            title={spend.category}
+                            style={{ background: avatarColorFor(spend.category) }}
+                          >
+                            {spend.emoji}
+                          </span>
+                          <span className="txn-timeline-body">
+                            <span className="txn-timeline-item">{spend.item}</span>
+                            <span className="txn-timeline-meta">
+                              {formatShortDate(spend.date)} · {spend.category}
+                            </span>
+                          </span>
+                          <span className="txn-timeline-amount">
+                            {formatCurrency(spend.amount, hideAmounts)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </article>
+
+                <article className="erd-card ins-card ins-heatmap-card">
+                  <div className="ins-card-heading ins-heatmap-heading">
+                    <div>
+                      <h2>
+                        {selectedRow
+                          ? `Daily spend · ${selectedRow.label}`
+                          : "Daily spend"}
+                      </h2>
+                      {heatmap.caption && <p>{heatmap.caption}</p>}
+                    </div>
+                    <div className="ins-segmented" aria-label="Heatmap range">
+                      <button
+                        type="button"
+                        className={heatmapView === "month" ? "is-active" : ""}
+                        onClick={() => setHeatmapView("month")}
+                      >
+                        Month
+                      </button>
+                      <button
+                        type="button"
+                        className={heatmapView === "weeks" ? "is-active" : ""}
+                        onClick={() => setHeatmapView("weeks")}
+                      >
+                        12 weeks
+                      </button>
+                    </div>
+                  </div>
+                  <Heatmap
+                    cells={heatmap.cells}
+                    todayDate={today}
+                    hideAmounts={hideAmounts}
+                    onSelectDate={(date) =>
+                      router.push(`/expense/transactions?date=${date}`)
+                    }
+                  />
+                </article>
+              </div>
+
               <article className="erd-card ins-card ins-breakdown-card">
                 <CategoryBreakdown
                   rows={breakdownRows}
@@ -454,43 +577,6 @@ export function InsightsPage() {
                   leftover={leftover}
                   monthLabel={monthLabel(insightMonth)}
                   hideAmounts={hideAmounts}
-                />
-              </article>
-
-              <article className="erd-card ins-card ins-heatmap-card">
-                <div className="ins-card-heading ins-heatmap-heading">
-                  <div>
-                    <h2>
-                      {selectedRow
-                        ? `Daily spend · ${selectedRow.label}`
-                        : "Daily spend"}
-                    </h2>
-                    {heatmap.caption && <p>{heatmap.caption}</p>}
-                  </div>
-                  <div className="ins-segmented" aria-label="Heatmap range">
-                    <button
-                      type="button"
-                      className={heatmapView === "month" ? "is-active" : ""}
-                      onClick={() => setHeatmapView("month")}
-                    >
-                      Month
-                    </button>
-                    <button
-                      type="button"
-                      className={heatmapView === "weeks" ? "is-active" : ""}
-                      onClick={() => setHeatmapView("weeks")}
-                    >
-                      12 weeks
-                    </button>
-                  </div>
-                </div>
-                <Heatmap
-                  cells={heatmap.cells}
-                  todayDate={today}
-                  hideAmounts={hideAmounts}
-                  onSelectDate={(date) =>
-                    router.push(`/expense/transactions?date=${date}`)
-                  }
                 />
               </article>
             </div>

@@ -68,3 +68,23 @@ export function categoryEmoji(name: string, group?: string): string {
   const { icon } = splitEmoji(name)
   return icon || CATEGORY_EMOJI[name.trim().toLowerCase()] || (group ? GROUP_EMOJI[group] : '') || '💰'
 }
+
+// Keep the same stable, soft-hue cycle as Mobile's Activity avatars.
+const AVATAR_HUES = [
+  'var(--mint-soft)',
+  'var(--violet-soft)',
+  'var(--blue-soft)',
+  'var(--gold-soft)',
+  'var(--warn-soft)',
+  'var(--coral-soft)',
+]
+
+/** Deterministic avatar tint for a category, shared by Activity and Insights
+ *  so one category is never two colours in the same session. */
+export function avatarColorFor(category: string): string {
+  let hash = 0
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0
+  }
+  return AVATAR_HUES[hash % AVATAR_HUES.length]
+}

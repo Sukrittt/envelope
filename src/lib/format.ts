@@ -45,6 +45,17 @@ export function formatDateShort(dateStr: string): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
+/** "21 Sept '26" — the Activity timeline's row date, shared with Insights so
+ *  the same transaction reads identically on both screens. */
+export function formatShortDate(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const day = d.getDate()
+  const month = d.toLocaleDateString('en-IN', { month: 'short' })
+  const year = String(d.getFullYear()).slice(2)
+  return `${day} ${month} '${year}`
+}
+
 /** Whole days from now until `ts`, floored at 0 — used for "purges in N days" archive countdowns. */
 export function daysUntil(ts: string): number {
   const d = new Date(ts)
