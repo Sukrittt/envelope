@@ -315,3 +315,121 @@
 .adm-msg.is-error {
   color: var(--tk-coral);
 }
+
+/* Audit log: filter bar and per-action change summaries. */
+.adm-filters {
+  /* The page already stacks with a 22px gap; pull the bar closer to the title it filters. */
+  margin-top: -8px;
+}
+.adm-search {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+.adm-filters .adm-select {
+  max-width: 200px;
+}
+.adm-filters .adm-input[type="date"] {
+  width: 150px;
+}
+.adm-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--erd-text3);
+}
+.adm-card {
+  padding: 4px 24px 8px;
+}
+.adm-audit {
+  min-width: 860px;
+}
+.adm-audit th {
+  padding: 16px 12px 12px;
+}
+.adm-audit td {
+  vertical-align: middle;
+  padding: 16px 12px;
+}
+/* Spread the columns across the card so the change summary owns the leftover width instead of leaving it blank. */
+.adm-audit th:nth-child(1) {
+  width: 11%;
+}
+.adm-audit th:nth-child(2) {
+  width: 22%;
+}
+.adm-audit th:nth-child(3) {
+  width: 14%;
+}
+.adm-audit th:nth-child(4) {
+  width: 12%;
+}
+.adm-when {
+  white-space: nowrap;
+}
+.adm-when span {
+  display: block;
+}
+.adm-who {
+  overflow-wrap: anywhere;
+  max-width: 220px;
+}
+.adm-changes,
+.adm-facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.adm-changes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.adm-change-label {
+  font-weight: 700;
+  min-width: 190px;
+}
+.adm-changes del,
+.adm-changes ins {
+  text-decoration: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.adm-changes del {
+  color: var(--erd-text3);
+  background: var(--erd-pill-bg);
+  text-decoration: line-through;
+}
+.adm-changes ins {
+  color: var(--tk-mint);
+  background: var(--tk-mint-soft);
+}
+.adm-arrow {
+  color: var(--erd-text3);
+}
+.adm-facts div {
+  display: flex;
+  gap: 8px;
+}
+.adm-facts dt {
+  color: var(--erd-text3);
+  min-width: 90px;
+}
+.adm-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 720px) {
+  .adm-card {
+    padding: 4px 12px 8px;
+  }
+  .adm-change-label {
+    min-width: 100%;
+  }
+}
