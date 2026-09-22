@@ -5,6 +5,7 @@ import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { RECURRING_EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
+import { normalizeItem } from '@/lib/recurringDetection'
 import { FREQUENCIES, firstRunOnOrAfter, type Frequency } from '@/lib/recurringExpense'
 
 export const dynamic = 'force-dynamic'
@@ -60,23 +61,52 @@ export async function POST(req: Request) {
   const { date: today, timestamp } = await nowForUser(auth.userId)
 
   const coll = await getCollection('recurring_expenses', auth)
-  const inserted = await coll.insertOne({
-    item: String(body.item),
-    amount_inr: String(body.amount_inr),
-    category: String(body.category),
-    notes: String(body.notes ?? ''),
-    payment_method: paymentMethod,
-    frequency,
-    start_date: startDate,
-    end_date: endDate,
-    // Computed here, never taken from the client: a backdated start schedules
-    // forward instead of instantly backfilling history nobody asked for. The
-    // cron's backfill is for runs it *missed*, not for dates that predate the
-    // recurrence being created.
-    next_run_date: firstRunOnOrAfter(startDate, frequency, today),
-    status: 'active',
-    created_at: timestamp,
-  })
+  const suggestionId = typeof body.suggestion_id === 'string' ? body.suggestion_id : undefined
+  if (suggestionId) {
+    if (!ObjectId.isValid(suggestionId)) return error('Invalid suggestion')
+    // Stable id makes repeated confirmation/retried requests idempotent.
+    const accepted = await coll.findOne({ _id: new ObjectId(suggestionId) })
+    if (accepted) return json({ ok: true, id: suggestionId })
+    const suggestions = await getCollection('recurring_detection', auth)
+    const suggestion = await suggestions.findOne({ _id: new ObjectId(suggestionId) })
+    if (!suggestion?.decision || suggestion.dismissed) return error('Suggestion is no longer available. Scan again.', 409)
+    if (startDate <= today) return error('Choose a future start date so past payments are not logged twice.')
+    const subs = await getCollection('subscriptions', auth)
+    const [schedules, services] = await Promise.all([coll.find({}).toArray(), subs.find({}).toArray()])
+    const name = normalizeItem(String(body.item))
+    if (schedules.some(r => normalizeItem(String(r.item ?? '')) === name) || services.some(r => normalizeItem(String(r.service ?? '')) === name)) {
+      return error('This payment is already tracked. Edit the existing schedule instead.', 409)
+    }
+    if (!Number.isFinite(Number(body.amount_inr)) || Number(body.amount_inr) <= 0) return error('Amount must be positive and finite')
+  }
+  let inserted
+  try {
+    inserted = await coll.insertOne({
+      ...(suggestionId ? { _id: new ObjectId(suggestionId), suggestion_id: suggestionId } : {}),
+      item: String(body.item),
+      amount_inr: String(body.amount_inr),
+      category: String(body.category),
+      notes: String(body.notes ?? ''),
+      payment_method: paymentMethod,
+      frequency,
+      start_date: startDate,
+      end_date: endDate,
+      // Computed here, never taken from the client: a backdated start schedules
+      // forward instead of instantly backfilling history nobody asked for. The
+      // cron's backfill is for runs it *missed*, not for dates that predate the
+      // recurrence being created.
+      next_run_date: firstRunOnOrAfter(startDate, frequency, today),
+      status: 'active',
+      created_at: timestamp,
+    })
+  } catch (err) {
+    if (suggestionId && (err as { code?: number }).code === 11000) {
+      const live = await coll.findOne({ _id: new ObjectId(suggestionId) })
+      if (live) return json({ ok: true, id: suggestionId })
+      return error('This suggestion was already used for an archived schedule. Restore it or add a new recurring expense manually.', 409)
+    }
+    throw err
+  }
 
   invalidate('recurring_expenses', auth.userId)
   return json({ ok: true, id: String(inserted.insertedId) })

@@ -2,6 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
+import type { RecurringExpenseInput } from '../api/recurringExpenses'
 import { useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker } from './DatePicker'
@@ -28,11 +29,14 @@ const RETRY = 'Check your connection and try again.'
 interface Props {
   /** Present: edit that row. Absent: add a new one. Same split as Mobile's route params. */
   id?: string
+  initialValues?: RecurringExpenseInput
+  suggestionId?: string
+  onAdded?: () => void
   onClose: () => void
 }
 
 /** Twin of Mobile's modals/recurring-expense.tsx, as a dialog over /account/recurring. */
-export function RecurringExpenseModal({ id, onClose }: Props) {
+export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded, onClose }: Props) {
   const { currencySymbol } = useCurrency()
 
   const recurringQ = useRecurringExpenses()
@@ -49,14 +53,15 @@ export function RecurringExpenseModal({ id, onClose }: Props) {
   const isEdit = id !== undefined
   const isActive = existing ? existing.status === 'active' : true
 
-  const [item, setItem] = useState(existing?.item ?? '')
-  const [amount, setAmount] = useState(existing?.amount_inr ?? '')
-  const [frequency, setFrequency] = useState(existing?.frequency || 'monthly')
-  const [startDate, setStartDate] = useState(existing?.start_date || todayIST())
-  const [endDate, setEndDate] = useState(existing?.end_date ?? '')
-  const [notes, setNotes] = useState(existing?.notes ?? '')
-  const [category, setCategory] = useState(existing?.category ?? '')
-  const [paymentMethod, setPaymentMethod] = useState(existing?.payment_method || 'bank')
+  const initial = existing ?? initialValues
+  const [item, setItem] = useState(initial?.item ?? '')
+  const [amount, setAmount] = useState(initial?.amount_inr ?? '')
+  const [frequency, setFrequency] = useState(initial?.frequency || 'monthly')
+  const [startDate, setStartDate] = useState(initial?.start_date || todayIST())
+  const [endDate, setEndDate] = useState(initial?.end_date ?? '')
+  const [notes, setNotes] = useState(initial?.notes ?? '')
+  const [category, setCategory] = useState(initial?.category ?? '')
+  const [paymentMethod, setPaymentMethod] = useState(initial?.payment_method || 'bank')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
   const { saving, success, start, succeed, fail } = useButtonPhase()
@@ -89,9 +94,17 @@ export function RecurringExpenseModal({ id, onClose }: Props) {
     start()
     try {
       if (id) await updateRecurring.mutateAsync({ id, updates: fields })
-      else await addRecurring.mutateAsync(fields)
+      else {
+        await addRecurring.mutateAsync({ ...fields, suggestion_id: suggestionId })
+        onAdded?.()
+      }
       succeed(onClose)
-    } catch {
+    } catch (err) {
+      if (suggestionId && err instanceof Error) {
+        fail()
+        setError(err.message)
+        return
+      }
       onFailure(isEdit ? "Couldn't save" : "Couldn't add this")
     }
   }
@@ -119,6 +132,8 @@ export function RecurringExpenseModal({ id, onClose }: Props) {
             ✕
           </button>
         </div>
+
+        {initialValues && <p className="recurring-hint">Review this suggestion. Once added, we’ll automatically log an expense on every due date. Past expenses stay unchanged.</p>}
 
         <label className="erd-log-label" htmlFor="recurring-item">
           What is it

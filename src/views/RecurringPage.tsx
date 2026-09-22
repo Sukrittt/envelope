@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { AllocationBar, type AllocationSegment } from '../components/charts/AllocationBar'
 import { LoadingCaption } from '../components/LoadingCaption'
+import { RecurringSuggestions } from '../components/RecurringSuggestions'
 import { RecurringExpenseModal } from '../components/RecurringExpenseModal'
 import { useRecurringExpenses } from '../hooks/useRecurringExpenses'
 import { useHideAmounts } from '../hooks/useHideAmounts'
@@ -131,6 +132,8 @@ export function RecurringPage() {
           + Add
         </button>
       </div>
+
+      <RecurringSuggestions />
 
       {recurringQ.isLoading ? (
         <LoadingCaption feature="recurring" placement="page" />

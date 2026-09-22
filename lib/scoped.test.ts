@@ -254,6 +254,19 @@ describe('scoped() field encryption', () => {
     process.env.FIELD_KEY_V1 = randomBytes(32).toString('base64')
   })
 
+  it('encrypts recurring scan snapshots on update and decrypts them for their owner', async () => {
+    const coll = fakeMongoCollection('recurring_detection')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ key: 'snapshot' })
+    const snapshot = JSON.stringify({ suggestions: [{ item: 'Rent', amount: 25000 }] })
+    await view.updateOne({ key: 'snapshot' }, { $set: { snapshot } })
+    expect(isEncrypted(coll.store[0].snapshot)).toBe(true)
+    expect((await view.findOne({ key: 'snapshot' }))?.snapshot).toBe(snapshot)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await scoped(coll as any, 'user_bob').findOne({ key: 'snapshot' })).toBeNull()
+  })
+
   it('encrypts declared fields on insertOne, leaves plaintext fields alone', async () => {
     const coll = fakeMongoCollection('expenses')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
