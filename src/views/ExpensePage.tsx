@@ -26,7 +26,7 @@ import {
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
-import { useBudgets, useAddBudget, useUpdateBudget } from "../hooks/useBudgets";
+import { useBudgets, useAddBudget, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useExpenses, useAddExpense } from "../hooks/useExpenses";
 import { useCategories } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
@@ -59,6 +59,7 @@ export function ExpensePage() {
 
   const addBudgetM = useAddBudget();
   const updateBudgetM = useUpdateBudget();
+  const transferBudgetM = useTransferBudget();
   const addExpenseM = useAddExpense();
   const cancelSubscriptionM = useCancelSubscription();
   const reactivateSubscriptionM = useReactivateSubscription();
@@ -161,32 +162,26 @@ export function ExpensePage() {
     if (panel) setEnvelopeState(panel.envelopeState);
   }, [panel]);
 
-  function handleBulkReturnToRTA() {
+  async function handleBulkReturnToRTA() {
     if (!envelopeState) return;
     const positive = envelopeState.envelopes.filter((e) => e.available > 0);
     if (positive.length === 0) return;
-
-    setEnvelopeState((prev) => {
-      if (!prev) return prev;
-      const month = prev.month;
-      const updated = prev.envelopes.map((e) => {
-        if (e.available > 0) {
-          updateBudgetM
-            .mutateAsync({
-              month,
-              category: e.category,
-              updates: { assigned: String(e.assigned - e.available) },
-            })
-            .catch(() => {});
-          return { ...e, assigned: e.assigned - e.available, available: 0 };
-        }
-        return e;
+    const current = envelopeState;
+    bulkReturnPhase.start();
+    try {
+      await transferBudgetM.mutateAsync({
+        month: current.month,
+        to: "__ready_to_assign__",
+        sources: positive.map((e) => ({ category: e.category, amount: e.available })),
       });
-      const totalAssigned = updated.reduce((s, e) => s + e.assigned, 0);
-      const rta = prev.income - totalAssigned;
+      const updated = current.envelopes.map((e) =>
+        e.available > 0 ? { ...e, assigned: e.assigned - e.available, available: 0 } : e,
+      );
+      const totalAssigned = updated.reduce((sum, e) => sum + e.assigned, 0);
+      const rta = current.income - totalAssigned;
       const log = {
         type: "bulk-return-to-rta",
-        month,
+        month: current.month,
         timestamp: new Date().toISOString(),
         categories: positive.map((e) => ({
           category: e.category,
@@ -203,15 +198,18 @@ export function ExpensePage() {
       } catch {
         // Transfer log is diagnostic only — a write failure shouldn't block the return
       }
-      return {
-        ...prev,
+      setEnvelopeState({
+        ...current,
         envelopes: updated,
         totalAssigned,
         readyToAssign: rta,
         isOverAssigned: rta < 0,
-      };
-    });
-    bulkReturnPhase.succeed(() => setShowBulkReturnConfirm(false));
+      });
+      bulkReturnPhase.succeed(() => setShowBulkReturnConfirm(false));
+    } catch {
+      bulkReturnPhase.fail();
+      setActionError("Couldn't return the money — your envelopes were not changed.");
+    }
   }
 
   async function handlePayCreditCard() {
@@ -247,6 +245,7 @@ export function ExpensePage() {
         await updateBudgetM.mutateAsync({
           month,
           category: "__income__",
+          version: budgetRows.find((row) => row.month === month && row.category === "__income__")?.version ?? 0,
           updates: { assigned: String(value) },
         });
         localStorage.removeItem("expense-income-override");

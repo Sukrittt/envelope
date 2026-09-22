@@ -217,13 +217,13 @@ describe('category rename cascade and stale references', () => {
     await renameCategory(request('', { name: 'Food', newName: 'Dining' }))
     const response = await assignBudget(new Request('http://localhost/api/budgets', {
       method: 'PUT',
-      body: JSON.stringify({ month: '2026-10', category: 'Food', assigned: '900' }),
+      body: JSON.stringify({ month: '2026-10', category: 'Food', assigned: '900', version: 0 }),
     }))
     expect(response.status).toBe(200)
     const db = await getDb()
     const rows = await scoped(db.collection('budgets'), USER).find({ month: '2026-10' }).toArray()
     expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({ category: 'Dining', assigned: '900' })
+    expect(rows[0]).toMatchObject({ category: 'Dining', assigned: '900', version: 1 })
   })
 
   it('prefers a live category over an alias when the freed name is reused', async () => {

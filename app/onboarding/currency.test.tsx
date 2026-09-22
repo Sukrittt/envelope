@@ -6,7 +6,10 @@ import { updateUser } from '@/src/api/account'
 import { completeOnboarding } from '@/src/api/billing'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
-vi.mock('@/src/api/budgets', () => ({ updateBudget: vi.fn(async () => ({})) }))
+vi.mock('@/src/api/budgets', () => ({
+  getBudgets: vi.fn(async () => []),
+  updateBudget: vi.fn(async () => ({})),
+}))
 vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async patch => patch) }))

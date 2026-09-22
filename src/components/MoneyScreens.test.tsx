@@ -3,8 +3,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AssignMoneyScreen, EditAssignedScreen, EditReadyToAssignScreen, MoveMoneyScreen } from './MoneyScreens'
 import userEvent from '@testing-library/user-event'
 import { currentMonthKey } from '../lib/envelope'
+import { BudgetWriteError } from '../lib/budgetConflict'
 
-const mocks = vi.hoisted(() => ({ update: vi.fn(), add: vi.fn(), transfer: vi.fn(), budgets: [] as {month: string; category: string; assigned: string; rolled_over: string}[] }))
+const mocks = vi.hoisted(() => ({ update: vi.fn(), add: vi.fn(), transfer: vi.fn(), budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; version: number}[] }))
 vi.mock('../hooks/useBudgets', () => ({
   useBudgets: () => ({ data: mocks.budgets }),
   useUpdateBudget: () => ({ mutateAsync: mocks.update }),
@@ -21,7 +22,7 @@ beforeEach(() => {
   mocks.update.mockResolvedValue(undefined)
   mocks.add.mockResolvedValue(undefined)
   mocks.transfer.mockResolvedValue(undefined)
-  mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0' }))
+  mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
 })
 
 function typeAmount(value: string) {
@@ -88,7 +89,7 @@ describe('money screens', () => {
     typeAmount('')
     expect(screen.getByText(/Frees ₹100 back to Ready to Assign/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: 'Food', updates: { assigned: '0' } }))
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: 'Food', version: 3, updates: { assigned: '0' } }))
   })
 
   it('saves the income needed for the typed ready-to-assign balance', async () => {
@@ -96,7 +97,7 @@ describe('money screens', () => {
     typeAmount('')
     typeAmount('99.99')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: '__income__', updates: { assigned: '699.99' } }))
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: '__income__', version: 3, updates: { assigned: '699.99' } }))
   })
 
   it('assigns additional money through the atomic transfer API', async () => {
@@ -133,5 +134,23 @@ describe('money screens', () => {
     expect(close).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(2))
+  })
+
+  it('preserves a stale draft and requires a second save after rebasing it', async () => {
+    mocks.update.mockRejectedValueOnce(new BudgetWriteError(409, 'changed', {
+      month: currentMonthKey(), category: 'Food', assigned: '175', rolled_over: '0', version: 4,
+    }))
+    render(<EditAssignedScreen category="Food" onClose={vi.fn()} />)
+    typeAmount('250')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText(/latest assignment is ₹175/)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Amount' })).toHaveValue('250')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Keep my amount' }))
+    expect(mocks.update).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(mocks.update).toHaveBeenLastCalledWith({
+      month: currentMonthKey(), category: 'Food', version: 4, updates: { assigned: '250' },
+    }))
   })
 })

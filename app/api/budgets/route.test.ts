@@ -10,6 +10,7 @@ vi.mock('@/lib/cache', () => ({
 }))
 
 const insertOneMock = vi.fn()
+const findOneMock = vi.fn()
 const updateOneMock = vi.fn()
 const deleteOneMock = vi.fn()
 const reconcileThresholdLevelsMock = vi.fn(async (_auth: unknown, _categories: string[], _month?: string) => {})
@@ -23,12 +24,17 @@ vi.mock('@/lib/categoryName', () => ({
   resolveCategoryName: vi.fn(async (_auth: unknown, category: string) => category),
 }))
 
+vi.mock('@/lib/mongodb', () => ({
+  withTx: async (fn: (session: undefined) => Promise<unknown>) => fn(undefined),
+}))
+
 vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
   return {
     ...actual,
     getCollection: vi.fn(async () => ({
       insertOne: insertOneMock,
+      findOne: findOneMock,
       updateOne: updateOneMock,
       deleteOne: deleteOneMock,
     })),
@@ -47,6 +53,7 @@ function req(body: unknown, method = 'POST'): Request {
 
 beforeEach(() => {
   insertOneMock.mockReset()
+  findOneMock.mockReset().mockResolvedValue({ _id: 'budget-1', month: '2026-01', category: 'Groceries', assigned: '5000', rolled_over: '0', version: 0 })
   updateOneMock.mockReset().mockResolvedValue({ matchedCount: 1 })
   deleteOneMock.mockReset().mockResolvedValue({ deletedCount: 1 })
   reconcileThresholdLevelsMock.mockClear()
@@ -80,7 +87,7 @@ describe('POST /api/budgets (C4)', () => {
   })
 
   it('reconciles the affected category after an assignment update', async () => {
-    const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '8000' }, 'PUT'))
+    const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '8000', version: 0 }, 'PUT'))
     expect(res.status).toBe(200)
     expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
       { userId: 'user_a', readOnly: false, sessionId: null },

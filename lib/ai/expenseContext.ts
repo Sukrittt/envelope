@@ -155,6 +155,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     category: b.category,
     assigned: String(b.assigned ?? 0),
     rolled_over: String(b.rolled_over ?? 0),
+    version: 0,
   }))
 
   const envelopeExpenseRows = expenses.map(

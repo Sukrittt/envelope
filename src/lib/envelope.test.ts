@@ -3,7 +3,7 @@ import { computeEnvelopeState, currentMonthKey, prevMonthKey, incomeForReadyToAs
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 function budget(month: string, category: string, assigned: string, rolled_over = '0'): BudgetRow {
-  return { month, category, assigned, rolled_over }
+  return { month, category, assigned, rolled_over, version: 0 }
 }
 
 function expense(date: string, category: string, amount_inr: string): ExpenseRow {

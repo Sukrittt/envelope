@@ -5,6 +5,7 @@ import { BUDGET_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { resolveCategoryName } from '@/lib/categoryName'
 import { reconcileThresholdLevels } from '@/lib/notifications/instant'
+import { withTx } from '@/lib/mongodb'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,44 @@ export async function GET(req: Request) {
   if (gate) return gate
   const coll = await getCollection('budgets', auth)
   const docs = await coll.find({}).toArray()
-  return json({ headers: BUDGET_HEADERS, rows: docs.map((d) => toRow(BUDGET_HEADERS, d)) })
+  return json({ headers: BUDGET_HEADERS, rows: docs.map(budgetRow) })
+}
+
+// Existing records without a stored version start at 0; no backfill is
+// required. Keep version outside BUDGET_HEADERS because that array is also the
+// CSV export column set.
+function budgetRow(doc: Record<string, unknown>) {
+  return { ...toRow(BUDGET_HEADERS, doc), version: Number(doc.version ?? 0) }
+}
+
+class BudgetWriteError extends Error {
+  constructor(readonly status: number, message: string, readonly current?: Record<string, unknown>) {
+    super(message)
+  }
+}
+
+function writePrecondition(body: Record<string, unknown>) {
+  if (body.version === undefined) {
+    return error('Refresh or update the app before editing budget assignments.', 428)
+  }
+  if (typeof body.version !== 'number' || !Number.isSafeInteger(body.version) || body.version < 0) {
+    return error('a non-negative integer version is required')
+  }
+  return null
+}
+
+function checkBudget(found: Record<string, unknown> | null, version: unknown): void {
+  if (!found) {
+    if (version === 0) return
+    throw new BudgetWriteError(409, 'This budget assignment changed on another device. Review the latest version before saving.')
+  }
+  if (Number(found.version ?? 0) !== version) {
+    throw new BudgetWriteError(
+      409,
+      'This budget assignment changed on another device. Review the latest version before saving.',
+      budgetRow(found),
+    )
+  }
 }
 
 export async function POST(req: Request) {
@@ -36,6 +74,7 @@ export async function POST(req: Request) {
       category: String(body.category),
       assigned: String(body.assigned),
       rolled_over: String(body.rolled_over ?? 0),
+      version: 1,
     })
   } catch (err) {
     // The unique index on {user_id, month, category} (scripts/ensure-indexes.mjs)
@@ -46,7 +85,7 @@ export async function POST(req: Request) {
   }
   invalidate('budgets', auth.userId)
   await reconcileThresholdLevels(auth, [String(body.category)], String(body.month))
-  return json({ ok: true })
+  return json({ ok: true, version: 1 })
 }
 
 function isDuplicateKeyError(err: unknown): boolean {
@@ -62,34 +101,75 @@ export async function PUT(req: Request) {
 
   const body = await readBody(req)
   if (!body.month || !body.category) return error('month, category required')
+  const precondition = writePrecondition(body)
+  if (precondition) return precondition
 
   const update: Record<string, string> = {}
   if (body.assigned !== undefined) update.assigned = String(body.assigned)
   if (body.rolled_over !== undefined) update.rolled_over = String(body.rolled_over)
   if (body.newCategory !== undefined) update.category = String(body.newCategory)
-
-  // The category list this came from may predate a rename; resolving keeps the
-  // assignment on the real envelope instead of upserting a ghost row under a
-  // name no category has any more. See lib/categoryName.ts.
-  const category = await resolveCategoryName(auth, String(body.category))
+  if (Object.keys(update).length === 0) return error('no fields to update')
 
   const coll = await getCollection('budgets', auth)
-  // Upsert: an envelope's category may have no budget row yet (e.g. a
-  // subscription category whose assigned comes from rollover/spend only).
-  // updateBudget (PUT) must create the row then, not 404 — otherwise the
-  // client's optimistic local edit never reaches the DB and reverts on reload.
-  await coll.updateOne(
-    { month: String(body.month), category },
-    { $set: update },
-    { upsert: true },
-  )
+  const month = String(body.month)
+  let category = String(body.category)
+  let version: number
+  try {
+    version = await withTx(async (session) => {
+      // Resolve and read inside every transaction attempt. A retry must never
+      // reuse a snapshot or category alias from the failed attempt.
+      category = await resolveCategoryName(auth, String(body.category), session)
+      const found = await coll.findOne({ month, category }, { session })
+      checkBudget(found, body.version)
+
+      if (found) {
+        const currentVersion = Number(found.version ?? 0)
+        const result = await coll.updateOne(
+          { _id: found._id, version: found.version ?? { $exists: false } },
+          { $set: update, $inc: { version: 1 } } as never,
+          { session },
+        )
+        if (result.matchedCount !== 1) {
+          throw new BudgetWriteError(409, 'This budget assignment changed on another device. Review the latest version before saving.')
+        }
+        return currentVersion + 1
+      }
+
+      // No row is the conceptual version 0. The unique month/category index
+      // arbitrates two simultaneous first writes; the loser becomes a 409.
+      try {
+        await coll.insertOne({
+          month,
+          category: update.category ?? category,
+          assigned: update.assigned ?? '0',
+          rolled_over: update.rolled_over ?? '0',
+          version: 1,
+        }, { session })
+      } catch (err) {
+        if (isDuplicateKeyError(err)) {
+          throw new BudgetWriteError(409, 'This budget assignment changed on another device. Review the latest version before saving.')
+        }
+        throw err
+      }
+      return 1
+    })
+  } catch (err) {
+    if (!(err instanceof BudgetWriteError)) throw err
+    // Conditional misses and duplicate first writes discover the winner only
+    // after this transaction aborts, so read it outside the failed snapshot.
+    const current = err.current ?? await coll.findOne({ month, category })
+    return json(
+      { error: err.message, ...(current ? { current: budgetRow(current) } : {}) },
+      { status: err.status },
+    )
+  }
   invalidate('budgets', auth.userId)
   await reconcileThresholdLevels(
     auth,
     [category, ...(update.category ? [update.category] : [])],
-    String(body.month),
+    month,
   )
-  return json({ ok: true })
+  return json({ ok: true, version })
 }
 
 export async function DELETE(req: Request) {

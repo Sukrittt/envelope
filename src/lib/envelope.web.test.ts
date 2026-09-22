@@ -18,6 +18,7 @@ function budget(row: { month: string; category: string; assigned: number; rolled
     category: row.category,
     assigned: String(row.assigned),
     rolled_over: String(row.rolledOver ?? 0),
+    version: 0,
   }
 }
 
