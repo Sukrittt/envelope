@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { DatePicker } from './DatePicker'
 
@@ -69,4 +69,44 @@ it('renders a single-date calendar as a desktop popover when requested', () => {
   const popover = screen.getByText('August 2026').closest('.date-picker-popover')
   expect(popover).toBeTruthy()
   expect(popover?.parentElement).toHaveClass('expense-redesign')
+})
+
+function ChipTriggeredSingle({ onChange }: { onChange: (v: string) => void }) {
+  const [value, setValue] = useState('2026-08-19')
+  const [open, setOpen] = useState(false)
+  const chipRef = useRef<HTMLButtonElement>(null)
+  return (
+    <div className="expense-redesign">
+      <button type="button" ref={chipRef} onClick={() => setOpen((v) => !v)}>
+        Pick date
+      </button>
+      <DatePicker
+        mode="single"
+        value={value}
+        onChange={(v) => {
+          setValue(v)
+          onChange(v)
+        }}
+        hideTrigger
+        open={open}
+        onOpenChange={setOpen}
+        anchorRef={chipRef}
+      />
+    </div>
+  )
+}
+
+it('renders a chip-triggered calendar as a popover with no inline field, and closes on pick', () => {
+  const onChange = vi.fn()
+  render(<ChipTriggeredSingle onChange={onChange} />)
+
+  expect(screen.queryByText('Wednesday, 19 Aug 2026')).toBeNull()
+
+  fireEvent.click(screen.getByText('Pick date'))
+  const popover = screen.getByText('August 2026').closest('.date-picker-popover')
+  expect(popover).toBeTruthy()
+
+  fireEvent.click(screen.getByText('25'))
+  expect(onChange).toHaveBeenCalledWith('2026-08-25')
+  expect(screen.queryByText('August 2026')).toBeNull()
 })

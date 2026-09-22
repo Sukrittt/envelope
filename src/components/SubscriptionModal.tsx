@@ -1,7 +1,7 @@
 'use client'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -121,6 +121,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
   const [notes, setNotes] = useState(editData?.notes ?? '')
   const [category, setCategory] = useState(editData?.category ?? '')
   const [showCalendar, setShowCalendar] = useState(false)
+  const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
   const addSub = useAddSubscription()
@@ -306,7 +307,8 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
               </button>
               <button
                 type="button"
-                className={`erd-date-chip${showCalendar ? ' is-active' : ''}`}
+                ref={pickDateChipRef}
+                className={`erd-date-chip${showCalendar || customDate ? ' is-active' : ''}`}
                 onClick={() => setShowCalendar((v) => !v)}
               >
                 <Calendar size={15} aria-hidden="true" />
@@ -314,14 +316,16 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
               </button>
             </div>
             {dueDate && <p className="erd-sub-due">Due {formatDueDate(dueDate)}</p>}
-            {showCalendar && (
-              <DatePicker
-                mode="single"
-                value={dueDate}
-                onChange={handleDatePick}
-                disableFuture={false}
-              />
-            )}
+            <DatePicker
+              mode="single"
+              value={dueDate}
+              onChange={handleDatePick}
+              disableFuture={false}
+              hideTrigger
+              open={showCalendar}
+              onOpenChange={setShowCalendar}
+              anchorRef={pickDateChipRef}
+            />
           </section>
 
           <section className="erd-sub-section">
