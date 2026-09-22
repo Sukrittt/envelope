@@ -1,8 +1,10 @@
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { isRateLimited } from '@/lib/rateLimit'
+import { triageFeedback } from '@/lib/ai/feedbackTriage'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 const BURST_WINDOW_MS = 5 * 60 * 1000
 const BURST_LIMIT = 2
@@ -62,6 +64,8 @@ export async function POST(req: Request) {
 
   const issueTitle = `${type === 'bug' ? 'Bug' : 'Idea'}: ${title}`
   const labels = type === 'bug' ? ['bug'] : ['enhancement']
+  const triage = await triageFeedback(title, description, { userId: auth.userId, feature: 'feedback' }).catch(() => null)
+  if (triage) labels.push(`area:${triage.area}`, `severity:${triage.severity}`)
   const markdown = [
     description,
     '',

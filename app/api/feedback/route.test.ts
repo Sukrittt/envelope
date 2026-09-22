@@ -12,6 +12,11 @@ vi.mock('@/lib/rateLimit', () => ({
   isRateLimited: isRateLimitedMock,
 }))
 
+const triageFeedbackMock = vi.fn(async () => ({ area: 'budget' as const, severity: 2 as const }))
+vi.mock('@/lib/ai/feedbackTriage', () => ({
+  triageFeedback: triageFeedbackMock,
+}))
+
 const { POST } = await import('./route')
 
 function postRequest(body: unknown): Request {
@@ -38,6 +43,8 @@ beforeEach(() => {
   readOnlyGuardMock.mockReturnValue(null)
   isRateLimitedMock.mockClear()
   isRateLimitedMock.mockResolvedValue(false)
+  triageFeedbackMock.mockClear()
+  triageFeedbackMock.mockResolvedValue({ area: 'budget', severity: 2 })
   process.env.GITHUB_ISSUES_TOKEN = 'fake-token'
   fetchMock = vi.fn(async () => new Response(JSON.stringify({ html_url: 'https://github.com/Sukrittt/envelope-mobile/issues/1' }), { status: 201 }))
   vi.stubGlobal('fetch', fetchMock)
@@ -49,14 +56,19 @@ afterEach(() => {
 })
 
 describe('POST /api/feedback', () => {
-  it('files a bug issue with the bug label and Bug: title prefix', async () => {
+  it('files a bug issue with the base, area, and severity labels', async () => {
     const res = await POST(postRequest(validBody))
     expect(res.status).toBe(200)
+    expect(triageFeedbackMock).toHaveBeenCalledWith(
+      validBody.title,
+      validBody.description,
+      { userId: 'user_a', feature: 'feedback' },
+    )
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     const sent = JSON.parse(init.body as string)
     expect(sent.title).toBe('Bug: Envelope balance is wrong')
-    expect(sent.labels).toEqual(['bug'])
+    expect(sent.labels).toEqual(['bug', 'area:budget', 'severity:2'])
   })
 
   it('files an idea issue with the enhancement label and Idea: title prefix', async () => {
@@ -65,7 +77,18 @@ describe('POST /api/feedback', () => {
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     const sent = JSON.parse(init.body as string)
     expect(sent.title).toBe('Idea: Dark mode for charts')
-    expect(sent.labels).toEqual(['enhancement'])
+    expect(sent.labels).toEqual(['enhancement', 'area:budget', 'severity:2'])
+  })
+
+  it('still files feedback with its base label when Jev fails', async () => {
+    triageFeedbackMock.mockRejectedValue(new Error('gateway down'))
+
+    const res = await POST(postRequest(validBody))
+
+    expect(res.status).toBe(200)
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const sent = JSON.parse(init.body as string)
+    expect(sent.labels).toEqual(['bug'])
   })
 
   it('never includes the user id in the issue body', async () => {
@@ -106,6 +129,7 @@ describe('POST /api/feedback', () => {
     const res = await POST(postRequest(validBody))
     expect(res.status).toBe(429)
     expect(fetchMock).not.toHaveBeenCalled()
+    expect(triageFeedbackMock).not.toHaveBeenCalled()
   })
 
   it('returns a generic 502 when GitHub rejects the request', async () => {
@@ -121,5 +145,6 @@ describe('POST /api/feedback', () => {
     const res = await POST(postRequest(validBody))
     expect(res.status).toBe(502)
     expect(fetchMock).not.toHaveBeenCalled()
+    expect(triageFeedbackMock).not.toHaveBeenCalled()
   })
 })

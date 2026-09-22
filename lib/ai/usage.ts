@@ -4,9 +4,9 @@ import { estimateCostUsd } from './pricing'
 
 export const AI_USAGE = 'ai_usage'
 
-export type AiFeature = 'chat' | 'brief' | 'scan' | 'suggest' | 'coach'
+export type AiFeature = 'chat' | 'brief' | 'scan' | 'suggest' | 'coach' | 'feedback'
 
-/** Who a Gemini call is for — every wrapper in lib/ai/gemini.ts requires one, so no call goes unlogged. */
+/** Who an AI call is for — wrappers require one so no model call goes unlogged. */
 export interface AiCaller {
   userId: string
   feature: AiFeature
@@ -26,7 +26,7 @@ export interface AiUsageDoc {
   error: string | null
 }
 
-/** Records one Gemini call for /admin/ai. Never throws — logging must not fail the feature. */
+/** Records one AI call for /admin/ai. Never throws — logging must not fail the feature. */
 export async function logAiUsage(
   caller: AiCaller,
   model: string,
