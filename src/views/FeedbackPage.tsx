@@ -20,8 +20,8 @@ const COPY: Record<FeedbackType, { titlePlaceholder: string; descriptionPlacehol
 }
 
 /**
- * `/account/feedback`. Twin of Mobile's account/feedback.tsx: files a GitHub
- * issue through app/api/feedback so a report never leaves the app. Mobile
+ * `/account/feedback`. Twin of Mobile's account/feedback.tsx: posts to
+ * app/api/feedback, which records the report for /admin/feedback. Mobile
  * picks the type by route param alone; here it's also a toggle, since the
  * form sits in the account rail where you can land on it directly.
  */
@@ -88,7 +88,7 @@ export function FeedbackPage({ initialType }: { initialType: FeedbackType }) {
         onChange={(e) => setDescription(e.target.value)}
         rows={6}
       />
-      <p className="recurring-hint">This becomes a public GitHub issue. Leave out passwords or personal details.</p>
+      <p className="recurring-hint">This goes straight to our team. Leave out passwords or personal details.</p>
 
       {error && <p className="erd-log-error">{error}</p>}
 
