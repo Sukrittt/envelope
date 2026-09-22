@@ -143,10 +143,12 @@ describe('money screens', () => {
     render(<EditAssignedScreen category="Food" onClose={vi.fn()} />)
     typeAmount('250')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    expect(await screen.findByText(/latest assignment is ₹175/)).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: 'Amount' })).toHaveValue('250')
+    expect(await screen.findByText('This assignment was updated')).toBeInTheDocument()
+    expect(screen.getByText('₹175')).toBeInTheDocument()
+    expect(screen.getByText('₹250')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Keep my amount' }))
+    fireEvent.click(screen.getByRole('button', { name: /Continue with my changes/ }))
+    expect(screen.getByRole('textbox', { name: 'Amount' })).toHaveValue('250')
     expect(mocks.update).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(mocks.update).toHaveBeenLastCalledWith({

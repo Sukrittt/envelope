@@ -5,7 +5,7 @@ import './MoneyScreens.css'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, Search, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCw, Search, Trash2, X } from 'lucide-react'
 import { Scrim } from './MotionSheet'
 import { useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
@@ -177,6 +177,59 @@ function SubjectCard({ emoji, label, name, detail }: { emoji: string; label: str
         <span className="money-card-name">{name}</span>
         <span className="money-card-detail">{detail}</span>
       </div>
+    </div>
+  )
+}
+
+/** Web twin of Mobile's ConflictReview. Shown in place of the normal edit body on a
+ * 409, so a stale write can't silently clobber what changed elsewhere. */
+function ConflictReview({
+  heading,
+  description,
+  label,
+  saved,
+  next,
+  guidance,
+  onContinue,
+  onUseLatest,
+}: {
+  heading: string
+  description: string
+  label: string
+  saved: string
+  next: string
+  guidance: string
+  onContinue: () => void
+  onUseLatest: () => void
+}) {
+  return (
+    <div className="money-conflict">
+      <div className="money-conflict-icon"><RotateCw size={20} /></div>
+      <h3 className="money-conflict-heading">{heading}</h3>
+      <p className="money-conflict-desc">{description}</p>
+      <div className="money-conflict-card">
+        <div className="money-conflict-cols">
+          <span className="money-conflict-col-label">Latest saved</span>
+          <span className="money-conflict-col-label">With your changes</span>
+        </div>
+        <div className="money-conflict-row">
+          <span className="money-conflict-row-label">{label}</span>
+          <div className="money-conflict-cols">
+            <span className="money-conflict-val">{saved}</span>
+            <span className={`money-conflict-val ${saved !== next ? 'is-changed' : ''}`}>{next}</span>
+          </div>
+        </div>
+      </div>
+      <p className="money-conflict-desc">{guidance}</p>
+      <div className="money-conflict-actions">
+        <button type="button" className="money-cta is-ready has-icon" onClick={onContinue}>
+          Continue with my changes <ArrowRight size={16} />
+        </button>
+        <button type="button" className="money-cta is-plain" onClick={onUseLatest}>
+          Use latest instead
+        </button>
+      </div>
+      <p className="money-conflict-footnote">Nothing will be saved until you confirm.</p>
     </div>
   )
 }
@@ -766,73 +819,82 @@ function EditAssignedBody({
     }
   }
 
+  // Mirrors Mobile's reviewLatest: never auto-saves, just reconciles local
+  // state with the server's version so the next Save can't 409 again.
+  function reviewLatest(keepDraft: boolean) {
+    if (!conflict) return
+    const latest = Number(conflict.assigned) || 0
+    setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
+    setBaseAssigned(latest)
+    setExpectedVersion(conflict.version)
+    if (!keepDraft) setAmountText(String(latest))
+    setConflict(null)
+    setError('')
+  }
+
   return (
     <Screen title={assign ? "Assign money" : "Edit amount"} onClose={onClose} busy={busy} showHeader={false}>
       <div className="money-body">
-        <div className="money-month-row">
-          <span className="money-label">{assign ? "FROM READY TO ASSIGN" : "ASSIGNED AMOUNT"}</span>
-          <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-            <X size={16} />
-          </button>
-        </div>
-        <SubjectCard
-          emoji={emoji}
-          label={assign ? "ASSIGNING TO" : "EDITING"}
-          name={name}
-          detail={`${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`}
-        />
-        <HeroAmount amountText={amountText} onChange={setAmountText}>
-          <motion.p
-            key={impactText}
-            className={`money-hint ${projectedRTA < 0 ? 'is-neg' : ''}`}
-            {...FADE_IN}
-          >
-            {impactText}
-            {value > 0 && projectedRTA < 0 ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}
-          </motion.p>
-        </HeroAmount>
-        <div className="money-chips">
-          {QUICK_PICKS.map((v) => (
-            <QuickChip key={v} label={formatMoney(v)} active={value === v} onPress={() => setAmountText(String(v))} />
-          ))}
-        </div>
-        {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
-          <div className="money-chips">
-            <QuickChip
-              label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}
-              active={value === lastMonthAssigned}
-              onPress={() => setAmountText(String(lastMonthAssigned))}
-            />
+        {!conflict && (
+          <div className="money-month-row">
+            <span className="money-label">{assign ? "FROM READY TO ASSIGN" : "ASSIGNED AMOUNT"}</span>
+            <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
+              <X size={16} />
+            </button>
           </div>
         )}
-        {conflict && (
-          <div role="alert" className="money-error">
-            This amount changed elsewhere. The latest assignment is {formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}.
+        {conflict ? (
+          <ConflictReview
+            heading="This assignment was updated"
+            description="A newer amount was saved elsewhere. Your amount is still here."
+            label="Assigned amount"
+            saved={formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}
+            next={formatCurrency(value, hideAmounts)}
+            guidance="Continue with your amount or use the latest saved value. You can review it before saving."
+            onContinue={() => reviewLatest(true)}
+            onUseLatest={() => reviewLatest(false)}
+          />
+        ) : (
+          <>
+            <SubjectCard
+              emoji={emoji}
+              label={assign ? "ASSIGNING TO" : "EDITING"}
+              name={name}
+              detail={`${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`}
+            />
+            <HeroAmount amountText={amountText} onChange={setAmountText}>
+              <motion.p
+                key={impactText}
+                className={`money-hint ${projectedRTA < 0 ? 'is-neg' : ''}`}
+                {...FADE_IN}
+              >
+                {impactText}
+                {value > 0 && projectedRTA < 0 ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}
+              </motion.p>
+            </HeroAmount>
             <div className="money-chips">
-              <button type="button" className="money-back" onClick={() => {
-                const latest = Number(conflict.assigned) || 0
-                setAmountText(String(latest))
-                setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
-                setBaseAssigned(latest)
-                setExpectedVersion(conflict.version)
-                setConflict(null)
-              }}>Use latest</button>
-              <button type="button" className="money-back" onClick={() => {
-                const latest = Number(conflict.assigned) || 0
-                setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
-                setBaseAssigned(latest)
-                setExpectedVersion(conflict.version)
-                setConflict(null)
-                setError('Latest loaded. Save again to keep your amount.')
-              }}>Keep my amount</button>
+              {QUICK_PICKS.map((v) => (
+                <QuickChip key={v} label={formatMoney(v)} active={value === v} onPress={() => setAmountText(String(v))} />
+              ))}
             </div>
-          </div>
+            {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
+              <div className="money-chips">
+                <QuickChip
+                  label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}
+                  active={value === lastMonthAssigned}
+                  onPress={() => setAmountText(String(lastMonthAssigned))}
+                />
+              </div>
+            )}
+          </>
         )}
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
-      <div className="money-foot">
-        <Cta label={phase.saving ? 'Saving…' : assign ? 'Assign' : 'Save'} enabled={valid} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-      </div>
+      {!conflict && (
+        <div className="money-foot">
+          <Cta label={phase.saving ? 'Saving…' : assign ? 'Assign' : 'Save'} enabled={valid} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
+        </div>
+      )}
     </Screen>
   )
 }
@@ -911,51 +973,60 @@ function EditReadyToAssignBody({
     }
   }
 
+  function reviewLatest(keepDraft: boolean) {
+    if (!conflict) return
+    const latestIncome = Number(conflict.assigned) || 0
+    setBaseIncome(latestIncome)
+    setExpectedVersion(conflict.version)
+    if (!keepDraft) setAmountText(String(Math.max(0, latestIncome - totalAssigned)))
+    setConflict(null)
+    setError('')
+  }
+
   return (
     <Screen title="Edit Ready to Assign" onClose={onClose} busy={busy} showHeader={false}>
       <div className="money-body">
-        <div className="money-month-row">
-          <span className="money-label">{monthLabel(month).toUpperCase()}</span>
-          <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-            <X size={16} />
-          </button>
-        </div>
-        <SubjectCard
-          emoji="💰"
-          label="EDITING"
-          name="Ready to Assign"
-          detail={`${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
-        />
-        <HeroAmount amountText={amountText} onChange={setAmountText}>
-          <motion.p key={impactText} className="money-hint" {...FADE_IN}>
-            {impactText}
-          </motion.p>
-        </HeroAmount>
-        {conflict && (
-          <div role="alert" className="money-error">
-            Income changed elsewhere. The latest value is {formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}.
-            <div className="money-chips">
-              <button type="button" className="money-back" onClick={() => {
-                const latest = Number(conflict.assigned) || 0
-                setAmountText(String(Math.max(0, latest - totalAssigned)))
-                setBaseIncome(latest)
-                setExpectedVersion(conflict.version)
-                setConflict(null)
-              }}>Use latest</button>
-              <button type="button" className="money-back" onClick={() => {
-                setBaseIncome(Number(conflict.assigned) || 0)
-                setExpectedVersion(conflict.version)
-                setConflict(null)
-                setError('Latest loaded. Save again to keep your amount.')
-              }}>Keep my amount</button>
-            </div>
+        {!conflict && (
+          <div className="money-month-row">
+            <span className="money-label">{monthLabel(month).toUpperCase()}</span>
+            <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
+              <X size={16} />
+            </button>
           </div>
+        )}
+        {conflict ? (
+          <ConflictReview
+            heading="Ready to Assign was updated"
+            description="A newer amount was saved elsewhere. Your amount is still here."
+            label="Ready to Assign"
+            saved={formatCurrency((Number(conflict.assigned) || 0) - totalAssigned, hideAmounts)}
+            next={formatCurrency(value, hideAmounts)}
+            guidance="Continue with your amount or use the latest saved value. You can review it before saving."
+            onContinue={() => reviewLatest(true)}
+            onUseLatest={() => reviewLatest(false)}
+          />
+        ) : (
+          <>
+            <SubjectCard
+              emoji="💰"
+              label="EDITING"
+              name="Ready to Assign"
+              detail={`${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
+            />
+            <HeroAmount amountText={amountText} onChange={setAmountText}>
+              <motion.p key={impactText} className="money-hint" {...FADE_IN}>
+                {impactText}
+              </motion.p>
+            </HeroAmount>
+          </>
         )}
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
-      <div className="money-foot">
-        <Cta label={phase.saving ? 'Saving…' : 'Save'} enabled saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-      </div>
+      {!conflict && (
+        <div className="money-foot">
+          <Cta label={phase.saving ? 'Saving…' : 'Save'} enabled saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
+        </div>
+      )}
     </Screen>
   )
 }
