@@ -115,6 +115,9 @@ export interface ExportsResponse {
   exports: ExportRow[]
   usedThisMonth: number
   limit: number
+  canExport: boolean
+  exitExport: boolean
+  accessExpired: boolean
 }
 
 /** Kicks off a background export; throws `quota_exceeded` distinctly for a 429. */

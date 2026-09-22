@@ -97,21 +97,58 @@ describe('exportAllowance', () => {
   it('allows an export while under the monthly cap', async () => {
     stores.exports.push(readyExport('2026-09-01T10:00:00+05:30'))
 
-    expect(await exportAllowance(auth)).toEqual({ usedThisMonth: 1, limit: EXPORT_LIMIT, allowed: true, exitExport: false })
-    expect(getAccess).not.toHaveBeenCalled() // no billing read on the ordinary path
+    expect(await exportAllowance(auth)).toEqual({
+      usedThisMonth: 1,
+      limit: EXPORT_LIMIT,
+      allowed: true,
+      exitExport: false,
+      accessExpired: false,
+    })
   })
 
   it('refuses at the cap while the account still has access', async () => {
     for (let i = 0; i < EXPORT_LIMIT; i++) stores.exports.push(readyExport(`2026-09-0${i + 1}T10:00:00+05:30`))
 
-    expect(await exportAllowance(auth)).toEqual({ usedThisMonth: 3, limit: EXPORT_LIMIT, allowed: false, exitExport: false })
+    expect(await exportAllowance(auth)).toEqual({
+      usedThisMonth: 3,
+      limit: EXPORT_LIMIT,
+      allowed: false,
+      exitExport: false,
+      accessExpired: false,
+    })
   })
 
   it('allows one export at the cap once access has ended', async () => {
     for (let i = 0; i < EXPORT_LIMIT; i++) stores.exports.push(readyExport(`2026-09-0${i + 1}T10:00:00+05:30`))
     getAccess.mockResolvedValue({ mode: 'expired', trialEndsAt: '2026-09-10T00:00:00.000Z', paidExpiresAt: null })
 
-    expect(await exportAllowance(auth)).toEqual({ usedThisMonth: 3, limit: EXPORT_LIMIT, allowed: true, exitExport: true })
+    expect(await exportAllowance(auth)).toEqual({
+      usedThisMonth: 3,
+      limit: EXPORT_LIMIT,
+      allowed: true,
+      exitExport: true,
+      accessExpired: true,
+    })
+  })
+
+  it('allows only the one exit export when access expires below the monthly cap', async () => {
+    stores.exports.push(readyExport('2026-09-01T10:00:00+05:30'))
+    getAccess.mockResolvedValue({ mode: 'expired', trialEndsAt: '2026-09-10T00:00:00.000Z', paidExpiresAt: null })
+
+    expect(await exportAllowance(auth)).toMatchObject({
+      usedThisMonth: 1,
+      allowed: true,
+      exitExport: true,
+      accessExpired: true,
+    })
+
+    stores.exports.push(readyExport('2026-09-11T10:00:00+05:30'))
+    expect(await exportAllowance(auth)).toMatchObject({
+      usedThisMonth: 2,
+      allowed: false,
+      exitExport: false,
+      accessExpired: true,
+    })
   })
 
   it('refuses a second exit export once one was taken after access ended', async () => {
@@ -119,7 +156,12 @@ describe('exportAllowance', () => {
     stores.exports.push(readyExport('2026-09-11T10:00:00+05:30')) // taken after the trial ended
     getAccess.mockResolvedValue({ mode: 'expired', trialEndsAt: '2026-09-10T00:00:00.000Z', paidExpiresAt: null })
 
-    expect(await exportAllowance(auth)).toMatchObject({ allowed: false, exitExport: false })
+    expect(await exportAllowance(auth)).toMatchObject({
+      usedThisMonth: EXPORT_LIMIT,
+      allowed: false,
+      exitExport: false,
+      accessExpired: true,
+    })
   })
 
   it('measures from the later of trial end and paid expiry', async () => {

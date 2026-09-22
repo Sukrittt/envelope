@@ -20,8 +20,9 @@ interface ExportsResponse {
   usedThisMonth: number
   limit: number
   canExport: boolean
-  /** The one export a lapsed account gets after access ends, with the monthly cap spent. */
+  /** The one final export a lapsed account gets after access ends. */
   exitExport: boolean
+  accessExpired: boolean
 }
 
 async function fetchExports(): Promise<ExportsResponse | null> {
@@ -123,7 +124,9 @@ export default function DataPage() {
         <div className="account-export-title">Export</div>
         <div className="account-export-meta">
           {summary ? `${summary.transactionCount} transactions · ${summary.envelopeCount} envelopes` : '—'}
-          {exports ? ` · ${exports.usedThisMonth} of ${exports.limit} exports used this month` : ''}
+          {exports
+            ? ` · ${Math.min(exports.usedThisMonth, exports.limit)} of ${exports.limit} exports used this month`
+            : ''}
         </div>
         <div className="account-export-actions">
           <button type="button" onClick={startExport} disabled={starting || pending || atLimit}>
@@ -132,7 +135,7 @@ export default function DataPage() {
         </div>
         {pending ? <LoadingCaption feature="exportBuilding" placement="inline" /> : null}
         {exportError ? <div className="account-confirm-copy">{exportError}</div> : null}
-        {atLimit && !exportError ? (
+        {atLimit && !exports?.accessExpired && !exportError ? (
           <div className="account-confirm-copy">
             You&apos;ve used all {exports?.limit} exports this month. Resets next month.
           </div>

@@ -58,8 +58,10 @@ export interface ExportAllowance {
   limit: number
   /** May another export be started right now? */
   allowed: boolean
-  /** True only when the monthly cap is spent and this is the one post-expiry export. */
+  /** True while the one post-expiry export is still available. */
   exitExport: boolean
+  /** Remains true after the exit export is consumed, so clients don't show the monthly-cap warning. */
+  accessExpired: boolean
 }
 
 /** When continuous access ended: the later of the trial's end and any purchase's paid-through date. */
@@ -82,20 +84,31 @@ async function lastReadyExportAt(auth: Auth): Promise<number | null> {
  * it the export traps someone who has already stopped paying us with no way
  * to take their data along until the 1st. So a lapsed account gets exactly
  * one export after access ends, regardless of what it spent that month.
- * Billing is only read on the capped path, so the ordinary export costs no
- * extra query.
+ * `usedThisMonth` is presentation-facing and never exceeds the monthly cap:
+ * the exit export is not a fourth monthly allowance.
  */
 export async function exportAllowance(auth: Auth): Promise<ExportAllowance> {
-  const usedThisMonth = await countReadyExportsThisMonth(auth)
+  const readyThisMonth = await countReadyExportsThisMonth(auth)
+  const usedThisMonth = Math.min(readyThisMonth, EXPORT_LIMIT)
   const base = { usedThisMonth, limit: EXPORT_LIMIT }
-  if (usedThisMonth < EXPORT_LIMIT) return { ...base, allowed: true, exitExport: false }
-
   const access = await getAccess(auth.userId)
-  if (access.mode !== 'expired') return { ...base, allowed: false, exitExport: false }
+  if (access.mode !== 'expired') {
+    return {
+      ...base,
+      allowed: readyThisMonth < EXPORT_LIMIT,
+      exitExport: false,
+      accessExpired: false,
+    }
+  }
 
   const lastAt = await lastReadyExportAt(auth)
   const taken = lastAt !== null && lastAt > accessEndedAt(access)
-  return { ...base, allowed: !taken, exitExport: !taken }
+  return {
+    ...base,
+    allowed: !taken,
+    exitExport: !taken,
+    accessExpired: true,
+  }
 }
 
 const EXPORT_DOWNLOAD_TTL_MS = 5 * 60 * 1000

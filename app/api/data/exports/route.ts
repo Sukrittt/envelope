@@ -25,5 +25,6 @@ export async function GET(req: Request) {
     // spent and an export still be allowed (the post-expiry exit export).
     canExport: allowance.allowed,
     exitExport: allowance.exitExport,
+    accessExpired: allowance.accessExpired,
   })
 }

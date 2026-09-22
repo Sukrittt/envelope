@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
 
-const exportAllowance = vi.fn(async () => ({ usedThisMonth: 0, limit: 3, allowed: true, exitExport: false }))
+const exportAllowance = vi.fn(async () => ({
+  usedThisMonth: 0,
+  limit: 3,
+  allowed: true,
+  exitExport: false,
+  accessExpired: false,
+}))
 
 vi.mock('@/lib/exports', () => ({
   EXPORT_LIMIT: 3,
@@ -40,7 +46,13 @@ function req(): Request {
 
 beforeEach(() => {
   store.length = 0
-  exportAllowance.mockClear().mockResolvedValue({ usedThisMonth: 0, limit: 3, allowed: true, exitExport: false })
+  exportAllowance.mockClear().mockResolvedValue({
+    usedThisMonth: 0,
+    limit: 3,
+    allowed: true,
+    exitExport: false,
+    accessExpired: false,
+  })
   auth = { userId: 'user_a', readOnly: false, sessionId: null }
 })
 
@@ -50,7 +62,13 @@ describe('GET /api/data/exports', () => {
       { _id: new ObjectId(), status: 'ready', created_at: '2026-09-01T10:00:00+05:30', blob_url: 'https://blob/a.xlsx' } as Doc,
       { _id: new ObjectId(), status: 'pending', created_at: '2026-09-02T10:00:00+05:30' } as Doc,
     )
-    exportAllowance.mockResolvedValue({ usedThisMonth: 1, limit: 3, allowed: true, exitExport: false })
+    exportAllowance.mockResolvedValue({
+      usedThisMonth: 1,
+      limit: 3,
+      allowed: true,
+      exitExport: false,
+      accessExpired: false,
+    })
 
     const res = await GET(req())
     expect(res.status).toBe(200)
@@ -62,17 +80,55 @@ describe('GET /api/data/exports', () => {
   })
 
   it('reports the exit export as available with the quota spent', async () => {
-    exportAllowance.mockResolvedValue({ usedThisMonth: 3, limit: 3, allowed: true, exitExport: true })
+    exportAllowance.mockResolvedValue({
+      usedThisMonth: 3,
+      limit: 3,
+      allowed: true,
+      exitExport: true,
+      accessExpired: true,
+    })
 
-    const body = (await (await GET(req())).json()) as { canExport: boolean; exitExport: boolean; usedThisMonth: number }
-    expect(body).toMatchObject({ canExport: true, exitExport: true, usedThisMonth: 3 })
+    const body = (await (await GET(req())).json()) as {
+      canExport: boolean
+      exitExport: boolean
+      accessExpired: boolean
+      usedThisMonth: number
+    }
+    expect(body).toMatchObject({ canExport: true, exitExport: true, accessExpired: true, usedThisMonth: 3 })
+  })
+
+  it('keeps expired state after the final exit export is consumed', async () => {
+    exportAllowance.mockResolvedValue({
+      usedThisMonth: 3,
+      limit: 3,
+      allowed: false,
+      exitExport: false,
+      accessExpired: true,
+    })
+
+    const body = (await (await GET(req())).json()) as {
+      canExport: boolean
+      exitExport: boolean
+      accessExpired: boolean
+    }
+    expect(body).toMatchObject({ canExport: false, exitExport: false, accessExpired: true })
   })
 
   it('reports no export available once the quota is spent with access intact', async () => {
-    exportAllowance.mockResolvedValue({ usedThisMonth: 3, limit: 3, allowed: false, exitExport: false })
+    exportAllowance.mockResolvedValue({
+      usedThisMonth: 3,
+      limit: 3,
+      allowed: false,
+      exitExport: false,
+      accessExpired: false,
+    })
 
-    const body = (await (await GET(req())).json()) as { canExport: boolean; exitExport: boolean }
-    expect(body).toMatchObject({ canExport: false, exitExport: false })
+    const body = (await (await GET(req())).json()) as {
+      canExport: boolean
+      exitExport: boolean
+      accessExpired: boolean
+    }
+    expect(body).toMatchObject({ canExport: false, exitExport: false, accessExpired: false })
   })
 
   it('blocks the read-only demo user', async () => {
