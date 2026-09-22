@@ -5742,6 +5742,7 @@ button.account-feature-card {
 .env-cat-alerts {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 4px;
   white-space: nowrap;
   font-size: 0.7rem;
@@ -5750,7 +5751,7 @@ button.account-feature-card {
   background: none;
   border: 1px solid transparent;
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 3px 9px;
   cursor: pointer;
 }
 
@@ -5799,6 +5800,14 @@ button.account-feature-card {
   color: var(--erd-text3);
 }
 
+.env-sheet-note {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--erd-border);
+  font-size: 0.72rem;
+  color: var(--erd-text3);
+}
+
 .env-sheet-section-label {
   margin: 0;
   font-size: 0.68rem;
@@ -5828,12 +5837,14 @@ button.account-feature-card {
 .env-pct-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .env-pct-custom {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
 
 .env-pct {
@@ -5862,7 +5873,7 @@ button.account-feature-card {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 /* Money Brain */

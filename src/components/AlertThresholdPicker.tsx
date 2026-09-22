@@ -17,14 +17,16 @@ interface Props {
  * Which percentages of an envelope trigger a notification. Web counterpart of
  * the thresholds section in Mobile's envelopes edit sheet.
  *
- * The alert itself is a mobile push, but the choice is account data, not a
- * device setting — so it is editable here and applies wherever it fires.
+ * Alerts are sent only on the mobile app — as a push notification — but the
+ * choice is account data, not a device setting, so it is editable here and
+ * applies wherever the push fires.
  */
 export function AlertThresholdPicker({ categoryName, value, onChange, onClose, onSave }: Props) {
   const atLimit = value.length >= MAX_ALERT_PCTS
+  const sorted = [...value].sort((a, b) => a - b)
   const isDefault =
-    value.length === DEFAULT_ALERT_PCTS.length &&
-    value.every((v, i) => [...value].sort((a, b) => a - b)[i] === DEFAULT_ALERT_PCTS[i])
+    sorted.length === DEFAULT_ALERT_PCTS.length &&
+    sorted.every((v, i) => v === DEFAULT_ALERT_PCTS[i])
 
   const [custom, setCustom] = useState('')
   const customPcts = value.filter((p) => !ALERT_PRESET_PCTS.includes(p))
@@ -53,8 +55,12 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
           onClick={(e) => e.stopPropagation()}
         >
           <div className="env-sheet-title">Alerts for {categoryName}</div>
-          <p className="env-sheet-copy">You&apos;ll get a nudge when this envelope crosses each of these.</p>
+          <p className="env-sheet-copy">
+            When spending crosses one of these, the mobile app sends you a push
+            notification.
+          </p>
 
+          <p className="env-sheet-section-label">ALERT AT</p>
           <div className="env-pct-row">
             {ALERT_PRESET_PCTS.map((pct) => {
               const on = value.includes(pct)
@@ -77,7 +83,7 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
                 type="button"
                 className="env-pct is-on"
                 onClick={() => toggle(pct)}
-                aria-pressed
+                aria-pressed="true"
                 aria-label={`Remove ${pct}% alert`}
               >
                 {pct}% ×
@@ -111,8 +117,10 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
           </form>
 
           {atLimit && <p className="env-sheet-hint">That&apos;s the most you can pick. Turn one off to add another.</p>}
-          {value.length === 0 && <p className="env-sheet-hint">No alerts. This envelope stays quiet.</p>}
-          {isDefault && <p className="env-sheet-hint">These are the defaults.</p>}
+          {isDefault && !atLimit && <p className="env-sheet-hint">These are the defaults.</p>}
+          {value.length === 0 && !atLimit && <p className="env-sheet-hint">No alerts. This envelope stays quiet.</p>}
+
+          <p className="env-sheet-note">Notifications are sent as push alerts on the Aviary mobile app only.</p>
 
           <div className="env-sheet-actions">
             <button type="button" className="auth-btn auth-btn--outline" onClick={onClose}>
