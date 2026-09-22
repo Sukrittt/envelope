@@ -409,7 +409,7 @@ export function TransactionsView({
             <>
               <div className="account-empty-title">Nothing matches</div>
               <p className="account-row-meta">No transactions for this filter.</p>
-              <button type="button" className="action-button is-active" onClick={resetFilters}>
+              <button type="button" className="action-button is-active erd-accent-action" onClick={resetFilters}>
                 Reset filters
               </button>
             </>
@@ -417,7 +417,7 @@ export function TransactionsView({
             <>
               <div className="account-empty-title">No transactions yet</div>
               <p className="account-row-meta">Log an expense and it shows up here.</p>
-              <button type="button" className="action-button is-active" onClick={() => setShowLogModal(true)}>
+              <button type="button" className="action-button is-active erd-accent-action" onClick={() => setShowLogModal(true)}>
                 Log your first expense
               </button>
             </>
