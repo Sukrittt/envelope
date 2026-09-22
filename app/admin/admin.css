@@ -373,7 +373,8 @@
   flex: 1 1 240px;
   min-width: 200px;
 }
-.adm-filters .adm-select {
+.adm-filters .adm-select,
+.adm-filters .ui-select {
   max-width: 200px;
 }
 .adm-filters .adm-input[type="date"] {
@@ -755,6 +756,36 @@
 }
 .adm-empty svg {
   color: var(--tk-mint);
+}
+
+/* A card that should claim the rest of the content column's height (e.g. a
+   table whose empty state should center in the leftover space, not sit
+   pinned to the top under the filters). */
+.adm-card-fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.adm-card-fill .adm-table-wrap {
+  flex: 1;
+  min-height: 0;
+}
+.adm-empty-fill {
+  flex: 1;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--erd-text3);
+  font-size: 14px;
+  text-align: center;
+}
+.adm-empty-fill svg {
+  color: var(--erd-text3);
+  opacity: 0.6;
 }
 
 .adm-badge {

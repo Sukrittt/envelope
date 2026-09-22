@@ -65,7 +65,9 @@ export async function triageFeedback(title: string, description: string, caller:
       abortSignal: AbortSignal.timeout(TIMEOUT_MS),
     })
     const area = result.answers.area.choice
-    const severity = result.answers.severity.score
+    // A "score" question answers with the probability-weighted average across
+    // 0..3, e.g. 1.11 — not the discrete level itself — so round before validating.
+    const severity = Math.round(result.answers.severity.score)
     if (!isFeedbackArea(area) || !isFeedbackSeverity(severity)) throw new Error('Jev returned invalid feedback triage')
 
     after(() => logAiUsage(caller, MODEL, startedAt, {
