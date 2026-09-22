@@ -57,6 +57,8 @@ function buildCells(view: Date, today: Date, ds: Date | null, de: Date | null, d
   const kS = ds ? key(ds) : null
   const kE = de ? key(de) : null
   const kToday = key(today)
+  // Blocks future months only; later days in the current month stay pickable.
+  const futureMonth = view.getFullYear() > today.getFullYear() || (view.getFullYear() === today.getFullYear() && view.getMonth() > today.getMonth())
   const cells: Cell[] = []
   for (let i = 0; i < lead; i++) {
     cells.push({ day: '', date: null, disabled: true, isToday: false, isSelected: false, isInRange: false, isEdgeLeft: false, isEdgeRight: false })
@@ -64,7 +66,7 @@ function buildCells(view: Date, today: Date, ds: Date | null, de: Date | null, d
   for (let day = 1; day <= daysIn; day++) {
     const d = new Date(view.getFullYear(), view.getMonth(), day)
     const k = key(d)
-    const future = disableFuture && k > kToday
+    const future = disableFuture && futureMonth
     const isStart = kS === k
     const isEnd = kE === k
     const inRange = !!kS && !!kE && k > kS && k < kE
