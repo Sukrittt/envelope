@@ -1,5 +1,6 @@
 import { apiFetch } from './client'
 import type { BudgetRow, CsvResponse } from '@/src/types'
+import { BudgetWriteError } from '@/src/lib/budgetConflict'
 
 export async function getBudgets(): Promise<BudgetRow[]> {
   const resp = await apiFetch('/api/budgets')
@@ -9,7 +10,7 @@ export async function getBudgets(): Promise<BudgetRow[]> {
 }
 
 export async function addBudget(
-  row: Omit<BudgetRow, 'rolled_over'> & { rolled_over?: string },
+  row: Omit<BudgetRow, 'rolled_over' | 'version'> & { rolled_over?: string },
 ): Promise<void> {
   const resp = await apiFetch('/api/budgets', {
     method: 'POST',
@@ -23,13 +24,17 @@ export async function updateBudget(
   month: string,
   category: string,
   updates: Partial<BudgetRow & { newCategory?: string }>,
+  version: number,
 ): Promise<void> {
   const resp = await apiFetch('/api/budgets', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ month, category, ...updates }),
+    body: JSON.stringify({ month, category, version, ...updates }),
   })
-  if (!resp.ok) throw new Error(`Failed to update budget: ${resp.status}`)
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}))
+    throw new BudgetWriteError(resp.status, detail.error ?? `Failed to update budget: ${resp.status}`, detail.current)
+  }
 }
 
 /** Moves money between envelopes (or from Ready to Assign) in one server-side transaction. */

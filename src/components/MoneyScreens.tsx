@@ -10,13 +10,15 @@ import { Scrim } from './MotionSheet'
 import { useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
-import { useAddBudget, useBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
+import { useBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
 import { useHideAmounts } from '../hooks/useHideAmounts'
 import { EMPTY } from '../lib/constants'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
+import { BudgetWriteError } from '../lib/budgetConflict'
+import type { BudgetRow } from '../types'
 import {
   computeEnvelopeState,
   currentMonthKey,
@@ -663,13 +665,14 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
   const prevState = computeEnvelopeState(data.budgets, data.expenses, prevMonthKey(month), data.categories, data.groups)
   const envelope = state.envelopes.find((e) => e.category === category)
+  const budget = data.budgets.find((b) => b.month === month && b.category === category)
 
   return (
     <EditAssignedBody
       category={category}
       assign={assign}
       month={month}
-      exists={data.budgets.some((b) => b.month === month && b.category === category)}
+      version={budget?.version ?? 0}
       currentAssigned={envelope?.assigned ?? 0}
       spent={envelope?.spent ?? 0}
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
@@ -689,7 +692,7 @@ function EditAssignedBody({
   category,
   assign,
   month,
-  exists,
+  version,
   currentAssigned,
   spent,
   isCreditCardPayment,
@@ -701,7 +704,7 @@ function EditAssignedBody({
   category: string
   assign: boolean
   month: string
-  exists: boolean
+  version: number
   currentAssigned: number
   spent: number
   isCreditCardPayment: boolean
@@ -713,7 +716,6 @@ function EditAssignedBody({
   const { formatCurrency, formatMoney } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const updateBudget = useUpdateBudget()
-  const addBudget = useAddBudget()
   const transfer = useTransferBudget()
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
@@ -723,14 +725,18 @@ function EditAssignedBody({
 
   const [amountText, setAmountText] = useState(assign ? '' : String(currentAssigned))
   const [error, setError] = useState('')
+  const [baseAssigned, setBaseAssigned] = useState(currentAssigned)
+  const [baseReadyToAssign, setBaseReadyToAssign] = useState(readyToAssign)
+  const [expectedVersion, setExpectedVersion] = useState(version)
+  const [conflict, setConflict] = useState<BudgetRow | null>(null)
 
   const value = Number(amountText) || 0
-  const delta = assign ? value : cents(value - currentAssigned)
-  const projectedRTA = cents(readyToAssign - delta)
-  const valid = !assign || (value > 0 && value <= readyToAssign)
+  const delta = assign ? value : cents(value - baseAssigned)
+  const projectedRTA = cents(baseReadyToAssign - delta)
+  const valid = !assign || (value > 0 && value <= baseReadyToAssign)
   const impactText =
     delta === 0
-        ? `${formatCurrency(currentAssigned, hideAmounts)} already assigned this month`
+        ? `${formatCurrency(baseAssigned, hideAmounts)} already assigned this month`
         : delta > 0
           ? `Pulls ${formatCurrency(delta, hideAmounts)} from Ready to Assign`
           : `Frees ${formatCurrency(-delta, hideAmounts)} back to Ready to Assign`
@@ -743,15 +749,20 @@ function EditAssignedBody({
       if (assign) {
         if (!valid) { phase.fail(); return }
         await transfer.mutateAsync({ month, to: category, sources: [{ category: RTA_SENTINEL, amount: value }] })
-      } else if (exists) {
-        await updateBudget.mutateAsync({ month, category, updates: { assigned: String(value) } })
       } else {
-        await addBudget.mutateAsync({ month, category, assigned: String(value) })
+        // A missing row is conceptual version 0. PUT creates it conditionally,
+        // so two first assignments cannot overwrite one another.
+        await updateBudget.mutateAsync({ month, category, version: expectedVersion, updates: { assigned: String(value) } })
       }
       phase.succeed(onClose)
-    } catch {
+    } catch (err) {
       phase.fail()
-      setError("Couldn't save. Check your connection and try again.")
+      if (err instanceof BudgetWriteError && err.status === 409 && err.current) {
+        setConflict(err.current)
+        setError('')
+      } else {
+        setError("Couldn't save. Check your connection and try again.")
+      }
     }
   }
 
@@ -768,7 +779,7 @@ function EditAssignedBody({
           emoji={emoji}
           label={assign ? "ASSIGNING TO" : "EDITING"}
           name={name}
-          detail={`${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(currentAssigned, hideAmounts)} assigned`}
+          detail={`${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`}
         />
         <HeroAmount amountText={amountText} onChange={setAmountText}>
           <motion.p
@@ -794,6 +805,29 @@ function EditAssignedBody({
             />
           </div>
         )}
+        {conflict && (
+          <div role="alert" className="money-error">
+            This amount changed elsewhere. The latest assignment is {formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}.
+            <div className="money-chips">
+              <button type="button" className="money-back" onClick={() => {
+                const latest = Number(conflict.assigned) || 0
+                setAmountText(String(latest))
+                setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
+                setBaseAssigned(latest)
+                setExpectedVersion(conflict.version)
+                setConflict(null)
+              }}>Use latest</button>
+              <button type="button" className="money-back" onClick={() => {
+                const latest = Number(conflict.assigned) || 0
+                setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
+                setBaseAssigned(latest)
+                setExpectedVersion(conflict.version)
+                setConflict(null)
+                setError('Latest loaded. Save again to keep your amount.')
+              }}>Keep my amount</button>
+            </div>
+          </div>
+        )}
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
       <div className="money-foot">
@@ -812,12 +846,14 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   if (data.isLoading) return <Screen title="Edit Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></Screen>
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
   return (
     <EditReadyToAssignBody
       month={month}
       income={state.income}
       totalAssigned={state.totalAssigned}
       readyToAssign={state.readyToAssign}
+      version={incomeBudget?.version ?? 0}
       onClose={onClose}
     />
   )
@@ -828,12 +864,14 @@ function EditReadyToAssignBody({
   income,
   totalAssigned,
   readyToAssign,
+  version,
   onClose,
 }: {
   month: string
   income: number
   totalAssigned: number
   readyToAssign: number
+  version: number
   onClose: () => void
 }) {
   const { formatCurrency } = useCurrency()
@@ -845,10 +883,13 @@ function EditReadyToAssignBody({
   // Start an over-assigned month at zero, matching the native screen.
   const [amountText, setAmountText] = useState(String(Math.max(0, readyToAssign)))
   const [error, setError] = useState('')
+  const [baseIncome, setBaseIncome] = useState(income)
+  const [expectedVersion, setExpectedVersion] = useState(version)
+  const [conflict, setConflict] = useState<BudgetRow | null>(null)
 
   const value = Number(amountText) || 0
   const newIncome = incomeForReadyToAssign(totalAssigned, value)
-  const delta = Math.round((newIncome - income) * 100) / 100
+  const delta = Math.round((newIncome - baseIncome) * 100) / 100
   const impactText = delta === 0 ? "Type what's left to assign" : `Income ${formatCurrency(newIncome, hideAmounts)}`
 
   async function submit() {
@@ -857,11 +898,16 @@ function EditReadyToAssignBody({
     setError('')
     try {
       // PUT upserts, so this creates the month's income row when it's still carried from last month.
-      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, updates: { assigned: String(newIncome) } })
+      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { assigned: String(newIncome) } })
       phase.succeed(onClose)
-    } catch {
+    } catch (err) {
       phase.fail()
-      setError("Couldn't save. Check your connection and try again.")
+      if (err instanceof BudgetWriteError && err.status === 409 && err.current) {
+        setConflict(err.current)
+        setError('')
+      } else {
+        setError("Couldn't save. Check your connection and try again.")
+      }
     }
   }
 
@@ -878,13 +924,33 @@ function EditReadyToAssignBody({
           emoji="💰"
           label="EDITING"
           name="Ready to Assign"
-          detail={`${formatCurrency(income, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
+          detail={`${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
         />
         <HeroAmount amountText={amountText} onChange={setAmountText}>
           <motion.p key={impactText} className="money-hint" {...FADE_IN}>
             {impactText}
           </motion.p>
         </HeroAmount>
+        {conflict && (
+          <div role="alert" className="money-error">
+            Income changed elsewhere. The latest value is {formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}.
+            <div className="money-chips">
+              <button type="button" className="money-back" onClick={() => {
+                const latest = Number(conflict.assigned) || 0
+                setAmountText(String(Math.max(0, latest - totalAssigned)))
+                setBaseIncome(latest)
+                setExpectedVersion(conflict.version)
+                setConflict(null)
+              }}>Use latest</button>
+              <button type="button" className="money-back" onClick={() => {
+                setBaseIncome(Number(conflict.assigned) || 0)
+                setExpectedVersion(conflict.version)
+                setConflict(null)
+                setError('Latest loaded. Save again to keep your amount.')
+              }}>Keep my amount</button>
+            </div>
+          </div>
+        )}
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
       <div className="money-foot">

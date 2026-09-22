@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
 import { apiFetch } from './client'
-import { transferBudget } from './budgets'
+import { transferBudget, updateBudget } from './budgets'
+import { BudgetWriteError } from '@/src/lib/budgetConflict'
 
 vi.mock('./client', () => ({
   apiFetch: vi.fn(),
@@ -29,5 +30,28 @@ describe('transferBudget', () => {
     await expect(transferBudget('2026-03', 'Travel', [{ category: 'Dining', amount: 300 }])).rejects.toThrow(
       'Failed to transfer budget: 400',
     )
+  })
+})
+
+describe('updateBudget', () => {
+  it('sends the revision precondition with the edit', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: true, json: async () => ({ version: 5 }) })
+    await updateBudget('2026-09', 'Food', { assigned: '125' }, 4)
+    expect(mockedApiFetch).toHaveBeenCalledWith('/api/budgets', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: '2026-09', category: 'Food', version: 4, assigned: '125' }),
+    })
+  })
+
+  it('surfaces the latest row on a conflict', async () => {
+    const current = { month: '2026-09', category: 'Food', assigned: '150', rolled_over: '0', version: 5 }
+    mockedApiFetch.mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: 'changed', current }) })
+    const write = updateBudget('2026-09', 'Food', { assigned: '125' }, 4)
+    await expect(write).rejects.toBeInstanceOf(BudgetWriteError)
+    await expect(write).rejects.toMatchObject({
+      status: 409,
+      current,
+    })
   })
 })

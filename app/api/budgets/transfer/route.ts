@@ -28,7 +28,8 @@ interface Source {
  *
  * body: { month, to, sources: [{ category, amount }] } — or the single-source
  * shorthand { month, to, from, amount }. `sources[].category` may be the RTA
- * sentinel (debits nothing, RTA is derived, not a stored row).
+ * sentinel (debits nothing, RTA is derived, not a stored row). `to` may also
+ * be RTA, in which case the transaction only debits the source envelopes.
  */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -49,8 +50,6 @@ export async function POST(req: Request) {
   if (!month || !to || !rawSources || rawSources.length === 0) {
     return error('month, to, and sources (or from/amount) required')
   }
-  if (to === RTA_SENTINEL) return error('cannot transfer to Ready to Assign')
-
   const sources: Source[] = []
   for (const raw of rawSources as unknown[]) {
     const category = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).category : undefined
@@ -91,7 +90,7 @@ export async function POST(req: Request) {
           const current = Number(existing.assigned) || 0
           await budgetColl.updateOne(
             { _id: existing._id },
-            { $set: { assigned: String(current - source.amount) } },
+            { $set: { assigned: String(current - source.amount) }, $inc: { version: 1 } } as never,
             { session },
           )
           return 'done'
@@ -104,7 +103,7 @@ export async function POST(req: Request) {
         const carried = await carriedAssigned(budgetColl, source.category, month, session)
         try {
           await budgetColl.insertOne(
-            { month, category: source.category, assigned: String(carried - source.amount), rolled_over: '0' },
+            { month, category: source.category, assigned: String(carried - source.amount), rolled_over: '0', version: 1 },
             { session },
           )
           return 'done'
@@ -117,14 +116,15 @@ export async function POST(req: Request) {
 
     // Credit the target, upserting a row if this is its first assignment. A
     // concurrent insert for the same category is caught via the unique
-    // partial index and retried as an update.
-    await casRetry<'done'>(async () => {
+    // partial index and retried as an update. Ready to Assign is derived, so
+    // returning money there intentionally has no target row to credit.
+    if (to !== RTA_SENTINEL) await casRetry<'done'>(async () => {
       const existing = await budgetColl.findOne({ month, category: to }, { session })
       if (existing) {
         const current = Number(existing.assigned) || 0
         await budgetColl.updateOne(
           { _id: existing._id },
-          { $set: { assigned: String(current + totalAmount) } },
+          { $set: { assigned: String(current + totalAmount) }, $inc: { version: 1 } } as never,
           { session },
         )
         return 'done'
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
       const carried = await carriedAssigned(budgetColl, to, month, session)
       try {
         await budgetColl.insertOne(
-          { month, category: to, assigned: String(carried + totalAmount), rolled_over: '0' },
+          { month, category: to, assigned: String(carried + totalAmount), rolled_over: '0', version: 1 },
           { session },
         )
         return 'done'
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
   invalidate('budgets', auth.userId)
   await reconcileThresholdLevels(
     auth,
-    [to, ...sources.filter((source) => source.category !== RTA_SENTINEL).map((source) => source.category)],
+    [to, ...sources.map((source) => source.category)].filter((category) => category !== RTA_SENTINEL),
     month,
   )
   return json({ ok: true })

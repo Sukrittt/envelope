@@ -45,9 +45,12 @@ function fakeBudgets() {
       store.push(withId)
       return { insertedId: withId._id }
     },
-    updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
+    updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown>; $inc?: { version?: number } }) => {
       const doc = store.find((d) => matches(d, filter))
-      if (doc) Object.assign(doc, update.$set)
+      if (doc) {
+        Object.assign(doc, update.$set)
+        if (update.$inc?.version) doc.version = Number(doc.version ?? 0) + update.$inc.version
+      }
       return { matchedCount: doc ? 1 : 0 }
     },
   }
@@ -91,6 +94,8 @@ describe('POST /api/budgets/transfer', () => {
 
     expect(row('2026-03', 'Dining')?.assigned).toBe('1700')
     expect(row('2026-03', 'Travel')?.assigned).toBe('800')
+    expect(row('2026-03', 'Dining')?.version).toBe(1)
+    expect(row('2026-03', 'Travel')?.version).toBe(1)
     expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
       { userId: 'user_a', readOnly: false, sessionId: null },
       ['Travel', 'Dining'],
@@ -120,6 +125,7 @@ describe('POST /api/budgets/transfer', () => {
     expect(res.status).toBe(200)
 
     expect(row('2026-03', 'NewCategory')?.assigned).toBe('100')
+    expect(row('2026-03', 'NewCategory')?.version).toBe(1)
   })
 
   it('supports a multi-source allocation, splitting the debit across sources', async () => {
@@ -154,9 +160,12 @@ describe('POST /api/budgets/transfer', () => {
     expect(res.status).toBe(400)
   })
 
-  it('rejects transferring to Ready to Assign', async () => {
+  it('returns money to Ready to Assign by debiting the source only', async () => {
+    store.push({ _id: 1, month: '2026-03', category: 'Travel', assigned: '500', rolled_over: '0', version: 0 })
     const res = await POST(req({ month: '2026-03', to: '__ready_to_assign__', from: 'Travel', amount: 100 }))
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(200)
+    expect(row('2026-03', 'Travel')).toMatchObject({ assigned: '400', version: 1 })
+    expect(store).toHaveLength(1)
   })
 
   it('404s when a source has never had a budget row at all', async () => {

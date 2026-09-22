@@ -16,7 +16,7 @@ export function useBudgets() {
 export function useAddBudget() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (row: Omit<BudgetRow, 'rolled_over'> & { rolled_over?: string }) => addBudget(row),
+    mutationFn: (row: Omit<BudgetRow, 'rolled_over' | 'version'> & { rolled_over?: string }) => addBudget(row),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
@@ -27,8 +27,8 @@ export function useAddBudget() {
 export function useUpdateBudget() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { month: string; category: string; updates: Partial<BudgetRow & { newCategory?: string }> }) =>
-      updateBudget(params.month, params.category, params.updates),
+    mutationFn: (params: { month: string; category: string; version: number; updates: Partial<BudgetRow & { newCategory?: string }> }) =>
+      updateBudget(params.month, params.category, params.updates, params.version),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
