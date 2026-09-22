@@ -6,6 +6,7 @@ const root = process.cwd()
 const expenseCss = readFileSync(join(root, 'src/expense-redesign.css'), 'utf8')
 const insightsCss = readFileSync(join(root, 'src/insights.css'), 'utf8')
 const transactions = readFileSync(join(root, 'src/components/TransactionsView.tsx'), 'utf8')
+const insights = readFileSync(join(root, 'src/views/InsightsPage.tsx'), 'utf8')
 const subscriptions = readFileSync(join(root, 'src/components/SubscriptionsPanel.tsx'), 'utf8')
 
 describe('expense screen visual regressions', () => {
@@ -28,5 +29,12 @@ describe('expense screen visual regressions', () => {
     const rule = insightsCss.match(/\.ins-trend-summary\s*{([\s\S]*?)}/)?.[1] ?? ''
     expect(rule).not.toContain('min-height')
     expect(rule).not.toContain('padding: 62px')
+  })
+
+  it('keeps biggest-spend rows isolated from Activity transaction styles', () => {
+    expect(insights).not.toContain('txn-timeline-list ins-top-list')
+    expect(insights).not.toContain('txn-timeline-row ins-top-row')
+    expect(insightsCss).toMatch(/\.ins-top-list\s*{[\s\S]*?gap:\s*0/)
+    expect(insightsCss).toMatch(/\.expense-redesign \.ins-top-row\s*{[\s\S]*?border:\s*0/)
   })
 })

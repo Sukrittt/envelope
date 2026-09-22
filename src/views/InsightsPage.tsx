@@ -492,31 +492,31 @@ export function InsightsPage() {
                   {topSpends.length === 0 ? (
                     <p className="ins-top-empty">Nothing logged yet.</p>
                   ) : (
-                    <div className="txn-timeline-list ins-top-list">
+                    <div className="ins-top-list">
                       {topSpends.map((spend, index) => (
                         <button
                           key={spend.id}
                           type="button"
-                          className="txn-timeline-row ins-top-row"
+                          className="ins-top-row"
                           style={{ animationDelay: `${220 + index * 55}ms` }}
                           onClick={() =>
                             router.push(`/expense/transactions?date=${spend.date}`)
                           }
                         >
                           <span
-                            className="txn-timeline-icon"
+                            className="ins-top-icon"
                             title={spend.category}
                             style={{ background: avatarColorFor(spend.category) }}
                           >
                             {spend.emoji}
                           </span>
-                          <span className="txn-timeline-body">
-                            <span className="txn-timeline-item">{spend.item}</span>
-                            <span className="txn-timeline-meta">
+                          <span className="ins-top-body">
+                            <span className="ins-top-item">{spend.item}</span>
+                            <span className="ins-top-meta">
                               {formatShortDate(spend.date)} · {spend.category}
                             </span>
                           </span>
-                          <span className="txn-timeline-amount">
+                          <span className="ins-top-amount">
                             {formatCurrency(spend.amount, hideAmounts)}
                           </span>
                         </button>

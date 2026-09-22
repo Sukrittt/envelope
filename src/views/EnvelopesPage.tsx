@@ -5,7 +5,6 @@ import { AnimatePresence } from "motion/react";
 import {
   Bell,
   ChevronsDownUp,
-  GripVertical,
   Pencil,
   Plus,
   Trash2,
@@ -22,14 +21,12 @@ import {
   useAddCategory,
   useUpdateCategory,
   useDeleteCategory,
-  useMoveCategory,
 } from "../hooks/useCategories";
 import {
   useGroups,
   useAddGroup,
   useUpdateGroup,
   useDeleteGroup,
-  useMoveGroup,
 } from "../hooks/useGroups";
 import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
 import {
@@ -66,11 +63,9 @@ export function EnvelopesPage() {
   const addCategory = useAddCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
-  const moveCategory = useMoveCategory();
   const addGroup = useAddGroup();
   const updateGroup = useUpdateGroup();
   const deleteGroup = useDeleteGroup();
-  const moveGroup = useMoveGroup();
 
   const categories: CategoryRow[] = categoriesQuery.data ?? EMPTY;
   const groups: string[] = groupsQuery.data ?? EMPTY;
@@ -83,11 +78,6 @@ export function EnvelopesPage() {
   const [editing, setEditing] = useState<CategoryRow | null>(null);
   const [draftPcts, setDraftPcts] = useState<number[]>(DEFAULT_ALERT_PCTS);
   const [error, setError] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<{
-    kind: "group" | "category";
-    name: string;
-    group: string;
-  } | null>(null);
 
   const grouped = useMemo(
     () => groupCategories(categories, groups),
@@ -207,26 +197,6 @@ export function EnvelopesPage() {
     }, "group");
   }
 
-  function onDropGroup(targetIndex: number) {
-    if (!dragging || dragging.kind !== "group") return;
-    setDragging(null);
-    void run(
-      () =>
-        moveGroup.mutateAsync({ name: dragging.name, toIndex: targetIndex }),
-      "group",
-    );
-  }
-
-  function onDropCategory(targetIndex: number) {
-    if (!dragging || dragging.kind !== "category") return;
-    setDragging(null);
-    void run(
-      () =>
-        moveCategory.mutateAsync({ name: dragging.name, toIndex: targetIndex }),
-      "category",
-    );
-  }
-
   const loading = categoriesQuery.isLoading || groupsQuery.isLoading;
 
   return (
@@ -300,38 +270,14 @@ export function EnvelopesPage() {
           )}
 
           <ul className="env-group-list" aria-label="Envelope groups">
-            {grouped.map((group, groupIndex) => {
+            {grouped.map((group) => {
               const isCollapsed = collapsed.has(group.label);
               const { icon, text } = group.name
                 ? splitEmoji(group.name)
                 : { icon: "🗂️", text: OTHER_LABEL };
               return (
-                <li
-                  key={group.label}
-                  className={`env-group${dragging?.kind === "group" ? " is-reordering" : ""}`}
-                  onDragOver={(e) =>
-                    dragging?.kind === "group" && e.preventDefault()
-                  }
-                  onDrop={() => onDropGroup(groupIndex)}
-                >
+                <li key={group.label} className="env-group">
                   <div className="env-group-head">
-                    {group.name && (
-                      <span
-                        className="env-drag"
-                        draggable
-                        onDragStart={() =>
-                          setDragging({
-                            kind: "group",
-                            name: group.name,
-                            group: group.name,
-                          })
-                        }
-                        onDragEnd={() => setDragging(null)}
-                        aria-label={`Reorder ${text}`}
-                      >
-                        <GripVertical size={14} aria-hidden="true" />
-                      </span>
-                    )}
                     <button
                       type="button"
                       className="env-group-toggle"
@@ -411,36 +357,13 @@ export function EnvelopesPage() {
 
                   <SpringCollapse open={!isCollapsed}>
                     <ul className="env-cat-list">
-                      {group.items.map((category, index) => {
+                      {group.items.map((category) => {
                         const parts = splitEmoji(category.name);
                         const thresholds = category.alertPcts
                           ? sorted(category.alertPcts)
                           : DEFAULT_ALERT_PCTS;
                         return (
-                          <li
-                            key={category.name}
-                            className="env-cat"
-                            onDragOver={(e) =>
-                              dragging?.kind === "category" &&
-                              e.preventDefault()
-                            }
-                            onDrop={() => onDropCategory(index)}
-                          >
-                            <span
-                              className="env-drag"
-                              draggable
-                              onDragStart={() =>
-                                setDragging({
-                                  kind: "category",
-                                  name: category.name,
-                                  group: group.name,
-                                })
-                              }
-                              onDragEnd={() => setDragging(null)}
-                              aria-label={`Reorder ${parts.text}`}
-                            >
-                              <GripVertical size={14} aria-hidden="true" />
-                            </span>
+                          <li key={category.name} className="env-cat">
                             <span className="env-cat-icon" aria-hidden="true">
                               {categoryEmoji(category.name)}
                             </span>

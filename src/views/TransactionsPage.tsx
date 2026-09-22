@@ -30,8 +30,8 @@ export function TransactionsPage() {
 
       <div className="erd-main">
         <ExpenseSidebar />
-        <div className="erd-content">
-          <Suspense fallback={<div className="txn-timeline erd-card"><LoadingCaption placement="page" /></div>}>
+        <div className="erd-content txn-page">
+          <Suspense fallback={<div className="txn-timeline"><LoadingCaption placement="page" /></div>}>
             <TransactionsView />
           </Suspense>
         </div>

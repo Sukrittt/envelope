@@ -3,7 +3,7 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ReceiptText } from "lucide-react";
+import { Plus, ReceiptText, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
@@ -16,7 +16,9 @@ import { LoadingCaption } from "./LoadingCaption";
 import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { DatePicker } from "./DatePicker";
-import { categoryEmoji, splitEmoji } from "../lib/emoji";
+import { Select } from "./Select";
+import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
+import { formatShortDate } from "../lib/format";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -37,31 +39,24 @@ function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function formatShortDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const day = d.getDate();
-  const month = d.toLocaleDateString("en-IN", { month: "short" });
-  const year = String(d.getFullYear()).slice(2);
-  return `${day} ${month} '${year}`;
+function formatDateHeading(iso: string): string {
+  const date = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
-// Keep the same stable, soft-hue cycle as Mobile's Activity avatars.
-const AVATAR_HUES = [
-  "var(--mint-soft)",
-  "var(--violet-soft)",
-  "var(--blue-soft)",
-  "var(--gold-soft)",
-  "var(--warn-soft)",
-  "var(--coral-soft)",
-];
-
-function avatarColorFor(category: string): string {
-  let hash = 0;
-  for (let i = 0; i < category.length; i++) {
-    hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_HUES[hash % AVATAR_HUES.length];
+function formatTransactionTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (!timestamp || Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function TransactionsView({
@@ -210,6 +205,27 @@ export function TransactionsView({
     () => toTransactions(expensesQuery.data?.rows ?? EMPTY),
     [expensesQuery.data],
   );
+  const transactionGroups = useMemo(() => {
+    const groups: Array<{
+      date: string;
+      total: number;
+      transactions: Transaction[];
+    }> = [];
+    const byDate = new Map<string, (typeof groups)[number]>();
+
+    for (const transaction of pageTransactions) {
+      let group = byDate.get(transaction.date);
+      if (!group) {
+        group = { date: transaction.date, total: 0, transactions: [] };
+        byDate.set(transaction.date, group);
+        groups.push(group);
+      }
+      group.total += transaction.amountInr;
+      group.transactions.push(transaction);
+    }
+
+    return groups;
+  }, [pageTransactions]);
 
   useEffect(() => {
     // Reset pagination whenever any filter changes.
@@ -233,9 +249,10 @@ export function TransactionsView({
 
   function resetFilters() {
     setPeriod("week");
-    applyCategory("");
+    setSelectedCategory("");
     setSearch("");
     setPage(1);
+    router.replace("/expense/transactions");
   }
 
   // The mutation hooks invalidate the expense and budget queries themselves,
@@ -273,84 +290,107 @@ export function TransactionsView({
     setDeleting(false);
   }
 
+  const hasActiveFilters =
+    period !== "week" || Boolean(selectedCategory) || Boolean(search.trim());
+
   return (
-    <div className="txn-timeline erd-card">
-      <div className="txn-timeline-filters">
-        <div
-          className="mc-filter-chips"
-          role="tablist"
-          aria-label="Period presets"
-        >
-          {(["week", "month", "custom"] as PeriodKey[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={`action-button ${period === key ? "is-active erd-accent-action" : ""}`}
-              onClick={() => setPeriod(key)}
-            >
-              {key === "week"
-                ? "This week"
-                : key === "month"
-                  ? "This month"
-                  : "Custom"}
-            </button>
-          ))}
+    <div className="txn-timeline">
+      <header className="txn-page-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Transaction history</span>
+          <h1>Activity</h1>
+          <p>Review, search, and edit everything you have logged.</p>
         </div>
-
-        {period === "custom" && (
-          <div className="txn-timeline-dates">
-            <DatePicker
-              mode="range"
-              value={{ start: customStart, end: customEnd }}
-              onChange={({ start, end }) => {
-                setCustomStart(start);
-                setCustomEnd(end);
-              }}
-            />
-          </div>
-        )}
-
-        <select
-          className="txn-filter-select"
-          value={selectedCategory || ""}
-          onChange={(e) => applyCategory(e.target.value)}
-          aria-label="Filter by category"
-        >
-          <option value="">All</option>
-          {orderedCategories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="search"
-          className="txn-timeline-search"
-          placeholder="Search…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search"
-        />
-
         <button
           type="button"
-          className="action-button is-ghost"
-          onClick={resetFilters}
+          className="erd-log-btn txn-page-log-btn"
+          onClick={() => setShowLogModal(true)}
         >
-          Reset
+          <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
+          Log expense
         </button>
-      </div>
+      </header>
+
+      <section className="txn-timeline-filters" aria-label="Activity filters">
+        <div className="txn-filter-row txn-filter-row-period">
+          <span className="txn-filter-label">Period</span>
+          <div
+            className="mc-filter-chips"
+            role="tablist"
+            aria-label="Period presets"
+          >
+            {(["week", "month", "custom"] as PeriodKey[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={period === key}
+                className={`action-button ${period === key ? "is-active erd-accent-action" : ""}`}
+                onClick={() => setPeriod(key)}
+              >
+                {key === "week"
+                  ? "This week"
+                  : key === "month"
+                    ? "This month"
+                    : "Custom"}
+              </button>
+            ))}
+          </div>
+          {period === "custom" && (
+            <div className="txn-timeline-dates">
+              <DatePicker
+                mode="range"
+                value={{ start: customStart, end: customEnd }}
+                onChange={({ start, end }) => {
+                  setCustomStart(start);
+                  setCustomEnd(end);
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="txn-filter-row txn-filter-row-refine">
+          <span className="txn-filter-label">Filter</span>
+          <div className="txn-select-field">
+            <Select
+              aria-label="Filter by category"
+              value={selectedCategory || ""}
+              onChange={applyCategory}
+              placeholder="All categories"
+              searchable={orderedCategories.length >= 12}
+              options={[
+                { value: "", label: "All categories" },
+                ...orderedCategories.map((c) => ({ value: c, label: c })),
+              ]}
+            />
+          </div>
+
+          <label className="txn-search-field">
+            <Search size={16} strokeWidth={2} aria-hidden="true" />
+            <span className="sr-only">Search transactions</span>
+            <input
+              type="search"
+              className="txn-timeline-search"
+              placeholder="Search transactions…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="action-button is-ghost txn-filter-reset"
+              onClick={resetFilters}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </section>
 
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
-
-      <button
-        type="button"
-        className="erd-log-btn"
-        onClick={() => setShowLogModal(true)}
-      >
-        + Log expense
-      </button>
 
       {loading ? (
         <div className="txn-timeline-loading">
@@ -391,103 +431,124 @@ export function TransactionsView({
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
         >
-          {pageTransactions.map((t, i) => {
-            const isIncome = INCOME_CATEGORIES.has(t.category);
-            const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
-            const categoryName = splitEmoji(t.category).text;
-            return (
-              <div
-                key={`t-${t.timestamp}-${i}`}
-                className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}`}
-              >
-                <button
-                  type="button"
-                  className="txn-row-trigger"
-                  aria-label={`Open actions for ${t.item}`}
-                  aria-haspopup="menu"
-                  aria-expanded={actionsKey === rowKey}
-                  onClick={() => toggleActions(rowKey)}
-                />
-                <span
-                  className="txn-timeline-icon"
-                  title={categoryName}
-                  style={{ background: avatarColorFor(categoryName) }}
-                >
-                  {categoryEmoji(t.category)}
-                </span>
-                <span className="txn-timeline-body">
-                  <span className="txn-timeline-item">{t.item}</span>
-                  <span className="txn-timeline-meta">
-                    {formatShortDate(t.date)} · {categoryName}
+          {transactionGroups.map((group) => (
+            <section className="txn-day-group" key={group.date}>
+              <header className="txn-timeline-header">
+                <div>
+                  <h2 className="txn-timeline-header-label">
+                    {formatDateHeading(group.date)}
+                  </h2>
+                  <span className="txn-timeline-header-count">
+                    {group.transactions.length} transaction{group.transactions.length === 1 ? "" : "s"}
                   </span>
+                </div>
+                <span className={`txn-timeline-header-total ${hideAmounts ? "amount-hidden" : ""}`}>
+                  {hideAmounts ? "---" : formatCurrency(group.total)}
                 </span>
-                <span
-                  className={`txn-timeline-amount ${isIncome ? "is-income" : ""} ${hideAmounts ? "amount-hidden" : ""}`}
-                >
-                  {hideAmounts
-                    ? "---"
-                    : formatCurrency(t.amountInr)}
-                </span>
-                <span
-                  className="txn-actions"
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  <div className="env-action-wrap">
-                    {actionsKey === rowKey && (
-                      <div className="env-menu" ref={actionsMenuRef} role="menu">
-                        {deleteKey === rowKey ? (
-                          <div className="txn-kebab-confirm">
-                            <span className="txn-kebab-confirm-label">
-                              Delete this transaction?
-                            </span>
-                            <div className="txn-kebab-confirm-actions">
-                              <button
-                                type="button"
-                                className="env-menu-item env-menu-item-danger"
-                                disabled={deleting}
-                                onClick={() => handleDelete(t)}
-                              >
-                                {deleting ? "Removing…" : "Remove"}
-                              </button>
-                              <button
-                                type="button"
-                                className="env-menu-item"
-                                disabled={deleting}
-                                onClick={() => setDeleteKey(null)}
-                              >
-                                Cancel
-                              </button>
+              </header>
+
+              <div className="txn-day-rows">
+                {group.transactions.map((t, i) => {
+                  const isIncome = INCOME_CATEGORIES.has(t.category);
+                  const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
+                  const categoryName = splitEmoji(t.category).text;
+                  const time = formatTransactionTime(t.timestamp);
+                  return (
+                    <div
+                      key={t.id || `t-${t.timestamp}-${i}`}
+                      className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="txn-row-trigger"
+                        aria-label={`Open actions for ${t.item}`}
+                        aria-haspopup="menu"
+                        aria-expanded={actionsKey === rowKey}
+                        onClick={() => toggleActions(rowKey)}
+                      />
+                      <span
+                        className="txn-timeline-icon"
+                        title={categoryName}
+                        style={{ background: avatarColorFor(categoryName) }}
+                      >
+                        {categoryEmoji(t.category)}
+                      </span>
+                      <span className="txn-timeline-body">
+                        <span className="txn-timeline-item">{t.item}</span>
+                        <span className="txn-timeline-meta">
+                          {categoryName}{time ? ` · ${time}` : ` · ${formatShortDate(t.date)}`}
+                        </span>
+                      </span>
+                      <span
+                        className={`txn-timeline-amount ${isIncome ? "is-income" : ""} ${hideAmounts ? "amount-hidden" : ""}`}
+                      >
+                        {hideAmounts
+                          ? "---"
+                          : formatCurrency(t.amountInr)}
+                      </span>
+                      <span
+                        className="txn-actions"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        <div className="env-action-wrap">
+                          {actionsKey === rowKey && (
+                            <div className="env-menu" ref={actionsMenuRef} role="menu">
+                              {deleteKey === rowKey ? (
+                                <div className="txn-kebab-confirm">
+                                  <span className="txn-kebab-confirm-label">
+                                    Delete this transaction?
+                                  </span>
+                                  <div className="txn-kebab-confirm-actions">
+                                    <button
+                                      type="button"
+                                      className="env-menu-item env-menu-item-danger"
+                                      disabled={deleting}
+                                      onClick={() => handleDelete(t)}
+                                    >
+                                      {deleting ? "Removing…" : "Remove"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="env-menu-item"
+                                      disabled={deleting}
+                                      onClick={() => setDeleteKey(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="env-menu-item"
+                                    onClick={() => {
+                                      setEditingTxn(t);
+                                      setActionsKey(null);
+                                    }}
+                                  >
+                                    Edit transaction
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="env-menu-item env-menu-item-danger"
+                                    onClick={() => setDeleteKey(rowKey)}
+                                  >
+                                    Delete transaction
+                                  </button>
+                                </>
+                              )}
                             </div>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="env-menu-item"
-                              onClick={() => {
-                                setEditingTxn(t);
-                                setActionsKey(null);
-                              }}
-                            >
-                              Edit transaction
-                            </button>
-                            <button
-                              type="button"
-                              className="env-menu-item env-menu-item-danger"
-                              onClick={() => setDeleteKey(rowKey)}
-                            >
-                              Delete transaction
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </span>
+                          )}
+                        </div>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </section>
+          ))}
         </motion.div>
       )}
 

@@ -74,6 +74,13 @@ describe('EnvelopesPage', () => {
     expect(list.getByText('Odds')).toBeInTheDocument()
   })
 
+  it('does not advertise drag reordering while DnD is unavailable', async () => {
+    renderPage()
+    const list = await groupList()
+    expect(list.queryByLabelText(/^Reorder /)).not.toBeInTheDocument()
+    expect(document.querySelector('.env-group-list [draggable="true"]')).not.toBeInTheDocument()
+  })
+
   it('shows a category its own thresholds, and the defaults for one with none', async () => {
     renderPage()
     expect(

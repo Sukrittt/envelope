@@ -155,16 +155,27 @@
 }
 
 .ins-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin-top: 10px;
+  padding: 0;
 }
 
 .expense-redesign .ins-top-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
   width: auto;
+  min-height: 58px;
   margin: 0 -8px;
   padding: 9px 8px;
+  border: 0;
   border-radius: 15px;
   background: transparent;
   color: inherit;
+  font: inherit;
   text-align: left;
   cursor: pointer;
   animation: ins-row-slide 340ms cubic-bezier(.2,.8,.2,1) both;
@@ -175,6 +186,54 @@
 .expense-redesign .ins-top-row:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 1px;
+}
+
+.ins-top-icon {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.ins-top-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ins-top-item {
+  overflow: hidden;
+  color: var(--erd-text);
+  font-family: var(--font-nunito);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ins-top-meta {
+  overflow: hidden;
+  color: var(--erd-text3);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ins-top-amount {
+  color: var(--erd-text);
+  font-family: var(--font-nunito);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .ins-top-empty {
