@@ -165,10 +165,13 @@ export async function POST(req: Request) {
   // The id and the server-generated timestamp go back to the caller so it can
   // address the row it just created — mobile's post-log success screen needs
   // both to offer Undo without re-fetching the whole list to find the row.
+  // `category` is echoed back because it may not be the one that was asked for:
+  // a client posting from a list loaded before a rename gets mapped forward, and
+  // its success screen looks up the envelope by name.
   return json(
     result.duplicate
-      ? { ok: true, id: result.id, version: result.version, timestamp: result.timestamp, duplicate: true }
-      : { ok: true, id: result.id, version: result.version, timestamp: result.timestamp },
+      ? { ok: true, id: result.id, version: result.version, timestamp: result.timestamp, category: result.category, duplicate: true }
+      : { ok: true, id: result.id, version: result.version, timestamp: result.timestamp, category: result.category },
   )
 }
 

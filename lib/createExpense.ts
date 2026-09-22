@@ -49,6 +49,12 @@ export interface CreateExpenseResult {
   timestamp: string
   version: number
   duplicate: boolean
+  /**
+   * The category the row was actually stored under. Usually what the caller
+   * asked for, but a name loaded before a rename is mapped forward
+   * (lib/categoryName.ts) — clients need the real one to find its envelope.
+   */
+  category: string
 }
 
 export function isDuplicateKeyError(err: unknown): boolean {
@@ -119,7 +125,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
     if (existing) {
       // Replay acknowledges the original create, not a newer edit the caller
       // has never seen. In particular, Undo must still check creation version 0.
-      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true }
+      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category) }
     }
   }
 
@@ -170,5 +176,5 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   // failure risk.
   if (input.notify !== false) await notifyThresholdCrossed(auth, category)
 
-  return { id: String(insertedId), timestamp, version: 0, duplicate: false }
+  return { id: String(insertedId), timestamp, version: 0, duplicate: false, category }
 }

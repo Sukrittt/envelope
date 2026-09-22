@@ -201,6 +201,9 @@ describe('category rename cascade and stale references', () => {
       body: JSON.stringify({ item: 'Coffee', amount_inr: '80', category: 'Food', date: '2026-09-19' }),
     }))
     expect(logged.status).toBe(200)
+    // The client asked for 'Food' and got 'Dining'; it has to be told, or its
+    // success screen looks the expense up under a category that has no envelope.
+    expect(await logged.json()).toMatchObject({ category: 'Dining' })
     const db = await getDb()
     const rows = await scoped(db.collection('expenses'), USER).find({ date: '2026-09-19' }).toArray()
     expect(rows).toHaveLength(1)
