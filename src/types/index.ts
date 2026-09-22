@@ -87,6 +87,7 @@ export interface HoldingRow {
   recurring_amount: string
   recurring_day: string
   recurring_last_run: string
+  version: number
 }
 
 export interface HoldingEventRow {

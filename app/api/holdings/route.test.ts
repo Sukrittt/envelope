@@ -17,6 +17,10 @@ vi.mock('@/lib/cache', () => ({
   invalidate: vi.fn(),
 }))
 
+vi.mock('@/lib/mongodb', () => ({
+  withTx: async (fn: (session: undefined) => Promise<unknown>) => fn(undefined),
+}))
+
 type Doc = Record<string, unknown> & { _id: ObjectId }
 
 let store: Doc[] = []
@@ -27,6 +31,7 @@ function matches(doc: Doc, filter: Record<string, unknown>): boolean {
   return Object.entries(filter).every(([k, v]) => {
     if (k === '_id' && v instanceof ObjectId) return doc._id.equals(v)
     if (v && typeof v === 'object' && '$regex' in v) return (v.$regex as RegExp).test(String(doc[k]))
+    if (v && typeof v === 'object' && '$exists' in v) return (k in doc) === Boolean(v.$exists)
     return doc[k] === v
   })
 }
@@ -42,9 +47,14 @@ function fakeCollection() {
       store.push(withId)
       return { insertedId: withId._id }
     },
-    updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
+    updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown>; $inc?: Record<string, number> }) => {
       const doc = store.find((d) => matches(d, filter))
-      if (doc) Object.assign(doc, update.$set)
+      if (doc) {
+        Object.assign(doc, update.$set)
+        for (const [key, amount] of Object.entries(update.$inc ?? {})) {
+          doc[key] = Number(doc[key] ?? 0) + amount
+        }
+      }
       return { matchedCount: doc ? 1 : 0 }
     },
     deleteOne: async (filter: Record<string, unknown>) => {
@@ -100,7 +110,7 @@ describe('PUT /api/holdings — recurring contribution edit', () => {
       recurring_last_run: '',
     } as Doc)
 
-    const res = await PUT(req('PUT', { name: 'Bonds', is_recurring: true, recurring_amount: '3600' }))
+    const res = await PUT(req('PUT', { name: 'Bonds', is_recurring: true, recurring_amount: '3600', version: 0 }))
     expect(res.status).toBe(200)
 
     const updated = store[0]
@@ -109,6 +119,7 @@ describe('PUT /api/holdings — recurring contribution edit', () => {
     expect(updated.recurring_amount).toBe('3600')
     expect(updated.recurring_day).toBe('7')
     expect(updated.recurring_last_run).toBe('2026-09')
+    expect(updated.version).toBe(1)
   })
 
   it('updates the amount on an already-recurring holding without resetting its snapshotted day/last_run', async () => {
@@ -124,13 +135,14 @@ describe('PUT /api/holdings — recurring contribution edit', () => {
       recurring_last_run: '2026-06',
     } as Doc)
 
-    const res = await PUT(req('PUT', { name: 'Mutual Fund SIP', is_recurring: true, recurring_amount: '3600' }))
+    const res = await PUT(req('PUT', { name: 'Mutual Fund SIP', is_recurring: true, recurring_amount: '3600', version: 0 }))
     expect(res.status).toBe(200)
 
     const updated = store[0]
     expect(updated.recurring_amount).toBe('3600')
     expect(updated.recurring_day).toBe('15')
     expect(updated.recurring_last_run).toBe('2026-06')
+    expect(updated.version).toBe(1)
   })
 
   it('turns recurring off and clears amount/day/last_run', async () => {
@@ -146,7 +158,7 @@ describe('PUT /api/holdings — recurring contribution edit', () => {
       recurring_last_run: '2026-08',
     } as Doc)
 
-    const res = await PUT(req('PUT', { name: 'FD', is_recurring: false }))
+    const res = await PUT(req('PUT', { name: 'FD', is_recurring: false, version: 0 }))
     expect(res.status).toBe(200)
 
     const updated = store[0]
@@ -154,5 +166,6 @@ describe('PUT /api/holdings — recurring contribution edit', () => {
     expect(updated.recurring_amount).toBe('')
     expect(updated.recurring_day).toBe('')
     expect(updated.recurring_last_run).toBe('')
+    expect(updated.version).toBe(1)
   })
 })
