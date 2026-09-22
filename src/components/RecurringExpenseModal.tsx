@@ -3,11 +3,12 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import type { RecurringExpenseInput } from '../api/recurringExpenses'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker } from './DatePicker'
 import { CategoryPicker } from './CategoryPicker'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { useCategories } from '../hooks/useCategories'
 import {
   useAddRecurringExpense,
   useDeleteRecurringExpense,
@@ -16,6 +17,8 @@ import {
   useResumeRecurringExpense,
   useUpdateRecurringExpense,
 } from '../hooks/useRecurringExpenses'
+import { suggestCategoryLLM } from '../lib/autoCategory'
+import { EMPTY } from '../lib/constants'
 import { todayIST } from '../lib/date'
 import { splitEmoji } from '../lib/emoji'
 
@@ -25,6 +28,7 @@ const PAYMENT_METHODS = [
   { value: 'credit_card', label: 'Credit card' },
 ]
 const RETRY = 'Check your connection and try again.'
+const MIN_CATEGORY_SUGGESTION_CHARS = 3
 
 interface Props {
   /** Present: edit that row. Absent: add a new one. Same split as Mobile's route params. */
@@ -39,6 +43,7 @@ interface Props {
 export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded, onClose }: Props) {
   const { currencySymbol } = useCurrency()
 
+  const categoriesQ = useCategories()
   const recurringQ = useRecurringExpenses()
   const addRecurring = useAddRecurringExpense()
   const updateRecurring = useUpdateRecurringExpense()
@@ -54,6 +59,10 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
   const isActive = existing ? existing.status === 'active' : true
 
   const initial = existing ?? initialValues
+  const categories = useMemo(
+    () => (categoriesQ.data ?? EMPTY).map((row) => row.name).filter(Boolean),
+    [categoriesQ.data],
+  )
   const [item, setItem] = useState(initial?.item ?? '')
   const [amount, setAmount] = useState(initial?.amount_inr ?? '')
   const [frequency, setFrequency] = useState(initial?.frequency || 'monthly')
@@ -61,6 +70,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
   const [endDate, setEndDate] = useState(initial?.end_date ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
+  const [categoryTouched, setCategoryTouched] = useState(Boolean(initial?.category))
   const [paymentMethod, setPaymentMethod] = useState(initial?.payment_method || 'bank')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
@@ -72,6 +82,33 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
     item.trim() !== '' && amount.trim() !== '' && parsedAmount > 0 && category !== '' && startDate !== '' && !endsBeforeStart
   const mutatingAction = pauseRecurring.isPending || resumeRecurring.isPending || deleteRecurring.isPending
   const busy = saving || success || mutatingAction
+
+  useEffect(() => {
+    if (categoryTouched || item.trim().length < MIN_CATEGORY_SUGGESTION_CHARS || categories.length === 0) return
+
+    let cancelled = false
+    const timer = setTimeout(() => {
+      suggestCategoryLLM(item, categories).then((suggested) => {
+        if (cancelled || !suggested || !categories.includes(suggested)) return
+        setCategory(suggested)
+      })
+    }, 200)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [categories, categoryTouched, item])
+
+  function handleItemChange(value: string) {
+    setItem(value)
+    if (!categoryTouched) setCategory('')
+  }
+
+  function handleCategoryPick(value: string) {
+    setCategory(value)
+    setCategoryTouched(true)
+  }
 
   function onFailure(title: string) {
     fail()
@@ -146,7 +183,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
                 className="erd-log-input"
                 placeholder="e.g. Rent"
                 value={item}
-                onChange={(e) => setItem(e.target.value)}
+                onChange={(e) => handleItemChange(e.target.value)}
                 autoFocus={!isEdit}
               />
             </section>
@@ -239,7 +276,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
 
             <section className="erd-recurring-section erd-recurring-span">
               <div className="erd-log-label">Category</div>
-              <CategoryPicker value={category} onChange={setCategory} />
+              <CategoryPicker value={category} onChange={handleCategoryPick} />
               <p className="recurring-hint">
                 {category
                   ? `We'll add this expense in ${splitEmoji(category).text} on every due date.`
