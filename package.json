@@ -1,7 +1,7 @@
 {
   "name": "aviary-web",
   "private": true,
-  "version": "2026.09.22",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "next dev",
