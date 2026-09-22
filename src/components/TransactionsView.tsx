@@ -361,7 +361,7 @@ export function TransactionsView({
               searchable={orderedCategories.length >= 12}
               options={[
                 { value: "", label: "All categories" },
-                ...orderedCategories.map((c) => ({ value: c, label: c })),
+                ...orderedCategories.map((c) => ({ value: c, label: splitEmoji(c).text, icon: categoryEmoji(c) })),
               ]}
             />
           </div>
