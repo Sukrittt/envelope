@@ -225,7 +225,7 @@ function EnvelopeRow({ envelope, emoji, notice }: { envelope: Envelope; emoji: s
 
       <BottomSheet visible={sheetOpen} onClose={() => setSheetOpen(false)}>
         <div style={{ color: T.text, ...font.displaySemiBold, fontSize: 16, marginBottom: 8 }}>{name}</div>
-        {['Pull money from other envelopes', 'Edit assigned amount', 'View transactions'].map((label) => (
+        {['Pull money from envelopes', 'Edit assigned amount', 'View transactions'].map((label) => (
           <button key={label} type="button" style={sheetBtn} onClick={action}>
             <span style={{ color: T.text, ...font.bodyMedium, fontSize: 14 }}>{label}</span>
           </button>

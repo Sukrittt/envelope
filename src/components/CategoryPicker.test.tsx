@@ -51,9 +51,9 @@ it('shows a clear emoji for legacy plain-named categories', () => {
     { name: 'Travel', group: '' },
   ])
   pick()
-  expect(screen.getByRole('button', { name: /Groceries/ }).textContent).toBe('🛒Groceries')
+  expect(screen.getByRole('button', { name: /Groceries/ }).textContent).toBe('🍅Groceries')
   expect(screen.getByRole('button', { name: /Eating out/ }).textContent).toBe('🍽️Eating out')
-  expect(screen.getByRole('button', { name: /Travel/ }).textContent).toBe('✈️Travel')
+  expect(screen.getByRole('button', { name: /Travel/ }).textContent).toBe('🛵Travel')
 })
 
 it('puts the MRU list at the front of the wrap', () => {
