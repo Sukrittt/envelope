@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Scrim, Sheet } from './MotionSheet'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -30,12 +31,14 @@ type SingleProps = {
   value: string
   onChange: (value: string) => void
   disableFuture?: boolean
+  popoverOnDesktop?: boolean
 }
 type RangeProps = {
   mode: 'range'
   value: { start: string; end: string }
   onChange: (value: { start: string; end: string }) => void
   disableFuture?: boolean
+  popoverOnDesktop?: boolean
 }
 export type DatePickerProps = SingleProps | RangeProps
 
@@ -166,6 +169,8 @@ export function DatePicker(props: DatePickerProps) {
   const disableFuture = props.disableFuture ?? true
   const today = new Date()
   const [open, setOpen] = useState(false)
+  const [desktopPopover, setDesktopPopover] = useState(false)
+  const [popoverPosition, setPopoverPosition] = useState<{ left: number; top: number; width: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
   const initialAnchor = props.mode === 'single' ? parseISO(props.value) ?? today : parseISO(props.value.start) ?? today
@@ -180,11 +185,45 @@ export function DatePicker(props: DatePickerProps) {
   const [draftEnd, setDraftEnd] = useState<Date | null>(currentEnd)
 
   useEffect(() => {
+    if (!props.popoverOnDesktop) return
+    const media = window.matchMedia('(min-width: 901px)')
+    const sync = () => setDesktopPopover(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [props.popoverOnDesktop])
+
+  useEffect(() => {
+    if (!open || !desktopPopover) return
+
+    function positionPopover() {
+      const rect = rootRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const gap = 8
+      const viewportPadding = 16
+      const estimatedHeight = 410
+      const spaceBelow = window.innerHeight - rect.bottom - viewportPadding
+      const top = spaceBelow >= estimatedHeight
+        ? rect.bottom + gap
+        : Math.max(viewportPadding, rect.top - estimatedHeight - gap)
+      setPopoverPosition({ left: rect.left, top, width: rect.width })
+    }
+
+    positionPopover()
+    window.addEventListener('resize', positionPopover)
+    window.addEventListener('scroll', positionPopover, true)
+    return () => {
+      window.removeEventListener('resize', positionPopover)
+      window.removeEventListener('scroll', positionPopover, true)
+    }
+  }, [desktopPopover, open])
+
+  useEffect(() => {
     if (!open) return
     function onDocClick(e: MouseEvent) {
       const target = e.target as Node
       if (rootRef.current && rootRef.current.contains(target)) return
-      if ((target as HTMLElement).closest?.('.date-picker-scrim')) return
+      if ((target as HTMLElement).closest?.('.date-picker-scrim, .date-picker-popover')) return
       setOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
@@ -255,6 +294,33 @@ export function DatePicker(props: DatePickerProps) {
 
   if (props.mode === 'single') {
     const label = currentStart ? `${WEEKDAY_FULL[currentStart.getDay()]}, ${fmt(currentStart)}` : 'Select a date'
+    const calendar = (
+      <div className={`date-picker-card${desktopPopover ? ' date-picker-popover' : ''}`} style={popoverPosition ?? undefined}>
+        <div className="date-picker-quick">
+          {SINGLE_PRESETS.map(([presetLabel, off]) => {
+            const d = addDays(today, off)
+            const active = !!draftStart && key(draftStart) === key(d)
+            return (
+              <button type="button" key={presetLabel} className={`date-picker-chip${active ? ' is-active' : ''}`} onClick={() => jumpSingle(d)}>
+                {presetLabel}
+              </button>
+            )
+          })}
+        </div>
+        <CalendarBody
+          view={view}
+          today={today}
+          draftStart={draftStart}
+          draftEnd={draftStart}
+          disableFuture={disableFuture}
+          dir={dir}
+          pingKey={pingKey}
+          onPrevMonth={() => navMonth(-1)}
+          onNextMonth={() => navMonth(1)}
+          onTapDay={tapDay}
+        />
+      </div>
+    )
     return (
       <div className="date-picker-field-wrap" ref={rootRef}>
         <button type="button" className="date-picker-field" onClick={() => (open ? setOpen(false) : openPicker())}>
@@ -271,32 +337,10 @@ export function DatePicker(props: DatePickerProps) {
             ⌄
           </span>
         </button>
-        {open && (
-          <div className="date-picker-card">
-            <div className="date-picker-quick">
-              {SINGLE_PRESETS.map(([presetLabel, off]) => {
-                const d = addDays(today, off)
-                const active = !!draftStart && key(draftStart) === key(d)
-                return (
-                  <button type="button" key={presetLabel} className={`date-picker-chip${active ? ' is-active' : ''}`} onClick={() => jumpSingle(d)}>
-                    {presetLabel}
-                  </button>
-                )
-              })}
-            </div>
-            <CalendarBody
-              view={view}
-              today={today}
-              draftStart={draftStart}
-              draftEnd={draftStart}
-              disableFuture={disableFuture}
-              dir={dir}
-              pingKey={pingKey}
-              onPrevMonth={() => navMonth(-1)}
-              onNextMonth={() => navMonth(1)}
-              onTapDay={tapDay}
-            />
-          </div>
+        {open && (!desktopPopover || popoverPosition) && (
+          desktopPopover
+            ? createPortal(calendar, document.querySelector('.expense-redesign') ?? document.body)
+            : calendar
         )}
       </div>
     )

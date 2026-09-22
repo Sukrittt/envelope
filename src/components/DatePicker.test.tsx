@@ -9,6 +9,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   vi.useRealTimers()
+  vi.unstubAllGlobals()
 })
 
 function ControlledSingle({ onChange }: { onChange: (v: string) => void }) {
@@ -43,4 +44,29 @@ it('allows a later day in the current month but blocks days in a future month', 
   expect(septFifth).toBeDisabled()
   fireEvent.click(septFifth)
   expect(onChange).not.toHaveBeenCalled()
+})
+
+it('renders a single-date calendar as a desktop popover when requested', () => {
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+    matches: true,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+
+  render(
+    <div className="expense-redesign">
+      <DatePicker
+        mode="single"
+        value="2026-08-19"
+        onChange={vi.fn()}
+        popoverOnDesktop
+      />
+    </div>,
+  )
+
+  fireEvent.click(screen.getByText('Wednesday, 19 Aug 2026'))
+
+  const popover = screen.getByText('August 2026').closest('.date-picker-popover')
+  expect(popover).toBeTruthy()
+  expect(popover?.parentElement).toHaveClass('expense-redesign')
 })
