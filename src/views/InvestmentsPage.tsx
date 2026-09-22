@@ -26,6 +26,13 @@ import {
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { LoadingCaption } from "../components/LoadingCaption";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
+import {
+  HoldingWriteError,
+  holdingChanges,
+  holdingDraft,
+  rebaseHoldingDraft,
+  type HoldingDraft,
+} from "../lib/holdingConflict";
 
 const TYPES = [
   "Equity",
@@ -525,7 +532,7 @@ function HoldingActionModal({
 }
 
 /** Add a holding, or (with `name`) edit only its monthly contribution — never its value, same as Mobile. */
-function HoldingModal({
+export function HoldingModal({
   name,
   holding,
   onClose,
@@ -539,16 +546,18 @@ function HoldingModal({
   const updateHolding = useUpdateHolding();
   const phase = useButtonPhase();
   const isEdit = name !== undefined;
+  const initialDraft: HoldingDraft = holding
+    ? holdingDraft(holding)
+    : { isRecurring: false, recurringAmount: "" };
 
   const [newName, setNewName] = useState("");
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
-  const [isRecurring, setIsRecurring] = useState(
-    holding?.is_recurring === "true",
-  );
-  const [recurringAmount, setRecurringAmount] = useState(
-    holding?.recurring_amount || "",
-  );
+  const [base, setBase] = useState(initialDraft);
+  const [expectedVersion, setExpectedVersion] = useState(holding?.version ?? 0);
+  const [isRecurring, setIsRecurring] = useState(initialDraft.isRecurring);
+  const [recurringAmount, setRecurringAmount] = useState(initialDraft.recurringAmount);
+  const [conflict, setConflict] = useState<HoldingRow | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const parsedValue = Number(value);
@@ -558,8 +567,11 @@ function HoldingModal({
     (recurringAmount.trim() !== "" &&
       !Number.isNaN(parsedRecurring) &&
       parsedRecurring >= 0);
+  const draft = { isRecurring, recurringAmount };
+  const recurringUpdates = holdingChanges(base, draft);
+  const hasChanges = Object.keys(recurringUpdates).length > 0;
   const canSubmit = isEdit
-    ? recurringOk
+    ? recurringOk && hasChanges
     : newName.trim() !== "" &&
       value.trim() !== "" &&
       !Number.isNaN(parsedValue) &&
@@ -571,21 +583,29 @@ function HoldingModal({
     if (!canSubmit || busy) return;
     setError(null);
     phase.start();
-    const recurring = {
-      is_recurring: isRecurring,
-      recurring_amount: isRecurring ? recurringAmount.trim() : undefined,
-    };
     try {
-      if (isEdit) await updateHolding.mutateAsync({ name, updates: recurring });
+      if (isEdit)
+        await updateHolding.mutateAsync({
+          name,
+          version: expectedVersion,
+          updates: recurringUpdates,
+        });
       else
         await addHolding.mutateAsync({
           name: newName.trim(),
           type: type || "Other",
           value: value.trim(),
-          ...recurring,
+          is_recurring: isRecurring,
+          recurring_amount: isRecurring ? recurringAmount.trim() : undefined,
         });
       phase.succeed(onClose);
     } catch (e) {
+      if (e instanceof HoldingWriteError && e.status === 409 && e.current) {
+        setConflict(e.current);
+        setError(null);
+        phase.fail();
+        return;
+      }
       setError(
         e instanceof Error
           ? e.message
@@ -596,6 +616,28 @@ function HoldingModal({
   }
 
   const title = isEdit ? "Edit monthly contribution" : "Add holding";
+
+  function reviewLatest(keepDraft: boolean) {
+    if (!conflict) return;
+    const latest = holdingDraft(conflict);
+    const next = keepDraft
+      ? rebaseHoldingDraft(base, draft, conflict)
+      : latest;
+    setBase(latest);
+    setExpectedVersion(conflict.version);
+    setIsRecurring(next.isRecurring);
+    setRecurringAmount(next.recurringAmount);
+    setConflict(null);
+    setError(null);
+  }
+
+  const merged = conflict
+    ? rebaseHoldingDraft(base, draft, conflict)
+    : null;
+  const describeRecurring = (value: HoldingDraft) =>
+    value.isRecurring
+      ? `${currencySymbol}${Number(value.recurringAmount || 0).toLocaleString()} monthly`
+      : "Off";
 
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
@@ -619,7 +661,48 @@ function HoldingModal({
           </button>
         </div>
 
-        {isEdit ? (
+        {conflict && merged ? (
+          <div className="txn-review" role="region" aria-labelledby="holding-conflict-title">
+            <span className="txn-review-icon" aria-hidden="true">↻</span>
+            <h4 id="holding-conflict-title">This holding was updated</h4>
+            <p className="txn-review-intro">
+              A newer version was saved elsewhere. Your monthly contribution is still here.
+            </p>
+            <div className="txn-review-comparison">
+              <div className="txn-review-columns" aria-hidden="true">
+                <span>Latest saved</span>
+                <span>With your changes</span>
+              </div>
+              <div className="txn-review-row">
+                <div className="txn-review-label">Monthly contribution</div>
+                <div className="txn-review-values">
+                  <span>
+                    <span className="txn-review-sr-only">Latest saved: </span>
+                    {describeRecurring(holdingDraft(conflict))}
+                  </span>
+                  <span className="txn-review-changed">
+                    <span className="txn-review-sr-only">With your changes: </span>
+                    {describeRecurring(merged)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="txn-review-note">
+              Continue with your edit and keep the latest holding updates. You can review it before saving.
+            </p>
+            <div className="txn-review-actions">
+              <button type="button" className="txn-review-primary" onClick={() => reviewLatest(true)}>
+                Continue with my changes <span aria-hidden="true">→</span>
+              </button>
+              <button type="button" className="txn-review-secondary" onClick={() => reviewLatest(false)}>
+                Use latest instead
+              </button>
+            </div>
+            <p className="txn-review-footnote">Nothing will be saved until you confirm.</p>
+          </div>
+        ) : (
+          <>
+          {isEdit ? (
           <>
             <div className="erd-log-label">Holding</div>
             <div className="account-row-label">{name}</div>
@@ -717,6 +800,8 @@ function HoldingModal({
         >
           {isEdit ? "Save changes" : "Add holding"}
         </SuccessButton>
+          </>
+        )}
       </Sheet>
     </Scrim>
   );

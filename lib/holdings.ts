@@ -14,10 +14,11 @@ import type { Auth } from '@/lib/access'
  *
  * The value update and the event insert happen in one transaction: a
  * partial write here would otherwise mean a balance moved with no audit
- * event, or an event for a move that never happened. No CAS guard on the
- * update — `value` is field-level encrypted so it can't be a filter field,
- * and a concurrent write to the same document within a transaction aborts
- * with a retryable conflict that `withTransaction` already retries.
+ * event, or an event for a move that never happened. No CAS guard on `value`
+ * — it is field-level encrypted so it can't be a filter field. A concurrent
+ * write to the same document aborts with a retryable transaction conflict,
+ * while incrementing the unencrypted version makes already-open PUT editors
+ * detect that this user-visible value changed.
  */
 
 export type HoldingActionResult =
@@ -55,7 +56,7 @@ export async function applyHoldingAction(
 
     await holdingsColl.updateOne(
       { _id: holding._id },
-      { $set: { value: String(newValue), updated_at: new Date().toISOString() } },
+      { $set: { value: String(newValue), updated_at: new Date().toISOString() }, $inc: { version: 1 } } as never,
       { session },
     )
 
