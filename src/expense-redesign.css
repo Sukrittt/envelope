@@ -5876,6 +5876,154 @@ button.account-feature-card {
   margin-top: 6px;
 }
 
+.expense-redesign .erd-modal-card.env-sheet--rename {
+  width: 430px;
+  gap: 0;
+  padding: 28px;
+}
+
+.env-sheet-rename-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  margin-bottom: 28px;
+}
+
+.env-sheet-rename-icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--gold-soft);
+  border: 1px solid color-mix(in oklab, var(--gold) 25%, transparent);
+  font-size: 1.6rem;
+}
+
+.env-sheet-rename-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.env-sheet-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--gold-ink);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.env-sheet--rename .env-sheet-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.env-sheet-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+
+.env-sheet-close:hover {
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+}
+
+.env-sheet-close:focus-visible,
+.env-sheet-action:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.env-sheet--rename .env-sheet-section-label {
+  margin-bottom: 8px;
+  color: var(--erd-text2);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.env-sheet--rename .env-input {
+  width: 100%;
+  height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
+
+.env-sheet-emoji-help {
+  margin: 9px 0 0;
+  color: var(--erd-text3);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.env-sheet--rename .env-sheet-actions {
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--erd-border);
+}
+
+.env-sheet-action {
+  width: auto;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.env-sheet-action--cancel {
+  border: 1px solid var(--erd-border-strong);
+  background: transparent;
+  color: var(--erd-text2);
+}
+
+.env-sheet-action--cancel:hover {
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+}
+
+.env-sheet-action--save {
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  color: var(--erd-on-accent);
+}
+
+.env-sheet-action--save:hover {
+  background: var(--gold-hover);
+}
+
+.env-sheet-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .expense-redesign .erd-modal-card.env-sheet--rename {
+    padding: 24px 20px;
+  }
+}
+
 /* Money Brain */
 .brain-scrim {
   position: fixed;
