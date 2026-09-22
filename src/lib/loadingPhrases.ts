@@ -61,6 +61,13 @@ export const LOADING_PHRASES = {
     'Summing up what you actually use…',
     'Organizing your digital obligations…',
   ],
+  recurringScan: [
+    'Looking for repeat payments…',
+    'Spotting familiar amounts…',
+    'Finding the rhythm in your bills…',
+    'Checking which payments keep coming back…',
+    'Looking for your next regular…',
+  ],
   recurring: [
     'Checking what repeats…',
     'Reading the calendar…',
@@ -102,6 +109,7 @@ export type LoadingFeature = keyof typeof LOADING_PHRASES
 
 export const ORDERED_LOADING_FEATURES = new Set<LoadingFeature>([
   'recurring',
+  'recurringScan',
   'billScans',
   'billScanDetail',
   'archive',

@@ -370,11 +370,6 @@ export function ExpensePage() {
     return <ExpensePageLoading />;
   }
 
-  function handleSidebarMoveMoney() {
-    const firstOverspent = envelopeState?.envelopes.find((e) => e.isOverspent);
-    if (firstOverspent) setMoveMoneyTarget(firstOverspent.category);
-  }
-
   return (
     <section className="expense-redesign">
       {actionError && (
@@ -398,10 +393,7 @@ export function ExpensePage() {
       </header>
 
       <div className="erd-main">
-        <ExpenseSidebar
-          onMoveMoney={handleSidebarMoveMoney}
-          onBulkReturn={() => setShowBulkReturnConfirm(true)}
-        />
+        <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
         <div className="erd-content">
           <div className="erd-home">
             <div className="erd-home-main">

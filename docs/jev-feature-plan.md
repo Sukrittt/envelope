@@ -6,7 +6,7 @@ Planning notes, 2026-09-22. The web recurring-detection flow below is now implem
 
 - Entry point: Account → Recurring → Find recurring expenses.
 - User-triggered scan of 1, 3, or 6 months (default six), capped at 10,000 expense rows and 12 new candidate groups per click. Oversized periods stop before model calls and ask the user to choose a shorter period. Further groups can be scanned with another click.
-- Conservative grouping by normalized item name and payment method, at least three distinct dates. Wording variants are not fuzzy-merged in this version.
+- Conservative grouping by normalized item name and payment method, at least two distinct dates. Wording variants are not fuzzy-merged in this version.
 - Cached decisions and dismissals are scoped per user; changed inputs get new fingerprints. Decision records contain fingerprints and enums. Per-period result snapshots (including display amounts and source-row evidence) are stored encrypted in `recurring_detection.snapshot`. Reopening reads the snapshot and validates only supporting expense IDs/versions, plus existing schedules and dismissals. New expenses are considered on the next explicit scan.
 - Existing recurring and subscription names are excluded, including paused schedules. A review opens the recurring-expense form; it does not create a separate subscription entry.
 - Suggested start dates are strictly in the future. Suggestion confirmation uses a stable document id to prevent duplicate creation on retries.
@@ -32,7 +32,7 @@ Category prediction is already implemented in `lib/ai/jev.ts`.
 - Put **Find recurring expenses** in the web recurring-expenses area, with an optional entry point from transactions.
 - Explain the scope before scanning: “Find repeated payments you could add as recurring expenses.” Default to the last six months, with one- and three-month choices; annual detection needs a longer window later.
 - On click, load eligible expenses for the authenticated user and generate candidate groups in code. Avoid sending the entire ledger as one classification request.
-- Normalize descriptions conservatively, group plausible merchant/payment matches, and calculate date intervals and amount variation. Start with groups containing at least three occurrences. Preserve original descriptions as evidence; normalization alone must not determine identity.
+- Normalize descriptions conservatively, group plausible merchant/payment matches, and calculate date intervals and amount variation. Start with groups containing at least two occurrences. Preserve original descriptions as evidence; normalization alone must not determine identity.
 - Exclude refunds/transfers, existing schedule-generated rows, already tracked patterns, and unchanged dismissed candidates where the data supports those distinctions.
 - Ask Jev whether each remaining group represents a subscription, another recurring obligation, repeat purchases, or insufficient evidence. Ask cadence separately.
 - Show **suggestions**, not a public numerical score: merchant/item, typical amount or range, likely frequency, and supporting dates. Confidence is an internal filter, not a guarantee.
@@ -240,3 +240,7 @@ Runtime-validate normalized state. Calibrate probability thresholds separately f
 Follow project TDD requirements when implementing matching rules, recurrence math, or bug fixes. Matching, cache behavior, AI filtering, API controls, and review UI have targeted automated tests.
 
 Reference: https://docs.typesafe.ai/introduction — typed decisions, independent questions, and code-owned composition.
+
+### Live rent verification (2026-09-22)
+
+Two rent payments one calendar month apart with a one-day payment-date shift were classified as recurring (0.97), but cadence confidence (0.88) missed the 0.90 threshold. Clarifying that two observations and small payment-date shifts can support monthly cadence produced monthly confidence 0.99 in a live Jev check. The 0.90 thresholds remain unchanged; detection version v4 invalidates older cached rejections. This is one verified case, not broad model calibration.

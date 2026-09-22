@@ -42,6 +42,8 @@ Tenancy is enforced at the choke point, not per handler: `getCollection(base, au
 
 Caches must be keyed by user id too (`lib/cache.ts`, and the module-level map in `app/api/category-map/route.ts`) — a cache keyed only by collection name serves one user's rows to the next.
 
+For fixed-choice classification decisions (not text generation), use `typesafe-ai/jev` via `experimental_evaluate` (`lib/ai/jev.ts`, `lib/ai/recurringDetection.ts`) — far faster and cheaper than Gemini; Gemini (`lib/ai/gemini.ts`) stays for prose/JSON generation and image input.
+
 Web routes: `app/api/auth/google` + `.../google/callback` (Google sign-in), `app/api/auth/magic-auth/send` + `.../verify` (email sign-in), `app/logout` (plain href client components can navigate to, since `signOut` is server-only). `middleware.ts` refreshes the session cookie but deliberately never forces sign-in.
 
 ### Routes

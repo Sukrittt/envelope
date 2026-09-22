@@ -27,8 +27,6 @@ interface ProofDoc {
   sample: Record<string, string> | null
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 /** Whole days from now until `ts`, floored at 0. */
 function daysUntil(ts: string): number {
   const d = new Date(ts)
@@ -54,11 +52,6 @@ function SecurityContent() {
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
   const [savingName, setSavingName] = useState(false)
-
-  const [changingEmail, setChangingEmail] = useState(false)
-  const [emailDraft, setEmailDraft] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const [sendingEmail, setSendingEmail] = useState(false)
 
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState('')
@@ -119,29 +112,6 @@ function SecurityContent() {
     setSavingName(false)
     setEditingName(false)
     if (res.ok) setDoc(await res.json())
-  }
-
-  async function sendEmailChange() {
-    const email = emailDraft.trim().toLowerCase()
-    if (!EMAIL_RE.test(email)) {
-      setEmailError('Enter a valid email address.')
-      return
-    }
-    setEmailError('')
-    setSendingEmail(true)
-    const res = await fetch('/api/user/email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    setSendingEmail(false)
-    if (!res.ok) {
-      setEmailError(res.status === 409 ? 'That email is already in use.' : 'Could not change email.')
-      return
-    }
-    setChangingEmail(false)
-    setEmailDraft('')
-    await loadUser()
   }
 
   async function verifyCode() {
@@ -283,50 +253,16 @@ function SecurityContent() {
       <div className="account-card">
         <div style={{ padding: 16 }}>
           <div className="account-section-label">Email</div>
-          {changingEmail ? (
-            <div style={{ marginTop: 8 }}>
-              <input
-                className="account-inline-input"
-                value={emailDraft}
-                onChange={(e) => setEmailDraft(e.target.value)}
-                placeholder="new@email.com"
-                autoFocus
-              />
-              {emailError && (
-                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--coral)' }}>{emailError}</div>
-              )}
-              <div className="account-inline-actions">
-                <button
-                  type="button"
-                  className="account-pill-btn"
-                  onClick={() => {
-                    setChangingEmail(false)
-                    setEmailError('')
-                  }}
-                  disabled={sendingEmail}
-                >
-                  Cancel
-                </button>
-                <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={sendEmailChange} disabled={sendingEmail}>
-                  {sendingEmail ? 'Sending…' : 'Send code'}
-                </button>
+          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{doc?.email}</div>
+              <div style={{ marginTop: 6, fontSize: 11, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold)' }}>
+                {doc?.emailVerified ? '✓ Verified' : 'Unverified'}
               </div>
             </div>
-          ) : (
-            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{doc?.email}</div>
-                <div style={{ marginTop: 6, fontSize: 11, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold)' }}>
-                  {doc?.emailVerified ? '✓ Verified' : 'Unverified'}
-                </div>
-              </div>
-              <button type="button" className="account-pill-btn" onClick={() => setChangingEmail(true)}>
-                Change
-              </button>
-            </div>
-          )}
+          </div>
 
-          {doc && !doc.emailVerified && !changingEmail && (
+          {doc && !doc.emailVerified && (
             <div className="account-warn-banner">
               <div className="account-warn-title">Verify your new email</div>
               <div className="account-warn-copy">Enter the 6-digit code sent to {doc.email}.</div>
@@ -352,15 +288,6 @@ function SecurityContent() {
               <div className="account-warn-actions">
                 <button type="button" onClick={resendCode}>
                   {resent ? 'Code resent' : 'Resend code'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmailDraft('')
-                    setChangingEmail(true)
-                  }}
-                >
-                  Change back
                 </button>
               </div>
             </div>

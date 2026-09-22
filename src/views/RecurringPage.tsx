@@ -4,6 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
+import { Repeat2 } from 'lucide-react'
 import { AllocationBar, type AllocationSegment } from '../components/charts/AllocationBar'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { RecurringSuggestions } from '../components/RecurringSuggestions'
@@ -143,7 +144,7 @@ export function RecurringPage() {
         </div>
       ) : rows.length === 0 ? (
         <div className="account-empty">
-          <span aria-hidden="true">🔁</span>
+          <Repeat2 size={30} strokeWidth={1.7} aria-hidden="true" />
           <div className="account-empty-title">Set it once, forget it</div>
           <p className="account-row-meta">
             Rent, the gym, your maid. Add it here and we&apos;ll log it for you on every due date.

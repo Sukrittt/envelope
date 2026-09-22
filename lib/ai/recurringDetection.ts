@@ -25,7 +25,7 @@ const QUESTIONS = {
   },
   cadence: {
     type: 'choice',
-    instructions: 'Which billing cadence is supported by the observed dates? Allow calendar-month length differences. Do not infer cadence from merchant identity. Choose uncertain for missing evidence and other for unsupported patterns.',
+    instructions: 'Which billing cadence is supported by the observed dates? Payment dates can shift by a few days around a billing date. Two payments roughly one calendar month apart support monthly cadence, including a small day-of-month difference; more observations strengthen the evidence but are not required. Do not infer cadence from merchant identity alone. Choose uncertain for conflicting or missing evidence and other for unsupported patterns.',
     criteria: { daily: 'Daily billing.', weekly: 'Weekly billing.', monthly: 'Calendar-month billing.', yearly: 'Annual billing.', other: 'Another or irregular cadence.', uncertain: 'Insufficient evidence.' },
   },
 } satisfies Record<string, Experimental_EvaluationQuestion>

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import {
-  ArrowLeftRight,
   House,
   LineChart,
   LogOut,
@@ -30,7 +29,6 @@ import { LogExpenseModal } from "./LogExpenseModal";
 import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
 
 interface Props {
-  onMoveMoney?: () => void;
   onBulkReturn?: () => void;
 }
 
@@ -44,7 +42,7 @@ const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
 const parseBool = (raw: string) => raw === "1";
 const serializeBool = (v: boolean) => (v ? "1" : "0");
 
-export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
+export function ExpenseSidebar({ onBulkReturn }: Props) {
   const pathname = usePathname();
   const { openMoneyBrain } = useMoneyBrain();
   const { theme, setTheme } = useAppearance();
@@ -111,15 +109,9 @@ export function ExpenseSidebar({ onMoveMoney, onBulkReturn }: Props) {
           </button>
         </div>
 
-        {(onMoveMoney || onBulkReturn) && (
+        {onBulkReturn && (
           <div className="erd-nav-group">
             <div className="erd-nav-label erd-side-label">Budget</div>
-            {onMoveMoney && (
-              <button type="button" className="erd-nav-item" onClick={onMoveMoney} title={tip("Pull money")}>
-                <ArrowLeftRight size={18} />
-                <span className="erd-side-label">Pull money</span>
-              </button>
-            )}
             {onBulkReturn && (
               <button type="button" className="erd-nav-item" onClick={onBulkReturn} title={tip("Return all to RTA")}>
                 <Undo2 size={18} />

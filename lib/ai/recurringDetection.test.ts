@@ -38,3 +38,10 @@ it('bounds the complete UTF-8 state and question payload, including hostile long
   expect(payload.state.payments[0]).not.toHaveProperty('id')
   expect(() => buildRecurringEvaluation({ ...candidate, payments }, 100)).toThrow()
 })
+
+it('allows two observations and small payment-date shifts when asking about cadence', () => {
+  const payload = buildRecurringEvaluation({ ...candidate, currency: 'INR', payments: ['2026-08-04', '2026-09-03'].map((date, i) => ({ id: String(i), version: 0, date, item: 'Rent', amount: 5000, category: 'Rent', notes: '', paymentMethod: 'bank' })) })
+  expect(payload.state.payments).toHaveLength(2)
+  expect(payload.questions.cadence.instructions).toContain('Two payments roughly one calendar month apart support monthly cadence')
+  expect(payload.questions.cadence.instructions).toContain('Do not infer cadence from merchant identity alone')
+})

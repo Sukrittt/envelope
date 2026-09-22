@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { advance, type Frequency } from './recurringExpense'
 
 // Bump whenever normalization or questions change; old decisions must not survive it.
-export const DETECTION_VERSION = 'recurring-v2'
+export const DETECTION_VERSION = 'recurring-v4'
 export type DetectionDecision = { pattern: 'subscription' | 'other_recurring'; frequency: Frequency } | null
 export function fingerprint(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex')
@@ -32,7 +32,7 @@ export function buildCandidates(rows: Record<string, unknown>[], tracked: string
     group.push({ id: String(row._id), version: Number(row.version ?? 0), date, item: item.slice(0, 200), amount, category: String(row.category ?? ''), paymentMethod, notes: String(row.notes ?? '').slice(0, 300) })
     groups.set(key, group)
   }
-  return [...groups.values()].filter(group => new Set(group.map(r => r.date)).size >= 3).map(payments => {
+  return [...groups.values()].filter(group => new Set(group.map(r => r.date)).size >= 2).map(payments => {
     payments.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
     return { fingerprint: fingerprint([DETECTION_VERSION, currency, payments]), payments, currency }
   }).sort((a, b) => b.payments.at(-1)!.date.localeCompare(a.payments.at(-1)!.date) || a.fingerprint.localeCompare(b.fingerprint))
