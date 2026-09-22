@@ -1,69 +1,52 @@
-# CLAUDE.md
+# task tracking
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Tasks tracked in Notion board "Aviary".
 
-## Commands
+# tests are the norm
 
-```bash
-npm run dev           # dev server
-npm run build          # type-checks AND lints (next.config.ts no longer ignores ESLint); production build
-npm run lint            # eslint only
-npm run typecheck      # tsc --noEmit only
-npm test               # vitest run
-npm run db:migrate    # seed MongoDB from local CSVs (scripts/migrate-to-mongo.mjs), needs MONGODB_URI
-npm run sync:expenses  # sync expense CSVs (scripts/sync_expenses.mjs)
-```
+Every new feature gets a test; run `npm run typecheck && npm run lint && npm test`
+before every commit. Jest (`jest-expo` preset) + React Native Testing Library,
+config in `jest.config.js`/`jest.setup.js`. Tests are co-located as `*.test.ts(x)`
+next to their source, matching `Web/`'s Vitest convention. CI runs `npm test` on
+every push/PR via `.github/workflows/test.yml`.
 
-Tests: Vitest + `@testing-library/react`, config in `vitest.config.ts` (jsdom, `@/*` aliased same as
-`tsconfig.json`). Co-locate as `*.test.ts(x)` next to the file under test — see `lib/scoped.test.ts`
-and `src/services/budgetLoader.test.ts`. `scripts/check-scoping.mjs`'s offline wrapper-logic half now
-lives in `lib/scoped.test.ts`; the script itself only does the live-data half (needs `MONGODB_URI`).
+# success animation
 
-## Architecture
+App uses one shared success-tech animation (`src/components/shared/CheckIcon.tsx`: checkmark draw-on + haptic, swaps button label, background goes `tokens.mint`, auto-dismiss ~1100ms). Every synchronous success CTA (save/confirm button that resolves in-place) must reuse this pattern instead of a new toast/animation.
 
-Next.js 15 App Router app, but routing and views are deliberately split:
+# voice and copy
 
-- **`app/`** — route layer only. Each `app/<route>/page.tsx` is a thin wrapper that imports and renders a view from `src/views/`. `app/api/*` route handlers contain the actual server logic (no separate view layer for API).
-- **`src/`** — the real frontend: `src/views/` (one per route), `src/components/`, `src/services/` (client-side adapters/loaders that call the API and shape data for views), `src/types/`.
-- **`lib/`** — server-side helpers used by `app/api/*` route handlers: `lib/mongodb.ts` (cached MongoClient on `globalThis`), `lib/access.ts` (auth/scope resolution), `lib/http.ts` (response helpers, `getCollection`), `lib/models.ts` (Mongo document field names — kept as the legacy CSV header/snake_case names on purpose, see file header comment), `lib/categoryMap.ts`.
-- **`@/*` path alias** maps to the repo root (`tsconfig.json`), so `lib/`, `components/`, `src/` are all reachable as `@/lib/...`, `@/components/...`, `@/src/...`. `app/*/page.tsx` files use relative imports into `src/views/` instead.
+The app is playful (Fredoka display font, Nunito body, `LoadingCaption.tsx`'s rotating
+captions, Wrapped's persona cards), not corporate. Match that register in every string
+a user reads: second person, sentence case, short.
 
-### Data layer
+- No em dashes in user-facing copy. They're the single most recognizable AI-generated
+  tell, and a reader notices before they read a word. Split the sentence instead: two
+  short sentences beat one long clause joined by a dash. Enforced by an eslint rule in
+  `eslint.config.js`, so a stray em dash in a string fails `npm run lint`.
+- Use contractions: "you're", "there's", "don't", "can't". Expanded forms ("you are not",
+  "there is no", "you have assigned") are the second-loudest AI tell after the em dash, and
+  every other screen already contracts, so a formal string sticks out. No lint rule catches
+  this, so it's a review item.
+- Never show raw server or exception text (`e.message`, `String(e)`) in an alert or
+  inline error. "Failed to add expense: 503" gives the user nothing to act on. Write
+  the message instead; match a known, already-written error case if there is one (see
+  `app/(tabs)/envelopes.tsx`'s "already exists" check) and otherwise fall back to
+  something generic like "Check your connection and try again."
+- Reuse the app's existing typographic choices instead of improvising new ones: `·` as
+  a separator (not `—` or `|`), the single `…` glyph for ellipsis (not three periods),
+  and a standalone `—` only as the established placeholder glyph for a missing value
+  (`EnvelopeRow.tsx`, `DatePicker.tsx`) rather than in a sentence.
 
-Real data lives in MongoDB; the app was migrated off flat CSVs (`productivity/`, `data/` — gitignored, personal data). Collections mirror the old CSV files: `expenses`, `budgets`, `categories`, `groups`, `subscriptions`, `holdings`, `holding_events`. Every document carries a `user_id` (a WorkOS user id); the demo account is just another `user_id`, so the old `demo_*` mirror collections are gone. `lib/models.ts` documents header/field shapes; `{ headers, rows }` response shape is preserved from the CSV era so `src/services/api.ts` needs no reshaping.
+# when to write tests first (TDD)
 
-### Auth / scope model
+Default: build feature, then write tests after.
 
-Auth is WorkOS AuthKit. Every API route resolves an `Auth` (`{ userId, readOnly }`) per-request via `lib/access.ts::getAuth`, which tries three things in order: an `Authorization: Bearer <jwt>` verified against WorkOS's JWKS (the mobile app), the AuthKit session cookie via `withAuth()` (the web app, same-origin so the token never reaches browser JS), then the read-only demo user (`DEMO_USER_ID`) for anyone signed out. There's no hosted AuthKit page — Google goes straight to Google's consent screen (`provider: 'GoogleOAuth'`, skips the AuthKit picker) via `app/api/auth/google`, and email uses magic-auth codes via `app/api/auth/magic-auth/*`. Both call `saveSession()` from `@workos-inc/authkit-nextjs` directly, since neither goes through `handleAuth()`.
+Write test first (red-green-refactor) when touching:
 
-A local `users` collection (`lib/users.ts`) holds WorkOS-account metadata (email, name) for attaching app-specific data to a person — kept in sync JIT, not via webhook: `ensureUser()` upserts from the `user` object already returned by a fresh sign-in (the two auth routes above), `ensureUserById()` upserts by id alone — fetching from WorkOS only if the row is missing — for the mobile app, which authenticates directly against WorkOS and only touches this backend via `app/api/auth/verify`. `scripts/sync-users.mjs` seeds/re-syncs it on demand. The JWT's `sub` is still the tenant key for data scoping; this collection is metadata, not the source of truth for who owns what.
+- budget/envelope math, balance calculations, rollover logic
+- transaction categorization/matching rules
+- import/parsing of bank/CSV data
+- any bug fix (failing test reproducing bug, then fix)
 
-Tenancy is enforced at the choke point, not per handler: `getCollection(base, auth)` returns a `ScopedCollection` (`lib/scoped.ts`) that injects `user_id` into every filter and stamps it onto every insert, including inside `bulkWrite`. When adding a new API route, follow the existing pattern: `const auth = await getAuth(req)`, call `readOnlyGuard(auth, method)` for mutations, and use `getCollection(base, auth)` — never `db.collection()` directly, which bypasses scoping.
-
-Caches must be keyed by user id too (`lib/cache.ts`, and the module-level map in `app/api/category-map/route.ts`) — a cache keyed only by collection name serves one user's rows to the next.
-
-For fixed-choice classification decisions (not text generation), use `typesafe-ai/jev` via `experimental_evaluate` (`lib/ai/jev.ts`, `lib/ai/recurringDetection.ts`) — far faster and cheaper than Gemini; Gemini (`lib/ai/gemini.ts`) stays for prose/JSON generation and image input.
-
-Web routes: `app/api/auth/google` + `.../google/callback` (Google sign-in), `app/api/auth/magic-auth/send` + `.../verify` (email sign-in), `app/logout` (plain href client components can navigate to, since `signOut` is server-only). `middleware.ts` refreshes the session cookie but deliberately never forces sign-in.
-
-### Routes
-
-`/` → public landing page (`src/views/LandingPage.tsx`); its playground runs web twins of Mobile's screens from `src/components/landing/mobile/`. Pages: `/expense` (budget dashboard), `/expense/transactions`, `/investments`, `/onboarding`, `/account/*`, `/legal/*`, and the `(auth)` sign-in flow.
-
-The `/fitness` and `/learnings` pages, the `mission-control-app/` prototype, and the
-`DashboardProvider`/`dashboardService` mock data layer behind them were removed in
-`plans/010-mobile-web-parity.md` phase 0. Web is being brought to feature parity with the
-Aviary mobile app; read that plan before adding frontend surfaces.
-
-## Breaking Long-Running Tasks
-
-For any task expected to span multiple tool calls or involve 3+ files:
-1. Create a todo list at the start (use Todowrite tool)
-2. Mark items `in_progress` as you work them
-3. Mark `completed` only after verified done (not just "written")
-4. Keep exactly one `in_progress` at a time
-5. If blocked, add follow-up todo describing the blocker
-
-## Repo-root docs
-
-`PRODUCT.md` and `FLUID_INTERACTIONS.md` at the repo root contain product/interaction-design notes worth checking before UI work. `plans/` holds planning docs for past feature work.
+Everything else (UI, screens, navigation, styling, CRUD scaffolding): feature first, tests after, or skip if trivial.
