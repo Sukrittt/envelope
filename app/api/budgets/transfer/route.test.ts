@@ -9,6 +9,12 @@ vi.mock('@/lib/cache', () => ({
   invalidate: vi.fn(),
 }))
 
+const reconcileThresholdLevelsMock = vi.fn(async (_auth: unknown, _categories: string[], _month?: string) => {})
+vi.mock('@/lib/notifications/instant', () => ({
+  reconcileThresholdLevels: (auth: unknown, categories: string[], month?: string) =>
+    reconcileThresholdLevelsMock(auth, categories, month),
+}))
+
 vi.mock('@/lib/mongodb', () => ({
   withTx: async (fn: (session: undefined) => Promise<unknown>) => fn(undefined),
 }))
@@ -72,6 +78,7 @@ function row(month: string, category: string) {
 beforeEach(() => {
   store = []
   nextId = 1
+  reconcileThresholdLevelsMock.mockClear()
 })
 
 describe('POST /api/budgets/transfer', () => {
@@ -84,6 +91,11 @@ describe('POST /api/budgets/transfer', () => {
 
     expect(row('2026-03', 'Dining')?.assigned).toBe('1700')
     expect(row('2026-03', 'Travel')?.assigned).toBe('800')
+    expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
+      { userId: 'user_a', readOnly: false, sessionId: null },
+      ['Travel', 'Dining'],
+      '2026-03',
+    )
   })
 
   it('moving from Ready to Assign only credits the target, no source row touched', async () => {
@@ -94,6 +106,11 @@ describe('POST /api/budgets/transfer', () => {
 
     expect(row('2026-03', 'Travel')?.assigned).toBe('800')
     expect(store).toHaveLength(1)
+    expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
+      { userId: 'user_a', readOnly: false, sessionId: null },
+      ['Travel'],
+      '2026-03',
+    )
   })
 
   it('creates a budget row for the target when it has no assignment yet', async () => {

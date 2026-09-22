@@ -16,7 +16,10 @@ vi.mock('@/lib/access', () => ({
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))
 vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
-vi.mock('@/lib/notifications/instant', () => ({ notifyThresholdCrossed: vi.fn() }))
+vi.mock('@/lib/notifications/instant', () => ({
+  notifyThresholdCrossed: vi.fn(),
+  reconcileThresholdLevels: vi.fn(),
+}))
 // Real scoped/encrypted collections and real Mongo transactions. The barrier
 // schedules both reads before either write; the fault injectors simulate a
 // crash partway through a multi-write handler.

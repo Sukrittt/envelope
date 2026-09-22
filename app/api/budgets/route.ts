@@ -4,6 +4,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { BUDGET_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { resolveCategoryName } from '@/lib/categoryName'
+import { reconcileThresholdLevels } from '@/lib/notifications/instant'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
     throw err
   }
   invalidate('budgets', auth.userId)
+  await reconcileThresholdLevels(auth, [String(body.category)], String(body.month))
   return json({ ok: true })
 }
 
@@ -82,6 +84,11 @@ export async function PUT(req: Request) {
     { upsert: true },
   )
   invalidate('budgets', auth.userId)
+  await reconcileThresholdLevels(
+    auth,
+    [category, ...(update.category ? [update.category] : [])],
+    String(body.month),
+  )
   return json({ ok: true })
 }
 
@@ -99,5 +106,6 @@ export async function DELETE(req: Request) {
   const result = await coll.deleteOne({ month: String(body.month), category: String(body.category) })
   if (result.deletedCount === 0) return error('budget row not found', 404)
   invalidate('budgets', auth.userId)
+  await reconcileThresholdLevels(auth, [String(body.category)], String(body.month))
   return json({ ok: true })
 }

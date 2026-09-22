@@ -43,7 +43,7 @@ const buildExpenseContextMock = vi.fn(async () => ({
 }))
 vi.mock('@/lib/ai/expenseContext', () => ({ buildExpenseContext: buildExpenseContextMock }))
 
-const { notifyThresholdCrossed } = await import('./instant')
+const { notifyThresholdCrossed, reconcileThresholdLevels } = await import('./instant')
 
 describe('notifyThresholdCrossed', () => {
   beforeEach(() => {
@@ -126,6 +126,53 @@ describe('notifyThresholdCrossed', () => {
     // Back up past 90% — the same threshold fires again since it dropped first.
     await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('re-arms every later threshold after a budget change lowers the percentage', async () => {
+    const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+
+    // Food first reaches 95%, recording the highest crossed level (90).
+    buildExpenseContextMock.mockResolvedValueOnce({
+      facts: 'FACTS',
+      meta: { txnCountThisMonth: 1, totalSpent: 950, totalAssigned: 1000, daysLeft: 5, daysElapsed: 25, totalDaysInMonth: 30 },
+      envelopes: [
+        { category: 'Food', group: '', assigned: 1000, spent: 950, available: 50, rolledOver: 0, isOverspent: false, spentPct: 95 },
+      ],
+      subscriptions: [],
+      categories: [{ name: 'Food', alertPcts: [50, 75, 90] }],
+    })
+    await notifyThresholdCrossed(auth, 'Food')
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
+
+    // Adding budget drops it to 60%. Reconciliation must lower the recorded
+    // level to 50 without sending a new push.
+    buildExpenseContextMock.mockResolvedValueOnce({
+      facts: 'FACTS',
+      meta: { txnCountThisMonth: 1, totalSpent: 950, totalAssigned: 1600, daysLeft: 5, daysElapsed: 25, totalDaysInMonth: 30 },
+      envelopes: [
+        { category: 'Food', group: '', assigned: 1600, spent: 950, available: 650, rolledOver: 0, isOverspent: false, spentPct: 60 },
+      ],
+      subscriptions: [],
+      categories: [{ name: 'Food', alertPcts: [50, 75, 90] }],
+    })
+    await reconcileThresholdLevels(auth, ['Food'])
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
+    expect([...thresholdStateStore.values()]).toEqual([50])
+
+    // A single expense jumps straight past both 75 and 90. Only the highest
+    // crossed threshold fires, and it can fire because the move re-armed it.
+    buildExpenseContextMock.mockResolvedValueOnce({
+      facts: 'FACTS',
+      meta: { txnCountThisMonth: 2, totalSpent: 1520, totalAssigned: 1600, daysLeft: 5, daysElapsed: 25, totalDaysInMonth: 30 },
+      envelopes: [
+        { category: 'Food', group: '', assigned: 1600, spent: 1520, available: 80, rolledOver: 0, isOverspent: false, spentPct: 95 },
+      ],
+      subscriptions: [],
+      categories: [{ name: 'Food', alertPcts: [50, 75, 90] }],
+    })
+    await notifyThresholdCrossed(auth, 'Food')
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
+    expect(sendPushNotificationMock.mock.calls[1][0]).toMatchObject({ data: { category: 'Food', level: 90 } })
   })
 
   it('swallows errors rather than throwing, since it must never break the expense write', async () => {

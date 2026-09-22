@@ -6,6 +6,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
 import { casRetry } from '@/lib/cas'
+import { reconcileThresholdLevels } from '@/lib/notifications/instant'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,6 +148,11 @@ export async function POST(req: Request) {
   })
 
   invalidate('budgets', auth.userId)
+  await reconcileThresholdLevels(
+    auth,
+    [to, ...sources.filter((source) => source.category !== RTA_SENTINEL).map((source) => source.category)],
+    month,
+  )
   return json({ ok: true })
 }
 

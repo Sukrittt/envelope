@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
@@ -10,23 +10,47 @@ vi.mock('@/lib/cache', () => ({
 }))
 
 const insertOneMock = vi.fn()
+const updateOneMock = vi.fn()
+const deleteOneMock = vi.fn()
+const reconcileThresholdLevelsMock = vi.fn(async (_auth: unknown, _categories: string[], _month?: string) => {})
+
+vi.mock('@/lib/notifications/instant', () => ({
+  reconcileThresholdLevels: (auth: unknown, categories: string[], month?: string) =>
+    reconcileThresholdLevelsMock(auth, categories, month),
+}))
+
+vi.mock('@/lib/categoryName', () => ({
+  resolveCategoryName: vi.fn(async (_auth: unknown, category: string) => category),
+}))
+
 vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
   return {
     ...actual,
-    getCollection: vi.fn(async () => ({ insertOne: insertOneMock })),
+    getCollection: vi.fn(async () => ({
+      insertOne: insertOneMock,
+      updateOne: updateOneMock,
+      deleteOne: deleteOneMock,
+    })),
   }
 })
 
-const { POST } = await import('./route')
+const { POST, PUT, DELETE } = await import('./route')
 
-function req(body: unknown): Request {
+function req(body: unknown, method = 'POST'): Request {
   return new Request('https://example.com/api/budgets', {
-    method: 'POST',
+    method,
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
 }
+
+beforeEach(() => {
+  insertOneMock.mockReset()
+  updateOneMock.mockReset().mockResolvedValue({ matchedCount: 1 })
+  deleteOneMock.mockReset().mockResolvedValue({ deletedCount: 1 })
+  reconcileThresholdLevelsMock.mockClear()
+})
 
 describe('POST /api/budgets (C4)', () => {
   it('returns 409, not a raw 500, when the unique index rejects a duplicate month/category', async () => {
@@ -48,5 +72,30 @@ describe('POST /api/budgets (C4)', () => {
     insertOneMock.mockResolvedValueOnce({ insertedId: '1' })
     const res = await POST(req({ month: '2026-01', category: 'Groceries', assigned: '5000' }))
     expect(res.status).toBe(200)
+    expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
+      { userId: 'user_a', readOnly: false, sessionId: null },
+      ['Groceries'],
+      '2026-01',
+    )
+  })
+
+  it('reconciles the affected category after an assignment update', async () => {
+    const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '8000' }, 'PUT'))
+    expect(res.status).toBe(200)
+    expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
+      { userId: 'user_a', readOnly: false, sessionId: null },
+      ['Groceries'],
+      '2026-01',
+    )
+  })
+
+  it('reconciles the affected category after an assignment is deleted', async () => {
+    const res = await DELETE(req({ month: '2026-01', category: 'Groceries' }, 'DELETE'))
+    expect(res.status).toBe(200)
+    expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
+      { userId: 'user_a', readOnly: false, sessionId: null },
+      ['Groceries'],
+      '2026-01',
+    )
   })
 })

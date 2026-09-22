@@ -8,20 +8,29 @@ import { claimAndSend } from './deliver'
 import { syncLevel } from './thresholdState'
 
 /**
- * Fires threshold/overspend notifications for one category the instant it
- * changes, right after an expense is logged or edited — the daily cron
- * (`app/api/notifications/run`) still exists for bills/digest/coach, but a
- * "you just crossed 80%" alert is only useful on the spot. Shares the same
- * `buildNotifications` rules and `notification_log` dedupe key as the cron,
- * so whichever fires first wins and the other is a no-op.
+ * Reconciles the recorded threshold level for every category changed by one
+ * write. A budget transfer can affect several envelopes at once, so this
+ * batches the expensive context build while still applying each category's
+ * level independently.
  *
- * Never throws — a notification failure must not fail the expense write
- * that triggered it. Callers still don't need to await this if they'd
- * rather not add the latency, but awaiting is what makes "instant" true on
- * a serverless function that suspends once the response is sent.
+ * Rising levels send the highest currently crossed threshold. Falling levels
+ * only update state, re-arming every threshold above the new level. When a
+ * budget mutation supplies `changedMonth`, historical edits are ignored so
+ * they cannot alter the current month's notification state.
+ *
+ * Never throws — notification work must not fail the money write that caused
+ * it. Awaiting is still important because a serverless function may suspend as
+ * soon as its response is sent.
  */
-export async function notifyThresholdCrossed(auth: Auth, category: string): Promise<void> {
+export async function reconcileThresholdLevels(
+  auth: Auth,
+  changedCategories: string[],
+  changedMonth?: string,
+): Promise<void> {
   try {
+    const affected = [...new Set(changedCategories.filter(Boolean))]
+    if (affected.length === 0) return
+
     const db = await getDb()
     const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
     if (!user) return
@@ -29,9 +38,11 @@ export async function notifyThresholdCrossed(auth: Auth, category: string): Prom
     const prefs = prefsFor(user)
     if (!prefs.thresholds) return
 
-    const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth)
     const { date: today } = nowIn(user.timezone)
     const month = today.slice(0, 7)
+    if (changedMonth && changedMonth !== month) return
+
+    const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth)
 
     const notifications = buildNotifications({
       envelopes,
@@ -41,18 +52,26 @@ export async function notifyThresholdCrossed(auth: Auth, category: string): Prom
       prefs,
       today,
       month,
-    }).filter((n) => (n.kind === 'threshold' || n.kind === 'overspent') && n.data?.category === category)
+    }).filter((n) => n.kind === 'threshold' || n.kind === 'overspent')
 
-    for (const notification of notifications) {
-      await claimAndSend(db, user._id, notification, facts)
-    }
-
-    // A category that dropped below every threshold produces no candidate above,
-    // so nothing would sync its level down — do it here so a later re-cross fires.
-    if (notifications.length === 0) {
-      await syncLevel(db, user._id, month, category, categoryLevel(envelopes, categories, category))
+    for (const category of affected) {
+      const notification = notifications.find((n) => n.data?.category === category)
+      if (notification) {
+        // claimAndSend always syncs the level first. A downward move therefore
+        // records the lower level but returns false and sends nothing.
+        await claimAndSend(db, user._id, notification, facts)
+      } else {
+        // Below every configured threshold (or no longer an envelope): sync to
+        // zero so the first threshold can fire again later.
+        await syncLevel(db, user._id, month, category, categoryLevel(envelopes, categories, category))
+      }
     }
   } catch (err) {
-    console.error('notifications: instant threshold check failed for', auth.userId, category, err)
+    console.error('notifications: instant threshold reconciliation failed for', auth.userId, changedCategories, err)
   }
+}
+
+/** Reconciles one category after an expense is logged, edited, or deleted. */
+export async function notifyThresholdCrossed(auth: Auth, category: string): Promise<void> {
+  await reconcileThresholdLevels(auth, [category])
 }
