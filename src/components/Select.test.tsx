@@ -75,4 +75,15 @@ describe('Select', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search Cat2' }), { target: { value: 'zzz' } })
     expect(screen.getByText('No matches')).toBeTruthy()
   })
+
+  it('shows an option icon in both the row and the trigger once selected', () => {
+    const withIcons = [{ value: 'rent', label: 'Rent', icon: '🏠' }, { value: 'food', label: 'Food' }]
+    const onChange = vi.fn()
+    render(<Select value="rent" onChange={onChange} options={withIcons} aria-label="Cat3" />)
+    // aria-hidden icons don't count toward the accessible name; check the rendered text instead.
+    expect(screen.getByRole('combobox', { name: 'Cat3' }).textContent).toBe('🏠Rent')
+    fireEvent.click(screen.getByRole('combobox', { name: 'Cat3' }))
+    expect(screen.getByRole('option', { name: 'Rent' }).textContent).toBe('🏠Rent')
+    expect(screen.getByRole('option', { name: 'Food' })).toBeTruthy()
+  })
 })

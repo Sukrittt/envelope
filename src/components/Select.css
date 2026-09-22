@@ -35,11 +35,18 @@
   font-weight: 500;
 }
 .ui-select-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ui-select-icon {
+  flex: none;
+  line-height: 1;
 }
 .ui-select-chevron {
   flex: none;
@@ -126,6 +133,12 @@
 .ui-select-option[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
+}
+.ui-select-option-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 .ui-select-option-text {
   min-width: 0;

@@ -11,6 +11,8 @@ export interface SelectOption {
   label: string
   /** Muted second line, e.g. a balance or a code. */
   hint?: string
+  /** Leading glyph, e.g. a category emoji — shown in both the trigger and the row. */
+  icon?: string
   disabled?: boolean
 }
 
@@ -213,7 +215,10 @@ export function Select({
         onClick={() => (open ? close() : openMenu())}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className="ui-select-value">{selected ? selected.label : placeholder}</span>
+        <span className="ui-select-value">
+          {selected?.icon && <span className="ui-select-icon" aria-hidden="true">{selected.icon}</span>}
+          {selected ? selected.label : placeholder}
+        </span>
         <ChevronDown className="ui-select-chevron" size={16} aria-hidden="true" />
       </button>
       {open && place && createPortal(
@@ -258,9 +263,12 @@ export function Select({
                 onMouseDown={(e) => { e.preventDefault(); pick(i) }}
                 onMouseMove={() => !o.disabled && setActive(i)}
               >
-                <span className="ui-select-option-text">
-                  {o.label}
-                  {o.hint && <small>{o.hint}</small>}
+                <span className="ui-select-option-main">
+                  {o.icon && <span className="ui-select-icon" aria-hidden="true">{o.icon}</span>}
+                  <span className="ui-select-option-text">
+                    {o.label}
+                    {o.hint && <small>{o.hint}</small>}
+                  </span>
                 </span>
                 {o.value === value && <Check size={15} aria-hidden="true" />}
               </div>
