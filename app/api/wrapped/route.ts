@@ -6,6 +6,7 @@ import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { cachedRead } from '@/lib/cache'
 import { currentEdition, monthRange } from '@/lib/wrapped'
 import { computeWrapped } from '@/src/services/wrappedAdapter'
+import { judgeWrapped } from '@/lib/ai/wrappedPersona'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,9 @@ export async function GET(req: Request) {
       const coll = await getCollection('expenses', auth)
       const docs = await coll.find({ date: { $gte: start, $lte: end } }).toArray()
       const rows = docs.map((d) => toRow(EXPENSE_HEADERS, d))
-      return computeWrapped(rows, month)
+      const recap = computeWrapped(rows, month)
+      // Cached with the recap, so Jev is asked once per user-month.
+      return { ...recap, ...(await judgeWrapped(recap, { userId: auth.userId, feature: 'wrapped' })) }
     },
     month,
   )

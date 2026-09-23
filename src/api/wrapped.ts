@@ -11,6 +11,9 @@ export interface WrappedData {
   longestStreak: { days: number; startDate: string; endDate: string } | null
   longestGap: { days: number; startDate: string; endDate: string } | null
   weeklyTotals: { label: string; total: number }[]
+  /** Jev's read of the month; null when Jev is unsure or unavailable. */
+  persona?: string | null
+  treatCategory?: string | null
 }
 
 export interface WrappedStatus {

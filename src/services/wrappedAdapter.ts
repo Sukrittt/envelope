@@ -11,6 +11,9 @@ export interface WrappedData {
   longestStreak: { days: number; startDate: string; endDate: string } | null
   longestGap: { days: number; startDate: string; endDate: string } | null
   weeklyTotals: Array<{ label: string; total: number }>
+  /** Jev's read of the month, added by the API route; null when Jev is unsure or unavailable. */
+  persona?: string | null
+  treatCategory?: string | null
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']

@@ -16,7 +16,19 @@ import { LoadingCaption } from '@/src/components/LoadingCaption'
 const STORY_MS = 5000
 const PALETTE = ['#f2b84b', '#ee785d', '#4f9b82', '#6f67b1', '#df8c59']
 
+/** Jev's persona keys, with the copy the card shows for each. */
+const JEV_PERSONAS: Record<string, (data: WrappedData) => { emoji: string; name: string; copy: string }> = {
+  daily_tracker: () => ({ emoji: '🔥', name: 'The Daily Tracker', copy: 'You kept the habit alive, one honest entry at a time.' }),
+  loyalist: (data) => ({ emoji: '🎯', name: 'The Loyalist', copy: `You knew what mattered. ${data.topCategories[0]?.category ?? 'One category'} led the way.` }),
+  steady_hand: () => ({ emoji: '⚖️', name: 'The Steady Hand', copy: 'Your spending kept a calm, remarkably even rhythm.' }),
+  free_spirit: () => ({ emoji: '🪁', name: 'The Free Spirit', copy: 'No two weeks looked the same, and your story stayed interesting.' }),
+  big_swing: (data) => ({ emoji: '🎢', name: 'The Big Swing', copy: data.biggestPurchase ? `One call — ${data.biggestPurchase.item} — shaped the whole month.` : 'One big call shaped the whole month.' }),
+  slow_burn: (data) => ({ emoji: '🕯️', name: 'The Slow Burn', copy: `${data.totalTransactions} small decisions, adding up quietly.` }),
+}
+
 export function wrappedArchetype(data: WrappedData) {
+  const fromJev = data.persona ? JEV_PERSONAS[data.persona] : undefined
+  if (fromJev) return fromJev(data)
   const topShare = data.topCategories[0]?.pct ?? 0
   const busiestWeek = Math.max(0, ...data.weeklyTotals.map((week) => week.total))
   const weeklyAverage = data.weeklyTotals.length
@@ -78,6 +90,9 @@ function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; mo
     {
       color: '#568d86', ink: '#f8fff9', node: <Story eyebrow="Where it all went" title="Your category mix"><div className="wrapped-category-list">{data.topCategories.map((category, itemIndex) => <div key={category.category}><span><i style={{ background: PALETTE[itemIndex] }} />{category.category}</span><strong>{Math.round(category.pct)}%</strong><small style={{ width: `${category.pct}%`, background: PALETTE[itemIndex] }} /></div>)}</div></Story>,
     },
+    ...(data.treatCategory ? [{
+      color: '#d98ca6', ink: '#33161f', node: <Story eyebrow="Your little treat" title={data.treatCategory} emoji="🍰"><p>The category that looked least like a bill and most like a reward.</p></Story>,
+    }] : []),
     {
       color: '#e89161', ink: '#341b10', node: <Story eyebrow="Consistency check" title={`${data.longestStreak?.days ?? 0} day streak`} emoji="🔥"><p>{data.longestStreak ? `${formatDateShort(data.longestStreak.startDate)} to ${formatDateShort(data.longestStreak.endDate)}. Your longest run of logged spending.` : 'Every habit starts with day one.'}</p></Story>,
     },
