@@ -5,7 +5,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { Scrim, Sheet } from './MotionSheet'
-import { DatePicker } from './DatePicker'
+import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -53,6 +53,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [category, setCategory] = useState<string>('')
   const [date, setDate] = useState(toDateInputValue(new Date()))
   const [showCalendar, setShowCalendar] = useState(false)
+  const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [categoryWords, setCategoryWords] = useState<Record<string, string>>({})
@@ -266,16 +267,27 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               </button>
               <button
                 type="button"
-                className={`erd-date-chip${showCalendar ? ' is-active' : ''}`}
+                ref={pickDateChipRef}
+                className={`erd-date-chip${showCalendar || (date !== today && date !== yesterday) ? ' is-active' : ''}`}
                 onClick={() => setShowCalendar((v) => !v)}
               >
                 <Calendar size={15} aria-hidden="true" />
-                {showCalendar ? 'Close' : 'Pick date'}
+                {showCalendar
+                  ? 'Close'
+                  : date !== today && date !== yesterday
+                    ? formatShort(date)
+                    : 'Pick date'}
               </button>
             </div>
-            {showCalendar && (
-              <DatePicker mode="single" value={date} onChange={handleDatePick} />
-            )}
+            <DatePicker
+              mode="single"
+              value={date}
+              onChange={handleDatePick}
+              hideTrigger
+              open={showCalendar}
+              onOpenChange={setShowCalendar}
+              anchorRef={pickDateChipRef}
+            />
           </section>
 
           {error && <p className="erd-log-error">{error}</p>}

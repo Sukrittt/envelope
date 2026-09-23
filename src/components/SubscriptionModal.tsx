@@ -1,7 +1,7 @@
 'use client'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -26,8 +26,6 @@ interface Props {
   onClose: () => void
   onSaved: () => void
   editData?: SubscriptionEdit
-  initialValues?: SubscriptionEdit
-  suggestionId?: string
 }
 
 const BILLING_CYCLES = ['weekly', 'monthly', 'quarterly', 'yearly', 'one-time'] as const
@@ -104,26 +102,26 @@ function findCategory(categories: CategoryRow[], target: string): string {
   return row ? row.name : ''
 }
 
-export function SubscriptionModal({ onClose, onSaved, editData, initialValues, suggestionId }: Props) {
+export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
   const { currencySymbol } = useCurrency()
   const categoriesQ = useCategories()
   const categories = categoriesQ.data ?? EMPTY
 
   const isEdit = !!editData
-  const initial = editData ?? initialValues
-  const [service, setService] = useState(initial?.service ?? '')
-  const [amount, setAmount] = useState(initial?.amount_inr ?? '')
+  const [service, setService] = useState(editData?.service ?? '')
+  const [amount, setAmount] = useState(editData?.amount_inr ?? '')
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
-    (initial?.billing_cycle as BillingCycle) ?? 'monthly',
+    (editData?.billing_cycle as BillingCycle) ?? 'monthly',
   )
   // Deliberately unselected — a guessed default would silently create the wrong reminder.
   const [dueDate, setDueDate] = useState(() =>
-    initial?.next_due_date ? toDateInput(initial.next_due_date) : '',
+    editData?.next_due_date ? toDateInput(editData.next_due_date) : '',
   )
-  const [showNote, setShowNote] = useState(() => !!initial?.notes?.trim())
-  const [notes, setNotes] = useState(initial?.notes ?? '')
-  const [category, setCategory] = useState(initial?.category ?? '')
+  const [showNote, setShowNote] = useState(() => !!editData?.notes?.trim())
+  const [notes, setNotes] = useState(editData?.notes ?? '')
+  const [category, setCategory] = useState(editData?.category ?? '')
   const [showCalendar, setShowCalendar] = useState(false)
+  const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
   const addSub = useAddSubscription()
@@ -178,7 +176,6 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
         await updateSub.mutateAsync({ service: editData!.service, updates })
       } else {
         await addSub.mutateAsync({
-          suggestion_id: suggestionId,
           service: service.trim(),
           amount_inr: String(amt),
           billing_cycle: billingCycle,
@@ -213,9 +210,6 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
 
         <div className="erd-sub-body">
           {error && <p className="erd-log-error">{error}</p>}
-          {suggestionId && (
-            <p className="recurring-hint">Review this suggestion. Future charges will be tracked from the due date below; past expenses stay unchanged.</p>
-          )}
 
           <section className="erd-sub-section">
             <label className="erd-log-label" htmlFor="erd-sub-service">
@@ -313,7 +307,8 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
               </button>
               <button
                 type="button"
-                className={`erd-date-chip${showCalendar ? ' is-active' : ''}`}
+                ref={pickDateChipRef}
+                className={`erd-date-chip${showCalendar || customDate ? ' is-active' : ''}`}
                 onClick={() => setShowCalendar((v) => !v)}
               >
                 <Calendar size={15} aria-hidden="true" />
@@ -321,14 +316,16 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
               </button>
             </div>
             {dueDate && <p className="erd-sub-due">Due {formatDueDate(dueDate)}</p>}
-            {showCalendar && (
-              <DatePicker
-                mode="single"
-                value={dueDate}
-                onChange={handleDatePick}
-                disableFuture={false}
-              />
-            )}
+            <DatePicker
+              mode="single"
+              value={dueDate}
+              onChange={handleDatePick}
+              disableFuture={false}
+              hideTrigger
+              open={showCalendar}
+              onOpenChange={setShowCalendar}
+              anchorRef={pickDateChipRef}
+            />
           </section>
 
           <section className="erd-sub-section">

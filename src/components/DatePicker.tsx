@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import { Scrim, Sheet } from './MotionSheet'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -24,18 +25,30 @@ const addDays = (d: Date, n: number) => {
 export const monthStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
 const fmt = (d: Date | null) => (d ? `${d.getDate()} ${SHORT[d.getMonth()]} ${d.getFullYear()}` : '—')
 const fmtShort = (d: Date) => `${d.getDate()} ${SHORT[d.getMonth()]}`
+/** `YYYY-MM-DD` as `D Mon YYYY`, for chips that show a picked custom date. */
+export function formatShort(iso: string): string {
+  const d = parseISO(iso)
+  return d ? fmt(d) : iso
+}
 
 type SingleProps = {
   mode: 'single'
   value: string
   onChange: (value: string) => void
   disableFuture?: boolean
+  popoverOnDesktop?: boolean
+  /** Externally-triggered popover: caller owns the trigger button and open state (e.g. a chip). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  hideTrigger?: boolean
+  anchorRef?: RefObject<HTMLElement | null>
 }
 type RangeProps = {
   mode: 'range'
   value: { start: string; end: string }
   onChange: (value: { start: string; end: string }) => void
   disableFuture?: boolean
+  popoverOnDesktop?: boolean
 }
 export type DatePickerProps = SingleProps | RangeProps
 
@@ -165,8 +178,25 @@ const RANGE_PRESETS: [string, number, boolean][] = [
 export function DatePicker(props: DatePickerProps) {
   const disableFuture = props.disableFuture ?? true
   const today = new Date()
-  const [open, setOpen] = useState(false)
+  const hideTrigger = props.mode === 'single' && !!props.hideTrigger
+  const externalAnchor = props.mode === 'single' ? props.anchorRef : undefined
+  const controlledOpen = props.mode === 'single' ? props.open : undefined
+  const onOpenChangeProp = props.mode === 'single' ? props.onOpenChange : undefined
+  const [openState, setOpenState] = useState(false)
+  const open = controlledOpen ?? openState
+  const setOpen = useCallback(
+    (value: boolean) => {
+      onOpenChangeProp?.(value)
+      if (controlledOpen === undefined) setOpenState(value)
+    },
+    [onOpenChangeProp, controlledOpen],
+  )
+  // A caller-owned trigger (hideTrigger) always pops over; there's no inline fallback to size for.
+  const [desktopPopover, setDesktopPopover] = useState(false)
+  const popoverActive = hideTrigger || desktopPopover
+  const [popoverPosition, setPopoverPosition] = useState<{ left: number; top: number; width: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   const initialAnchor = props.mode === 'single' ? parseISO(props.value) ?? today : parseISO(props.value.start) ?? today
   const [view, setView] = useState(() => monthStart(initialAnchor))
@@ -180,16 +210,70 @@ export function DatePicker(props: DatePickerProps) {
   const [draftEnd, setDraftEnd] = useState<Date | null>(currentEnd)
 
   useEffect(() => {
+    if (!props.popoverOnDesktop) return
+    const media = window.matchMedia('(min-width: 901px)')
+    const sync = () => setDesktopPopover(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [props.popoverOnDesktop])
+
+  useEffect(() => {
+    if (!open || !popoverActive) return
+
+    function positionPopover() {
+      const rect = (externalAnchor?.current ?? rootRef.current)?.getBoundingClientRect()
+      if (!rect) return
+      const gap = 28
+      const viewportPadding = 16
+      // Before the card has painted, guess its height; once it's mounted, use the real one
+      // so a flip-above doesn't leave a gap sized for the wrong estimate.
+      const height = cardRef.current?.getBoundingClientRect().height || 410
+      const spaceBelow = window.innerHeight - rect.bottom - viewportPadding
+      const top = spaceBelow >= height
+        ? rect.bottom + gap
+        : Math.max(viewportPadding, rect.top - height - gap)
+      // A chip anchor is too narrow to size the card by; give it a fixed width and keep it on-screen.
+      const width = externalAnchor ? 300 : rect.width
+      const left = externalAnchor
+        ? Math.min(rect.left, window.innerWidth - width - viewportPadding)
+        : rect.left
+      setPopoverPosition({ left, top, width })
+    }
+
+    positionPopover()
+    // Re-run once the card is actually in the DOM so the estimate above gets replaced with its real height.
+    const raf = requestAnimationFrame(positionPopover)
+    window.addEventListener('resize', positionPopover)
+    window.addEventListener('scroll', positionPopover, true)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', positionPopover)
+      window.removeEventListener('scroll', positionPopover, true)
+    }
+  }, [popoverActive, open, externalAnchor, view])
+
+  useEffect(() => {
+    if (!hideTrigger || !open) return
+    setDraftStart(currentStart)
+    setDraftEnd(currentEnd)
+    setView(monthStart(currentStart ?? today))
+    // currentStart/currentEnd/today are derived fresh every render; re-run only on open, not on every value tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, hideTrigger])
+
+  useEffect(() => {
     if (!open) return
     function onDocClick(e: MouseEvent) {
       const target = e.target as Node
       if (rootRef.current && rootRef.current.contains(target)) return
-      if ((target as HTMLElement).closest?.('.date-picker-scrim')) return
+      if (externalAnchor?.current && externalAnchor.current.contains(target)) return
+      if ((target as HTMLElement).closest?.('.date-picker-scrim, .date-picker-popover')) return
       setOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
-  }, [open])
+  }, [open, externalAnchor, setOpen])
 
   function openPicker() {
     setDraftStart(currentStart)
@@ -255,6 +339,40 @@ export function DatePicker(props: DatePickerProps) {
 
   if (props.mode === 'single') {
     const label = currentStart ? `${WEEKDAY_FULL[currentStart.getDay()]}, ${fmt(currentStart)}` : 'Select a date'
+    const calendar = (
+      <div ref={cardRef} className={`date-picker-card${popoverActive ? ' date-picker-popover' : ''}`} style={popoverPosition ?? undefined}>
+        <div className="date-picker-quick">
+          {SINGLE_PRESETS.map(([presetLabel, off]) => {
+            const d = addDays(today, off)
+            const active = !!draftStart && key(draftStart) === key(d)
+            return (
+              <button type="button" key={presetLabel} className={`date-picker-chip${active ? ' is-active' : ''}`} onClick={() => jumpSingle(d)}>
+                {presetLabel}
+              </button>
+            )
+          })}
+        </div>
+        <CalendarBody
+          view={view}
+          today={today}
+          draftStart={draftStart}
+          draftEnd={draftStart}
+          disableFuture={disableFuture}
+          dir={dir}
+          pingKey={pingKey}
+          onPrevMonth={() => navMonth(-1)}
+          onNextMonth={() => navMonth(1)}
+          onTapDay={tapDay}
+        />
+      </div>
+    )
+    if (hideTrigger) {
+      return (
+        <div ref={rootRef}>
+          {open && popoverPosition && createPortal(calendar, document.querySelector('.expense-redesign') ?? document.body)}
+        </div>
+      )
+    }
     return (
       <div className="date-picker-field-wrap" ref={rootRef}>
         <button type="button" className="date-picker-field" onClick={() => (open ? setOpen(false) : openPicker())}>
@@ -271,32 +389,10 @@ export function DatePicker(props: DatePickerProps) {
             ⌄
           </span>
         </button>
-        {open && (
-          <div className="date-picker-card">
-            <div className="date-picker-quick">
-              {SINGLE_PRESETS.map(([presetLabel, off]) => {
-                const d = addDays(today, off)
-                const active = !!draftStart && key(draftStart) === key(d)
-                return (
-                  <button type="button" key={presetLabel} className={`date-picker-chip${active ? ' is-active' : ''}`} onClick={() => jumpSingle(d)}>
-                    {presetLabel}
-                  </button>
-                )
-              })}
-            </div>
-            <CalendarBody
-              view={view}
-              today={today}
-              draftStart={draftStart}
-              draftEnd={draftStart}
-              disableFuture={disableFuture}
-              dir={dir}
-              pingKey={pingKey}
-              onPrevMonth={() => navMonth(-1)}
-              onNextMonth={() => navMonth(1)}
-              onTapDay={tapDay}
-            />
-          </div>
+        {open && (!popoverActive || popoverPosition) && (
+          popoverActive
+            ? createPortal(calendar, document.querySelector('.expense-redesign') ?? document.body)
+            : calendar
         )}
       </div>
     )
