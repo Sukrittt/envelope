@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto'
 import { advance, type Frequency } from './recurringExpense'
 
 // Bump whenever normalization or questions change; old decisions must not survive it.
-export const DETECTION_VERSION = 'recurring-v4'
-export type DetectionDecision = { pattern: 'subscription' | 'other_recurring'; frequency: Frequency } | null
+export const DETECTION_VERSION = 'recurring-v5'
+export type DetectionFrequency = Frequency | 'quarterly'
+export type DetectionDecision = { pattern: 'subscription' | 'other_recurring'; frequency: DetectionFrequency } | null
 export function fingerprint(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex')
 }
@@ -37,7 +38,7 @@ export function buildCandidates(rows: Record<string, unknown>[], tracked: string
     return { fingerprint: fingerprint([DETECTION_VERSION, currency, payments]), payments, currency }
   }).sort((a, b) => b.payments.at(-1)!.date.localeCompare(a.payments.at(-1)!.date) || a.fingerprint.localeCompare(b.fingerprint))
 }
-export function nextSuggestedDate(lastDate: string, frequency: Frequency, today: string): string {
+export function nextSuggestedDate(lastDate: string, frequency: DetectionFrequency, today: string): string {
   let next = lastDate
   const anchor = Number(lastDate.slice(8, 10))
   // The scan only considers six months of history.

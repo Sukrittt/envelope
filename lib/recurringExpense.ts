@@ -83,6 +83,8 @@ export function advance(dateStr: string, frequency: string, anchorDay?: number):
       return iso(d)
     case 'monthly':
       return addMonths(d, 1, anchor)
+    case 'quarterly':
+      return addMonths(d, 3, anchor)
     case 'yearly':
       return addMonths(d, 12, anchor)
     default:

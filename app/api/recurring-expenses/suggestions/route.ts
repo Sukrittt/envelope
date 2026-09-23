@@ -6,10 +6,9 @@ import { aiDisabledResponse } from '@/lib/systemSettings'
 import { aiAllowanceResponse } from '@/lib/ai/allowance'
 import { isRateLimited } from '@/lib/rateLimit'
 import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
-import { buildCandidates, DETECTION_VERSION, fingerprint, nextSuggestedDate, normalizeItem, scanWindow, type DetectionDecision, type RecurringCandidate } from '@/lib/recurringDetection'
+import { buildCandidates, DETECTION_VERSION, fingerprint, nextSuggestedDate, normalizeItem, scanWindow, type DetectionDecision, type DetectionFrequency, type RecurringCandidate } from '@/lib/recurringDetection'
 import { evaluateRecurring } from '@/lib/ai/recurringDetection'
 import type { RecurringScan, RecurringSuggestion, ScanMonths } from '@/src/types/recurringSuggestions'
-import type { Frequency } from '@/lib/recurringExpense'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -36,13 +35,13 @@ async function loadHistory(auth: Auth, months: ScanMonths, cache: Cache) {
   const [rows, schedules, services] = await Promise.all([
     expenses.find({ date: { $gte: windowStart, $lte: today } }, { projection: EXPENSE_PROJECTION }).limit(MAX_ROWS + 1).toArray(),
     recurring.find({}, { projection: { item: 1, suggestion_id: 1 } }).toArray(),
-    subscriptions.find({}, { projection: { service: 1 } }).toArray(),
+    subscriptions.find({}, { projection: { service: 1, suggestion_id: 1 } }).toArray(),
   ])
   if (rows.length > MAX_ROWS) throw new Error('SCAN_TOO_LARGE')
   const candidates = buildCandidates(rows, [...schedules.map(r => String(r.item ?? '')), ...services.map(r => String(r.service ?? ''))], currency)
   const ids = candidates.map(c => documentId(auth, c.fingerprint))
   const saved = ids.length ? await cache.find({ _id: { $in: ids } }).toArray() : []
-  return { today, windowStart, currency, candidates, results: new Map(saved.map(r => [String(r._id), r])), accepted: new Set(schedules.map(r => String(r.suggestion_id ?? ''))) }
+  return { today, windowStart, currency, candidates, results: new Map(saved.map(r => [String(r._id), r])), accepted: new Set([...schedules, ...services].map(r => String(r.suggestion_id ?? '')).filter(Boolean)) }
 }
 
 function makeSnapshot(ctx: Awaited<ReturnType<typeof loadHistory>>, auth: Auth, failed: number): Snapshot {
@@ -113,12 +112,12 @@ export async function GET(req: Request) {
     const [rows, schedules, services, decisions] = await Promise.all([
       expenses.find({ _id: { $in: ids } }, { projection: { _id: 1, version: 1 } }).toArray(),
       recurring.find({}, { projection: { item: 1, suggestion_id: 1 } }).toArray(),
-      subscriptions.find({}, { projection: { service: 1 } }).toArray(),
+      subscriptions.find({}, { projection: { service: 1, suggestion_id: 1 } }).toArray(),
       cache.find({ _id: { $in: snapshot.scan.suggestions.map(s => new ObjectId(s.id)) } }).toArray(),
     ])
     const versions = new Map(rows.map(r => [String(r._id), Number(r.version ?? 0)]))
     const tracked = new Set([...schedules.map(r => String(r.item ?? '')), ...services.map(r => String(r.service ?? ''))].map(normalizeItem))
-    const accepted = new Set(schedules.map(r => String(r.suggestion_id ?? '')))
+    const accepted = new Set([...schedules, ...services].map(r => String(r.suggestion_id ?? '')).filter(Boolean))
     const dismissed = new Set(decisions.filter(r => r.dismissed).map(r => String(r._id)))
     let stale = false
     const suggestions = snapshot.scan.suggestions.filter(s => {
@@ -129,7 +128,7 @@ export async function GET(req: Request) {
         return false
       }
       return true
-    }).map(s => ({ ...s, input: { ...s.input, start_date: nextSuggestedDate(s.dates.at(-1)!, s.input.frequency as Frequency, today) } }))
+    }).map(s => ({ ...s, input: { ...s.input, start_date: nextSuggestedDate(s.dates.at(-1)!, s.input.frequency as DetectionFrequency, today) } }))
     return json({ ...snapshot.scan, suggestions, stale })
   } catch (err) { return scanError(err) }
 }

@@ -27,6 +27,7 @@ describe('recurring candidates', () => {
   it('suggests strictly future dates with month-end clamping', () => {
     expect(nextSuggestedDate('2026-08-31', 'monthly', '2026-09-30')).toBe('2026-10-31')
     expect(nextSuggestedDate('2026-09-05', 'monthly', '2026-09-22')).toBe('2026-10-05')
+    expect(nextSuggestedDate('2026-01-31', 'quarterly', '2026-02-01')).toBe('2026-04-30')
   })
 })
 

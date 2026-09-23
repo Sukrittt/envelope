@@ -15,6 +15,12 @@ it('accepts supported confident decisions and logs usage', async () => {
   expect(log).toHaveBeenCalled()
   expect(evaluate.mock.calls[0][0].providerOptions.gateway.disallowPromptTraining).toBe(true)
 })
+it('accepts quarterly cadence only for subscriptions', async () => {
+  evaluate.mockResolvedValue(answer('subscription', 'quarterly'))
+  expect(await evaluateRecurring(candidate, caller)).toEqual({ pattern: 'subscription', frequency: 'quarterly' })
+  evaluate.mockResolvedValue(answer('other_recurring', 'quarterly'))
+  expect(await evaluateRecurring(candidate, caller)).toBeNull()
+})
 it('abstains for repeat purchases, unsupported cadence, or low probability', async () => {
   for (const value of [answer('repeat_purchase'), answer('subscription', 'other'), answer('subscription', 'monthly', 0.7)]) {
     evaluate.mockResolvedValue(value)

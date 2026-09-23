@@ -1629,6 +1629,30 @@
   align-items: center;
   gap: 6px;
 }
+.subp-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.subscription-finder-sheet {
+  position: relative;
+  width: min(920px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 20px;
+  background: var(--erd-bg);
+}
+.subscription-finder-sheet .recurring-discovery.account-card {
+  margin: 0;
+}
+.subscription-finder-close {
+  position: sticky;
+  top: 0;
+  float: right;
+  z-index: 2;
+}
 .erd-subs-panel .account-empty > span {
   display: grid;
   place-items: center;

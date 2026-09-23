@@ -92,6 +92,11 @@ describe('recurring scan API', () => {
     subscriptions = []; ledger.pop()
     expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
   })
+  it('hides accepted subscription ids even if the service is later renamed', async () => {
+    const first = await (await POST(req('POST'))).json()
+    subscriptions.push({ service: 'Renamed service', suggestion_id: first.suggestions[0].id })
+    expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
+  })
   it('caches negative decisions, but retries failures', async () => {
     mocks.evaluate.mockRejectedValueOnce(new Error('timeout'))
     expect((await (await POST(req('POST'))).json()).failed).toBe(1)

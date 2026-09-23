@@ -26,6 +26,8 @@ interface Props {
   onClose: () => void
   onSaved: () => void
   editData?: SubscriptionEdit
+  initialValues?: SubscriptionEdit
+  suggestionId?: string
 }
 
 const BILLING_CYCLES = ['weekly', 'monthly', 'quarterly', 'yearly', 'one-time'] as const
@@ -102,24 +104,25 @@ function findCategory(categories: CategoryRow[], target: string): string {
   return row ? row.name : ''
 }
 
-export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
+export function SubscriptionModal({ onClose, onSaved, editData, initialValues, suggestionId }: Props) {
   const { currencySymbol } = useCurrency()
   const categoriesQ = useCategories()
   const categories = categoriesQ.data ?? EMPTY
 
   const isEdit = !!editData
-  const [service, setService] = useState(editData?.service ?? '')
-  const [amount, setAmount] = useState(editData?.amount_inr ?? '')
+  const initial = editData ?? initialValues
+  const [service, setService] = useState(initial?.service ?? '')
+  const [amount, setAmount] = useState(initial?.amount_inr ?? '')
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
-    (editData?.billing_cycle as BillingCycle) ?? 'monthly',
+    (initial?.billing_cycle as BillingCycle) ?? 'monthly',
   )
   // Deliberately unselected — a guessed default would silently create the wrong reminder.
   const [dueDate, setDueDate] = useState(() =>
-    editData?.next_due_date ? toDateInput(editData.next_due_date) : '',
+    initial?.next_due_date ? toDateInput(initial.next_due_date) : '',
   )
-  const [showNote, setShowNote] = useState(() => !!editData?.notes?.trim())
-  const [notes, setNotes] = useState(editData?.notes ?? '')
-  const [category, setCategory] = useState(editData?.category ?? '')
+  const [showNote, setShowNote] = useState(() => !!initial?.notes?.trim())
+  const [notes, setNotes] = useState(initial?.notes ?? '')
+  const [category, setCategory] = useState(initial?.category ?? '')
   const [showCalendar, setShowCalendar] = useState(false)
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
@@ -175,6 +178,7 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
         await updateSub.mutateAsync({ service: editData!.service, updates })
       } else {
         await addSub.mutateAsync({
+          suggestion_id: suggestionId,
           service: service.trim(),
           amount_inr: String(amt),
           billing_cycle: billingCycle,
@@ -209,6 +213,9 @@ export function SubscriptionModal({ onClose, onSaved, editData }: Props) {
 
         <div className="erd-sub-body">
           {error && <p className="erd-log-error">{error}</p>}
+          {suggestionId && (
+            <p className="recurring-hint">Review this suggestion. Future charges will be tracked from the due date below; past expenses stay unchanged.</p>
+          )}
 
           <section className="erd-sub-section">
             <label className="erd-log-label" htmlFor="erd-sub-service">

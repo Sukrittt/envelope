@@ -11,7 +11,7 @@ const id = new ObjectId().toHexString()
 const fields = { suggestion_id: id, item: 'Netflix', amount_inr: '649', category: 'Entertainment', frequency: 'monthly', start_date: '2026-10-05' }
 const request = (changes = {}) => new Request('https://example.com/api/recurring-expenses', { method: 'POST', body: JSON.stringify({ ...fields, ...changes }) })
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.existing.mockResolvedValue(null); mocks.suggestion.mockResolvedValue({ decision: { pattern: 'subscription', frequency: 'monthly' } }); mocks.find.mockResolvedValue([]); mocks.subscriptions.mockResolvedValue([]); mocks.insert.mockResolvedValue({ insertedId: new ObjectId(id) })
+  vi.clearAllMocks(); mocks.existing.mockResolvedValue(null); mocks.suggestion.mockResolvedValue({ decision: { pattern: 'other_recurring', frequency: 'monthly' } }); mocks.find.mockResolvedValue([]); mocks.subscriptions.mockResolvedValue([]); mocks.insert.mockResolvedValue({ insertedId: new ObjectId(id) })
 })
 it('uses a stable id and schedules in the future', async () => {
   expect((await POST(request())).status).toBe(200)
@@ -33,6 +33,12 @@ it('rejects dismissed suggestions, past dates, and already tracked subscriptions
   expect((await POST(request())).status).toBe(409)
   mocks.suggestion.mockResolvedValue({ decision: {} })
   mocks.subscriptions.mockResolvedValue([{ service: 'NETFLIX' }])
+  expect((await POST(request())).status).toBe(409)
+  expect(mocks.insert).not.toHaveBeenCalled()
+})
+
+it('rejects a subscription-classified suggestion', async () => {
+  mocks.suggestion.mockResolvedValue({ decision: { pattern: 'subscription', frequency: 'monthly' } })
   expect((await POST(request())).status).toBe(409)
   expect(mocks.insert).not.toHaveBeenCalled()
 })

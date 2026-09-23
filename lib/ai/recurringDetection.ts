@@ -26,7 +26,7 @@ const QUESTIONS = {
   cadence: {
     type: 'choice',
     instructions: 'Which billing cadence is supported by the observed dates? Payment dates can shift by a few days around a billing date. Two payments roughly one calendar month apart support monthly cadence, including a small day-of-month difference; more observations strengthen the evidence but are not required. Do not infer cadence from merchant identity alone. Choose uncertain for conflicting or missing evidence and other for unsupported patterns.',
-    criteria: { daily: 'Daily billing.', weekly: 'Weekly billing.', monthly: 'Calendar-month billing.', yearly: 'Annual billing.', other: 'Another or irregular cadence.', uncertain: 'Insufficient evidence.' },
+    criteria: { daily: 'Daily billing.', weekly: 'Weekly billing.', monthly: 'Calendar-month billing.', quarterly: 'Billing every three calendar months.', yearly: 'Annual billing.', other: 'Another or irregular cadence.', uncertain: 'Insufficient evidence.' },
   },
 } satisfies Record<string, Experimental_EvaluationQuestion>
 
@@ -75,8 +75,10 @@ export async function evaluateRecurring(candidate: RecurringCandidate, caller: A
     after(() => logAiUsage(caller, MODEL, startedAt, { promptTokenCount: result.usage.inputTokens, candidatesTokenCount: result.usage.outputTokens }, null))
     if ((pattern.probabilities?.[pattern.choice] ?? 0) < MIN_PROBABILITY || (cadence.probabilities?.[cadence.choice] ?? 0) < MIN_PROBABILITY) return null
     if (pattern.choice !== 'subscription' && pattern.choice !== 'other_recurring') return null
-    if (cadence.choice !== 'daily' && cadence.choice !== 'weekly' && cadence.choice !== 'monthly' && cadence.choice !== 'yearly') return null
-    return { pattern: pattern.choice, frequency: cadence.choice }
+    const recurringCadence = cadence.choice === 'daily' || cadence.choice === 'weekly' || cadence.choice === 'monthly' || cadence.choice === 'yearly'
+    const subscriptionCadence = cadence.choice === 'weekly' || cadence.choice === 'monthly' || cadence.choice === 'quarterly' || cadence.choice === 'yearly'
+    if (pattern.choice === 'subscription' ? !subscriptionCadence : !recurringCadence) return null
+    return { pattern: pattern.choice, frequency: cadence.choice as NonNullable<DetectionDecision>['frequency'] }
   } catch (err) {
     after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
     throw err

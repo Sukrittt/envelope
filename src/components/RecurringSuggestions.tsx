@@ -20,9 +20,12 @@ import type {
 import { LoadingCaption } from "./LoadingCaption";
 import { Select } from "./Select";
 import { RecurringExpenseModal } from "./RecurringExpenseModal";
+import { SubscriptionModal } from "./SubscriptionModal";
 
 const baseKey = ["recurring-suggestions"] as const;
-export function RecurringSuggestions() {
+type SuggestionKind = RecurringSuggestion["kind"];
+
+export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: SuggestionKind }) {
   const qc = useQueryClient();
   const [months, setMonths] = useState<ScanMonths>(6);
   const key = [...baseKey, months] as const;
@@ -53,14 +56,15 @@ export function RecurringSuggestions() {
   });
   const reduceMotion = useReducedMotion();
   const data = query.data;
+  const subscriptionMode = kind === "subscription";
   const suggestions =
-    data?.suggestions.filter((s) => !accepted.includes(s.id)) ?? [];
+    data?.suggestions.filter((s) => s.kind === kind && !accepted.includes(s.id)) ?? [];
   const busy = scan.isPending || dismiss.isPending;
   const failure = scan.error ?? dismiss.error ?? query.error;
   return (
     <section
       className="account-card recurring-discovery"
-      aria-label="Find recurring expenses"
+      aria-label={subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
     >
       <div className="recurring-discovery-header">
         <div className="recurring-discovery-intro">
@@ -68,8 +72,8 @@ export function RecurringSuggestions() {
             <Repeat2 size={22} strokeWidth={1.7} />
           </span>
           <div>
-            <h2>Find recurring expenses</h2>
-            <p>Spot repeated payments. Choose which ones to automate.</p>
+            <h2>{subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}</h2>
+            <p>{subscriptionMode ? "Spot services you already pay for and start tracking them." : "Spot repeated payments. Choose which ones to automate."}</p>
           </div>
         </div>
         <div className="recurring-discovery-controls">
@@ -108,7 +112,7 @@ export function RecurringSuggestions() {
               ? "Scanning expenses…"
               : data?.scannedAt && data.remaining > 0
                 ? "Scan remaining patterns"
-                : "Find recurring expenses"}
+                : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
             {!scan.isPending && <ArrowRight size={16} aria-hidden="true" />}
           </button>
         </div>
@@ -177,10 +181,9 @@ export function RecurringSuggestions() {
                   <Check size={19} />
                 </span>
                 <div>
-                  <h3>No new recurring payments</h3>
+                  <h3>{subscriptionMode ? "No new subscriptions" : "No new recurring payments"}</h3>
                   <p>
-                    Nothing new to add for this period. Tracked and dismissed
-                    payments are hidden.
+                    Nothing new to add for this period. Tracked and dismissed payments are hidden.
                   </p>
                 </div>
               </div>
@@ -261,13 +264,32 @@ export function RecurringSuggestions() {
           </AnimatePresence>
         </ul>
       )}
-      {reviewing && (
+      {reviewing && reviewing.kind === "other_recurring" && (
         <RecurringExpenseModal
           key={reviewing.id}
           initialValues={reviewing.input}
           suggestionId={reviewing.id}
           onClose={() => setReviewing(null)}
           onAdded={() => {
+            setAccepted((old) => [...old, reviewing.id]);
+            void qc.invalidateQueries({ queryKey: baseKey });
+          }}
+        />
+      )}
+      {reviewing && reviewing.kind === "subscription" && (
+        <SubscriptionModal
+          key={reviewing.id}
+          initialValues={{
+            service: reviewing.input.item,
+            amount_inr: reviewing.input.amount_inr,
+            billing_cycle: reviewing.input.frequency,
+            next_due_date: reviewing.input.start_date,
+            notes: reviewing.input.notes ?? "",
+            category: reviewing.input.category,
+          }}
+          suggestionId={reviewing.id}
+          onClose={() => setReviewing(null)}
+          onSaved={() => {
             setAccepted((old) => [...old, reviewing.id]);
             void qc.invalidateQueries({ queryKey: baseKey });
           }}

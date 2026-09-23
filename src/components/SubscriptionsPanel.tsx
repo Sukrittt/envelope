@@ -18,6 +18,7 @@ interface Props {
   hideAmounts: boolean;
   busyService: string | null;
   onAdd: () => void;
+  onFind: () => void;
   onEdit: (sub: Subscription) => void;
   onCancel: (service: string) => void;
   onReactivate: (service: string) => void;
@@ -120,6 +121,7 @@ export function SubscriptionsPanel({
   hideAmounts,
   busyService,
   onAdd,
+  onFind,
   onEdit,
   onCancel,
   onReactivate,
@@ -227,16 +229,21 @@ export function SubscriptionsPanel({
     <article className="erd-card erd-subs-panel">
       <div className="erd-panel-head">
         <h3>Subscriptions</h3>
-        <button
-          type="button"
-          className="action-button is-active erd-accent-action subp-add-button"
-          onClick={onAdd}
-          title="Add subscription"
-          disabled={loading}
-        >
-          <Plus size={14} aria-hidden="true" />
-          Add
-        </button>
+        <div className="subp-head-actions">
+          <button type="button" className="scan-link-btn" onClick={onFind} disabled={loading}>
+            Find
+          </button>
+          <button
+            type="button"
+            className="action-button is-active erd-accent-action subp-add-button"
+            onClick={onAdd}
+            title="Add subscription"
+            disabled={loading}
+          >
+            <Plus size={14} aria-hidden="true" />
+            Add
+          </button>
+        </div>
       </div>
 
       {loading ? (

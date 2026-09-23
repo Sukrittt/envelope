@@ -18,6 +18,7 @@ import {
 } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { SubscriptionModal } from "../components/SubscriptionModal";
+import { RecurringSuggestions } from "../components/RecurringSuggestions";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageLoading } from "../components/ExpensePageLoading";
 import {
@@ -122,6 +123,7 @@ export function ExpensePage() {
   const [cancellingSub, setCancellingSub] = useState<string | null>(null);
   const [reactivatingSub, setReactivatingSub] = useState<string | null>(null);
   const [showSubModal, setShowSubModal] = useState(false);
+  const [showSubFinder, setShowSubFinder] = useState(false);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
@@ -462,6 +464,7 @@ export function ExpensePage() {
                 }
                 error={subscriptionsQuery.isError && !subscriptionsQuery.data}
                 onAdd={() => setShowSubModal(true)}
+                onFind={() => setShowSubFinder(true)}
                 onEdit={(sub) => {
                   setEditSub({
                     service: sub.service,
@@ -495,6 +498,18 @@ export function ExpensePage() {
             </aside>
           </div>
         </div>
+        <AnimatePresence>
+          {showSubFinder && (
+            <Scrim className="erd-modal-overlay" onClick={() => setShowSubFinder(false)}>
+              <Sheet className="subscription-finder-sheet" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Find subscriptions">
+                <button type="button" className="erd-modal-close subscription-finder-close" onClick={() => setShowSubFinder(false)} aria-label="Close">
+                  ✕
+                </button>
+                <RecurringSuggestions kind="subscription" />
+              </Sheet>
+            </Scrim>
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {showSubModal && (
             <SubscriptionModal
