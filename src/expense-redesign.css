@@ -7651,9 +7651,6 @@ button.account-feature-card {
 /* .erd-content is a fixed-height scrolling flex column; without this the cards shrink and clip their last rows. */
 .inv-page > * { flex-shrink: 0; }
 .inv-hero { display: flex; flex-direction: column; gap: 6px; padding: 18px; }
-.inv-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--erd-text2); }
-.inv-legend li { display: flex; align-items: center; gap: 6px; }
-.inv-legend strong { color: var(--erd-text); font-variant-numeric: tabular-nums; }
 .inv-delta { display: flex; align-items: center; gap: 4px; color: var(--erd-text3); font-variant-numeric: tabular-nums; }
 .expense-redesign .erd-modal-card.inv-menu { width: 360px; display: flex; flex-direction: column; padding: 16px; }
 .inv-menu-title { text-align: center; margin-bottom: 6px; }

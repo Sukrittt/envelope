@@ -1,7 +1,7 @@
 "use client";
 
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { ArrowRight, ChevronRight, Plus } from "lucide-react";
 import {
@@ -11,6 +11,7 @@ import {
   usePerformHoldingAction,
   useUpdateHolding,
 } from "../hooks/useHoldings";
+import { predictHoldingType } from "../api/holdings";
 import { useHoldingEvents } from "../hooks/useHoldingEvents";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { EMPTY } from "../lib/constants";
@@ -188,27 +189,7 @@ export function InvestmentsPage() {
                 <div className="recurring-hero-amount">
                   {formatCurrency(netWorth, hideAmounts)}
                 </div>
-                {segments.length > 0 && (
-                  <>
-                    <AllocationBar segments={segments} />
-                    <ul className="inv-legend">
-                      {segments.map((s) => (
-                        <li key={s.label}>
-                          <span
-                            className="recurring-dot"
-                            style={{ background: s.color }}
-                          />
-                          {s.label}
-                          <strong>
-                            {netWorth > 0
-                              ? `${((s.value / netWorth) * 100).toFixed(1)}%`
-                              : "—"}
-                          </strong>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+                {segments.length > 0 && <AllocationBar segments={segments} />}
               </div>
 
               <div>
@@ -552,6 +533,7 @@ export function HoldingModal({
 
   const [newName, setNewName] = useState("");
   const [type, setType] = useState("");
+  const [typeTouched, setTypeTouched] = useState(false);
   const [value, setValue] = useState("");
   const [base, setBase] = useState(initialDraft);
   const [expectedVersion, setExpectedVersion] = useState(holding?.version ?? 0);
@@ -559,6 +541,29 @@ export function HoldingModal({
   const [recurringAmount, setRecurringAmount] = useState(initialDraft.recurringAmount);
   const [conflict, setConflict] = useState<HoldingRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const typeTouchedRef = useRef(typeTouched);
+  const typeSuggestTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    typeTouchedRef.current = typeTouched;
+  }, [typeTouched]);
+
+  // Guess the type from the holding name while it's still untyped, same debounced-Jev
+  // pattern as expense category suggestions. A manual chip pick always wins.
+  useEffect(() => {
+    if (isEdit) return;
+    if (typeSuggestTimer.current) clearTimeout(typeSuggestTimer.current);
+    if (newName.trim().length < 3) return;
+    typeSuggestTimer.current = setTimeout(() => {
+      predictHoldingType(newName, TYPES).then((suggested) => {
+        if (typeTouchedRef.current || !suggested) return;
+        setType(suggested);
+      });
+    }, 300);
+    return () => {
+      if (typeSuggestTimer.current) clearTimeout(typeSuggestTimer.current);
+    };
+  }, [newName, isEdit]);
 
   const parsedValue = Number(value);
   const parsedRecurring = Number(recurringAmount);
@@ -729,14 +734,21 @@ export function HoldingModal({
                   type="button"
                   className={`erd-chip ${type === t ? "is-selected" : ""}`}
                   aria-pressed={type === t}
-                  onClick={() => setType(type === t ? "" : t)}
+                  onClick={() => {
+                    setType(type === t ? "" : t);
+                    setTypeTouched(true);
+                  }}
                 >
                   {t}
                 </button>
               ))}
             </div>
 
-            <label className="erd-log-label" htmlFor="holding-value">
+            <label
+              className="erd-log-label"
+              htmlFor="holding-value"
+              style={{ marginTop: 24 }}
+            >
               Current value ({currencySymbol})
             </label>
             <input

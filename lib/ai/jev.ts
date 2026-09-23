@@ -19,22 +19,27 @@ const MIN_CONFIDENCE = 0.8
  * Must be called inside a request: the usage record is written with `after()`
  * so its database round trip never delays the reply.
  *
- * Picks the best-fit category for an expense item from the user's own list,
- * or '' when Jev isn't confident — callers treat '' as "no suggestion", so a
- * shaky guess never gets written into the category map.
+ * Asks Jev a single choice question over `options`, returning the pick or ''
+ * when Jev isn't confident — callers treat '' as "no suggestion".
  */
-export async function pickCategory(item: string, categories: string[], caller: AiCaller): Promise<string> {
+async function pickChoice(
+  answerKey: string,
+  instructions: string,
+  state: Record<string, string>,
+  options: string[],
+  caller: AiCaller,
+): Promise<string> {
   if ((await getSystemSettings()).aiDisabled) throw new Error(AI_DISABLED_MESSAGE)
   const startedAt = Date.now()
   try {
     const result = await evaluate({
       model: MODEL,
-      state: { expenseItem: item },
+      state,
       questions: {
-        category: {
+        [answerKey]: {
           type: 'choice',
-          instructions: 'Which personal budgeting category does this expense item belong to?',
-          criteria: Object.fromEntries(categories.map((c) => [c, null])),
+          instructions,
+          criteria: Object.fromEntries(options.map((c) => [c, null])),
         },
       },
       // zeroDataRetention would be stronger but needs Vercel Pro (403 on Hobby).
@@ -45,12 +50,34 @@ export async function pickCategory(item: string, categories: string[], caller: A
       candidatesTokenCount: result.usage.outputTokens,
     }, null))
 
-    const { choice, probabilities } = result.answers.category
-    if (!categories.includes(choice)) return ''
+    const { choice, probabilities } = result.answers[answerKey]
+    if (!options.includes(choice)) return ''
     if (probabilities && (probabilities[choice] ?? 0) < MIN_CONFIDENCE) return ''
     return choice
   } catch (err) {
     after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
     throw err
   }
+}
+
+/** Picks the best-fit category for an expense item from the user's own list. */
+export async function pickCategory(item: string, categories: string[], caller: AiCaller): Promise<string> {
+  return pickChoice(
+    'category',
+    'Which personal budgeting category does this expense item belong to?',
+    { expenseItem: item },
+    categories,
+    caller,
+  )
+}
+
+/** Picks the best-fit investment type for a holding name from the app's fixed type list. */
+export async function pickHoldingType(name: string, types: string[], caller: AiCaller): Promise<string> {
+  return pickChoice(
+    'holdingType',
+    'Which investment holding type does this holding name belong to?',
+    { holdingName: name },
+    types,
+    caller,
+  )
 }
