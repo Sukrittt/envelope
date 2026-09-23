@@ -4,7 +4,8 @@ import { TransactionsView } from './TransactionsView'
 import { ExpenseWriteError } from '../lib/expenseConflict'
 const { remove } = vi.hoisted(() => ({ remove: vi.fn() }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: vi.fn() }) }))
-vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [] }) }))
+vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [{ category: 'Groceries' }] }) }))
+vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }) }))
 vi.mock('../hooks/useRecentCategories', () => ({ useRecentCategories: () => ({ recents: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({
   useExpensesPage: () => ({ data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }], total: 1, pageCount: 1, totalAmount: 100 } }),
@@ -44,4 +45,11 @@ it.each([[409, 'This transaction was updated'], [404, 'This transaction is alrea
   fireEvent.click(screen.getByText('Back to transactions'))
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   expect(remove).toHaveBeenCalledTimes(1)
+})
+
+it('lists categories that have no budget row yet in the filter', () => {
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('combobox', { name: 'Filter by category' }))
+  expect(screen.getByRole('option', { name: /Subscription/ })).toBeInTheDocument()
+  expect(screen.getAllByRole('option', { name: /Groceries/ })).toHaveLength(1)
 })

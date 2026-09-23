@@ -7,6 +7,7 @@ import { Plus, ReceiptText, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
+import { useCategories } from "../hooks/useCategories";
 import { useExpensesPage, useDeleteExpense } from "../hooks/useExpenses";
 import { EMPTY } from "../lib/constants";
 import { orderWithRecents } from "../lib/recentCategories";
@@ -67,6 +68,7 @@ export function TransactionsView({
   const { formatCurrency } = useCurrency();
 
   const budgetsQuery = useBudgets();
+  const categoriesQuery = useCategories();
   const deleteExpenseM = useDeleteExpense();
 
   // Period and the custom range start as derived values and become state only
@@ -158,10 +160,13 @@ export function TransactionsView({
   }, [categoryParam]);
 
   const categories = useMemo(() => {
-    // Budget rows repeat per month, so the same category can appear more
-    // than once; dedupe so dropdown options keep unique keys.
-    return [...new Set(budgetCategories)].sort();
-  }, [budgetCategories]);
+    // A new category has no budget row until it's assigned money, so the
+    // categories list is the source of truth; budget rows still contribute
+    // categories that were since deleted but have old transactions. Budget
+    // rows repeat per month, so dedupe to keep dropdown option keys unique.
+    const names = (categoriesQuery.data ?? EMPTY).map((c) => c.name).filter(Boolean);
+    return [...new Set([...names, ...budgetCategories])].sort();
+  }, [categoriesQuery.data, budgetCategories]);
   const { recents } = useRecentCategories();
   const orderedCategories = useMemo(
     () => orderWithRecents(categories, recents),
