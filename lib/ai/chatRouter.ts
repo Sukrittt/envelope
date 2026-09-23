@@ -17,10 +17,13 @@ import type { AiCaller } from './usage'
 /** Small, always worth having: the month header, the envelope table, this month's top items. */
 export const ALWAYS_SECTIONS: readonly FactSection[] = ['header', 'envelopes', 'top10']
 
-// Off topic has to be near-certain before we refuse: a wrongly refused real
-// question is far worse than one wasted Gemini call, and the system prompt's
-// SCOPE LOCK still catches whatever slips through.
-const OFF_TOPIC_BELOW = 0.2
+// Measured against Jev, 2026-09-24: genuinely off-topic messages ("write me a
+// poem", "what is 1+1") come back at 0.01-0.02, while vague but financial ones
+// ("how am I doing?", "what should I do?") bottom out at 0.16. The bar sits in
+// that gap, well under the vague cluster: a wrongly refused real question is
+// far worse than one wasted Gemini call, and the system prompt's SCOPE LOCK
+// still catches whatever slips through.
+const OFF_TOPIC_BELOW = 0.05
 const NEEDS_SECTION_AT = 0.5
 
 const QUESTIONS = {

@@ -41,11 +41,23 @@ describe('routeChat', () => {
   })
 
   it('refuses only when Jev is confident the message is off topic', async () => {
-    runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: 0.05 }))
+    // Measured Jev probabilities: "write me a poem" 0.01, "what is 1+1" 0.02.
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: 0.02 }))
     expect((await routeChat('write me a poem', caller)).onTopic).toBe(false)
 
     runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: 0.35 }))
     expect((await routeChat('is this normal?', caller)).onTopic).toBe(true)
+  })
+
+  it.each([
+    ['how am I doing?', 0.16],
+    ['Am i doing okay?', 0.18],
+    ['what should I do?', 0.18],
+    ['should I be worried?', 0.31],
+    ['is this normal?', 0.48],
+  ])('answers the vague but financial %s (measured p=%s)', async (message, probability) => {
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: probability }))
+    expect((await routeChat(message, caller)).onTopic).toBe(true)
   })
 
   it('sends everything when Jev fails, matching the old behaviour', async () => {
