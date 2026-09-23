@@ -20,7 +20,7 @@ const EXPENSE_PROJECTION = { _id: 1, version: 1, date: 1, item: 1, description: 
 // Built-in _id uniqueness provides a per-user, cross-instance lock without a migration.
 const documentId = (auth: Auth, key: string) => new ObjectId(fingerprint([auth.userId, key]).slice(0, 24))
 const snapshotId = (auth: Auth, months: ScanMonths) => documentId(auth, `snapshot:${DETECTION_VERSION}:${months}`)
-const parseMonths = (value: unknown): ScanMonths | null => value === undefined || value === null ? 6 : value === 1 || value === 3 || value === 6 ? value : null
+const parseMonths = (value: unknown): ScanMonths | null => value === undefined || value === null ? 6 : value === 1 || value === 3 || value === 6 || value === 12 ? value : null
 
 type Evidence = { id: string; version: number; date: string }
 type Snapshot = { scan: RecurringScan; currency: string; evidence: Record<string, Evidence[]> }
@@ -94,7 +94,7 @@ export async function GET(req: Request) {
   if (gate) return gate
   const value = new URL(req.url).searchParams.get('months')
   const months = parseMonths(value === null ? undefined : Number(value))
-  if (!months) return error('Scan period must be 1, 3 or 6 months')
+  if (!months) return error('Scan period must be 1, 3, 6 or 12 months')
   try {
     const [cache, { date: today }] = await Promise.all([getCollection(COLLECTION, auth), nowForUser(auth.userId)])
     const doc = await cache.findOne({ _id: snapshotId(auth, months) })
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
   const months = parseMonths((await readBody(req)).months)
-  if (!months) return error('Scan period must be 1, 3 or 6 months')
+  if (!months) return error('Scan period must be 1, 3, 6 or 12 months')
   try {
     const cache = await getCollection(COLLECTION, auth)
     const lockId = documentId(auth, 'scan-meta')

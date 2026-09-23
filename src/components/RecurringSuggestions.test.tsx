@@ -77,6 +77,8 @@ it('shows scan loading phrases instead of saved results until scanning finishes'
 it('filters subscription results and opens the subscription review form', async () => {
   mocks.load.mockResolvedValue(subscriptionFound)
   mount('subscription')
+  await waitFor(() => expect(mocks.load).toHaveBeenCalledWith(12))
+  expect(screen.getByRole('combobox', { name: 'Scan period' })).toHaveTextContent('Last 12 months')
   expect(await screen.findByText('Netflix')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Review and add' }))
   expect(screen.getByRole('dialog')).toHaveTextContent('Netflix renews 2026-10-05')

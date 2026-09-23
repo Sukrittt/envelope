@@ -7,7 +7,6 @@ import { ChevronRight } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
-import { SubscriptionsPanel } from "../components/SubscriptionsPanel";
 import { BirdMark } from "../components/BirdMark";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
 import {
@@ -17,8 +16,6 @@ import {
   AssignMoneyScreen,
 } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
-import { SubscriptionModal } from "../components/SubscriptionModal";
-import { RecurringSuggestions } from "../components/RecurringSuggestions";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageLoading } from "../components/ExpensePageLoading";
 import {
@@ -32,11 +29,6 @@ import { useExpenses, useAddExpense } from "../hooks/useExpenses";
 import { useCategories } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
 import { useHideAmounts } from "../hooks/useHideAmounts";
-import {
-  useSubscriptions,
-  useCancelSubscription,
-  useReactivateSubscription,
-} from "../hooks/useSubscriptions";
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
@@ -56,20 +48,16 @@ export function ExpensePage() {
   const expensesQuery = useExpenses();
   const categoriesQuery = useCategories();
   const groupsQuery = useGroups();
-  const subscriptionsQuery = useSubscriptions();
 
   const addBudgetM = useAddBudget();
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
   const addExpenseM = useAddExpense();
-  const cancelSubscriptionM = useCancelSubscription();
-  const reactivateSubscriptionM = useReactivateSubscription();
 
   const budgetRows = budgetsQuery.data ?? EMPTY;
   const expenseRows = expensesQuery.data ?? EMPTY;
   const categoryRows = categoriesQuery.data ?? EMPTY;
   const groupNames = groupsQuery.data ?? EMPTY;
-  const subscriptionRows = subscriptionsQuery.data ?? EMPTY;
 
   const coreLoading =
     budgetsQuery.isLoading ||
@@ -86,7 +74,7 @@ export function ExpensePage() {
               currencyCode,
               budgets: budgetRows,
               expenses: expenseRows,
-              subscriptions: subscriptionRows,
+              subscriptions: [],
               categories: categoryRows,
               groups: groupNames,
             }),
@@ -96,7 +84,6 @@ export function ExpensePage() {
       coreLoading,
       budgetRows,
       expenseRows,
-      subscriptionRows,
       categoryRows,
       groupNames,
       currencyCode,
@@ -120,10 +107,6 @@ export function ExpensePage() {
     lastIncome: number;
     lastAssignments: Array<{ category: string; assigned: number }>;
   } | null>(null);
-  const [cancellingSub, setCancellingSub] = useState<string | null>(null);
-  const [reactivatingSub, setReactivatingSub] = useState<string | null>(null);
-  const [showSubModal, setShowSubModal] = useState(false);
-  const [showSubFinder, setShowSubFinder] = useState(false);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
@@ -136,27 +119,11 @@ export function ExpensePage() {
   );
   const payPhase = useButtonPhase();
   const bulkReturnPhase = useButtonPhase();
-  const [editSub, setEditSub] = useState<{
-    service: string;
-    amount_inr: string;
-    billing_cycle: string;
-    next_due_date: string;
-    notes: string;
-    category: string;
-  } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const { theme, setTheme } = useAppearance();
 
   // Restore the "hide amounts" preference after hydration so the server and
   // client render the same initial output (avoids a hydration mismatch).
-  // The mutation hooks invalidate the queries they touch, so a refresh is no
-  // longer something this page asks for — only the row-level busy flags are
-  // left to clear.
-  function refreshPanel() {
-    setCancellingSub(null);
-    setReactivatingSub(null);
-  }
-
   // Keep envelopeState in sync with the panel contract, while still allowing
   // local updates for the bulk-return action
   // to apply in between contract refreshes.
@@ -231,7 +198,6 @@ export function ExpensePage() {
       category: "__credit_card__",
       payment_method: "bank",
     });
-    await refreshPanel();
   }
 
   useEffect(() => {
@@ -359,7 +325,6 @@ export function ExpensePage() {
     }
 
     localStorage.setItem("budget-active-month", month);
-    await refreshPanel();
   }
 
   function handleRolloverDismiss() {
@@ -396,7 +361,7 @@ export function ExpensePage() {
       <div className="erd-main">
         <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
         <div className="erd-content">
-          <div className="erd-home">
+          <div className="erd-home" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
             <div className="erd-home-main">
               {envelopeState && (
                 <button
@@ -453,79 +418,8 @@ export function ExpensePage() {
               </Link>
             </div>
 
-            <aside className="erd-home-rail">
-              <SubscriptionsPanel
-                active={panel.subscriptions.active}
-                cancelled={panel.subscriptions.cancelled}
-                hideAmounts={hideAmounts}
-                busyService={cancellingSub ?? reactivatingSub}
-                loading={
-                  subscriptionsQuery.isLoading && !subscriptionsQuery.data
-                }
-                error={subscriptionsQuery.isError && !subscriptionsQuery.data}
-                onAdd={() => setShowSubModal(true)}
-                onFind={() => setShowSubFinder(true)}
-                onEdit={(sub) => {
-                  setEditSub({
-                    service: sub.service,
-                    amount_inr: String(sub.amountInr),
-                    billing_cycle: sub.billingCycle,
-                    next_due_date: sub.nextDueDate,
-                    notes: sub.notes,
-                    category: sub.category,
-                  });
-                  setShowSubModal(true);
-                }}
-                onCancel={async (service) => {
-                  setCancellingSub(service);
-                  try {
-                    await cancelSubscriptionM.mutateAsync(service);
-                    await refreshPanel();
-                  } catch {
-                    setCancellingSub(null);
-                  }
-                }}
-                onReactivate={async (service) => {
-                  setReactivatingSub(service);
-                  try {
-                    await reactivateSubscriptionM.mutateAsync(service);
-                    await refreshPanel();
-                  } catch {
-                    setReactivatingSub(null);
-                  }
-                }}
-              />
-            </aside>
           </div>
         </div>
-        <AnimatePresence>
-          {showSubFinder && (
-            <Scrim className="erd-modal-overlay" onClick={() => setShowSubFinder(false)}>
-              <Sheet className="subscription-finder-sheet" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Find subscriptions">
-                <button type="button" className="erd-modal-close subscription-finder-close" onClick={() => setShowSubFinder(false)} aria-label="Close">
-                  ✕
-                </button>
-                <RecurringSuggestions kind="subscription" />
-              </Sheet>
-            </Scrim>
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {showSubModal && (
-            <SubscriptionModal
-              onClose={() => {
-                setShowSubModal(false);
-                setEditSub(null);
-              }}
-              onSaved={() => {
-                setShowSubModal(false);
-                setEditSub(null);
-                refreshPanel();
-              }}
-              editData={editSub ?? undefined}
-            />
-          )}
-        </AnimatePresence>
         <AnimatePresence>
           {payCreditCardAmount !== null && envelopeState && (
             <Scrim
@@ -746,7 +640,7 @@ export function ExpensePage() {
         {showLogModal && (
           <LogExpenseModal
             onClose={() => setShowLogModal(false)}
-            onSaved={refreshPanel}
+            onSaved={() => {}}
           />
         )}
       </AnimatePresence>

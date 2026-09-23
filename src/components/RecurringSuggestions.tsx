@@ -27,7 +27,8 @@ type SuggestionKind = RecurringSuggestion["kind"];
 
 export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: SuggestionKind }) {
   const qc = useQueryClient();
-  const [months, setMonths] = useState<ScanMonths>(6);
+  const subscriptionMode = kind === "subscription";
+  const [months, setMonths] = useState<ScanMonths>(subscriptionMode ? 12 : 6);
   const key = [...baseKey, months] as const;
   const { formatCurrency } = useCurrency();
   const [hideAmounts] = useHideAmounts();
@@ -56,7 +57,6 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
   });
   const reduceMotion = useReducedMotion();
   const data = query.data;
-  const subscriptionMode = kind === "subscription";
   const suggestions =
     data?.suggestions.filter((s) => s.kind === kind && !accepted.includes(s.id)) ?? [];
   const busy = scan.isPending || dismiss.isPending;
@@ -87,6 +87,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
                 { value: "1", label: "Last month" },
                 { value: "3", label: "Last 3 months" },
                 { value: "6", label: "Last 6 months" },
+                { value: "12", label: "Last 12 months" },
               ]}
               onChange={(value) => {
                 setMonths(Number(value) as ScanMonths);

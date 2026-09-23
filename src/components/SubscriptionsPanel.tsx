@@ -2,24 +2,32 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
-import { ChevronRight, Plus, Repeat2 } from "lucide-react";
+import { ChevronRight, Repeat2 } from "lucide-react";
 import { getEffectiveDueDate } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
 import { CHART_COLORS } from "../theme/chartColors";
 import { formatDateShort } from "../lib/format";
-import type { ExpensePanelData } from "../services/expensePanelAdapter";
 import { LoadingCaption } from "./LoadingCaption";
 
-type Subscription = ExpensePanelData["subscriptions"]["active"][number];
+export interface SubscriptionPanelItem {
+  timestamp: string;
+  service: string;
+  amountInr: number;
+  billingCycle: string;
+  nextDueDate: string;
+  status: string;
+  renewalOrEndMonth?: string;
+  notes: string;
+  category: string;
+}
 
 interface Props {
-  active: Subscription[];
-  cancelled: Subscription[];
+  active: SubscriptionPanelItem[];
+  cancelled: SubscriptionPanelItem[];
   hideAmounts: boolean;
   busyService: string | null;
   onAdd: () => void;
-  onFind: () => void;
-  onEdit: (sub: Subscription) => void;
+  onEdit: (sub: SubscriptionPanelItem) => void;
   onCancel: (service: string) => void;
   onReactivate: (service: string) => void;
   loading?: boolean;
@@ -76,7 +84,7 @@ function colorFor(service: string, i: number): string {
   return CHART_COLORS[i % CHART_COLORS.length];
 }
 
-function monthlyEq(sub: Subscription): number {
+function monthlyEq(sub: SubscriptionPanelItem): number {
   if (/one-time/i.test(sub.billingCycle)) return 0;
   if (/yearly|annual/i.test(sub.billingCycle)) return sub.amountInr / 12;
   if (/quarterly/i.test(sub.billingCycle)) return sub.amountInr / 3;
@@ -121,7 +129,6 @@ export function SubscriptionsPanel({
   hideAmounts,
   busyService,
   onAdd,
-  onFind,
   onEdit,
   onCancel,
   onReactivate,
@@ -152,7 +159,7 @@ export function SubscriptionsPanel({
     color: colorFor(sub.service, i),
   }));
 
-  function row(sub: Subscription, i: number, isActive: boolean) {
+  function row(sub: SubscriptionPanelItem, i: number, isActive: boolean) {
     const cycle = cleanCycle(sub.billingCycle);
     const due = isActive ? getEffectiveDueDate(sub) : "";
     const meta = capitalize(
@@ -226,26 +233,7 @@ export function SubscriptionsPanel({
   }
 
   return (
-    <article className="erd-card erd-subs-panel">
-      <div className="erd-panel-head">
-        <h3>Subscriptions</h3>
-        <div className="subp-head-actions">
-          <button type="button" className="scan-link-btn" onClick={onFind} disabled={loading}>
-            Find
-          </button>
-          <button
-            type="button"
-            className="action-button is-active erd-accent-action subp-add-button"
-            onClick={onAdd}
-            title="Add subscription"
-            disabled={loading}
-          >
-            <Plus size={14} aria-hidden="true" />
-            Add
-          </button>
-        </div>
-      </div>
-
+    <article className="erd-card erd-subs-panel" style={{ maxHeight: 'none' }}>
       {loading ? (
         <LoadingCaption feature="subscriptions" />
       ) : error ? (
@@ -278,7 +266,7 @@ export function SubscriptionsPanel({
             </div>
           )}
 
-          <div className="subp-scroll">
+          <div className="subp-scroll" style={{ flex: 'none', overflowY: 'visible' }}>
             {sorted.length === 0 ? (
               <p className="subp-empty">No active subscriptions.</p>
             ) : (
