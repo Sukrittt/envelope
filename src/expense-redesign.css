@@ -6441,8 +6441,6 @@ button.account-feature-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 100%;
-  justify-content: flex-end;
 }
 .brain-bubble {
   max-width: 86%;
@@ -6464,6 +6462,47 @@ button.account-feature-card {
   border: 1px solid var(--erd-border);
   border-bottom-left-radius: 5px;
   box-shadow: var(--erd-shadow-sm);
+}
+
+/* Money Brain answers: the markdown subset from src/lib/chatMarkdown.ts. */
+.brain-md {
+  display: grid;
+  gap: 8px;
+}
+.brain-md p,
+.brain-md ul,
+.brain-md ol {
+  margin: 0;
+}
+.brain-md ul,
+.brain-md ol {
+  display: grid;
+  gap: 4px;
+  padding-left: 1.2em;
+}
+.brain-md li::marker {
+  color: var(--erd-text2);
+}
+.brain-md strong {
+  font-weight: 800;
+}
+
+/* Thinking mark: the perched bird pecks twice, rests, repeats. Pivot sits at its feet (viewBox units). */
+.brain-thinking {
+  align-self: flex-start;
+  color: var(--gold-ink);
+}
+.brain-thinking-bird {
+  transform-origin: 250px 386px;
+  animation: brain-peck 1.4s ease-in-out infinite;
+}
+@keyframes brain-breathe {
+  50% { opacity: 0.4; }
+}
+@keyframes brain-peck {
+  0%, 57%, 100% { transform: rotate(0deg); }
+  12%, 40% { transform: rotate(16deg) translateY(10px); }
+  28% { transform: rotate(0deg); }
 }
 
 .brain-composer {
@@ -7072,6 +7111,9 @@ button.account-feature-card {
 @media (prefers-reduced-motion: reduce) {
   .wrapped-progress b.is-current {
     animation: none;
+  }
+  .brain-thinking-bird {
+    animation: brain-breathe 1.4s ease-in-out infinite;
   }
   .wrapped-player,
   .account-feature-card,
