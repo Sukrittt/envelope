@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { it, expect, vi } from 'vitest'
 import { TransactionsView } from './TransactionsView'
 import { ExpenseWriteError } from '../lib/expenseConflict'
-const { remove } = vi.hoisted(() => ({ remove: vi.fn() }))
+const { remove, dismiss, duplicates } = vi.hoisted(() => ({ remove: vi.fn(), dismiss: vi.fn(), duplicates: { data: [] as unknown[] } }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: vi.fn() }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [{ category: 'Groceries' }] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }) }))
@@ -10,6 +10,8 @@ vi.mock('../hooks/useRecentCategories', () => ({ useRecentCategories: () => ({ r
 vi.mock('../hooks/useExpenses', () => ({
   useExpensesPage: () => ({ data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }], total: 1, pageCount: 1, totalAmount: 100 } }),
   useDeleteExpense: () => ({ mutateAsync: remove }),
+  useDuplicates: () => duplicates,
+  useDismissDuplicate: () => ({ mutateAsync: dismiss }),
 }))
 
 it('opens the transaction actions when the row is clicked', () => {
@@ -52,4 +54,15 @@ it('lists categories that have no budget row yet in the filter', () => {
   fireEvent.click(screen.getByRole('combobox', { name: 'Filter by category' }))
   expect(screen.getByRole('option', { name: /Subscription/ })).toBeInTheDocument()
   expect(screen.getAllByRole('option', { name: /Groceries/ })).toHaveLength(1)
+})
+
+it('offers a review of flagged duplicates and can keep both', async () => {
+  const row = (id: string, time: string) => ({ id, version: 0, timestamp: `2026-09-18T${time}`, date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' })
+  duplicates.data = [{ duplicate: row('two', '10:05:00'), original: row('one', '10:00:00') }]
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('button', { name: 'Review 1 possible duplicate' }))
+  await screen.findByRole('dialog', { name: 'Logged twice?' })
+  fireEvent.click(screen.getByText('Keep both'))
+  expect(dismiss).toHaveBeenCalledWith('two')
+  duplicates.data = []
 })

@@ -1,14 +1,15 @@
 import { ExpenseNoticeDialog } from './ExpenseNoticeDialog';
 import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Plus, ReceiptText, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
 import { useCategories } from "../hooks/useCategories";
-import { useExpensesPage, useDeleteExpense } from "../hooks/useExpenses";
+import { useExpensesPage, useDeleteExpense, useDuplicates } from "../hooks/useExpenses";
+import { DuplicateReviewDialog } from "./DuplicateReviewDialog";
 import { EMPTY } from "../lib/constants";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
@@ -70,6 +71,9 @@ export function TransactionsView({
   const budgetsQuery = useBudgets();
   const categoriesQuery = useCategories();
   const deleteExpenseM = useDeleteExpense();
+  const duplicates = useDuplicates().data ?? [];
+  const [reviewingDuplicates, setReviewingDuplicates] = useState(false);
+  const closeDuplicateReview = useCallback(() => setReviewingDuplicates(false), []);
 
   // Period and the custom range start as derived values and become state only
   // once the user touches them. Seeding them from an effect instead made them
@@ -305,6 +309,15 @@ export function TransactionsView({
           <span className="txn-page-eyebrow">Transaction history</span>
           <h1>Activity</h1>
           <p>Review, search, and edit everything you have logged.</p>
+          {duplicates.length > 0 && (
+            <button
+              type="button"
+              className="action-button is-active erd-accent-action"
+              onClick={() => setReviewingDuplicates(true)}
+            >
+              Review {duplicates.length} possible duplicate{duplicates.length === 1 ? "" : "s"}
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -395,6 +408,9 @@ export function TransactionsView({
         </div>
       </section>
 
+      {reviewingDuplicates && (
+        <DuplicateReviewDialog pairs={duplicates} onClose={closeDuplicateReview} />
+      )}
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
       {loading ? (

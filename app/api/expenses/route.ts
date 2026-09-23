@@ -9,6 +9,7 @@ import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
 import { resolveCategoryName } from '@/lib/categoryName'
+import { flagIfDuplicate } from '@/lib/duplicates'
 
 export const dynamic = 'force-dynamic'
 
@@ -162,6 +163,17 @@ export async function POST(req: Request) {
     client_id: typeof body.client_id === 'string' ? body.client_id : undefined,
   })
 
+  // Replays were checked on their first attempt. Mobile's offline queue lands
+  // here too, which is where accidental double entries mostly come from.
+  const duplicateOf = result.duplicate ? null : await flagIfDuplicate(auth, {
+    id: result.id,
+    item: String(body.item),
+    amount_inr: String(body.amount_inr),
+    timestamp: result.timestamp,
+    date: result.timestamp.slice(0, 10),
+    payment_method: body.payment_method === undefined ? 'bank' : String(body.payment_method),
+  })
+
   // The id and the server-generated timestamp go back to the caller so it can
   // address the row it just created — mobile's post-log success screen needs
   // both to offer Undo without re-fetching the whole list to find the row.
@@ -171,7 +183,7 @@ export async function POST(req: Request) {
   return json(
     result.duplicate
       ? { ok: true, id: result.id, version: result.version, timestamp: result.timestamp, category: result.category, duplicate: true }
-      : { ok: true, id: result.id, version: result.version, timestamp: result.timestamp, category: result.category },
+      : { ok: true, id: result.id, version: result.version, timestamp: result.timestamp, category: result.category, ...(duplicateOf ? { duplicate_of: duplicateOf } : {}) },
   )
 }
 

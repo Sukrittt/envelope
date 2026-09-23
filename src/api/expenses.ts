@@ -144,3 +144,23 @@ export async function deleteExpense(
     throw new ExpenseWriteError(resp.status, detail.error ?? `Failed to delete expense: ${resp.status}`, detail.current)
   }
 }
+
+export type DuplicatePair = { duplicate: ExpenseRow; original: ExpenseRow }
+
+/** Expenses the server flagged as likely logged twice, each with the row it seems to repeat. */
+export async function getDuplicates(): Promise<DuplicatePair[]> {
+  const resp = await apiFetch('/api/expenses/duplicates')
+  if (!resp.ok) throw new Error(`Failed to load duplicates: ${resp.status}`)
+  const data: { pairs: DuplicatePair[] } = await resp.json()
+  return data.pairs
+}
+
+/** "Keep both": clears the flag so the pair is never offered again. */
+export async function dismissDuplicate(id: string): Promise<void> {
+  const resp = await apiFetch('/api/expenses/duplicates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  })
+  if (!resp.ok) throw new HttpError(resp.status, `Failed to dismiss duplicate: ${resp.status}`)
+}
