@@ -16,6 +16,10 @@ vi.mock('@/src/api/holdings', () => ({
   performHoldingAction: vi.fn(),
 }))
 
+// The sidebar reads the WorkOS session, which drags @workos-inc/authkit-nextjs
+// (and next/cache) into a jsdom run. It is chrome, not what this file tests.
+vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: () => null }))
+
 function holding(overrides: Partial<HoldingRow> = {}): HoldingRow {
   return {
     name: 'Stocks',
