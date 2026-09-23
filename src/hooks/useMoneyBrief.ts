@@ -4,7 +4,7 @@ import { fetchBrief } from '@/src/api/ai'
 
 const key = ['ai-brief'] as const
 
-export function useMoneyBrief() {
+export function useMoneyBrief({ enabled = true }: { enabled?: boolean } = {}) {
   const { currencyCode } = useCurrency()
-  return useQuery({ queryKey: [...key, currencyCode], queryFn: fetchBrief, staleTime: 15 * 60_000, retry: 1 })
+  return useQuery({ queryKey: [...key, currencyCode], queryFn: fetchBrief, staleTime: 15 * 60_000, retry: 1, enabled })
 }

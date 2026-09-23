@@ -1,10 +1,6 @@
-import { experimental_evaluate as evaluate, type Experimental_EvaluationQuestion } from 'ai'
-import { after } from 'next/server'
-import { logAiUsage, type AiCaller } from './usage'
-import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
-
-const MODEL = 'typesafe-ai/jev'
-const TIMEOUT_MS = 8_000
+import { type Experimental_EvaluationQuestion } from 'ai'
+import { runJev } from './jev'
+import { type AiCaller } from './usage'
 
 export const FEEDBACK_AREAS = ['budget', 'transactions', 'sync', 'billing', 'ai', 'other'] as const
 export type FeedbackArea = (typeof FEEDBACK_AREAS)[number]
@@ -53,28 +49,9 @@ function isFeedbackSeverity(value: number): value is FeedbackSeverity {
  * description enter model state; identity and diagnostics remain local.
  */
 export async function triageFeedback(title: string, description: string, caller: AiCaller): Promise<FeedbackTriage> {
-  if ((await getSystemSettings()).aiDisabled) throw new Error(AI_DISABLED_MESSAGE)
-  const startedAt = Date.now()
-  try {
-    const result = await evaluate({
-      model: MODEL,
-      state: { title, description },
-      questions: QUESTIONS,
-      providerOptions: { gateway: { disallowPromptTraining: true } },
-      maxRetries: 0,
-      abortSignal: AbortSignal.timeout(TIMEOUT_MS),
-    })
-    const area = result.answers.area.choice
-    const severity = result.answers.severity.score
-    if (!isFeedbackArea(area) || !isFeedbackSeverity(severity)) throw new Error('Jev returned invalid feedback triage')
-
-    after(() => logAiUsage(caller, MODEL, startedAt, {
-      promptTokenCount: result.usage.inputTokens,
-      candidatesTokenCount: result.usage.outputTokens,
-    }, null))
-    return { area, severity }
-  } catch (err) {
-    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
-    throw err
-  }
+  const answers = await runJev({ title, description }, QUESTIONS, caller)
+  const area = answers.area.choice
+  const severity = answers.severity.score
+  if (!isFeedbackArea(area) || !isFeedbackSeverity(severity)) throw new Error('Jev returned invalid feedback triage')
+  return { area, severity }
 }

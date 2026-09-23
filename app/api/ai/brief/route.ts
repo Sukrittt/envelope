@@ -1,10 +1,13 @@
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
-import { resolveCurrency } from '@/src/lib/currencies'
+import { formatMoney } from '@/src/lib/currencies'
 import { Type } from '@google/genai'
-import { json, error } from '@/lib/http'
+import { json, error, getCollection } from '@/lib/http'
+import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
 import { getAuth, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
-import { buildExpenseContext } from '@/lib/ai/expenseContext'
+import { buildExpenseContext, factsFor, type SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
+import { buildBriefCandidates, rankBrief } from '@/lib/ai/briefCards'
+import { BRIEF_CACHE_COLLECTION, briefCacheId } from '@/lib/ai/briefCache'
 import { generateJSON } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
 import { aiDisabledResponse } from '@/lib/systemSettings'
@@ -27,19 +30,45 @@ function rateLimited(auth: Auth): Promise<boolean> {
   ])
 }
 
-interface BriefCard {
-  icon: string
-  title: string
-  subtitle: string
-  valueLabel: string
-  amount: number
-  tone: 'mint' | 'violet' | 'coral' | 'warn'
+// Any write to an expense, budget, category, group, subscription or holding
+// drops this cache (lib/ai/briefCache.ts), so the TTL only bounds how long a
+// brief can sit unchanged, not how long it can be wrong.
+const CACHE_TTL_MS = 60 * 60_000
+
+/** Sections Jev sees when it ranks candidates. The raw transaction rows aren't needed to judge relevance. */
+const RANKING_SECTIONS = ['header', 'envelopes', 'trend', 'top10', 'subscriptions'] as const
+
+/** Used when Gemini can't write the narrative. The cards carry the real content, so the brief still stands. */
+function fallbackNarrative(meta: SummarizeExpensesMeta, currencyCode: string): string {
+  return `You've spent ${formatMoney(meta.totalSpent, currencyCode)} of ${formatMoney(meta.totalAssigned, currencyCode)} assigned, across ${meta.txnCountThisMonth} transactions. ${meta.daysLeft} days left in the month.`
 }
 
-interface Brief {
-  narrative: string
-  cards: BriefCard[]
-  questions: string[]
+/**
+ * Gemini writes the narrative line and nothing else: it sees the three chosen
+ * cards and the month's totals, not the FACTS blob, so it has no figure to get
+ * wrong and the prompt stays small.
+ */
+async function writeNarrative(
+  meta: SummarizeExpensesMeta,
+  currencyCode: string,
+  caller: { userId: string; feature: 'brief' },
+): Promise<string> {
+  const prompt = [
+    currencyInstruction(currencyCode),
+    'Write the opening line of a money brief for a personal expense tracker: 1 to 2 sentences summarizing the month so far.',
+    'Be warm and direct, second person, no markdown, no em dashes, use contractions.',
+    'Use only the numbers below. Never estimate or invent a figure.',
+    '',
+    `Day ${meta.daysElapsed} of ${meta.totalDaysInMonth}, ${meta.daysLeft} days left.`,
+    `Spent ${meta.totalSpent} of ${meta.totalAssigned} assigned, across ${meta.txnCountThisMonth} transactions this month.`,
+  ].join('\n')
+
+  const { narrative } = await generateJSON<{ narrative: string }>(
+    prompt,
+    { type: Type.OBJECT, properties: { narrative: { type: Type.STRING } }, required: ['narrative'] },
+    caller,
+  )
+  return narrative
 }
 
 export async function GET(req: Request) {
@@ -53,53 +82,39 @@ export async function GET(req: Request) {
   const overAllowance = await aiAllowanceResponse(auth)
   if (overAllowance) return overAllowance
 
-  if (await rateLimited(auth)) {
-    return error('rate limited', 429)
-  }
+  const caller = { userId: auth.userId, feature: 'brief' as const }
 
   try {
-    const { facts, meta, currencyCode } = await buildExpenseContext(auth)
+    const [currencyCode, { date }] = await Promise.all([getUserCurrency(auth.userId), nowForUser(auth.userId)])
+    const cache = await getCollection(BRIEF_CACHE_COLLECTION, auth)
+    const _id = briefCacheId(auth.userId, `${currencyCode}|${date}`)
 
-    const prompt = [
-      currencyInstruction(currencyCode),
-      'You are generating a short "money brief" for a personal expense-tracking dashboard, grounded strictly in the FACTS below.',
-      'Write a 1-2 sentence narrative paragraph summarizing the month so far.',
-      'Produce exactly 3 cards highlighting the most useful things to surface right now — e.g. the heaviest envelope, the largest single spend, the easiest place to cut back — pick whichever 3 are most relevant given the FACTS.',
-      'Produce exactly 4 short suggested follow-up questions the user might tap to ask next.',
-      'Every number you use must come directly from FACTS; never estimate or invent a figure.',
-      '',
-      'FACTS:',
-      facts,
-    ].join('\n')
+    const cached = await cache.findOne({ _id })
+    if (cached?.builtAt instanceof Date && Date.now() - cached.builtAt.getTime() < CACHE_TTL_MS) {
+      return json(cached.payload)
+    }
 
-    const brief = await generateJSON<Brief>(prompt, {
-      type: Type.OBJECT,
-      properties: {
-        narrative: { type: Type.STRING },
-        cards: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              icon: { type: Type.STRING, description: 'A single emoji character representing the card, e.g. 💰 or 🛒' },
-              title: { type: Type.STRING },
-              subtitle: { type: Type.STRING },
-              valueLabel: { type: Type.STRING, description: `Currency unit label for the amount: ${resolveCurrency(currencyCode)}` },
-              amount: { type: Type.NUMBER },
-              tone: { type: Type.STRING, enum: ['mint', 'violet', 'coral', 'warn'] },
-            },
-            required: ['icon', 'title', 'subtitle', 'valueLabel', 'amount', 'tone'],
-          },
-        },
-        questions: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-        },
-      },
-      required: ['narrative', 'cards', 'questions'],
-    }, { userId: auth.userId, feature: 'brief' })
+    // Only a real rebuild costs model calls, so only a real rebuild is rate limited.
+    if (await rateLimited(auth)) return error('rate limited', 429)
 
-    return json({ ...brief, meta })
+    const ctx = await buildExpenseContext(auth)
+    const { meta } = ctx
+    const candidates = buildBriefCandidates(ctx, currencyCode)
+
+    // Ranking and the narrative both depend only on the context, never on each
+    // other, so they run together instead of back to back.
+    const [{ cards, questions }, narrative] = await Promise.all([
+      rankBrief(candidates, factsFor(ctx.sections, RANKING_SECTIONS), caller),
+      writeNarrative(meta, currencyCode, caller).catch((err) => {
+        console.warn('[brief] narrative unavailable:', (err as Error).message)
+        return fallbackNarrative(meta, currencyCode)
+      }),
+    ])
+
+    const payload = { narrative, cards, questions, meta }
+    await cache.updateOne({ _id }, { $set: { payload, builtAt: new Date() } }, { upsert: true })
+
+    return json(payload)
   } catch (err) {
     console.error('brief: failed', err)
     return error('brief unavailable', 502)

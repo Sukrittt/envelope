@@ -1,4 +1,4 @@
-import { experimental_evaluate as evaluate } from 'ai'
+import { experimental_evaluate as evaluate, type Experimental_EvaluationQuestion, type Experimental_EvaluationResult } from 'ai'
 import { after } from 'next/server'
 import { logAiUsage, type AiCaller } from './usage'
 import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
@@ -10,15 +10,52 @@ import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
  * the gateway provider itself.
  */
 const MODEL = 'typesafe-ai/jev'
+const TIMEOUT_MS = 8_000
 
 // Real items came back at 1.00 in a live check; gibberish ("zxqv 42") still scored 0.62.
 // ponytail: calibrated on a handful of items; retune from override quality once real traffic lands.
 const MIN_CONFIDENCE = 0.8
 
+/** One shared state per request; every question in that request sees all of it. */
+export type JevState = Record<string, string | number | boolean | null | string[] | number[]>
+
 /**
+ * Single entry point for every Jev call: kill-switch check, timeout, no
+ * retries, no prompt training, and one `ai_usage` row per call.
+ *
  * Must be called inside a request: the usage record is written with `after()`
  * so its database round trip never delays the reply.
- *
+ */
+export async function runJev<const Q extends Record<string, Experimental_EvaluationQuestion>>(
+  state: JevState,
+  questions: Q,
+  caller: AiCaller,
+  timeoutMs: number = TIMEOUT_MS,
+): Promise<Experimental_EvaluationResult<Q>['answers']> {
+  if ((await getSystemSettings()).aiDisabled) throw new Error(AI_DISABLED_MESSAGE)
+  const startedAt = Date.now()
+  try {
+    const result = await evaluate({
+      model: MODEL,
+      state,
+      questions,
+      // zeroDataRetention would be stronger but needs Vercel Pro (403 on Hobby).
+      providerOptions: { gateway: { disallowPromptTraining: true } },
+      maxRetries: 0,
+      abortSignal: AbortSignal.timeout(timeoutMs),
+    })
+    after(() => logAiUsage(caller, MODEL, startedAt, {
+      promptTokenCount: result.usage.inputTokens,
+      candidatesTokenCount: result.usage.outputTokens,
+    }, null))
+    return result.answers
+  } catch (err) {
+    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
+    throw err
+  }
+}
+
+/**
  * Asks Jev a single choice question over `options`, returning the pick or ''
  * when Jev isn't confident — callers treat '' as "no suggestion".
  */
@@ -29,35 +66,18 @@ async function pickChoice(
   options: string[],
   caller: AiCaller,
 ): Promise<string> {
-  if ((await getSystemSettings()).aiDisabled) throw new Error(AI_DISABLED_MESSAGE)
-  const startedAt = Date.now()
-  try {
-    const result = await evaluate({
-      model: MODEL,
-      state,
-      questions: {
-        [answerKey]: {
-          type: 'choice',
-          instructions,
-          criteria: Object.fromEntries(options.map((c) => [c, null])),
-        },
-      },
-      // zeroDataRetention would be stronger but needs Vercel Pro (403 on Hobby).
-      providerOptions: { gateway: { disallowPromptTraining: true } },
-    })
-    after(() => logAiUsage(caller, MODEL, startedAt, {
-      promptTokenCount: result.usage.inputTokens,
-      candidatesTokenCount: result.usage.outputTokens,
-    }, null))
+  const answers = await runJev(state, {
+    [answerKey]: {
+      type: 'choice',
+      instructions,
+      criteria: Object.fromEntries(options.map((c) => [c, null])),
+    },
+  } satisfies Record<string, Experimental_EvaluationQuestion>, caller)
 
-    const { choice, probabilities } = result.answers[answerKey]
-    if (!options.includes(choice)) return ''
-    if (probabilities && (probabilities[choice] ?? 0) < MIN_CONFIDENCE) return ''
-    return choice
-  } catch (err) {
-    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
-    throw err
-  }
+  const { choice, probabilities } = answers[answerKey]
+  if (!options.includes(choice)) return ''
+  if (probabilities && (probabilities[choice] ?? 0) < MIN_CONFIDENCE) return ''
+  return choice
 }
 
 /** Picks the best-fit category for an expense item from the user's own list. */

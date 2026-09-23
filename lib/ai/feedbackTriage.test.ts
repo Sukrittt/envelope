@@ -72,7 +72,11 @@ describe('triageFeedback', () => {
     evaluate.mockResolvedValue(answer(area, severity))
 
     await expect(triageFeedback('Title', 'Description', caller)).rejects.toThrow('invalid feedback triage')
-    expect(logMock).toHaveBeenLastCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), undefined, expect.any(Error))
+    // The call itself succeeded, so `runJev` records it as ok; only the payload was unusable.
+    expect(logMock).toHaveBeenLastCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), {
+      promptTokenCount: 42,
+      candidatesTokenCount: 2,
+    }, null)
   })
 
   it('does not call Jev when the AI kill switch is on', async () => {

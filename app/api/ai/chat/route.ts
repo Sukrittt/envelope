@@ -2,8 +2,9 @@ import { ObjectId } from 'mongodb'
 import { readBody, error, getCollection } from '@/lib/http'
 import { getAuth, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
-import { buildExpenseContext } from '@/lib/ai/expenseContext'
-import { buildSystemPrompt } from '@/lib/ai/moneyBrainPrompt'
+import { buildExpenseContext, factsFor } from '@/lib/ai/expenseContext'
+import { buildSystemPrompt, SCOPE_REFUSAL } from '@/lib/ai/moneyBrainPrompt'
+import { routeChat } from '@/lib/ai/chatRouter'
 import { streamText } from '@/lib/ai/gemini'
 import { makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
 import { COLLECTIONS } from '@/lib/models'
@@ -73,9 +74,21 @@ function streamReply(
         if (leadingEvent) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(leadingEvent)}\n\n`))
         }
-        const { facts, currencyCode } = await buildExpenseContext(auth)
-        const systemPrompt = buildSystemPrompt(facts, currencyCode)
-        const geminiStream = await streamText(systemPrompt, contents, { userId: auth.userId, feature: 'chat' })
+        const caller = { userId: auth.userId, feature: 'chat' as const }
+        // Routing reads the message only, so it costs no wall-clock time next to the database read.
+        const message = contents[contents.length - 1]?.parts[0]?.text ?? ''
+        const [route, ctx] = await Promise.all([routeChat(message, caller), buildExpenseContext(auth)])
+
+        if (!route.onTopic) {
+          full = SCOPE_REFUSAL
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: SCOPE_REFUSAL })}\n\n`))
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          await settle()
+          return
+        }
+
+        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode)
+        const geminiStream = await streamText(systemPrompt, contents, caller)
 
         for await (const chunk of geminiStream) {
           const text = chunk.text
