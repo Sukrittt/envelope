@@ -5,6 +5,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { buildExpenseContext, factsFor } from '@/lib/ai/expenseContext'
 import { buildSystemPrompt, SCOPE_REFUSAL } from '@/lib/ai/moneyBrainPrompt'
 import { routeChat } from '@/lib/ai/chatRouter'
+import { createEmDashScrubber } from '@/lib/ai/emDash'
 import { streamText } from '@/lib/ai/gemini'
 import { makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
 import { COLLECTIONS } from '@/lib/models'
@@ -90,13 +91,16 @@ function streamReply(
         const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode)
         const geminiStream = await streamText(systemPrompt, contents, caller)
 
-        for await (const chunk of geminiStream) {
-          const text = chunk.text
-          if (text) {
-            full += text
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: text })}\n\n`))
-          }
+        const scrub = createEmDashScrubber()
+        const emit = (text: string) => {
+          if (!text) return
+          full += text
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: text })}\n\n`))
         }
+        for await (const chunk of geminiStream) {
+          if (chunk.text) emit(scrub.push(chunk.text))
+        }
+        emit(scrub.flush())
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         await settle()
       } catch (err) {

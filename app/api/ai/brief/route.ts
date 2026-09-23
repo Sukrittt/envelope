@@ -1,4 +1,5 @@
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
+import { scrubEmDashes } from '@/lib/ai/emDash'
 import { formatMoney } from '@/src/lib/currencies'
 import { Type } from '@google/genai'
 import { json, error, getCollection } from '@/lib/http'
@@ -68,7 +69,7 @@ async function writeNarrative(
     { type: Type.OBJECT, properties: { narrative: { type: Type.STRING } }, required: ['narrative'] },
     caller,
   )
-  return narrative
+  return scrubEmDashes(narrative)
 }
 
 export async function GET(req: Request) {

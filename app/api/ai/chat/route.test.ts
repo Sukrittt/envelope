@@ -136,6 +136,16 @@ describe('POST /api/ai/chat (demo path)', () => {
     expect(streamTextMock).toHaveBeenCalledTimes(1)
   })
 
+  it('strips em dashes from the streamed reply, even when one straddles chunks', async () => {
+    streamTextMock.mockImplementationOnce(async function* () {
+      yield { text: 'Food is high ' }
+      yield { text: '— mostly takeout.' }
+    })
+    const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'Why is food high?' }] }))).text()
+    const reply = [...body.matchAll(/"delta":"([^"]*)"/g)].map((m) => m[1]).join('')
+    expect(reply).toBe('Food is high, mostly takeout.')
+  })
+
   it('rejects once the client-supplied history exceeds the session message cap', async () => {
     const messages = Array.from({ length: 41 }, (_, i) => ({ role: 'user' as const, text: `msg ${i}` }))
     const res = await POST(jsonRequest({ messages }))
