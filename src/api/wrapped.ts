@@ -11,7 +11,10 @@ export interface WrappedData {
   longestStreak: { days: number; startDate: string; endDate: string } | null
   longestGap: { days: number; startDate: string; endDate: string } | null
   weeklyTotals: { label: string; total: number }[]
-  /** Jev's read of the month; null when Jev is unsure or unavailable. */
+}
+
+/** Jev's read of the month, fetched apart from the recap. Null when Jev is unsure or unavailable. */
+export interface WrappedJudgement {
   persona?: string | null
   treatCategory?: string | null
 }
@@ -43,4 +46,12 @@ export async function getWrappedStatus(): Promise<WrappedStatus> {
     throw new Error(detail.error ?? `Failed to load wrapped status: ${resp.status}`)
   }
   return resp.json()
+}
+
+/** Never throws: Wrapped renders from the recap alone, so a failure is simply no judgement. */
+export async function getWrappedJudgement(month?: string): Promise<WrappedJudgement> {
+  const url = month ? `/api/wrapped/judgement?month=${month}` : '/api/wrapped/judgement'
+  const resp = await apiFetch(url).catch(() => null)
+  if (!resp?.ok) return {}
+  return resp.json().catch(() => ({}))
 }

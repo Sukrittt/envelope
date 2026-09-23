@@ -1,6 +1,8 @@
 import { getCollection } from '@/lib/http'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import type { Auth } from '@/lib/access'
+import { cachedRead } from '@/lib/cache'
+import { computeWrapped, type WrappedData } from '@/src/services/wrappedAdapter'
 
 /** Minimum logged expenses in a month before its Wrapped edition unlocks. */
 export const WRAPPED_MIN_TRANSACTIONS = 10
@@ -38,4 +40,23 @@ export async function editionStatus(
     available: transactionCount >= WRAPPED_MIN_TRANSACTIONS,
     minTransactions: WRAPPED_MIN_TRANSACTIONS,
   }
+}
+
+/**
+ * The month's computed recap, cached per user-month. Shared by `/api/wrapped`
+ * and the judgement route so a judgement request costs no extra Mongo read
+ * once the recap is warm.
+ */
+export function readRecap(auth: Auth, month: string): Promise<WrappedData> {
+  const { start, end } = monthRange(month)
+  return cachedRead(
+    'wrapped',
+    auth.userId,
+    async () => {
+      const coll = await getCollection('expenses', auth)
+      const docs = await coll.find({ date: { $gte: start, $lte: end } }).toArray()
+      return computeWrapped(docs.map((d) => toRow(EXPENSE_HEADERS, d)), month)
+    },
+    month,
+  )
 }

@@ -6,11 +6,11 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties, type Rea
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { ArrowLeft, ArrowRight, Pause, Play, Share2, X } from 'lucide-react'
-import { useWrapped } from '@/src/hooks/useWrapped'
+import { useWrapped, useWrappedJudgement } from '@/src/hooks/useWrapped'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { formatDateShort } from '@/src/lib/format'
-import type { WrappedData } from '@/src/api/wrapped'
+import type { WrappedData, WrappedJudgement } from '@/src/api/wrapped'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 
 const STORY_MS = 5000
@@ -26,8 +26,8 @@ const JEV_PERSONAS: Record<string, (data: WrappedData) => { emoji: string; name:
   slow_burn: (data) => ({ emoji: '🕯️', name: 'The Slow Burn', copy: `${data.totalTransactions} small decisions, adding up quietly.` }),
 }
 
-export function wrappedArchetype(data: WrappedData) {
-  const fromJev = data.persona ? JEV_PERSONAS[data.persona] : undefined
+export function wrappedArchetype(data: WrappedData, judgement: WrappedJudgement = {}) {
+  const fromJev = judgement.persona ? JEV_PERSONAS[judgement.persona] : undefined
   if (fromJev) return fromJev(data)
   const topShare = data.topCategories[0]?.pct ?? 0
   const busiestWeek = Math.max(0, ...data.weeklyTotals.map((week) => week.total))
@@ -56,7 +56,7 @@ function Story({ eyebrow, title, children, emoji }: { eyebrow: string; title: st
   )
 }
 
-function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; moneySaved: number; hideAmounts: boolean }) {
+function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: WrappedData; judgement: WrappedJudgement; moneySaved: number; hideAmounts: boolean }) {
   const { formatCurrency } = useCurrency()
 
   const reduceMotion = useReducedMotion()
@@ -64,7 +64,10 @@ function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; mo
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const [copied, setCopied] = useState(false)
-  const archetype = wrappedArchetype(data)
+  // Frozen when the story starts: Jev's answer arriving mid-story would insert
+  // a slide under the reader and shift the progress dots.
+  const [frozen, setFrozen] = useState<WrappedJudgement>({})
+  const archetype = wrappedArchetype(data, frozen)
   const maxWeek = Math.max(1, ...data.weeklyTotals.map((week) => week.total))
   const topCategory = data.topCategories[0]
 
@@ -90,8 +93,8 @@ function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; mo
     {
       color: '#568d86', ink: '#f8fff9', node: <Story eyebrow="Where it all went" title="Your category mix"><div className="wrapped-category-list">{data.topCategories.map((category, itemIndex) => <div key={category.category}><span><i style={{ background: PALETTE[itemIndex] }} />{category.category}</span><strong>{Math.round(category.pct)}%</strong><small style={{ width: `${category.pct}%`, background: PALETTE[itemIndex] }} /></div>)}</div></Story>,
     },
-    ...(data.treatCategory ? [{
-      color: '#d98ca6', ink: '#33161f', node: <Story eyebrow="Your little treat" title={data.treatCategory} emoji="🍰"><p>The category that looked least like a bill and most like a reward.</p></Story>,
+    ...(frozen.treatCategory ? [{
+      color: '#d98ca6', ink: '#33161f', node: <Story eyebrow="Your little treat" title={frozen.treatCategory} emoji="🍰"><p>The category that looked least like a bill and most like a reward.</p></Story>,
     }] : []),
     {
       color: '#e89161', ink: '#341b10', node: <Story eyebrow="Consistency check" title={`${data.longestStreak?.days ?? 0} day streak`} emoji="🔥"><p>{data.longestStreak ? `${formatDateShort(data.longestStreak.startDate)} to ${formatDateShort(data.longestStreak.endDate)}. Your longest run of logged spending.` : 'Every habit starts with day one.'}</p></Story>,
@@ -105,7 +108,7 @@ function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; mo
     {
       color: '#40395f', ink: '#fffaf0', node: <Story eyebrow={`${monthName(data.month)} · complete`} title="That was your month." emoji="🕊️"><p>{formatCurrency(data.totalSpent, hideAmounts)} spent. {formatCurrency(moneySaved, hideAmounts)} left. A clearer picture for what comes next.</p></Story>,
     },
-  ], [archetype, data, hideAmounts, maxWeek, moneySaved, topCategory, formatCurrency])
+  ], [archetype, data, frozen, hideAmounts, maxWeek, moneySaved, topCategory, formatCurrency])
 
   const goNext = useCallback(() => setIndex((current) => Math.min(slides.length - 1, current + 1)), [slides.length])
   const goBack = useCallback(() => setIndex((current) => Math.max(0, current - 1)), [])
@@ -145,7 +148,7 @@ function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; mo
         <span>Your spending has a story</span>
         <h1>{monthName(data.month)}<br />Wrapped</h1>
         <p>{data.totalTransactions} transactions, distilled into the moments that shaped your month.</p>
-        <button type="button" onClick={() => setStarted(true)}>Unwrap my month <ArrowRight size={18} /></button>
+        <button type="button" onClick={() => { setFrozen(judgement); setStarted(true) }}>Unwrap my month <ArrowRight size={18} /></button>
       </main>
     )
   }
@@ -174,6 +177,9 @@ function WrappedStory({ data, moneySaved, hideAmounts }: { data: WrappedData; mo
 
 export function WrappedExperience() {
   const wrapped = useWrapped()
+  // Deliberately not awaited: the recap renders without it, and the cover
+  // screen waits for a tap, which is usually longer than the Jev call.
+  const judgement = useWrappedJudgement()
   const budgets = useBudgets()
   const [hideAmounts] = useHideAmounts()
 
@@ -184,5 +190,5 @@ export function WrappedExperience() {
   const monthBudgets = (budgets.data ?? []).filter((budget) => budget.month === wrapped.data.month)
   const assigned = monthBudgets.reduce((sum, budget) => sum + Number(budget.assigned || 0) + Number(budget.rolled_over || 0), 0)
   const moneySaved = Math.max(0, assigned - wrapped.data.totalSpent)
-  return <WrappedStory data={wrapped.data} moneySaved={moneySaved} hideAmounts={hideAmounts} />
+  return <WrappedStory data={wrapped.data} judgement={judgement.data ?? {}} moneySaved={moneySaved} hideAmounts={hideAmounts} />
 }
