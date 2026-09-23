@@ -8,6 +8,26 @@ import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
  */
 
 const MODEL = 'gemini-3.1-flash-lite'
+// Gemini answers 503 UNAVAILABLE ("experiencing high demand") in bursts. One
+// retry clears most of them, and nothing has been streamed to the client yet
+// at the point we retry, so replaying the call is safe.
+const RETRY_STATUSES = [429, 503]
+const RETRY_DELAY_MS = 700
+
+function isRetryable(err: unknown): boolean {
+  const text = String((err as Error)?.message ?? err)
+  return RETRY_STATUSES.some((status) => text.includes(String(status)))
+}
+
+async function once<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call()
+  } catch (err) {
+    if (!isRetryable(err)) throw err
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+    return call()
+  }
+}
 
 let client: GoogleGenAI | null = null
 
@@ -29,7 +49,7 @@ async function tracked(caller: AiCaller, call: () => Promise<GenerateContentResp
   await assertAiEnabled()
   const startedAt = Date.now()
   try {
-    const response = await call()
+    const response = await once(call)
     await logAiUsage(caller, MODEL, startedAt, response.usageMetadata, null)
     return response
   } catch (err) {
@@ -104,7 +124,7 @@ export async function streamText(
   const startedAt = Date.now()
   let stream
   try {
-    stream = await ai.models.generateContentStream({
+    stream = await once(() => ai.models.generateContentStream({
       model: MODEL,
       contents,
       config: {
@@ -112,7 +132,7 @@ export async function streamText(
         temperature: 0.4,
         maxOutputTokens,
       },
-    })
+    }))
   } catch (err) {
     await logAiUsage(caller, MODEL, startedAt, undefined, err)
     throw err
