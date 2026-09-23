@@ -62,7 +62,23 @@ export async function POST(req: Request) {
   const exists = await coll.findOne({
     service: { $regex: new RegExp(`^${escapeRegExp(String(body.service))}$`, 'i') },
   })
-  if (exists) return error('subscription already exists', 409)
+  if (exists) {
+    if (suggestionId && /^cancel/i.test(String(exists.status ?? ''))) {
+      await coll.updateOne({ _id: exists._id }, { $set: {
+        suggestion_id: suggestionId,
+        amount_inr: String(body.amount_inr),
+        billing_cycle: String(body.billing_cycle || 'monthly'),
+        next_due_date: String(body.next_due_date ?? ''),
+        status: 'active',
+        renewal_or_end_month: '',
+        notes: String(body.notes ?? ''),
+        category: String(body.category ?? ''),
+      } })
+      invalidate('subscriptions', auth.userId)
+      return json({ ok: true, id: suggestionId, reactivated: true })
+    }
+    return error('subscription already exists', 409)
+  }
 
   try {
     await coll.insertOne({

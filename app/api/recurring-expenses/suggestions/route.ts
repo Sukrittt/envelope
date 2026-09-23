@@ -21,6 +21,7 @@ const EXPENSE_PROJECTION = { _id: 1, version: 1, date: 1, item: 1, description: 
 const documentId = (auth: Auth, key: string) => new ObjectId(fingerprint([auth.userId, key]).slice(0, 24))
 const snapshotId = (auth: Auth, months: ScanMonths) => documentId(auth, `snapshot:${DETECTION_VERSION}:${months}`)
 const parseMonths = (value: unknown): ScanMonths | null => value === undefined || value === null ? 6 : value === 1 || value === 3 || value === 6 || value === 12 ? value : null
+const isTrackedSubscription = (row: Record<string, unknown>) => !/^cancel/i.test(String(row.status ?? 'active'))
 
 type Evidence = { id: string; version: number; date: string }
 type Snapshot = { scan: RecurringScan; currency: string; evidence: Record<string, Evidence[]> }
@@ -35,13 +36,14 @@ async function loadHistory(auth: Auth, months: ScanMonths, cache: Cache) {
   const [rows, schedules, services] = await Promise.all([
     expenses.find({ date: { $gte: windowStart, $lte: today } }, { projection: EXPENSE_PROJECTION }).limit(MAX_ROWS + 1).toArray(),
     recurring.find({}, { projection: { item: 1, suggestion_id: 1 } }).toArray(),
-    subscriptions.find({}, { projection: { service: 1, suggestion_id: 1 } }).toArray(),
+    subscriptions.find({}, { projection: { service: 1, suggestion_id: 1, status: 1 } }).toArray(),
   ])
   if (rows.length > MAX_ROWS) throw new Error('SCAN_TOO_LARGE')
-  const candidates = buildCandidates(rows, [...schedules.map(r => String(r.item ?? '')), ...services.map(r => String(r.service ?? ''))], currency)
+  const trackedServices = services.filter(isTrackedSubscription)
+  const candidates = buildCandidates(rows, [...schedules.map(r => String(r.item ?? '')), ...trackedServices.map(r => String(r.service ?? ''))], currency)
   const ids = candidates.map(c => documentId(auth, c.fingerprint))
   const saved = ids.length ? await cache.find({ _id: { $in: ids } }).toArray() : []
-  return { today, windowStart, currency, candidates, results: new Map(saved.map(r => [String(r._id), r])), accepted: new Set([...schedules, ...services].map(r => String(r.suggestion_id ?? '')).filter(Boolean)) }
+  return { today, windowStart, currency, candidates, results: new Map(saved.map(r => [String(r._id), r])), accepted: new Set([...schedules, ...trackedServices].map(r => String(r.suggestion_id ?? '')).filter(Boolean)) }
 }
 
 function makeSnapshot(ctx: Awaited<ReturnType<typeof loadHistory>>, auth: Auth, failed: number): Snapshot {
@@ -112,12 +114,13 @@ export async function GET(req: Request) {
     const [rows, schedules, services, decisions] = await Promise.all([
       expenses.find({ _id: { $in: ids } }, { projection: { _id: 1, version: 1 } }).toArray(),
       recurring.find({}, { projection: { item: 1, suggestion_id: 1 } }).toArray(),
-      subscriptions.find({}, { projection: { service: 1, suggestion_id: 1 } }).toArray(),
+      subscriptions.find({}, { projection: { service: 1, suggestion_id: 1, status: 1 } }).toArray(),
       cache.find({ _id: { $in: snapshot.scan.suggestions.map(s => new ObjectId(s.id)) } }).toArray(),
     ])
     const versions = new Map(rows.map(r => [String(r._id), Number(r.version ?? 0)]))
-    const tracked = new Set([...schedules.map(r => String(r.item ?? '')), ...services.map(r => String(r.service ?? ''))].map(normalizeItem))
-    const accepted = new Set([...schedules, ...services].map(r => String(r.suggestion_id ?? '')).filter(Boolean))
+    const trackedServices = services.filter(isTrackedSubscription)
+    const tracked = new Set([...schedules.map(r => String(r.item ?? '')), ...trackedServices.map(r => String(r.service ?? ''))].map(normalizeItem))
+    const accepted = new Set([...schedules, ...trackedServices].map(r => String(r.suggestion_id ?? '')).filter(Boolean))
     const dismissed = new Set(decisions.filter(r => r.dismissed).map(r => String(r._id)))
     let stale = false
     const suggestions = snapshot.scan.suggestions.filter(s => {

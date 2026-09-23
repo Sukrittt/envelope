@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { advance, type Frequency } from './recurringExpense'
 
 // Bump whenever normalization or questions change; old decisions must not survive it.
-export const DETECTION_VERSION = 'recurring-v6'
+export const DETECTION_VERSION = 'recurring-v7'
 export type DetectionFrequency = Frequency | 'quarterly'
 export type DetectionDecision = { pattern: 'subscription' | 'other_recurring'; frequency: DetectionFrequency } | null
 export type CadenceAnalysis = {
@@ -42,9 +42,19 @@ export function analyzeCadence(dates: string[]): CadenceAnalysis {
     }
   })
   const cadences = intervals.map(cadenceForInterval)
-  const deterministicCadence = cadences.length > 0 && cadences.every(cadence => cadence === cadences[0])
-    ? cadences[0]
-    : 'uncertain'
+  let deterministicCadence = cadences.at(-1) ?? 'uncertain'
+  if (deterministicCadence !== 'uncertain') {
+    // Recent clean evidence can establish a new pattern after older irregular
+    // purchases. Stop at the first unsupported older gap, but reject a
+    // directly conflicting supported cadence within the clean suffix.
+    for (let index = cadences.length - 2; index >= 0; index--) {
+      if (cadences[index] === 'uncertain') break
+      if (cadences[index] !== deterministicCadence) {
+        deterministicCadence = 'uncertain'
+        break
+      }
+    }
+  }
   return { sortedDates, intervals, deterministicCadence }
 }
 export function buildCandidates(rows: Record<string, unknown>[], tracked: string[], currency: string): RecurringCandidate[] {

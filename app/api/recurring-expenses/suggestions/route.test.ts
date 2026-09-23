@@ -87,10 +87,15 @@ describe('recurring scan API', () => {
     expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
     await POST(req('POST'))
     expect(mocks.evaluate).toHaveBeenCalledTimes(2)
-    subscriptions.push({ service: 'Netflix' })
+    subscriptions.push({ service: 'Netflix', status: 'active' })
     expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
     subscriptions = []; ledger.pop()
     expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
+  })
+  it('allows a cancelled subscription to be detected again', async () => {
+    subscriptions.push({ service: 'Netflix', status: 'cancelled' })
+    const result = await (await POST(req('POST'))).json()
+    expect(result.suggestions[0]).toMatchObject({ kind: 'subscription', input: { item: 'Netflix' } })
   })
   it('hides accepted subscription ids even if the service is later renamed', async () => {
     const first = await (await POST(req('POST'))).json()

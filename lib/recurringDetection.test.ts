@@ -57,6 +57,12 @@ describe('deterministic cadence', () => {
     expect(analyzeCadence(['2026-01-31', '2026-04-30']).deterministicCadence).toBe('quarterly')
   })
 
+  it('uses the latest clean cadence after older irregular observations', () => {
+    const dates = ['2026-06-23', '2026-07-03', '2026-08-23', '2026-09-23']
+    expect(analyzeCadence(dates).deterministicCadence).toBe('monthly')
+    expect(buildCandidates(dates.map((date, i) => ({ ...rows[0], _id: String(i), date })), [], 'INR')).toHaveLength(1)
+  })
+
   it('abstains when adjacent intervals conflict', () => {
     expect(analyzeCadence(['2026-01-01', '2026-02-01', '2026-04-01']).deterministicCadence).toBe('uncertain')
   })

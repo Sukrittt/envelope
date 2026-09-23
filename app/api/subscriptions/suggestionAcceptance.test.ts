@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   recurring: vi.fn(),
   duplicate: vi.fn(),
   insert: vi.fn(),
+  update: vi.fn(),
 }))
 
 vi.mock('@/lib/access', () => ({ getAuth: async () => ({ userId: 'u', readOnly: false }), readOnlyGuard: () => null }))
@@ -18,7 +19,11 @@ vi.mock('@/lib/http', async original => ({
   getCollection: async (name: string) => {
     if (name === 'recurring_detection') return { findOne: mocks.suggestion }
     if (name === 'recurring_expenses') return { find: () => ({ toArray: mocks.recurring }) }
-    return { findOne: (filter: Record<string, unknown>) => ('_id' in filter ? mocks.accepted(filter) : mocks.duplicate(filter)), insertOne: mocks.insert }
+    return {
+      findOne: (filter: Record<string, unknown>) => ('_id' in filter ? mocks.accepted(filter) : mocks.duplicate(filter)),
+      insertOne: mocks.insert,
+      updateOne: mocks.update,
+    }
   },
 }))
 
@@ -45,6 +50,7 @@ beforeEach(() => {
   mocks.suggestion.mockResolvedValue({ decision: { pattern: 'subscription', frequency: 'monthly' } })
   mocks.recurring.mockResolvedValue([])
   mocks.insert.mockResolvedValue({ insertedId: new ObjectId(id) })
+  mocks.update.mockResolvedValue({ matchedCount: 1 })
 })
 
 it('stores a subscription suggestion under a stable id', async () => {
@@ -57,6 +63,17 @@ it('stores a subscription suggestion under a stable id', async () => {
 it('is idempotent when confirmation is retried', async () => {
   mocks.accepted.mockResolvedValue({ _id: new ObjectId(id) })
   expect((await POST(request())).status).toBe(200)
+  expect(mocks.insert).not.toHaveBeenCalled()
+})
+
+it('reactivates a cancelled subscription when its new pattern is accepted', async () => {
+  const existingId = new ObjectId()
+  mocks.duplicate.mockResolvedValue({ _id: existingId, service: 'Netflix', status: 'cancelled' })
+  expect((await POST(request())).status).toBe(200)
+  expect(mocks.update).toHaveBeenCalledWith(
+    { _id: existingId },
+    { $set: expect.objectContaining({ status: 'active', suggestion_id: id, amount_inr: '649', billing_cycle: 'monthly' }) },
+  )
   expect(mocks.insert).not.toHaveBeenCalled()
 })
 
