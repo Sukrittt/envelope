@@ -105,9 +105,12 @@ describe('EnvelopesPage', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByLabelText('Delete Home'))
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete Home?' })
+    expect(dialog).toHaveTextContent('Its categories move to the Archived group. You can restore the group from Archive for 7 days.')
+    expect(dialog).not.toHaveTextContent(/can't be undone/i)
     // Deletion only runs after the dialog is confirmed.
     await user.click(
-      within(screen.getByRole('alertdialog', { name: 'Delete Home?' })).getByRole('button', { name: 'Delete' }),
+      within(dialog).getByRole('button', { name: 'Delete' }),
     )
     // Archived does not exist yet, so it is created, then both of Home's
     // categories are moved into it, and only then is Home removed.
@@ -128,6 +131,9 @@ describe('EnvelopesPage', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByLabelText('Delete Odds'))
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete Odds?' })
+    expect(dialog).toHaveTextContent('It will move to Archive. You can restore it for 7 days.')
+    expect(dialog).not.toHaveTextContent(/can't be undone/i)
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(deleteCategory).not.toHaveBeenCalled()
   })

@@ -10,6 +10,7 @@ import { useBudgets } from "../hooks/useBudgets";
 import { useCategories } from "../hooks/useCategories";
 import { useExpensesPage, useDeleteExpense, useDuplicates } from "../hooks/useExpenses";
 import { DuplicateReviewDialog } from "./DuplicateReviewDialog";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { EMPTY } from "../lib/constants";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
@@ -111,7 +112,7 @@ export function TransactionsView({
     [budgetsQuery.data],
   );
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
-  const [deleteKey, setDeleteKey] = useState<string | null>(null);
+  const [deleteTxn, setDeleteTxn] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteNotice, setDeleteNotice] = useState<{ status?: number } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
@@ -127,7 +128,6 @@ export function TransactionsView({
         !actionsMenuRef.current.contains(e.target as Node)
       ) {
         setActionsKey(null);
-        setDeleteKey(null);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -269,10 +269,7 @@ export function TransactionsView({
   function refreshTransactions() {}
 
   function toggleActions(rowKey: string) {
-    setActionsKey((key) => {
-      setDeleteKey(null);
-      return key === rowKey ? null : rowKey;
-    });
+    setActionsKey((key) => key === rowKey ? null : rowKey);
   }
 
   async function handleDelete(t: Transaction) {
@@ -287,12 +284,12 @@ export function TransactionsView({
         item: t.item,
         amountInr: t.amountInr,
       });
-      setDeleteKey(null);
+      setDeleteTxn(null);
       setActionsKey(null);
       await refreshTransactions();
     } catch (err) {
       // A conflict requires a new confirmation after reviewing the refreshed row.
-      setDeleteKey(null);
+      setDeleteTxn(null);
       setActionsKey(null);
       setDeleteNotice({ status: err instanceof ExpenseWriteError ? err.status : undefined });
     }
@@ -520,51 +517,26 @@ export function TransactionsView({
                         <div className="env-action-wrap">
                           {actionsKey === rowKey && (
                             <div className="env-menu" ref={actionsMenuRef} role="menu">
-                              {deleteKey === rowKey ? (
-                                <div className="txn-kebab-confirm">
-                                  <span className="txn-kebab-confirm-label">
-                                    Delete this transaction?
-                                  </span>
-                                  <div className="txn-kebab-confirm-actions">
-                                    <button
-                                      type="button"
-                                      className="env-menu-item env-menu-item-danger"
-                                      disabled={deleting}
-                                      onClick={() => handleDelete(t)}
-                                    >
-                                      {deleting ? "Removing…" : "Remove"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="env-menu-item"
-                                      disabled={deleting}
-                                      onClick={() => setDeleteKey(null)}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="env-menu-item"
-                                    onClick={() => {
-                                      setEditingTxn(t);
-                                      setActionsKey(null);
-                                    }}
-                                  >
-                                    Edit transaction
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="env-menu-item env-menu-item-danger"
-                                    onClick={() => setDeleteKey(rowKey)}
-                                  >
-                                    Delete transaction
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                type="button"
+                                className="env-menu-item"
+                                onClick={() => {
+                                  setEditingTxn(t);
+                                  setActionsKey(null);
+                                }}
+                              >
+                                Edit transaction
+                              </button>
+                              <button
+                                type="button"
+                                className="env-menu-item env-menu-item-danger"
+                                onClick={() => {
+                                  setDeleteTxn(t);
+                                  setActionsKey(null);
+                                }}
+                              >
+                                Delete transaction
+                              </button>
                             </div>
                           )}
                         </div>
@@ -611,6 +583,24 @@ export function TransactionsView({
       )}
 
       <AnimatePresence>
+        {deleteTxn && (
+          <ConfirmDialog
+            title="Delete this transaction?"
+            body={`“${deleteTxn.item}” will move to Archive. You can restore it for 7 days.`}
+            cancelLabel="Cancel"
+            onCancel={() => !deleting && setDeleteTxn(null)}
+          >
+            <button
+              type="button"
+              className="account-danger-btn"
+              style={{ marginTop: 0 }}
+              disabled={deleting}
+              onClick={() => void handleDelete(deleteTxn)}
+            >
+              {deleting ? "Removing…" : "Remove"}
+            </button>
+          </ConfirmDialog>
+        )}
         {editingTxn && (
           <TransactionEditModal
             id={editingTxn.id}

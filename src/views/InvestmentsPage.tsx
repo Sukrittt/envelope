@@ -391,7 +391,7 @@ export function InvestmentsPage() {
         {deleteTarget && (
           <ConfirmDialog
             title={`Delete ${deleteTarget}?`}
-            body="This can't be undone."
+            body="It will move to Archive. You can restore it for 7 days."
             cancelLabel="Keep"
             onCancel={() => setDeleteTarget(null)}
           >

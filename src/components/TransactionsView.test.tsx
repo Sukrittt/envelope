@@ -22,6 +22,17 @@ it('opens the transaction actions when the row is clicked', () => {
   expect(screen.getByText('Delete transaction')).toBeInTheDocument()
 })
 
+it('opens transaction deletion in a modal dialog instead of the row menu', () => {
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('button', { name: 'Open actions for Lunch' }))
+  fireEvent.click(screen.getByText('Delete transaction'))
+
+  expect(screen.getByRole('alertdialog', { name: 'Delete this transaction?' })).toBeInTheDocument()
+  expect(screen.getByText('“Lunch” will move to Archive. You can restore it for 7 days.')).toBeInTheDocument()
+  expect(screen.queryByText(/can't be undone/i)).not.toBeInTheDocument()
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+})
+
 it('separates filters from date-grouped transaction rows', () => {
   render(<TransactionsView />)
 

@@ -621,8 +621,8 @@ export function EnvelopesPage() {
             title={`Delete ${splitEmoji(deleteTarget.name).text}?`}
             body={
               deleteTarget.kind === "group"
-                ? "Its categories are moved into Archived first. This can't be undone."
-                : "It disappears from your budget. This can't be undone."
+                ? "Its categories move to the Archived group. You can restore the group from Archive for 7 days."
+                : "It will move to Archive. You can restore it for 7 days."
             }
             cancelLabel="Cancel"
             onCancel={() => setDeleteTarget(null)}
