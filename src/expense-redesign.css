@@ -2696,31 +2696,37 @@
 
 /* Success-tick state for action buttons */
 .expense-redesign .action-button,
-.erd-log-submit {
+.erd-log-submit,
+.expense-redesign .txn-review-primary {
   position: relative;
 }
 .expense-redesign .action-button.is-success,
-.erd-log-submit.is-success {
+.erd-log-submit.is-success,
+.expense-redesign .txn-review-primary.is-success {
   background: var(--mint);
   border-color: var(--mint);
   color: var(--erd-on-accent);
   transform: none;
 }
 .expense-redesign .action-button.is-success:hover,
-.erd-log-submit.is-success:hover {
+.erd-log-submit.is-success:hover,
+.expense-redesign .txn-review-primary.is-success:hover {
   transform: none;
 }
 .expense-redesign .action-button.is-success:disabled,
-.erd-log-submit.is-success:disabled {
+.erd-log-submit.is-success:disabled,
+.expense-redesign .txn-review-primary.is-success:disabled {
   opacity: 1;
   cursor: default;
 }
 .expense-redesign .action-button.is-success .sb-label,
-.erd-log-submit.is-success .sb-label {
+.erd-log-submit.is-success .sb-label,
+.expense-redesign .txn-review-primary.is-success .sb-label {
   visibility: hidden;
 }
 .expense-redesign .action-button .sb-tick,
-.erd-log-submit .sb-tick {
+.erd-log-submit .sb-tick,
+.expense-redesign .txn-review-primary .sb-tick {
   position: absolute;
   inset: 0;
   display: flex;
@@ -2730,12 +2736,14 @@
   animation: erd-success-pop 300ms ease forwards;
 }
 .expense-redesign .action-button .sb-tick svg,
-.erd-log-submit .sb-tick svg {
+.erd-log-submit .sb-tick svg,
+.expense-redesign .txn-review-primary .sb-tick svg {
   width: 18px;
   height: 18px;
 }
 .expense-redesign .action-button .sb-tick path,
-.erd-log-submit .sb-tick path {
+.erd-log-submit .sb-tick path,
+.expense-redesign .txn-review-primary .sb-tick path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   animation: erd-check-draw 350ms ease 220ms forwards;
@@ -2812,6 +2820,20 @@
 .expense-redesign .txn-page-log-btn {
   min-height: 44px;
   padding-inline: 20px;
+}
+.expense-redesign .txn-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+.expense-redesign .txn-page-duplicates-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-inline: 18px;
 }
 .expense-redesign .txn-timeline-filters {
   display: grid;
@@ -3275,8 +3297,13 @@
 }
 
 @media (max-width: 520px) {
-  .expense-redesign .txn-page-log-btn {
+  .expense-redesign .txn-page-actions,
+  .expense-redesign .txn-page-log-btn,
+  .expense-redesign .txn-page-duplicates-btn {
     width: 100%;
+  }
+  .expense-redesign .txn-page-duplicates-btn {
+    justify-content: center;
   }
   .expense-redesign .txn-filter-row-refine {
     grid-template-columns: minmax(0, 1fr) auto;

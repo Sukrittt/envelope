@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { it, expect, vi } from 'vitest'
 import { TransactionsView } from './TransactionsView'
 import { ExpenseWriteError } from '../lib/expenseConflict'
@@ -65,4 +65,22 @@ it('offers a review of flagged duplicates and can keep both', async () => {
   fireEvent.click(screen.getByText('Keep both'))
   expect(dismiss).toHaveBeenCalledWith('two')
   duplicates.data = []
+})
+
+it('deletes the newer duplicate with a saving state and a tick, then closes', async () => {
+  const row = (id: string, time: string) => ({ id, version: 3, timestamp: `2026-09-18T${time}`, date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' })
+  duplicates.data = [{ duplicate: row('two', '10:05:00'), original: row('one', '10:00:00') }]
+  let finish: () => void = () => {}
+  remove.mockReset().mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve }))
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('button', { name: 'Review 1 possible duplicate' }))
+  fireEvent.click(await screen.findByText('Delete the newer one'))
+
+  expect(screen.getByText('Deleting…')).toBeInTheDocument()
+  expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 'two', version: 3 }))
+  finish()
+  expect(await screen.findByRole('img', { name: 'Deleted' })).toBeInTheDocument()
+  // The refetch has already dropped the pair; the tick still plays on it.
+  duplicates.data = []
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 2000 })
 })

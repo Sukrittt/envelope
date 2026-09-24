@@ -6,6 +6,7 @@ import { useDeleteExpense, useDismissDuplicate } from '../hooks/useExpenses'
 import type { DuplicatePair } from '../api/expenses'
 import type { ExpenseRow } from '../types'
 import { formatShortDate } from '../lib/format'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 function when(row: ExpenseRow): string {
   const time = new Date(row.timestamp)
@@ -16,17 +17,24 @@ function when(row: ExpenseRow): string {
 
 /**
  * Steps through flagged pairs one at a time: delete the newer copy, or keep
- * both. The list refetches after each answer, so the head is always the next pair.
+ * both. Delete plays the shared saving then tick sequence on the pair it acted
+ * on, then moves to the next pair, or closes once none are left. Answered pairs
+ * are hidden locally, so a refetch that lands late can't show one again.
  */
 export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair[]; onClose: () => void }) {
   const { formatCurrency } = useCurrency()
   const deleteExpense = useDeleteExpense()
   const dismiss = useDismissDuplicate()
+  const deletePhase = useButtonPhase()
   const [failed, setFailed] = useState(false)
+  const [answered, setAnswered] = useState<ReadonlySet<string>>(new Set())
+  // The pair on screen stays put while its delete saves and ticks, even after
+  // the refetch has already dropped it from `pairs`.
+  const [held, setHeld] = useState<DuplicatePair | null>(null)
   const id = useId()
   const primary = useRef<HTMLButtonElement>(null)
-  const pair = pairs[0]
-  const busy = deleteExpense.isPending || dismiss.isPending
+  const pair = held ?? pairs.find((p) => !answered.has(String(p.duplicate.id)))
+  const busy = deletePhase.phase !== 'idle' || dismiss.isPending
 
   useEffect(() => {
     if (!pair) onClose()
@@ -35,11 +43,41 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
 
   if (!pair) return null
   const { duplicate, original } = pair
+  // Closing on the last pair leaves it on screen, so the sheet has something to
+  // animate out instead of blanking first.
+  const isLast = !pairs.some((p) => p.duplicate.id !== duplicate.id && !answered.has(String(p.duplicate.id)))
+  const answer = () => setAnswered((prev) => new Set(prev).add(String(duplicate.id)))
 
-  async function run(action: () => Promise<unknown>) {
+  async function handleDelete() {
+    setFailed(false)
+    setHeld(pair!)
+    deletePhase.start()
+    try {
+      await deleteExpense.mutateAsync({
+        id: duplicate.id,
+        version: duplicate.version,
+        timestamp: duplicate.timestamp,
+        item: duplicate.item,
+        amountInr: Number(duplicate.amount_inr) || 0,
+      })
+      deletePhase.succeed(() => {
+        if (isLast) return onClose()
+        answer()
+        setHeld(null)
+      })
+    } catch {
+      deletePhase.fail()
+      setHeld(null)
+      setFailed(true)
+    }
+  }
+
+  async function handleKeepBoth() {
     setFailed(false)
     try {
-      await action()
+      await dismiss.mutateAsync(String(duplicate.id))
+      if (isLast) onClose()
+      else answer()
     } catch {
       setFailed(true)
     }
@@ -73,18 +111,12 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
           </div>
           {failed && <p className="txn-review-note" role="alert">That didn&apos;t go through. It may have changed on another device; try again.</p>}
           <div className="txn-review-actions">
-            <button type="button" ref={primary} className="txn-review-primary" disabled={busy}
-              onClick={() => run(() => deleteExpense.mutateAsync({
-                id: duplicate.id,
-                version: duplicate.version,
-                timestamp: duplicate.timestamp,
-                item: duplicate.item,
-                amountInr: Number(duplicate.amount_inr) || 0,
-              }))}>
+            <SuccessButton type="button" ref={primary} baseClass="txn-review-primary" disabled={busy}
+              saving={deletePhase.saving} success={deletePhase.success} savingLabel="Deleting…" successLabel="Deleted"
+              onClick={handleDelete}>
               Delete the newer one
-            </button>
-            <button type="button" className="txn-review-secondary" disabled={busy}
-              onClick={() => run(() => dismiss.mutateAsync(duplicate.id!))}>
+            </SuccessButton>
+            <button type="button" className="txn-review-secondary" disabled={busy} onClick={handleKeepBoth}>
               Keep both
             </button>
           </div>

@@ -3,7 +3,7 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Plus, ReceiptText, Search } from "lucide-react";
+import { Copy, Plus, ReceiptText, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
@@ -309,24 +309,27 @@ export function TransactionsView({
           <span className="txn-page-eyebrow">Transaction history</span>
           <h1>Activity</h1>
           <p>Review, search, and edit everything you have logged.</p>
+        </div>
+        <div className="txn-page-actions">
           {duplicates.length > 0 && (
             <button
               type="button"
-              className="action-button is-active erd-accent-action"
+              className="action-button txn-page-duplicates-btn"
               onClick={() => setReviewingDuplicates(true)}
             >
+              <Copy size={15} strokeWidth={2.2} aria-hidden="true" />
               Review {duplicates.length} possible duplicate{duplicates.length === 1 ? "" : "s"}
             </button>
           )}
+          <button
+            type="button"
+            className="erd-log-btn txn-page-log-btn"
+            onClick={() => setShowLogModal(true)}
+          >
+            <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
+            Log expense
+          </button>
         </div>
-        <button
-          type="button"
-          className="erd-log-btn txn-page-log-btn"
-          onClick={() => setShowLogModal(true)}
-        >
-          <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
-          Log expense
-        </button>
       </header>
 
       <section className="txn-timeline-filters" aria-label="Activity filters">
@@ -408,9 +411,11 @@ export function TransactionsView({
         </div>
       </section>
 
-      {reviewingDuplicates && (
-        <DuplicateReviewDialog pairs={duplicates} onClose={closeDuplicateReview} />
-      )}
+      <AnimatePresence>
+        {reviewingDuplicates && (
+          <DuplicateReviewDialog pairs={duplicates} onClose={closeDuplicateReview} />
+        )}
+      </AnimatePresence>
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
       {loading ? (
