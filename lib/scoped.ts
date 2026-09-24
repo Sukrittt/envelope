@@ -3,6 +3,7 @@ import type {
   AnyBulkWriteOperation,
   BulkWriteOptions,
   BulkWriteResult,
+  ClientSession,
   Collection,
   CountDocumentsOptions,
   DeleteOptions,
@@ -22,6 +23,7 @@ import type {
 } from 'mongodb'
 import { encrypt, decrypt, isEncrypted } from './crypto'
 import { BRIEF_SOURCES, invalidateBrief } from './ai/briefCache'
+import { deferUntilCommit } from './mongodb'
 import { fieldsFor, fieldAad as aad } from './encryptedFields'
 
 type Doc = Record<string, unknown>
@@ -191,11 +193,14 @@ export function scoped(coll: Collection<Doc>, userId: string) {
   // Hooked here rather than in each route so imports, crons and one-off
   // scripts can't quietly leave a stale brief behind. Fire and forget: the
   // write's own result is what the caller waits on, and a cache that fails to
-  // clear must never fail the write.
-  function bust<T>(result: Promise<T>): Promise<T> {
+  // clear must never fail the write. Inside a transaction the invalidation
+  // waits for the commit: clearing earlier lets a concurrent brief rebuild
+  // read the old data and cache it as fresh.
+  function bust<T>(result: Promise<T>, options?: { session?: ClientSession }): Promise<T> {
     if (!BRIEF_SOURCES.has(collectionName)) return result
     return result.then((value) => {
-      void invalidateBrief(userId)
+      const clear = () => invalidateBrief(userId).catch(() => {})
+      if (!deferUntilCommit(options?.session, userId, clear)) void clear()
       return value
     })
   }
@@ -238,11 +243,11 @@ export function scoped(coll: Collection<Doc>, userId: string) {
     },
 
     insertOne(doc: Doc, options?: InsertOneOptions): Promise<InsertOneResult<Doc>> {
-      return bust(coll.insertOne(stamp(doc) as never, options))
+      return bust(coll.insertOne(stamp(doc) as never, options), options)
     },
 
     insertMany(docs: Doc[], options?: BulkWriteOptions): Promise<InsertManyResult<Doc>> {
-      return bust(coll.insertMany(docs.map(stamp) as never, options))
+      return bust(coll.insertMany(docs.map(stamp) as never, options), options)
     },
 
     updateOne(
@@ -250,7 +255,7 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       update: UpdateFilter<Doc>,
       options?: UpdateOptions,
     ): Promise<UpdateResult<Doc>> {
-      return bust(coll.updateOne(own(filter), encUpdate(update as Doc, fields, userId, collectionName) as never, options))
+      return bust(coll.updateOne(own(filter), encUpdate(update as Doc, fields, userId, collectionName) as never, options), options)
     },
 
     updateMany(
@@ -258,7 +263,7 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       update: UpdateFilter<Doc>,
       options?: UpdateOptions,
     ): Promise<UpdateResult<Doc>> {
-      return bust(coll.updateMany(own(filter), encUpdate(update as Doc, fields, userId, collectionName) as never, options))
+      return bust(coll.updateMany(own(filter), encUpdate(update as Doc, fields, userId, collectionName) as never, options), options)
     },
 
     replaceOne(
@@ -266,34 +271,34 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       replacement: Doc,
       options?: ReplaceOptions,
     ): Promise<UpdateResult<Doc>> {
-      return bust(coll.replaceOne(own(filter), stamp(replacement), options)) as Promise<UpdateResult<Doc>>
+      return bust(coll.replaceOne(own(filter), stamp(replacement), options), options) as Promise<UpdateResult<Doc>>
     },
 
     /** Soft delete. Expenses advance their version so restoring a row never revives a stale editor. */
     async deleteOne(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      const result = await bust(coll.updateOne(own(filter), { $set: { deleted_at: nowIso() }, ...(collectionName === 'expenses' ? { $inc: { version: 1 } } : {}) } as never, options))
+      const result = await bust(coll.updateOne(own(filter), { $set: { deleted_at: nowIso() }, ...(collectionName === 'expenses' ? { $inc: { version: 1 } } : {}) } as never, options), options)
       return { acknowledged: result.acknowledged, deletedCount: result.matchedCount }
     },
 
     /** Soft delete: stamps `deleted_at` on every match rather than removing them. See `purgeMany` for a real delete. */
     async deleteMany(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      const result = await bust(coll.updateMany(own(filter), { $set: { deleted_at: nowIso() }, ...(collectionName === 'expenses' ? { $inc: { version: 1 } } : {}) } as never, options))
+      const result = await bust(coll.updateMany(own(filter), { $set: { deleted_at: nowIso() }, ...(collectionName === 'expenses' ? { $inc: { version: 1 } } : {}) } as never, options), options)
       return { acknowledged: result.acknowledged, deletedCount: result.matchedCount }
     },
 
     /** Un-does a soft delete: clears `deleted_at` on a previously archived document. */
     restore(filter: Filter<Doc>, options?: UpdateOptions): Promise<UpdateResult<Doc>> {
-      return bust(coll.updateOne(own(filter, { includeDeleted: true }), { $set: { deleted_at: null } } as never, options))
+      return bust(coll.updateOne(own(filter, { includeDeleted: true }), { $set: { deleted_at: null } } as never, options), options)
     },
 
     /** Real, unrecoverable delete of an archived document — only the GC cron should call this. */
     purge(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      return bust(coll.deleteOne(own(filter, { includeDeleted: true }), options))
+      return bust(coll.deleteOne(own(filter, { includeDeleted: true }), options), options)
     },
 
     /** Real, unrecoverable delete of every matching document — only the GC cron should call this. */
     purgeMany(filter: Filter<Doc>, options?: DeleteOptions): Promise<DeleteResult> {
-      return bust(coll.deleteMany(own(filter, { includeDeleted: true }), options))
+      return bust(coll.deleteMany(own(filter, { includeDeleted: true }), options), options)
     },
 
     bulkWrite(
@@ -303,7 +308,7 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       return bust(coll.bulkWrite(
         ops.map((op) => scopeBulkOp(op, own, stamp, (u) => encUpdate(u, fields, userId, collectionName))),
         options,
-      ))
+      ), options)
     },
   }
 }

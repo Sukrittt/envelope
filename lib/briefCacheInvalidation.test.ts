@@ -11,7 +11,25 @@ vi.mock('./ai/briefCache', async (importOriginal) => {
   return { ...actual, invalidateBrief: (...args: unknown[]) => invalidateBrief(...(args as [])) }
 })
 
+// A stand-in driver: withTransaction just runs the callback, and the session
+// reports being mid-transaction until it returns.
+vi.mock('mongodb', () => ({
+  MongoClient: class {
+    connect() { return Promise.resolve(this) }
+    startSession() {
+      let open = false
+      return {
+        inTransaction: () => open,
+        withTransaction: async (fn: () => Promise<void>) => { open = true; try { await fn() } finally { open = false } },
+        endSession: async () => undefined,
+      }
+    }
+  },
+}))
+process.env.MONGODB_URI = 'mongodb://stub'
+
 const { scoped } = await import('./scoped')
+const { withTx } = await import('./mongodb')
 
 function fake(collectionName: string) {
   return {
@@ -27,7 +45,10 @@ function fake(collectionName: string) {
   } as unknown as Collection<Record<string, unknown>>
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  invalidateBrief.mockResolvedValue(undefined)
+})
 
 describe('money brief cache invalidation', () => {
   it.each(['expenses', 'budgets', 'categories', 'groups', 'subscriptions', 'holdings'])(
@@ -59,5 +80,19 @@ describe('money brief cache invalidation', () => {
     invalidateBrief.mockRejectedValue(new Error('mongo down'))
 
     await expect(scoped(fake('expenses'), 'user_1').insertOne({ any: 'thing' })).resolves.toBeDefined()
+  })
+})
+
+describe('brief cache invalidation inside a transaction', () => {
+  it('waits for the commit, so a rebuild in between cannot cache the pre-commit data', async () => {
+    let calledBeforeCommit = true
+    await withTx(async (session) => {
+      await scoped(fake('budgets'), 'user_1').updateOne({ category: 'Food' }, { $set: { assigned: '1' } }, { session })
+      calledBeforeCommit = invalidateBrief.mock.calls.length > 0
+    })
+
+    expect(calledBeforeCommit).toBe(false)
+    expect(invalidateBrief).toHaveBeenCalledTimes(1)
+    expect(invalidateBrief).toHaveBeenCalledWith('user_1')
   })
 })
