@@ -3,11 +3,12 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import type { RecurringExpenseInput } from '../api/recurringExpenses'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker } from './DatePicker'
 import { CategoryPicker } from './CategoryPicker'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { useCategories } from '../hooks/useCategories'
 import {
   useAddRecurringExpense,
   useDeleteRecurringExpense,
@@ -16,6 +17,8 @@ import {
   useResumeRecurringExpense,
   useUpdateRecurringExpense,
 } from '../hooks/useRecurringExpenses'
+import { suggestCategoryLLM } from '../lib/autoCategory'
+import { EMPTY } from '../lib/constants'
 import { todayIST } from '../lib/date'
 import { splitEmoji } from '../lib/emoji'
 
@@ -25,6 +28,7 @@ const PAYMENT_METHODS = [
   { value: 'credit_card', label: 'Credit card' },
 ]
 const RETRY = 'Check your connection and try again.'
+const MIN_CATEGORY_SUGGESTION_CHARS = 3
 
 interface Props {
   /** Present: edit that row. Absent: add a new one. Same split as Mobile's route params. */
@@ -39,6 +43,7 @@ interface Props {
 export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded, onClose }: Props) {
   const { currencySymbol } = useCurrency()
 
+  const categoriesQ = useCategories()
   const recurringQ = useRecurringExpenses()
   const addRecurring = useAddRecurringExpense()
   const updateRecurring = useUpdateRecurringExpense()
@@ -54,6 +59,10 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
   const isActive = existing ? existing.status === 'active' : true
 
   const initial = existing ?? initialValues
+  const categories = useMemo(
+    () => (categoriesQ.data ?? EMPTY).map((row) => row.name).filter(Boolean),
+    [categoriesQ.data],
+  )
   const [item, setItem] = useState(initial?.item ?? '')
   const [amount, setAmount] = useState(initial?.amount_inr ?? '')
   const [frequency, setFrequency] = useState(initial?.frequency || 'monthly')
@@ -61,6 +70,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
   const [endDate, setEndDate] = useState(initial?.end_date ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
+  const [categoryTouched, setCategoryTouched] = useState(Boolean(initial?.category))
   const [paymentMethod, setPaymentMethod] = useState(initial?.payment_method || 'bank')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
@@ -72,6 +82,33 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
     item.trim() !== '' && amount.trim() !== '' && parsedAmount > 0 && category !== '' && startDate !== '' && !endsBeforeStart
   const mutatingAction = pauseRecurring.isPending || resumeRecurring.isPending || deleteRecurring.isPending
   const busy = saving || success || mutatingAction
+
+  useEffect(() => {
+    if (categoryTouched || item.trim().length < MIN_CATEGORY_SUGGESTION_CHARS || categories.length === 0) return
+
+    let cancelled = false
+    const timer = setTimeout(() => {
+      suggestCategoryLLM(item, categories).then((suggested) => {
+        if (cancelled || !suggested || !categories.includes(suggested)) return
+        setCategory(suggested)
+      })
+    }, 200)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [categories, categoryTouched, item])
+
+  function handleItemChange(value: string) {
+    setItem(value)
+    if (!categoryTouched) setCategory('')
+  }
+
+  function handleCategoryPick(value: string) {
+    setCategory(value)
+    setCategoryTouched(true)
+  }
 
   function onFailure(title: string) {
     fail()
@@ -125,7 +162,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
 
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
-      <Sheet className="erd-modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit recurring' : 'New recurring'}>
+      <Sheet className="erd-modal-card erd-recurring-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit recurring' : 'New recurring'}>
         <div className="erd-modal-head">
           <h3>{isEdit ? 'Edit recurring' : 'New recurring'}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
@@ -133,150 +170,171 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
           </button>
         </div>
 
-        {initialValues && <p className="recurring-hint">Review this suggestion. Once added, we’ll automatically log an expense on every due date. Past expenses stay unchanged.</p>}
+        <div className="erd-recurring-body">
+          {initialValues && <p className="recurring-hint erd-recurring-review">Review this suggestion. Once added, we’ll automatically log an expense on every due date. Past expenses stay unchanged.</p>}
 
-        <label className="erd-log-label" htmlFor="recurring-item">
-          What is it
-        </label>
-        <input
-          id="recurring-item"
-          className="erd-log-input"
-          placeholder="e.g. Rent"
-          value={item}
-          onChange={(e) => setItem(e.target.value)}
-          autoFocus={!isEdit}
-        />
+          <div className="erd-recurring-grid">
+            <section className="erd-recurring-section">
+              <label className="erd-log-label" htmlFor="recurring-item">
+                What is it
+              </label>
+              <input
+                id="recurring-item"
+                className="erd-log-input"
+                placeholder="e.g. Rent"
+                value={item}
+                onChange={(e) => handleItemChange(e.target.value)}
+                autoFocus={!isEdit}
+              />
+            </section>
 
-        <label className="erd-log-label" htmlFor="recurring-amount">
+            <section className="erd-recurring-section">
+              <label className="erd-log-label" htmlFor="recurring-amount">
+                Amount ({currencySymbol})
+              </label>
+              <input
+                id="recurring-amount"
+                className="erd-log-input"
+                type="number"
+                min={0}
+                step="any"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </section>
 
-          Amount ({currencySymbol})
-        </label>
-        <input
-          id="recurring-amount"
-          className="erd-log-input"
-          type="number"
-          min={0}
-          step="any"
-          placeholder="0"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
+            <section className="erd-recurring-section">
+              <div className="erd-log-label">How often</div>
+              <div className="erd-chip-row">
+                {FREQUENCIES.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    className={`erd-chip ${frequency === f ? 'is-selected' : ''}`}
+                    aria-pressed={frequency === f}
+                    onClick={() => setFrequency(f)}
+                    style={{ textTransform: 'capitalize' }}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </section>
 
-        <div className="erd-log-label">How often</div>
-        <div className="erd-chip-row">
-          {FREQUENCIES.map((f) => (
-            <button
-              key={f}
-              type="button"
-              className={`erd-chip ${frequency === f ? 'is-selected' : ''}`}
-              aria-pressed={frequency === f}
-              onClick={() => setFrequency(f)}
-              style={{ textTransform: 'capitalize' }}
-            >
-              {f}
-            </button>
-          ))}
+            <section className="erd-recurring-section">
+              <div className="erd-log-label">Paid with</div>
+              <div className="erd-chip-row">
+                {PAYMENT_METHODS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`erd-chip ${paymentMethod === p.value ? 'is-selected' : ''}`}
+                    aria-pressed={paymentMethod === p.value}
+                    onClick={() => setPaymentMethod(p.value)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="erd-recurring-section">
+              <div className="erd-log-label">Starts</div>
+              <DatePicker mode="single" value={startDate} onChange={setStartDate} disableFuture={false} popoverOnDesktop />
+            </section>
+
+            <section className="erd-recurring-section">
+              <div className="erd-log-label recurring-label-row">
+                <span>Ends (optional)</span>
+                {endDate && (
+                  <button type="button" className="scan-link-btn" onClick={() => setEndDate('')}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              <DatePicker mode="single" value={endDate} onChange={setEndDate} disableFuture={false} popoverOnDesktop />
+              {endsBeforeStart ? (
+                <p className="erd-log-error">The end date can&apos;t be before the start date.</p>
+              ) : (
+                <p className="recurring-hint">Leave this empty and it keeps going until you stop it.</p>
+              )}
+            </section>
+
+            <section className="erd-recurring-section erd-recurring-span">
+              <label className="erd-log-label" htmlFor="recurring-notes">
+                Notes (optional)
+              </label>
+              <input
+                id="recurring-notes"
+                className="erd-log-input"
+                placeholder="Notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </section>
+
+            <section className="erd-recurring-section erd-recurring-span">
+              <div className="erd-log-label">Category</div>
+              <CategoryPicker value={category} onChange={handleCategoryPick} />
+              <p className="recurring-hint">
+                {category
+                  ? `We'll add this expense in ${splitEmoji(category).text} on every due date.`
+                  : 'Pick one so we know which envelope to file it under.'}
+              </p>
+            </section>
+          </div>
+
+          {error && <p className="erd-log-error">{error}</p>}
         </div>
 
-        <div className="erd-log-label">Starts</div>
-        <DatePicker mode="single" value={startDate} onChange={setStartDate} disableFuture={false} />
+        <div className="erd-recurring-footer">
+          <SuccessButton
+            type="button"
+            baseClass="erd-log-submit"
+            saving={saving}
+            success={success}
+            successLabel="Saved"
+            disabled={!canSubmit || busy}
+            onClick={handleSubmit}
+          >
+            {isEdit ? 'Save changes' : 'Add recurring expense'}
+          </SuccessButton>
 
-        <div className="erd-log-label recurring-label-row">
-          <span>Ends (optional)</span>
-          {endDate && (
-            <button type="button" className="scan-link-btn" onClick={() => setEndDate('')}>
-              Clear
-            </button>
+          {existing && !success && (
+            <div className="recurring-danger-zone">
+              {confirmingDelete ? (
+                <div className="account-confirm-panel">
+                  <div className="account-confirm-copy">
+                    Remove &quot;{existing.item}&quot;? Expenses already logged from it stay put.
+                  </div>
+                  <div className="account-confirm-actions">
+                    <button type="button" className="account-confirm-cancel" disabled={mutatingAction} onClick={() => setConfirmingDelete(false)}>
+                      Back
+                    </button>
+                    <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} disabled={mutatingAction} onClick={() => runAction('delete')}>
+                      {deleteRecurring.isPending ? 'Working…' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={`scan-link-btn ${isActive ? 'is-coral' : 'is-mint'}`}
+                    disabled={busy}
+                    onClick={() => runAction('toggle')}
+                  >
+                    {pauseRecurring.isPending || resumeRecurring.isPending ? 'Working…' : isActive ? 'Pause this' : 'Resume this'}
+                  </button>
+                  <button type="button" className="scan-link-btn" disabled={busy} onClick={() => setConfirmingDelete(true)}>
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
-        <DatePicker mode="single" value={endDate} onChange={setEndDate} disableFuture={false} />
-        {endsBeforeStart ? (
-          <p className="erd-log-error">The end date can&apos;t be before the start date.</p>
-        ) : (
-          <p className="recurring-hint">Leave this empty and it keeps going until you stop it.</p>
-        )}
-
-        <div className="erd-log-label">Paid with</div>
-        <div className="erd-chip-row">
-          {PAYMENT_METHODS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              className={`erd-chip ${paymentMethod === p.value ? 'is-selected' : ''}`}
-              aria-pressed={paymentMethod === p.value}
-              onClick={() => setPaymentMethod(p.value)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <label className="erd-log-label" htmlFor="recurring-notes">
-          Notes (optional)
-        </label>
-        <input
-          id="recurring-notes"
-          className="erd-log-input"
-          placeholder="Notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-
-        <div className="erd-log-label">Category</div>
-        <CategoryPicker value={category} onChange={setCategory} />
-        <p className="recurring-hint">
-          {category
-            ? `We'll add this expense in ${splitEmoji(category).text} on every due date.`
-            : 'Pick one so we know which envelope to file it under.'}
-        </p>
-
-        {error && <p className="erd-log-error">{error}</p>}
-
-        <SuccessButton
-          type="button"
-          baseClass="erd-log-submit"
-          saving={saving}
-          success={success}
-          successLabel="Saved"
-          disabled={!canSubmit || busy}
-          onClick={handleSubmit}
-        >
-          {isEdit ? 'Save changes' : 'Add recurring expense'}
-        </SuccessButton>
-
-        {existing && !success && (
-          <div className="recurring-danger-zone">
-            {confirmingDelete ? (
-              <div className="account-confirm-panel">
-                <div className="account-confirm-copy">
-                  Remove &quot;{existing.item}&quot;? Expenses already logged from it stay put.
-                </div>
-                <div className="account-confirm-actions">
-                  <button type="button" className="account-confirm-cancel" disabled={mutatingAction} onClick={() => setConfirmingDelete(false)}>
-                    Back
-                  </button>
-                  <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} disabled={mutatingAction} onClick={() => runAction('delete')}>
-                    {deleteRecurring.isPending ? 'Working…' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className={`scan-link-btn ${isActive ? 'is-coral' : 'is-mint'}`}
-                  disabled={busy}
-                  onClick={() => runAction('toggle')}
-                >
-                  {pauseRecurring.isPending || resumeRecurring.isPending ? 'Working…' : isActive ? 'Pause this' : 'Resume this'}
-                </button>
-                <button type="button" className="scan-link-btn" disabled={busy} onClick={() => setConfirmingDelete(true)}>
-                  Delete
-                </button>
-              </>
-            )}
-          </div>
-        )}
       </Sheet>
     </Scrim>
   )

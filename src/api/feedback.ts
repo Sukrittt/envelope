@@ -1,6 +1,6 @@
 // Bug report / feedback form. Twin of Mobile/src/api/feedback.ts.
-// The server (app/api/feedback) files the GitHub issue — this module just
-// posts the form fields plus diagnostics.
+// The server (app/api/feedback) records the report in Mongo — this module
+// just posts the form fields plus diagnostics.
 import { apiFetch } from './client'
 
 export type FeedbackType = 'bug' | 'idea'

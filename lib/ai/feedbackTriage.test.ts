@@ -67,7 +67,6 @@ describe('triageFeedback', () => {
     ['unknown', 1],
     ['budget', -1],
     ['budget', 4],
-    ['budget', 1.5],
   ])('rejects an invalid result (%s, %s)', async (area, severity) => {
     evaluate.mockResolvedValue(answer(area, severity))
 
@@ -77,6 +76,17 @@ describe('triageFeedback', () => {
       promptTokenCount: 42,
       candidatesTokenCount: 2,
     }, null)
+  })
+
+  it.each([
+    [1.11, 1],
+    [1.5, 2],
+    [2.49, 2],
+    [3.4, 3],
+  ])('rounds the score question\'s weighted-average severity (%s -> %s)', async (rawScore, rounded) => {
+    evaluate.mockResolvedValue(answer('budget', rawScore))
+
+    await expect(triageFeedback('Title', 'Description', caller)).resolves.toEqual({ area: 'budget', severity: rounded })
   })
 
   it('does not call Jev when the AI kill switch is on', async () => {

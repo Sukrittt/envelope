@@ -688,7 +688,7 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.env-bar-track.env2-bar {
+.expense-redesign .env-bar-track.env2-bar {
   display: block;
   width: 100%;
   max-width: none;
@@ -2619,6 +2619,65 @@
   height: 52px;
   padding: 0;
 }
+
+/* ── Recurring expense modal — subscription-style shell ─────────
+   Keeps the same controls while making the longer form easier to scan:
+   pinned header/footer, scrollable body, and paired fields on desktop. */
+.expense-redesign .erd-modal-card.erd-recurring-card {
+  display: flex;
+  flex-direction: column;
+  width: 720px;
+  padding: 24px;
+  overflow: hidden;
+}
+.expense-redesign .erd-recurring-card .erd-modal-head {
+  margin-bottom: 24px;
+  flex: 0 0 auto;
+}
+.erd-recurring-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.erd-recurring-review {
+  margin: 0 0 20px;
+}
+.erd-recurring-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+.erd-recurring-section {
+  min-width: 0;
+}
+.erd-recurring-section .erd-log-label {
+  margin: 0 0 8px;
+}
+.erd-recurring-section .erd-log-input {
+  height: 50px;
+  margin-top: 0;
+  border-radius: 16px;
+}
+.erd-recurring-section .category-picker {
+  margin-top: 0;
+}
+.erd-recurring-section .date-picker-field-wrap {
+  margin-top: 0;
+}
+.erd-recurring-span {
+  grid-column: 1 / -1;
+}
+.expense-redesign .erd-recurring-footer {
+  flex: 0 0 auto;
+  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+}
+.expense-redesign .erd-recurring-footer .erd-log-submit {
+  height: 52px;
+  margin-top: 0;
+  padding: 0;
+}
 /* Why Save is disabled — tiny, dim, under the button. */
 .erd-sub-save-hint {
   font-size: 12px;
@@ -3288,11 +3347,23 @@
   .expense-redesign .erd-modal-card.erd-sub-card {
     padding: 24px 20px 0;
   }
+  .expense-redesign .erd-modal-card.erd-recurring-card {
+    padding: 24px 20px 0;
+  }
   .expense-redesign .erd-log-card .erd-log-footer {
     padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
   }
   .expense-redesign .erd-sub-card .erd-sub-footer {
     padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
+  }
+  .expense-redesign .erd-recurring-footer {
+    padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
+  }
+  .erd-recurring-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .erd-recurring-span {
+    grid-column: auto;
   }
 }
 
@@ -5445,6 +5516,15 @@ button.account-feature-card {
   border: 1px solid var(--erd-border-strong);
   border-radius: 18px;
   animation: erd-popIn 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.date-picker-card.date-picker-popover {
+  position: fixed;
+  z-index: 220;
+  margin-top: 0;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--erd-modal-bg);
+  box-shadow: 0 24px 56px -18px oklch(0% 0 0 / 0.85);
 }
 
 .date-picker-quick {

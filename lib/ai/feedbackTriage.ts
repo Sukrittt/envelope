@@ -51,7 +51,9 @@ function isFeedbackSeverity(value: number): value is FeedbackSeverity {
 export async function triageFeedback(title: string, description: string, caller: AiCaller): Promise<FeedbackTriage> {
   const answers = await runJev({ title, description }, QUESTIONS, caller)
   const area = answers.area.choice
-  const severity = answers.severity.score
+  // A "score" question answers with the probability-weighted average across
+  // 0..3, e.g. 1.11 — not the discrete level itself — so round before validating.
+  const severity = Math.round(answers.severity.score)
   if (!isFeedbackArea(area) || !isFeedbackSeverity(severity)) throw new Error('Jev returned invalid feedback triage')
   return { area, severity }
 }
