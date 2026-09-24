@@ -11,6 +11,7 @@ vi.mock('@/lib/cache', () => ({
 
 const insertOneMock = vi.fn()
 const findOneMock = vi.fn()
+const findMock = vi.fn()
 const updateOneMock = vi.fn()
 const deleteOneMock = vi.fn()
 const reconcileThresholdLevelsMock = vi.fn(async (_auth: unknown, _categories: string[], _month?: string) => {})
@@ -35,6 +36,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
     getCollection: vi.fn(async () => ({
       insertOne: insertOneMock,
       findOne: findOneMock,
+      find: findMock,
       updateOne: updateOneMock,
       deleteOne: deleteOneMock,
     })),
@@ -54,6 +56,7 @@ function req(body: unknown, method = 'POST'): Request {
 beforeEach(() => {
   insertOneMock.mockReset()
   findOneMock.mockReset().mockResolvedValue({ _id: 'budget-1', month: '2026-01', category: 'Groceries', assigned: '5000', rolled_over: '0', version: 0 })
+  findMock.mockReset().mockReturnValue({ toArray: async () => [] })
   updateOneMock.mockReset().mockResolvedValue({ matchedCount: 1 })
   deleteOneMock.mockReset().mockResolvedValue({ deletedCount: 1 })
   reconcileThresholdLevelsMock.mockClear()
@@ -94,6 +97,19 @@ describe('POST /api/budgets (C4)', () => {
       ['Groceries'],
       '2026-01',
     )
+  })
+
+  it('keeps the carried-forward assignment when the first edit of a month only touches rollover', async () => {
+    findOneMock.mockResolvedValueOnce(null)
+    findMock.mockReturnValueOnce({ toArray: async () => [
+      { month: '2025-12', category: 'Groceries', assigned: '5000' },
+      { month: '2025-11', category: 'Groceries', assigned: '3000' },
+    ] })
+    insertOneMock.mockResolvedValueOnce({ insertedId: '1' })
+
+    const res = await PUT(req({ month: '2026-01', category: 'Groceries', rolled_over: '20', version: 0 }, 'PUT'))
+    expect(res.status).toBe(200)
+    expect(insertOneMock.mock.calls[0][0]).toMatchObject({ assigned: '5000', rolled_over: '20' })
   })
 
   it('reconciles the affected category after an assignment is deleted', async () => {

@@ -6,6 +6,7 @@ import { invalidate } from '@/lib/cache'
 import { resolveCategoryName } from '@/lib/categoryName'
 import { reconcileThresholdLevels } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
+import { carriedAssigned } from '@/lib/budgetCarry'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,11 +138,14 @@ export async function PUT(req: Request) {
 
       // No row is the conceptual version 0. The unique month/category index
       // arbitrates two simultaneous first writes; the loser becomes a 409.
+      // An unedited assignment keeps showing the carried-forward amount, so
+      // the new row must start from it rather than zero.
+      const assigned = update.assigned ?? String(await carriedAssigned(coll, category, month, session))
       try {
         await coll.insertOne({
           month,
           category: update.category ?? category,
-          assigned: update.assigned ?? '0',
+          assigned,
           rolled_over: update.rolled_over ?? '0',
           version: 1,
         }, { session })
