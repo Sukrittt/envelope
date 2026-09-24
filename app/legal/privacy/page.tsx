@@ -1,6 +1,6 @@
 export const metadata = { title: 'Privacy Policy — Aviary' }
 
-const SUPPORT_EMAIL = '[your support email]'
+const SUPPORT_EMAIL = 'aviary.playreview@gmail.com'
 
 export default function PrivacyPage() {
   return (
@@ -49,8 +49,8 @@ export default function PrivacyPage() {
           <strong>Product analytics.</strong> The mobile app sends your email and name, screen views, and a
           handful of product events (e.g. logging an expense, moving money, scanning a bill) to PostHog, an
           analytics provider based in the United States. No amounts or item text are included in these events.
-          You can turn this off in Settings &rarr; Your data &rarr; Analytics; turning it off stops new data
-          from being sent.
+          Analytics is on by default. You can turn it off at any time in Settings &rarr; Your data &rarr;
+          Share usage analytics; turning it off stops new data from being sent.
         </li>
         <li>
           <strong>Push notifications.</strong> A push token identifying your device, used to send budget alerts,

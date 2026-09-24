@@ -1,6 +1,6 @@
 export const metadata = { title: 'Delete your account — Aviary' }
 
-const SUPPORT_EMAIL = '[your support email]'
+const SUPPORT_EMAIL = 'aviary.playreview@gmail.com'
 
 export default function DeleteAccountPage() {
   return (
