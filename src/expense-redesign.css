@@ -2332,6 +2332,21 @@
   font-size: 13px;
   margin: 10px 0 0;
 }
+.erd-amount-field.is-warn {
+  border-bottom-color: var(--warn);
+}
+.erd-log-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+.erd-log-warning svg {
+  flex: 0 0 auto;
+  color: var(--warn);
+}
 
 /* ── Log expense modal — compact, uniform-rhythm layout ─────────
    Card becomes a column: pinned header + footer, body scrolls. */

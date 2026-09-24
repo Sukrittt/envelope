@@ -3,7 +3,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Calendar } from 'lucide-react'
+import { Calendar, TriangleAlert } from 'lucide-react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
@@ -11,7 +11,9 @@ import { suggestCategoryLLM } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { CategoryPicker } from './CategoryPicker'
 import { useCategories } from '../hooks/useCategories'
-import { useAddExpense } from '../hooks/useExpenses'
+import { useAddExpense, useExpenses } from '../hooks/useExpenses'
+import { unusualAmount } from '../lib/unusualAmount'
+import { splitEmoji } from '../lib/emoji'
 import { EMPTY } from '../lib/constants'
 
 interface Props {
@@ -39,10 +41,11 @@ function offsetDateValue(daysAgo: number): string {
 }
 
 export function LogExpenseModal({ onClose, onSaved }: Props) {
-  const { currencySymbol } = useCurrency()
+  const { currencySymbol, formatMoney } = useCurrency()
 
   const categoriesQ = useCategories()
   const addExpenseM = useAddExpense()
+  const expensesQ = useExpenses()
   const categories = useMemo(
     () => (categoriesQ.data ?? EMPTY).map((c) => c.name).filter(Boolean),
     [categoriesQ.data],
@@ -65,6 +68,16 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   // No suggestion means nothing selected. Defaulting to the first category
   // silently filed items like "Travel" under whatever category came first.
   const effectiveCategory = category
+  // Typo guard: an amount far above the category's usual blocks the first
+  // save with a warning; the relabelled button then saves it as entered.
+  const [unusualWarnedFor, setUnusualWarnedFor] = useState('')
+  const parsedAmount = Math.round(Number(amount))
+  const unusual = useMemo(
+    () => unusualAmount(parsedAmount, effectiveCategory, expensesQ.data ?? EMPTY, date),
+    [parsedAmount, effectiveCategory, expensesQ.data, date],
+  )
+  const warnKey = `${amount}|${effectiveCategory}`
+  const warning = unusual && unusualWarnedFor === warnKey ? unusual : null
 
   useEffect(() => {
     getCategoryMap()
@@ -172,6 +185,11 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       setError('Pick a category.')
       return
     }
+    if (unusual && !warning) {
+      setUnusualWarnedFor(warnKey)
+      setError('')
+      return
+    }
     start()
     setError('')
     try {
@@ -213,7 +231,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
             <label className="erd-log-label" htmlFor="erd-log-amount">
               Amount
             </label>
-            <div className="erd-amount-field">
+            <div className={`erd-amount-field${warning ? ' is-warn' : ''}`}>
               <span className="erd-amount-symbol" aria-hidden="true">
                 {currencySymbol}
               </span>
@@ -228,6 +246,12 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 onChange={(e) => handleAmountChange(e.target.value)}
               />
             </div>
+            {warning && (
+              <p className="erd-log-warning" role="alert">
+                <TriangleAlert size={14} aria-hidden="true" />
+                That&apos;s {warning.ratio}× your usual {splitEmoji(effectiveCategory).text} ({formatMoney(Math.round(warning.typical))})
+              </p>
+            )}
           </section>
 
           <section className="erd-log-section">
@@ -303,7 +327,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
             disabled={saving || success}
             onClick={handleSubmit}
           >
-            Save expense
+            {warning ? `Save ${formatMoney(parsedAmount)} anyway` : 'Save expense'}
           </SuccessButton>
         </div>
       </Sheet>
