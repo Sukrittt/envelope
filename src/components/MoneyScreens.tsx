@@ -10,7 +10,7 @@ import { Scrim } from './MotionSheet'
 import { useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
-import { useBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
+import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
@@ -905,15 +905,23 @@ function EditAssignedBody({
  * have, and this month's income is backed out from it. */
 export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
+  const fetchFreshBudgets = useFreshBudgets()
   if (data.isLoading) return <Screen title="Edit Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></Screen>
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
   const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
+  // Income is saved as target RTA + what's assigned, so the assigned total must
+  // be current at save time: another device may have assigned money since load.
+  const latestTotalAssigned = async () => {
+    const budgets = await fetchFreshBudgets()
+    return computeEnvelopeState(budgets, data.expenses, month, data.categories, data.groups).totalAssigned
+  }
   return (
     <EditReadyToAssignBody
       month={month}
       income={state.income}
       totalAssigned={state.totalAssigned}
+      latestTotalAssigned={latestTotalAssigned}
       readyToAssign={state.readyToAssign}
       version={incomeBudget?.version ?? 0}
       onClose={onClose}
@@ -925,6 +933,7 @@ function EditReadyToAssignBody({
   month,
   income,
   totalAssigned,
+  latestTotalAssigned,
   readyToAssign,
   version,
   onClose,
@@ -932,6 +941,7 @@ function EditReadyToAssignBody({
   month: string
   income: number
   totalAssigned: number
+  latestTotalAssigned: () => Promise<number>
   readyToAssign: number
   version: number
   onClose: () => void
@@ -959,8 +969,10 @@ function EditReadyToAssignBody({
     phase.start()
     setError('')
     try {
+      // ponytail: a transfer landing between this read and the PUT still slips through; an atomic server-side set-RTA would close it.
+      const incomeToSave = incomeForReadyToAssign(await latestTotalAssigned(), value)
       // PUT upserts, so this creates the month's income row when it's still carried from last month.
-      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { assigned: String(newIncome) } })
+      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { assigned: String(incomeToSave) } })
       phase.succeed(onClose)
     } catch (err) {
       phase.fail()

@@ -5,9 +5,10 @@ import userEvent from '@testing-library/user-event'
 import { currentMonthKey } from '../lib/envelope'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
-const mocks = vi.hoisted(() => ({ update: vi.fn(), add: vi.fn(), transfer: vi.fn(), budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; version: number}[] }))
+const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; version: number}[] }))
 vi.mock('../hooks/useBudgets', () => ({
   useBudgets: () => ({ data: mocks.budgets }),
+  useFreshBudgets: () => mocks.fresh,
   useUpdateBudget: () => ({ mutateAsync: mocks.update }),
   useAddBudget: () => ({ mutateAsync: mocks.add }),
   useTransferBudget: () => ({ mutateAsync: mocks.transfer }),
@@ -20,6 +21,7 @@ vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.update.mockResolvedValue(undefined)
+  mocks.fresh.mockImplementation(async () => mocks.budgets)
   mocks.add.mockResolvedValue(undefined)
   mocks.transfer.mockResolvedValue(undefined)
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
@@ -98,6 +100,15 @@ describe('money screens', () => {
     typeAmount('99.99')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: '__income__', version: 3, updates: { assigned: '699.99' } }))
+  })
+
+  it('derives the income from the envelopes as they are at save time, not as they were when opened', async () => {
+    render(<EditReadyToAssignScreen onClose={vi.fn()} />)
+    typeAmount('99.99')
+    // Another device assigned 200 more to Food after this editor opened.
+    mocks.fresh.mockResolvedValue(mocks.budgets.map((b) => (b.category === 'Food' ? { ...b, assigned: '300' } : b)))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: '__income__', version: 3, updates: { assigned: '899.99' } }))
   })
 
   it('assigns additional money through the atomic transfer API', async () => {

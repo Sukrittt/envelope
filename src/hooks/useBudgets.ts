@@ -13,6 +13,13 @@ export function useBudgets() {
   return useQuery({ queryKey: key, queryFn: getBudgets, staleTime: 30_000 })
 }
 
+/** Refetches budgets past staleTime, for a save whose value is derived from
+ * other rows and so must not trust what the screen loaded a while ago. */
+export function useFreshBudgets() {
+  const qc = useQueryClient()
+  return () => qc.fetchQuery({ queryKey: key, queryFn: getBudgets, staleTime: 0 })
+}
+
 export function useAddBudget() {
   const qc = useQueryClient()
   return useMutation({
