@@ -3746,7 +3746,7 @@
   color: var(--erd-text3);
   text-align: center;
   line-height: 1.6;
-  margin: 12px auto 0;
+  margin: 0 auto;
   max-width: 280px;
 }
 
