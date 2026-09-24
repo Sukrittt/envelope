@@ -75,6 +75,15 @@ describe('EnvelopesPage', () => {
     expect(list.getByText('Odds')).toBeInTheDocument()
   })
 
+  it('links every category to Activity using its full encoded name', async () => {
+    renderPage()
+    const list = await groupList()
+    for (const [label, category] of [['Rent', '🏠 Rent'], ['Water', '🚿 Water'], ['Odds', 'Odds']]) {
+      expect(list.getByRole('link', { name: `View transactions for ${label}` }))
+        .toHaveAttribute('href', `/expense/transactions?category=${encodeURIComponent(category)}`)
+    }
+  })
+
   it('does not advertise drag reordering while DnD is unavailable', async () => {
     renderPage()
     const list = await groupList()

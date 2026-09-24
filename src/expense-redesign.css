@@ -1305,6 +1305,12 @@
   min-width: 0;
   padding-right: 14px;
 }
+.env-cat-actions {
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--erd-border);
+}
+
 .env-cat-name {
   display: flex;
   align-items: center;
@@ -5913,7 +5919,8 @@ button.account-feature-card {
    on hover, because a pointer can reveal them without a gesture. */
 
 .expense-redesign .erd-content.env-page {
-  padding: 32px 20px 56px;
+  padding: 28px 32px 56px;
+  gap: 0;
 }
 @media (max-width: 900px) {
   .expense-redesign .erd-content.env-page {
@@ -5936,12 +5943,12 @@ button.account-feature-card {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 
 .env-group {
   border: 1px solid var(--erd-border);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--erd-card);
   overflow: hidden;
 }
@@ -5950,7 +5957,8 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px 18px;
+  background: color-mix(in oklab, var(--erd-text) 3%, transparent);
 }
 
 .expense-redesign .env-group-toggle {
@@ -5975,7 +5983,9 @@ button.account-feature-card {
 
 .expense-redesign .env-group-name {
   font-family: var(--font-fredoka);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5997,10 +6007,14 @@ button.account-feature-card {
 }
 
 .env-icon-btn {
+  text-decoration: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
   border: 0;
   border-radius: 8px;
   background: none;
@@ -6021,7 +6035,7 @@ button.account-feature-card {
 .env-cat-list {
   list-style: none;
   margin: 0;
-  padding: 0 12px 8px 12px;
+  padding: 0 18px;
   display: flex;
   flex-direction: column;
 }
@@ -6029,13 +6043,16 @@ button.account-feature-card {
 .env-cat {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 4px;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 0;
+  transition: background-color 150ms ease;
   border-top: 1px solid var(--erd-border);
-  font-size: 0.85rem;
+  font-size: 15px;
 }
 
 .env-cat-name {
+  font-weight: 650;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -6051,23 +6068,171 @@ button.account-feature-card {
 
 .env-cat-alerts {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   flex-shrink: 0;
-  gap: 4px;
+  gap: 9px;
   white-space: nowrap;
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
-  color: var(--erd-text3);
+  color: var(--erd-text2);
   background: none;
   border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 3px 9px;
+  border-radius: 10px;
+  padding: 7px 12px;
+  text-align: left;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
   cursor: pointer;
+}
+
+.env-cat-alerts > svg {
+  margin-top: 10px;
 }
 
 .env-cat-alerts:hover {
   color: var(--gold-ink);
   border-color: var(--erd-border);
+}
+
+/* Match Activity's reading width, hierarchy, and category colors. */
+.env-page > .env-page-header,
+.env-page > .env-page-toolbar,
+.env-page > .env-group-list {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+.expense-redesign .env-page-header {
+  padding-bottom: 24px;
+}
+.env-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 4px;
+  margin-bottom: 16px;
+  border-block: 1px solid var(--erd-border);
+}
+.env-page-summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--erd-text2);
+}
+.env-page-summary strong {
+  color: var(--erd-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.env-page-summary > span {
+  margin-inline: 10px;
+  color: var(--erd-text3);
+}
+.env-cat-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 17px;
+}
+.env-alert-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.env-alert-label {
+  font-size: 10px;
+  color: var(--erd-text2);
+}
+.env-alert-values {
+  color: var(--erd-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.env-cat:hover {
+  background: color-mix(in oklab, var(--erd-text) 2%, transparent);
+}
+.env-page button:focus-visible,
+.env-page a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.env-page .env-group-toggle {
+  min-height: 34px;
+}
+@media (max-width: 600px) {
+  .expense-redesign .env-page-header {
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 24px;
+  }
+  .env-page-header .txn-page-heading p {
+    max-width: 28ch;
+  }
+  .env-page-header .txn-page-log-btn {
+    padding-inline: 14px;
+    white-space: nowrap;
+  }
+  .env-page-toolbar {
+    gap: 8px;
+  }
+  .env-page-summary > span {
+    margin-inline: 4px;
+  }
+  .env-group-head {
+    padding: 10px;
+  }
+  .env-cat-list {
+    padding-inline: 10px;
+  }
+  .env-cat {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    padding-block: 10px;
+  }
+  .env-cat-icon {
+    grid-row: span 2;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .env-cat-name {
+    grid-column: 2;
+  }
+  .env-cat-alerts {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    padding: 2px 0;
+    gap: 5px;
+  }
+  .env-alert-copy {
+    flex-direction: row;
+    gap: 5px;
+  }
+  .env-alert-label {
+    display: none;
+  }
+  .env-alert-values {
+    font-size: 11px;
+    color: var(--erd-text2);
+  }
+  .env-cat-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    margin-left: 0;
+    padding-left: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .env-page .env-cat,
+  .env-page .env-icon-btn,
+  .env-page .env-cat-alerts {
+    transition: none;
+  }
 }
 
 .env-input {
@@ -6332,6 +6497,105 @@ button.account-feature-card {
   .expense-redesign .erd-modal-card.env-sheet--rename {
     padding: 24px 20px;
   }
+}
+
+/* Alerts sheet: builds on the rename sheet's header/actions */
+.env-sheet--alerts .env-sheet-rename-head {
+  margin-bottom: 16px;
+}
+
+.env-sheet--alerts .env-sheet-copy {
+  margin-bottom: 18px;
+  line-height: 1.45;
+}
+
+.env-sheet--alerts .env-pct-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 0;
+}
+
+.env-sheet--alerts .env-pct {
+  height: 40px;
+  padding: 0;
+  font-weight: 700;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.env-sheet--alerts .env-pct:hover:not(:disabled):not(.is-on) {
+  border-color: var(--erd-text3);
+  color: var(--erd-text);
+}
+
+.env-sheet--alerts .env-pct-custom {
+  position: relative;
+  display: block;
+  margin-top: 14px;
+}
+
+.env-sheet--alerts .env-pct-custom .env-input {
+  padding-right: 76px;
+}
+
+/* hide native number spinners */
+.env-sheet--alerts .env-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.env-sheet--alerts .env-input[type="number"]::-webkit-inner-spin-button,
+.env-sheet--alerts .env-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.env-pct-add {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: 6px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.env-pct-add:hover:not(:disabled) {
+  background: var(--gold-hover);
+}
+
+.env-pct-add:disabled {
+  background: transparent;
+  color: var(--erd-text3);
+  cursor: not-allowed;
+}
+
+.env-sheet--alerts .env-sheet-hint {
+  margin-top: 10px;
+}
+
+.env-sheet--alerts .env-sheet-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.env-sheet--alerts .env-sheet-actions {
+  margin-top: 20px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.env-sheet--alerts .env-sheet-action {
+  flex: 1;
 }
 
 /* Money Brain */
