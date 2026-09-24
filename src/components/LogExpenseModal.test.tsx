@@ -3,9 +3,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LogExpenseModal } from './LogExpenseModal'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 
-const { addExpenseMutation, history } = vi.hoisted(() => ({ addExpenseMutation: vi.fn(), history: { rows: [] as unknown[] } }))
+const { addExpenseMutation, deleteExpenseMutation, history } = vi.hoisted(() => ({
+  addExpenseMutation: vi.fn(),
+  deleteExpenseMutation: vi.fn(),
+  history: { rows: [] as unknown[] },
+}))
 vi.mock('../hooks/useExpenses', () => ({
   useAddExpense: () => ({ mutateAsync: addExpenseMutation }),
+  useDeleteExpense: () => ({ mutateAsync: deleteExpenseMutation, isPending: false }),
   useExpenses: () => ({ data: history.rows }),
 }))
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
@@ -23,6 +28,17 @@ vi.mock('./CategoryPicker', () => ({
   ),
 }))
 vi.mock('./DatePicker', () => ({ DatePicker: () => null }))
+// The animated receipt itself is chrome here; this file tests the dialog's hand-off to it.
+vi.mock('../features/log-expense/ExpenseAdded', () => ({
+  PreloadExpenseAddedTick: () => null,
+  ExpenseAdded: ({ expense, onUndo, onDone }: { expense: { amount: number; item: string }; onUndo: () => void; onDone: () => void }) => (
+    <div>
+      <p>Added ₹{expense.amount} · {expense.item}</p>
+      <button type="button" onClick={onUndo}>Undo</button>
+      <button type="button" onClick={onDone}>Done</button>
+    </div>
+  ),
+}))
 
 const llm = vi.mocked(suggestCategoryLLM)
 const type = (value: string) => fireEvent.change(screen.getByLabelText('What was it for?'), { target: { value } })
@@ -37,7 +53,57 @@ function deferred<T>() {
 beforeEach(() => {
   llm.mockReset().mockResolvedValue('')
   addExpenseMutation.mockReset()
+  deleteExpenseMutation.mockReset()
   history.rows = []
+})
+
+it('blocks a save with empty fields and names them in a toast', async () => {
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  type('Milk')
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+
+  expect((await screen.findByRole('alert')).textContent).toBe('Add an amount and category')
+  expect(screen.getByLabelText('Amount').closest('.erd-amount-field')).toHaveClass('is-missing')
+  expect(screen.getByLabelText('What was it for?')).not.toHaveClass('is-missing')
+  expect(addExpenseMutation).not.toHaveBeenCalled()
+})
+
+it('swaps the form for the added receipt, and Undo hands the form back filled in', async () => {
+  addExpenseMutation.mockResolvedValue({ id: 'expense-1', timestamp: '2026-09-24T10:00:00Z', version: 0, pending: false })
+  deleteExpenseMutation.mockResolvedValue(undefined)
+  const onClose = vi.fn()
+  render(<LogExpenseModal onClose={onClose} onSaved={vi.fn()} />)
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '450' } })
+  type('Milk')
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+
+  expect(await screen.findByText('Added ₹450 · Milk')).toBeInTheDocument()
+  expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+  await waitFor(() => expect(deleteExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({
+    id: 'expense-1',
+    // The server rejects a delete without the row's version (428).
+    version: 0,
+    timestamp: '2026-09-24T10:00:00Z',
+    amountInr: 450,
+  })))
+  expect(await screen.findByLabelText('Amount')).toHaveValue('450')
+  expect(screen.getByLabelText('What was it for?')).toHaveValue('Milk')
+  expect(onClose).not.toHaveBeenCalled()
+})
+
+it('closes from Done on the added receipt', async () => {
+  addExpenseMutation.mockResolvedValue({ id: 'expense-1', timestamp: 't', pending: false })
+  const onClose = vi.fn()
+  render(<LogExpenseModal onClose={onClose} onSaved={vi.fn()} />)
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '450' } })
+  type('Milk')
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Done' }))
+  expect(onClose).toHaveBeenCalledOnce()
 })
 
 it('saves through the expense mutation so Activity is invalidated immediately', async () => {
@@ -130,7 +196,7 @@ describe('LogExpenseModal typo guard', () => {
     fill('450')
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
 
-    expect((await screen.findByRole('alert')).textContent).toBe("That's 8× your usual Groceries (₹58)")
+    expect((await screen.findByRole('alert')).textContent).toBe('₹450 is 8× your usual Groceries (₹58). Save again to keep it.')
     expect(addExpenseMutation).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Save ₹450 anyway' }))

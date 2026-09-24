@@ -3,8 +3,9 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Repeat2 } from 'lucide-react'
+import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { AllocationBar, type AllocationSegment } from '../components/charts/AllocationBar'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { RecurringSuggestions } from '../components/RecurringSuggestions'
@@ -77,7 +78,8 @@ export function RecurringPage() {
     .map(([label, value], i) => ({ label, value, color: CHART_COLORS[i % CHART_COLORS.length] }))
   const categoryColor = new Map(segments.map((s) => [s.label, s.color]))
 
-  function section(title: string, list: RecurringExpenseRow[]) {
+  // `offset` continues the stagger across sections, as Mobile's row index does.
+  function section(title: string, list: RecurringExpenseRow[], offset: number) {
     if (list.length === 0) return null
     return (
       <div>
@@ -85,11 +87,11 @@ export function RecurringPage() {
           {title}
         </div>
         <ul className="account-card recurring-list" aria-label={title}>
-          {list.map((row) => {
+          {list.map((row, i) => {
             const isActive = row.status === 'active'
             const category = splitEmoji(row.category)
             return (
-              <li key={row.id}>
+              <motion.li key={row.id} {...popIn(staggerDelay(offset + i))}>
                 <button type="button" className="account-row" onClick={() => setEditing(row.id)}>
                   <span
                     className="recurring-dot"
@@ -112,7 +114,7 @@ export function RecurringPage() {
                     {formatCurrency(Number(row.amount_inr) || 0, hideAmounts)}
                   </strong>
                 </button>
-              </li>
+              </motion.li>
             )
           })}
         </ul>
@@ -154,11 +156,13 @@ export function RecurringPage() {
         <>
           <div className="account-card recurring-hero">
             <div className="account-section-label">Committed each month</div>
-            <div className="recurring-hero-amount">{formatCurrency(monthlyTotal, hideAmounts)}</div>
+            <div className="recurring-hero-amount">
+              {hideAmounts ? formatCurrency(monthlyTotal, true) : <AmountText value={monthlyTotal} animate />}
+            </div>
             {segments.length > 0 && <AllocationBar segments={segments} />}
           </div>
-          {section('Active', active)}
-          {section('Paused and finished', inactive)}
+          {section('Active', active, 0)}
+          {section('Paused and finished', inactive, active.length)}
         </>
       )}
 

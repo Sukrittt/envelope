@@ -2,7 +2,12 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  AmountText,
+  popIn,
+  staggerDelay,
+} from "../components/landing/mobile/kit";
 import { ArrowRight, ChevronRight, Plus } from "lucide-react";
 import {
   useAddHolding,
@@ -25,6 +30,7 @@ import {
   type AllocationSegment,
 } from "../components/charts/AllocationBar";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { DeletingRow } from "../components/DeletingRow";
 import { LoadingCaption } from "../components/LoadingCaption";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import {
@@ -102,6 +108,16 @@ export function InvestmentsPage() {
   // undefined = closed, '' = add, a name = edit that holding's monthly contribution.
   const [editing, setEditing] = useState<string | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  // Confirmed delete waits for the dialog to finish closing (else its fade
+  // hides the sweep), then the row sweeps and handleDelete runs.
+  const queuedDelete = useRef<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  // Dropped from the list as soon as the sweep ends, so rows below spring up
+  // at once; a failed delete puts the name back.
+  const [removedNames, setRemovedNames] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const shownHoldings = holdings.filter((h) => !removedNames.has(h.name));
   const [error, setError] = useState<string | null>(null);
 
   const netWorth = useMemo(
@@ -127,9 +143,16 @@ export function InvestmentsPage() {
   async function handleDelete(name: string) {
     setDeleteTarget(null);
     setError(null);
+    setPendingDelete(null);
+    setRemovedNames((names) => new Set(names).add(name));
     try {
       await deleteHolding.mutateAsync(name);
     } catch {
+      setRemovedNames((names) => {
+        const next = new Set(names);
+        next.delete(name);
+        return next;
+      });
       setError(`Couldn't delete ${name}. Check your connection and try again.`);
     }
   }
@@ -187,7 +210,11 @@ export function InvestmentsPage() {
                   Net worth
                 </div>
                 <div className="recurring-hero-amount">
-                  {formatCurrency(netWorth, hideAmounts)}
+                  {hideAmounts ? (
+                    formatCurrency(netWorth, true)
+                  ) : (
+                    <AmountText value={netWorth} animate />
+                  )}
                 </div>
                 {segments.length > 0 && <AllocationBar segments={segments} />}
               </div>
@@ -199,7 +226,7 @@ export function InvestmentsPage() {
                 >
                   Holdings
                 </div>
-                {holdings.length === 0 ? (
+                {shownHoldings.length === 0 ? (
                   <div className="account-empty">
                     <div className="account-empty-title">No holdings yet</div>
                     <p className="account-row-meta">Add one to get started.</p>
@@ -209,48 +236,62 @@ export function InvestmentsPage() {
                     className="account-card recurring-list"
                     aria-label="Holdings"
                   >
-                    {holdings.map((h) => (
-                      <li key={h.name}>
-                        <button
-                          type="button"
-                          className="account-row"
-                          onClick={() => setMenuHolding(h)}
-                        >
-                          <span
-                            className="recurring-dot"
-                            style={{
-                              background:
-                                FIXED_TYPE_COLOR[h.type] ?? "var(--erd-text3)",
-                            }}
-                          />
-                          <span style={{ flex: 1, minWidth: 0 }}>
-                            <span className="account-row-label recurring-title">
-                              {h.name}
-                            </span>
-                            <span className="account-row-meta recurring-meta">
-                              {h.type} · Updated {formatDateTime(h.updated_at)}
-                            </span>
-                            {h.is_recurring === "true" && (
-                              <span className="account-row-meta recurring-due">
-                                Monthly{" "}
-                                {formatCurrency(
-                                  Number(h.recurring_amount) || 0,
-                                  hideAmounts,
-                                )}
+                    <AnimatePresence mode="popLayout" initial={false}>
+                    {shownHoldings.map((h, i) => (
+                      <DeletingRow
+                        key={h.name}
+                        as="li"
+                        active={pendingDelete === h.name}
+                        onDone={() => void handleDelete(h.name)}
+                      >
+                        <motion.div {...popIn(staggerDelay(i))}>
+                          <button
+                            type="button"
+                            className="account-row"
+                            onClick={() => setMenuHolding(h)}
+                          >
+                            <span
+                              className="recurring-dot"
+                              style={{
+                                background:
+                                  FIXED_TYPE_COLOR[h.type] ??
+                                  "var(--erd-text3)",
+                              }}
+                            />
+                            <span style={{ flex: 1, minWidth: 0 }}>
+                              <span className="account-row-label recurring-title">
+                                {h.name}
                               </span>
-                            )}
-                          </span>
-                          <strong>
-                            {formatCurrency(Number(h.value) || 0, hideAmounts)}
-                          </strong>
-                          <ChevronRight
-                            size={16}
-                            className="account-row-arrow"
-                            aria-hidden="true"
-                          />
-                        </button>
-                      </li>
+                              <span className="account-row-meta recurring-meta">
+                                {h.type} · Updated{" "}
+                                {formatDateTime(h.updated_at)}
+                              </span>
+                              {h.is_recurring === "true" && (
+                                <span className="account-row-meta recurring-due">
+                                  Monthly{" "}
+                                  {formatCurrency(
+                                    Number(h.recurring_amount) || 0,
+                                    hideAmounts,
+                                  )}
+                                </span>
+                              )}
+                            </span>
+                            <strong>
+                              {formatCurrency(
+                                Number(h.value) || 0,
+                                hideAmounts,
+                              )}
+                            </strong>
+                            <ChevronRight
+                              size={16}
+                              className="account-row-arrow"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        </motion.div>
+                      </DeletingRow>
                     ))}
+                    </AnimatePresence>
                   </ul>
                 )}
               </div>
@@ -387,7 +428,13 @@ export function InvestmentsPage() {
           />
         )}
       </AnimatePresence>
-      <AnimatePresence>
+      <AnimatePresence
+        onExitComplete={() => {
+          if (!queuedDelete.current) return;
+          setPendingDelete(queuedDelete.current);
+          queuedDelete.current = null;
+        }}
+      >
         {deleteTarget && (
           <ConfirmDialog
             title={`Delete ${deleteTarget}?`}
@@ -399,7 +446,10 @@ export function InvestmentsPage() {
               type="button"
               className="account-danger-btn"
               style={{ marginTop: 0 }}
-              onClick={() => handleDelete(deleteTarget)}
+              onClick={() => {
+                queuedDelete.current = deleteTarget;
+                setDeleteTarget(null);
+              }}
             >
               Delete
             </button>

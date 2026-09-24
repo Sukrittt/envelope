@@ -394,7 +394,8 @@
 .ins-allocation-segment {
   transform-box: fill-box;
   transform-origin: left center;
-  animation: ins-allocation-grow 520ms cubic-bezier(.2,.8,.2,1) both;
+  /* Mobile AllocationBar: every segment grows at once, 120ms in, 550ms out-cubic. */
+  animation: ins-allocation-grow 550ms cubic-bezier(0.33, 1, 0.68, 1) 120ms both;
 }
 
 .ins-allocation-legend {
@@ -578,7 +579,8 @@
   fill: var(--gold);
   transform-box: fill-box;
   transform-origin: center bottom;
-  animation: ins-bar-rise 390ms cubic-bezier(.2,.8,.2,1) both;
+  /* Mobile TrendChart: 350ms out-cubic, 30ms apart (delay set inline). */
+  animation: ins-bar-rise 350ms cubic-bezier(0.33, 1, 0.68, 1) both;
   transition: opacity 150ms ease, filter 150ms ease;
 }
 
@@ -659,7 +661,8 @@
 /* transform-origin comes per-cell from the component (view-box coordinates)
    — `fill-box` on an SVG group is not dependable across browsers. */
 .ins-heatmap-cell {
-  animation: ins-cell-pop 620ms cubic-bezier(.34, 1.56, .64, 1) both;
+  /* Mobile Heatmap: withSpring(1, { mass: 0.7, damping: 12, stiffness: 160 }), sampled. */
+  animation: ins-cell-pop 560ms linear(0, 0.05, 0.19, 0.36, 0.54, 0.71, 0.85, 0.96, 1.04, 1.09, 1.11, 1.11, 1.11, 1.09, 1.07, 1.05, 1.03, 1.01, 1, 0.99, 0.99, 0.99, 0.99, 0.99, 1) both;
 }
 
 .ins-heatmap-cell rect {
@@ -759,7 +762,7 @@
 @keyframes ins-allocation-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ins-card-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes ins-row-slide { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
-@keyframes ins-cell-pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes ins-cell-pop { from { transform: scale(0); } to { transform: scale(1); } }
 
 @media (max-width: 1120px) {
   .insights-grid { grid-template-columns: 1fr; }

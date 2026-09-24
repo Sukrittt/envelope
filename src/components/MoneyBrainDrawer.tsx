@@ -4,6 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
 import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useBudgets } from '@/src/hooks/useBudgets'
@@ -249,7 +250,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
           <>
             <div className="brain-body" ref={bodyRef}>
               {loadError && <div className="brain-error" role="alert">Couldn’t load that chat. Check your connection and try again.</div>}
-              <section className="brain-summary-card">
+              <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
                 <span className="brain-kicker">This month so far</span>
                 <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
                 <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
@@ -258,15 +259,19 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                 {brief.isLoading ? <LoadingCaption /> : brief.isError ? (
                   <button className="brain-retry" type="button" onClick={() => void brief.refetch()}>Couldn’t load your money brief. Retry</button>
                 ) : <p>{brief.data?.narrative}</p>}
-              </section>
+              </motion.section>
               {brief.data?.cards.length ? (
                 <section className="brain-insight-grid">
-                  {brief.data.cards.map((card) => (
-                    <article key={`${card.title}-${card.valueLabel}`} className={`brain-insight brain-insight--${card.tone}`}>
+                  {brief.data.cards.map((card, i) => (
+                    <motion.article
+                      key={`${card.title}-${card.valueLabel}`}
+                      className={`brain-insight brain-insight--${card.tone}`}
+                      {...popIn(staggerDelay(i, STAGGER.mount + STAGGER.block))}
+                    >
                       <span className="brain-insight-icon" aria-hidden="true">{card.icon}</span>
                       <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
                       <div className="brain-insight-value"><b>{formatCurrency(card.amount, hideAmounts)}</b><small>{card.valueLabel}</small></div>
-                    </article>
+                    </motion.article>
                   ))}
                 </section>
               ) : null}
@@ -274,8 +279,16 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                 <section>
                   <span className="brain-kicker">Ask anything</span>
                   <div className="brain-chips">
-                    {brief.data.questions.map((question) => (
-                      <button key={question} type="button" disabled={sending} onClick={() => void send(question, 'chip')}>{question}</button>
+                    {brief.data.questions.map((question, i) => (
+                      <motion.button
+                        key={question}
+                        type="button"
+                        disabled={sending}
+                        onClick={() => void send(question, 'chip')}
+                        {...popIn(staggerDelay(i, STAGGER.mount + 2 * STAGGER.block))}
+                      >
+                        {question}
+                      </motion.button>
                     ))}
                   </div>
                 </section>

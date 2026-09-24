@@ -81,7 +81,7 @@ export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, o
                 height={height}
                 rx="7"
                 className="ins-trend-bar"
-                style={{ opacity: dimmed ? 0.42 : 1, animationDelay: `${index * 35}ms` }}
+                style={{ opacity: dimmed ? 0.42 : 1, animationDelay: `${index * 30}ms` }}
               />
               {selected && (
                 <text x={x + barWidth / 2} y={Math.max(15, y - 10)} textAnchor="middle" className="ins-trend-value">

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
+import { AmountText } from "../components/landing/mobile/kit";
 import { ChevronRight } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
@@ -396,9 +397,15 @@ export function ExpensePage() {
                   <strong
                     className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}
                   >
-                    {hideAmounts
-                      ? "---"
-                      : formatCurrency(envelopeState.readyToAssign)}
+                    {hideAmounts ? (
+                      "---"
+                    ) : (
+                      <AmountText
+                        value={envelopeState.readyToAssign}
+                        animate
+                        id="ready-to-assign"
+                      />
+                    )}
                   </strong>
                   <span className="erd-home-hero-caption">
                     {monthLabel(panel.month)} ·{" "}
