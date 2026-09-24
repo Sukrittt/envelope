@@ -22,14 +22,14 @@ function setup(hideAmounts = false) {
 }
 
 describe('EnvelopeGrid actions', () => {
-  it('opens the existing money actions from the visible icon', async () => {
+  it('opens the existing money actions by tapping the row', async () => {
     const { onSetAssigned } = setup()
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Actions for Rent' }))
-    expect(screen.getByRole('button', { name: 'Actions for Rent' })).toHaveAttribute('aria-expanded', 'true')
+    await user.click(screen.getByRole('button', { name: /Rent/ }))
+    expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'true')
     await user.click(screen.getByRole('button', { name: 'Edit assigned amount' }))
     expect(onSetAssigned).toHaveBeenCalledWith('Rent')
-    expect(screen.getByRole('button', { name: 'Actions for Rent' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('keeps amounts hidden in the updated row', () => {

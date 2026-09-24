@@ -2,7 +2,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { ChevronsDownUp, MoreHorizontal } from 'lucide-react'
+import { ChevronsDownUp } from 'lucide-react'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { avatarColorFor, categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
@@ -152,16 +152,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
           {money(e.available)}
         </span>
-        <button
-          type="button"
-          className="env2-action"
-          aria-label={`Actions for ${name}`}
-          title={`Actions for ${name}`}
-          aria-expanded={isMenuOpen}
-          onClick={(ev) => openMenu(e.category, ev.currentTarget)}
-        >
-          <MoreHorizontal size={17} aria-hidden="true" />
-        </button>
 
         {isMenuOpen && menuAnchor && createPortal(
           <div

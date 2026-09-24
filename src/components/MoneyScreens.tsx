@@ -260,7 +260,7 @@ function HeroAmount({ amountText, onChange, children }: {
           <span aria-hidden="true">{currencySymbol}</span>
           <input aria-label="Amount" inputMode="decimal" autoComplete="off" placeholder="0"
             value={amountText}
-            style={{ width: `${Math.max(1, amountText.length)}ch`, maxWidth: '100%' }}
+            style={{ width: `calc(${Math.max(1, amountText.length)}ch + 0.2em)`, maxWidth: '100%' }}
             onChange={(e) => {
               const value = e.target.value
               if (/^\d{0,9}(\.\d{0,2})?$/.test(value)) onChange(value)
