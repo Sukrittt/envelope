@@ -4,7 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, ArrowUp, Clock3, Plus, Search, Sparkle, X } from 'lucide-react'
+import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
@@ -18,6 +18,8 @@ import { computeEnvelopeState, currentMonthKey } from '@/src/lib/envelope'
 import { getChatSession, streamChat, type ChatMessage } from '@/src/api/ai'
 import { track } from '@/src/lib/analytics'
 import { LoadingCaption } from './LoadingCaption'
+import { BirdMark, BirdThinking } from './BirdMark'
+import { ChatMarkdown } from './ChatMarkdown'
 
 interface Props {
   initialSessionId?: string | null
@@ -196,7 +198,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
             <button className="brain-icon-btn" type="button" onClick={() => setView('chat')} aria-label="Back to chat">
               <ArrowLeft size={18} />
             </button>
-          ) : <span className="brain-orbit" aria-hidden="true"><Sparkle size={20} strokeWidth={1.8} /></span>}
+          ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions this month` : 'Reading your budget…'}</p>
@@ -247,47 +249,45 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
           <>
             <div className="brain-body" ref={bodyRef}>
               {loadError && <div className="brain-error" role="alert">Couldn’t load that chat. Check your connection and try again.</div>}
-              {messages.length === 0 && (
-                <>
-                  <section className="brain-summary-card">
-                    <span className="brain-kicker">This month so far</span>
-                    <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
-                    <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
-                      <i style={{ transform: `scaleX(${spentPct / 100})` }} />
-                    </div>
-                    {brief.isLoading ? <LoadingCaption /> : brief.isError ? (
-                      <button className="brain-retry" type="button" onClick={() => void brief.refetch()}>Couldn’t load your money brief. Retry</button>
-                    ) : <p>{brief.data?.narrative}</p>}
-                  </section>
-                  {brief.data?.cards.length ? (
-                    <section className="brain-insight-grid">
-                      {brief.data.cards.map((card) => (
-                        <article key={`${card.title}-${card.valueLabel}`} className={`brain-insight brain-insight--${card.tone}`}>
-                          <span className="brain-insight-icon" aria-hidden="true">{card.icon}</span>
-                          <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
-                          <div className="brain-insight-value"><b>{formatCurrency(card.amount, hideAmounts)}</b><small>{card.valueLabel}</small></div>
-                        </article>
-                      ))}
-                    </section>
-                  ) : null}
-                  {brief.data?.questions.length ? (
-                    <section>
-                      <span className="brain-kicker">Ask anything</span>
-                      <div className="brain-chips">
-                        {brief.data.questions.map((question) => (
-                          <button key={question} type="button" disabled={sending} onClick={() => void send(question, 'chip')}>{question}</button>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
-                </>
-              )}
+              <section className="brain-summary-card">
+                <span className="brain-kicker">This month so far</span>
+                <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
+                <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
+                  <i style={{ transform: `scaleX(${spentPct / 100})` }} />
+                </div>
+                {brief.isLoading ? <LoadingCaption /> : brief.isError ? (
+                  <button className="brain-retry" type="button" onClick={() => void brief.refetch()}>Couldn’t load your money brief. Retry</button>
+                ) : <p>{brief.data?.narrative}</p>}
+              </section>
+              {brief.data?.cards.length ? (
+                <section className="brain-insight-grid">
+                  {brief.data.cards.map((card) => (
+                    <article key={`${card.title}-${card.valueLabel}`} className={`brain-insight brain-insight--${card.tone}`}>
+                      <span className="brain-insight-icon" aria-hidden="true">{card.icon}</span>
+                      <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
+                      <div className="brain-insight-value"><b>{formatCurrency(card.amount, hideAmounts)}</b><small>{card.valueLabel}</small></div>
+                    </article>
+                  ))}
+                </section>
+              ) : null}
+              {brief.data?.questions.length ? (
+                <section>
+                  <span className="brain-kicker">Ask anything</span>
+                  <div className="brain-chips">
+                    {brief.data.questions.map((question) => (
+                      <button key={question} type="button" disabled={sending} onClick={() => void send(question, 'chip')}>{question}</button>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
               {messages.length > 0 && (
                 <div className="brain-messages" aria-live="polite">
                   {messages.map((message, index) => message.text ? (
-                    <div key={index} className={`brain-bubble brain-bubble--${message.role}`}>{message.text}</div>
+                    <div key={index} className={`brain-bubble brain-bubble--${message.role}`}>
+                      {message.role === 'model' ? <ChatMarkdown text={message.text} /> : message.text}
+                    </div>
                   ) : null)}
-                  {awaitingFirstDelta && <LoadingCaption feature="chatThinking" />}
+                  {awaitingFirstDelta && <BirdThinking size={30} />}
                 </div>
               )}
             </div>

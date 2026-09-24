@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
+import { SCOPE_REFUSAL } from '@/lib/ai/moneyBrainPrompt'
 
 interface FakeAuth {
   userId: string
@@ -20,8 +21,32 @@ vi.mock('@/lib/rateLimit', () => ({
   isRateLimited: vi.fn(async () => false),
 }))
 
-vi.mock('@/lib/ai/expenseContext', () => ({
-  buildExpenseContext: vi.fn(async () => ({ facts: 'FACTS', meta: {} })),
+vi.mock('@/lib/ai/expenseContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ai/expenseContext')>()
+  return {
+    ...actual,
+    buildExpenseContext: vi.fn(async () => ({
+      facts: 'FACTS',
+      meta: {},
+      currencyCode: 'INR',
+      sections: {
+        header: 'MONTH: 2026-09',
+        envelopes: 'ENVELOPES:\nFood|Needs|8000|6400|1600|no',
+        trend: 'TREND:',
+        top10: 'TOP 10 ITEMS THIS MONTH:',
+        subscriptions: 'SUBSCRIPTIONS:',
+        investments: 'INVESTMENTS:',
+        transactions: 'TRANSACTIONS:\n2026-09-04|Swiggy dinner|640|Food|upi',
+      },
+    })),
+  }
+})
+
+const routeChatMock = vi.fn<(message: string) => Promise<{ onTopic: boolean; sections: string[] }>>(
+  async () => ({ onTopic: true, sections: ['header', 'envelopes', 'top10'] }),
+)
+vi.mock('@/lib/ai/chatRouter', () => ({
+  routeChat: (...args: unknown[]) => routeChatMock(...(args as [string])),
 }))
 
 type ModelContents = Array<{ role: string; parts: [{ text: string }] }>
@@ -67,6 +92,8 @@ beforeEach(() => {
   sessionUpdateOneMock.mockClear()
   sessionInsertOneMock.mockClear()
   sessionFindOneMock.mockClear()
+  routeChatMock.mockReset()
+  routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header', 'envelopes', 'top10'] })
 })
 
 describe('POST /api/ai/chat (demo path)', () => {
@@ -107,6 +134,16 @@ describe('POST /api/ai/chat (demo path)', () => {
     expect(res.status).toBe(200)
     await res.text()
     expect(streamTextMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('strips em dashes from the streamed reply, even when one straddles chunks', async () => {
+    streamTextMock.mockImplementationOnce(async function* () {
+      yield { text: 'Food is high ' }
+      yield { text: '— mostly takeout.' }
+    })
+    const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'Why is food high?' }] }))).text()
+    const reply = [...body.matchAll(/"delta":"([^"]*)"/g)].map((m) => m[1]).join('')
+    expect(reply).toBe('Food is high, mostly takeout.')
   })
 
   it('rejects once the client-supplied history exceeds the session message cap', async () => {
@@ -158,5 +195,40 @@ describe('POST /api/ai/chat (persisted path) — session message cap (C6)', () =
     expect(res.status).toBe(429)
     expect(streamTextMock).not.toHaveBeenCalled()
     expect(sessionUpdateOneMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/ai/chat (Jev routing)', () => {
+  it('refuses an off-topic message without calling Gemini', async () => {
+    routeChatMock.mockResolvedValue({ onTopic: false, sections: [] })
+
+    const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'write me a poem' }] }))
+    const body = await res.text()
+
+    expect(body).toContain(SCOPE_REFUSAL)
+    expect(body).toContain('[DONE]')
+    expect(streamTextMock).not.toHaveBeenCalled()
+  })
+
+  it('routes on the latest user message alone', async () => {
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'what did I buy on the 4th?' }] }))).text()
+
+    expect(routeChatMock.mock.calls[0][0]).toBe('what did I buy on the 4th?')
+  })
+
+  it('sends Gemini only the sections the router asked for', async () => {
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'how much on food?' }] }))).text()
+
+    const systemPrompt = streamTextMock.mock.calls[0][0]
+    expect(systemPrompt).toContain('ENVELOPES:')
+    expect(systemPrompt).not.toContain('Swiggy dinner')
+  })
+
+  it('still sends the transaction rows when the router asks for them', async () => {
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header', 'transactions'] })
+
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'what did I buy on the 4th?' }] }))).text()
+
+    expect(streamTextMock.mock.calls[0][0]).toContain('Swiggy dinner')
   })
 })

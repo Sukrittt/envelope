@@ -50,10 +50,10 @@ describe('applyHoldingAction', () => {
     expect(result).toEqual({ ok: true, previousValue: 1000, newValue: 1200 })
     // Filtered on _id, not the (encrypted) value field — a concurrent writer
     // on the same document is caught by the transaction's own conflict
-    // detection, not a CAS guard here.
+    // detection. The unencrypted revision still advances for stale editors.
     expect(holdingsUpdateOne).toHaveBeenCalledWith(
       { _id: 'h1' },
-      { $set: expect.objectContaining({ value: '1200' }) },
+      { $set: expect.objectContaining({ value: '1200' }), $inc: { version: 1 } },
       { session: undefined },
     )
     expect(budgetsFindOne).not.toHaveBeenCalled()

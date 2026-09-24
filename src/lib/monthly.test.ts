@@ -4,7 +4,7 @@ import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY, currentMonthKey, prevMonthKey } 
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 function budget(month: string, category: string, assigned: string): BudgetRow {
-  return { month, category, assigned, rolled_over: '0' }
+  return { month, category, assigned, rolled_over: '0', version: 0 }
 }
 
 function expense(date: string, category: string, amount_inr: string): ExpenseRow {

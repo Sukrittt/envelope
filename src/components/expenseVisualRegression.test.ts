@@ -7,7 +7,7 @@ const expenseCss = readFileSync(join(root, 'src/expense-redesign.css'), 'utf8')
 const insightsCss = readFileSync(join(root, 'src/insights.css'), 'utf8')
 const transactions = readFileSync(join(root, 'src/components/TransactionsView.tsx'), 'utf8')
 const insights = readFileSync(join(root, 'src/views/InsightsPage.tsx'), 'utf8')
-const subscriptions = readFileSync(join(root, 'src/components/SubscriptionsPanel.tsx'), 'utf8')
+const subscriptions = readFileSync(join(root, 'src/views/SubscriptionsPage.tsx'), 'utf8')
 
 describe('expense screen visual regressions', () => {
   it('keeps the subscription add button and selected activity filter on the solid accent', () => {

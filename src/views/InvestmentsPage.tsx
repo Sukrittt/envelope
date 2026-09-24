@@ -1,7 +1,7 @@
 "use client";
 
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { ArrowRight, ChevronRight, Plus } from "lucide-react";
 import {
@@ -11,6 +11,7 @@ import {
   usePerformHoldingAction,
   useUpdateHolding,
 } from "../hooks/useHoldings";
+import { predictHoldingType } from "../api/holdings";
 import { useHoldingEvents } from "../hooks/useHoldingEvents";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { EMPTY } from "../lib/constants";
@@ -26,6 +27,13 @@ import {
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { LoadingCaption } from "../components/LoadingCaption";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
+import {
+  HoldingWriteError,
+  holdingChanges,
+  holdingDraft,
+  rebaseHoldingDraft,
+  type HoldingDraft,
+} from "../lib/holdingConflict";
 
 const TYPES = [
   "Equity",
@@ -181,27 +189,7 @@ export function InvestmentsPage() {
                 <div className="recurring-hero-amount">
                   {formatCurrency(netWorth, hideAmounts)}
                 </div>
-                {segments.length > 0 && (
-                  <>
-                    <AllocationBar segments={segments} />
-                    <ul className="inv-legend">
-                      {segments.map((s) => (
-                        <li key={s.label}>
-                          <span
-                            className="recurring-dot"
-                            style={{ background: s.color }}
-                          />
-                          {s.label}
-                          <strong>
-                            {netWorth > 0
-                              ? `${((s.value / netWorth) * 100).toFixed(1)}%`
-                              : "—"}
-                          </strong>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+                {segments.length > 0 && <AllocationBar segments={segments} />}
               </div>
 
               <div>
@@ -525,7 +513,7 @@ function HoldingActionModal({
 }
 
 /** Add a holding, or (with `name`) edit only its monthly contribution — never its value, same as Mobile. */
-function HoldingModal({
+export function HoldingModal({
   name,
   holding,
   onClose,
@@ -539,17 +527,45 @@ function HoldingModal({
   const updateHolding = useUpdateHolding();
   const phase = useButtonPhase();
   const isEdit = name !== undefined;
+  const initialDraft: HoldingDraft = holding
+    ? holdingDraft(holding)
+    : { isRecurring: false, recurringAmount: "" };
 
   const [newName, setNewName] = useState("");
   const [type, setType] = useState("");
+  const [typeTouched, setTypeTouched] = useState(false);
   const [value, setValue] = useState("");
-  const [isRecurring, setIsRecurring] = useState(
-    holding?.is_recurring === "true",
-  );
+  const [base, setBase] = useState(initialDraft);
+  const [expectedVersion, setExpectedVersion] = useState(holding?.version ?? 0);
+  const [isRecurring, setIsRecurring] = useState(initialDraft.isRecurring);
   const [recurringAmount, setRecurringAmount] = useState(
-    holding?.recurring_amount || "",
+    initialDraft.recurringAmount,
   );
+  const [conflict, setConflict] = useState<HoldingRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const typeTouchedRef = useRef(typeTouched);
+  const typeSuggestTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    typeTouchedRef.current = typeTouched;
+  }, [typeTouched]);
+
+  // Guess the type from the holding name while it's still untyped, same debounced-Jev
+  // pattern as expense category suggestions. A manual chip pick always wins.
+  useEffect(() => {
+    if (isEdit) return;
+    if (typeSuggestTimer.current) clearTimeout(typeSuggestTimer.current);
+    if (newName.trim().length < 3) return;
+    typeSuggestTimer.current = setTimeout(() => {
+      predictHoldingType(newName, TYPES).then((suggested) => {
+        if (typeTouchedRef.current || !suggested) return;
+        setType(suggested);
+      });
+    }, 300);
+    return () => {
+      if (typeSuggestTimer.current) clearTimeout(typeSuggestTimer.current);
+    };
+  }, [newName, isEdit]);
 
   const parsedValue = Number(value);
   const parsedRecurring = Number(recurringAmount);
@@ -558,8 +574,11 @@ function HoldingModal({
     (recurringAmount.trim() !== "" &&
       !Number.isNaN(parsedRecurring) &&
       parsedRecurring >= 0);
+  const draft = { isRecurring, recurringAmount };
+  const recurringUpdates = holdingChanges(base, draft);
+  const hasChanges = Object.keys(recurringUpdates).length > 0;
   const canSubmit = isEdit
-    ? recurringOk
+    ? recurringOk && hasChanges
     : newName.trim() !== "" &&
       value.trim() !== "" &&
       !Number.isNaN(parsedValue) &&
@@ -571,21 +590,29 @@ function HoldingModal({
     if (!canSubmit || busy) return;
     setError(null);
     phase.start();
-    const recurring = {
-      is_recurring: isRecurring,
-      recurring_amount: isRecurring ? recurringAmount.trim() : undefined,
-    };
     try {
-      if (isEdit) await updateHolding.mutateAsync({ name, updates: recurring });
+      if (isEdit)
+        await updateHolding.mutateAsync({
+          name,
+          version: expectedVersion,
+          updates: recurringUpdates,
+        });
       else
         await addHolding.mutateAsync({
           name: newName.trim(),
           type: type || "Other",
           value: value.trim(),
-          ...recurring,
+          is_recurring: isRecurring,
+          recurring_amount: isRecurring ? recurringAmount.trim() : undefined,
         });
       phase.succeed(onClose);
     } catch (e) {
+      if (e instanceof HoldingWriteError && e.status === 409 && e.current) {
+        setConflict(e.current);
+        setError(null);
+        phase.fail();
+        return;
+      }
       setError(
         e instanceof Error
           ? e.message
@@ -596,6 +623,24 @@ function HoldingModal({
   }
 
   const title = isEdit ? "Edit monthly contribution" : "Add holding";
+
+  function reviewLatest(keepDraft: boolean) {
+    if (!conflict) return;
+    const latest = holdingDraft(conflict);
+    const next = keepDraft ? rebaseHoldingDraft(base, draft, conflict) : latest;
+    setBase(latest);
+    setExpectedVersion(conflict.version);
+    setIsRecurring(next.isRecurring);
+    setRecurringAmount(next.recurringAmount);
+    setConflict(null);
+    setError(null);
+  }
+
+  const merged = conflict ? rebaseHoldingDraft(base, draft, conflict) : null;
+  const describeRecurring = (value: HoldingDraft) =>
+    value.isRecurring
+      ? `${currencySymbol}${Number(value.recurringAmount || 0).toLocaleString()} monthly`
+      : "Off";
 
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
@@ -619,104 +664,174 @@ function HoldingModal({
           </button>
         </div>
 
-        {isEdit ? (
-          <>
-            <div className="erd-log-label">Holding</div>
-            <div className="account-row-label">{name}</div>
-          </>
+        {conflict && merged ? (
+          <div
+            className="txn-review"
+            role="region"
+            aria-labelledby="holding-conflict-title"
+          >
+            <span className="txn-review-icon" aria-hidden="true">
+              ↻
+            </span>
+            <h4 id="holding-conflict-title">This holding was updated</h4>
+            <p className="txn-review-intro">
+              A newer version was saved elsewhere. Your monthly contribution is
+              still here.
+            </p>
+            <div className="txn-review-comparison">
+              <div className="txn-review-columns" aria-hidden="true">
+                <span>Latest saved</span>
+                <span>With your changes</span>
+              </div>
+              <div className="txn-review-row">
+                <div className="txn-review-label">Monthly contribution</div>
+                <div className="txn-review-values">
+                  <span>
+                    <span className="txn-review-sr-only">Latest saved: </span>
+                    {describeRecurring(holdingDraft(conflict))}
+                  </span>
+                  <span className="txn-review-changed">
+                    <span className="txn-review-sr-only">
+                      With your changes:{" "}
+                    </span>
+                    {describeRecurring(merged)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="txn-review-note">
+              Continue with your edit and keep the latest holding updates. You
+              can review it before saving.
+            </p>
+            <div className="txn-review-actions">
+              <button
+                type="button"
+                className="txn-review-primary"
+                onClick={() => reviewLatest(true)}
+              >
+                Continue with my changes <span aria-hidden="true">→</span>
+              </button>
+              <button
+                type="button"
+                className="txn-review-secondary"
+                onClick={() => reviewLatest(false)}
+              >
+                Use latest instead
+              </button>
+            </div>
+            <p className="txn-review-footnote">
+              Nothing will be saved until you confirm.
+            </p>
+          </div>
         ) : (
           <>
-            <label className="erd-log-label" htmlFor="holding-name">
-              Name
-            </label>
-            <input
-              id="holding-name"
-              className="erd-log-input"
-              placeholder="e.g. Stocks"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              autoFocus
-            />
+            {isEdit ? (
+              <>
+                <div className="erd-log-label">Holding</div>
+                <div className="account-row-label">{name}</div>
+              </>
+            ) : (
+              <>
+                <label className="erd-log-label" htmlFor="holding-name">
+                  Name
+                </label>
+                <input
+                  id="holding-name"
+                  className="erd-log-input"
+                  placeholder="e.g. Stocks"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  autoFocus
+                />
 
-            <div className="erd-log-label">Type</div>
-            <div className="erd-chip-row">
-              {TYPES.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  className={`erd-chip ${type === t ? "is-selected" : ""}`}
-                  aria-pressed={type === t}
-                  onClick={() => setType(type === t ? "" : t)}
+                <div className="erd-log-label">Type</div>
+                <div className="erd-chip-row">
+                  {TYPES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`erd-chip ${type === t ? "is-selected" : ""}`}
+                      aria-pressed={type === t}
+                      onClick={() => {
+                        setType(type === t ? "" : t);
+                        setTypeTouched(true);
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
+                <label
+                  className="erd-log-label"
+                  htmlFor="holding-value"
+                  style={{ marginTop: 24 }}
                 >
-                  {t}
-                </button>
-              ))}
-            </div>
+                  Current value ({currencySymbol})
+                </label>
+                <input
+                  id="holding-value"
+                  className="erd-log-input"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  placeholder="0"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                />
+              </>
+            )}
 
-            <label className="erd-log-label" htmlFor="holding-value">
-              Current value ({currencySymbol})
+            <label className="account-row inv-recurring-toggle">
+              <span className="account-row-label">
+                Repeat monthly (SIP/PF)
+                <span className="account-row-hint">
+                  {isEdit
+                    ? "Adds the amount below as a contribution on top of the current balance every month"
+                    : "Adds the amount below as a contribution on this day every month"}
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                className="account-switch"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+              />
             </label>
-            <input
-              id="holding-value"
-              className="erd-log-input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              placeholder="0"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
+            {isRecurring && (
+              <>
+                <label className="erd-log-label" htmlFor="holding-monthly">
+                  Monthly contribution ({currencySymbol})
+                </label>
+                <input
+                  id="holding-monthly"
+                  className="erd-log-input"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  placeholder="0"
+                  value={recurringAmount}
+                  onChange={(e) => setRecurringAmount(e.target.value)}
+                />
+              </>
+            )}
+
+            {error && <p className="erd-log-error">{error}</p>}
+
+            <SuccessButton
+              type="button"
+              baseClass="erd-log-submit"
+              saving={phase.saving}
+              success={phase.success}
+              successLabel="Saved"
+              disabled={!canSubmit || busy}
+              onClick={handleSubmit}
+            >
+              {isEdit ? "Save changes" : "Add holding"}
+            </SuccessButton>
           </>
         )}
-
-        <label className="account-row inv-recurring-toggle">
-          <span className="account-row-label">
-            Repeat monthly (SIP/PF)
-            <span className="account-row-hint">
-              {isEdit
-                ? "Adds the amount below as a contribution on top of the current balance every month"
-                : "Adds the amount below as a contribution on this day every month"}
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            className="account-switch"
-            checked={isRecurring}
-            onChange={(e) => setIsRecurring(e.target.checked)}
-          />
-        </label>
-        {isRecurring && (
-          <>
-            <label className="erd-log-label" htmlFor="holding-monthly">
-              Monthly contribution ({currencySymbol})
-            </label>
-            <input
-              id="holding-monthly"
-              className="erd-log-input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              placeholder="0"
-              value={recurringAmount}
-              onChange={(e) => setRecurringAmount(e.target.value)}
-            />
-          </>
-        )}
-
-        {error && <p className="erd-log-error">{error}</p>}
-
-        <SuccessButton
-          type="button"
-          baseClass="erd-log-submit"
-          saving={phase.saving}
-          success={phase.success}
-          successLabel="Saved"
-          disabled={!canSubmit || busy}
-          onClick={handleSubmit}
-        >
-          {isEdit ? "Save changes" : "Add holding"}
-        </SuccessButton>
       </Sheet>
     </Scrim>
   );

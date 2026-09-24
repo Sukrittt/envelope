@@ -1,8 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { getWrapped, getWrappedStatus } from '@/src/api/wrapped'
+import { getWrapped, getWrappedJudgement, getWrappedStatus } from '@/src/api/wrapped'
 
 export function useWrapped(month?: string) {
   return useQuery({ queryKey: ['wrapped', month] as const, queryFn: () => getWrapped(month), staleTime: 15 * 60_000, retry: 1 })
+}
+
+/** Runs alongside `useWrapped` — the story never waits on it. */
+export function useWrappedJudgement(month?: string) {
+  return useQuery({ queryKey: ['wrapped-judgement', month] as const, queryFn: () => getWrappedJudgement(month), staleTime: 60 * 60_000, retry: false })
 }
 
 export function useWrappedStatus() {

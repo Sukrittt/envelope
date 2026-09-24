@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { EnvelopesPage } from './EnvelopesPage'
 import { getCategories, addCategory, deleteCategory, updateCategory } from '@/src/api/categories'
-import { getGroups, addGroup, deleteGroup } from '@/src/api/groups'
+import { getGroups, addGroup, deleteGroup, updateGroup } from '@/src/api/groups'
 
 vi.mock('@/src/api/categories', () => ({
   getCategories: vi.fn(),
@@ -62,6 +62,7 @@ beforeEach(() => {
   ;(deleteCategory as Mock).mockResolvedValue(undefined)
   ;(addGroup as Mock).mockResolvedValue(undefined)
   ;(deleteGroup as Mock).mockResolvedValue(undefined)
+  ;(updateGroup as Mock).mockResolvedValue(undefined)
 })
 
 describe('EnvelopesPage', () => {
@@ -104,6 +105,10 @@ describe('EnvelopesPage', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByLabelText('Delete Home'))
+    // Deletion only runs after the dialog is confirmed.
+    await user.click(
+      within(screen.getByRole('alertdialog', { name: 'Delete Home?' })).getByRole('button', { name: 'Delete' }),
+    )
     // Archived does not exist yet, so it is created, then both of Home's
     // categories are moved into it, and only then is Home removed.
     await waitFor(() => expect(deleteGroup).toHaveBeenCalledWith('Home'))
@@ -117,6 +122,48 @@ describe('EnvelopesPage', () => {
     renderPage()
     expect(await screen.findByLabelText('Delete Home')).toBeInTheDocument()
     expect(screen.queryByLabelText('Delete Archived')).not.toBeInTheDocument()
+  })
+
+  it('does not delete a category when the dialog is cancelled', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Delete Odds'))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(deleteCategory).not.toHaveBeenCalled()
+  })
+
+  it('deletes a category only after confirming the dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Delete Odds'))
+    await user.click(
+      within(screen.getByRole('alertdialog', { name: 'Delete Odds?' })).getByRole('button', { name: 'Delete' }),
+    )
+    await waitFor(() => expect(deleteCategory).toHaveBeenCalledWith('Odds'))
+  })
+
+  it('renames a category through the edit dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Rename Rent'))
+    const dialog = screen.getByRole('dialog', { name: 'Rename category' })
+    const input = within(dialog).getByRole('textbox')
+    await user.clear(input)
+    await user.type(input, '🏠 Mortgage')
+    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { newName: '🏠 Mortgage' }))
+  })
+
+  it('renames a group through the edit dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Rename Home'))
+    const dialog = screen.getByRole('dialog', { name: 'Rename group' })
+    const input = within(dialog).getByRole('textbox')
+    await user.clear(input)
+    await user.type(input, 'Housing')
+    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', 'Housing'))
   })
 
   it('writes null for the default thresholds rather than pinning a copy', async () => {

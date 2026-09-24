@@ -87,9 +87,19 @@ describe('recurring scan API', () => {
     expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
     await POST(req('POST'))
     expect(mocks.evaluate).toHaveBeenCalledTimes(2)
-    subscriptions.push({ service: 'Netflix' })
+    subscriptions.push({ service: 'Netflix', status: 'active' })
     expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
     subscriptions = []; ledger.pop()
+    expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
+  })
+  it('allows a cancelled subscription to be detected again', async () => {
+    subscriptions.push({ service: 'Netflix', status: 'cancelled' })
+    const result = await (await POST(req('POST'))).json()
+    expect(result.suggestions[0]).toMatchObject({ kind: 'subscription', input: { item: 'Netflix' } })
+  })
+  it('hides accepted subscription ids even if the service is later renamed', async () => {
+    const first = await (await POST(req('POST'))).json()
+    subscriptions.push({ service: 'Renamed service', suggestion_id: first.suggestions[0].id })
     expect((await (await GET(req('GET'))).json()).suggestions).toEqual([])
   })
   it('caches negative decisions, but retries failures', async () => {
@@ -133,13 +143,18 @@ it('reads history once per scan and only supporting metadata on GET', async () =
   expect(reads[0][2].projection).toEqual({ _id: 1, version: 1 })
 })
 it('validates periods and rejects oversized windows before any model call', async () => {
-  expect((await POST(req('POST', { months: 12 }))).status).toBe(400)
+  expect((await POST(req('POST', { months: 24 }))).status).toBe(400)
   ledger = Array.from({ length: 10001 }, (_, i) => ({ ...ledger[0], _id: new ObjectId(), date: i ? '2026-04-01' : '2026-09-01' }))
   expect((await POST(req('POST', { months: 6 }))).status).toBe(422)
   expect(mocks.evaluate).not.toHaveBeenCalled()
   const shorter = await POST(req('POST', { months: 1 }))
   expect(shorter.status).toBe(200)
   expect((await shorter.json()).windowStart).toBe('2026-08-22')
+})
+it('supports a twelve-month window for annual subscriptions', async () => {
+  const response = await GET(new Request('https://example.com/api/recurring-expenses/suggestions?months=12'))
+  expect(response.status).toBe(200)
+  expect((await response.json()).windowStart).toBe('2025-09-22')
 })
 it('limits calls to three concurrently and twelve per scan', async () => {
   const original = ledger

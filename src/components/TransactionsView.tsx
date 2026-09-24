@@ -1,13 +1,15 @@
 import { ExpenseNoticeDialog } from './ExpenseNoticeDialog';
 import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Plus, ReceiptText, Search } from "lucide-react";
+import { Copy, Plus, ReceiptText, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
-import { useExpensesPage, useDeleteExpense } from "../hooks/useExpenses";
+import { useCategories } from "../hooks/useCategories";
+import { useExpensesPage, useDeleteExpense, useDuplicates } from "../hooks/useExpenses";
+import { DuplicateReviewDialog } from "./DuplicateReviewDialog";
 import { EMPTY } from "../lib/constants";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
@@ -67,7 +69,11 @@ export function TransactionsView({
   const { formatCurrency } = useCurrency();
 
   const budgetsQuery = useBudgets();
+  const categoriesQuery = useCategories();
   const deleteExpenseM = useDeleteExpense();
+  const duplicates = useDuplicates().data ?? [];
+  const [reviewingDuplicates, setReviewingDuplicates] = useState(false);
+  const closeDuplicateReview = useCallback(() => setReviewingDuplicates(false), []);
 
   // Period and the custom range start as derived values and become state only
   // once the user touches them. Seeding them from an effect instead made them
@@ -158,10 +164,13 @@ export function TransactionsView({
   }, [categoryParam]);
 
   const categories = useMemo(() => {
-    // Budget rows repeat per month, so the same category can appear more
-    // than once; dedupe so dropdown options keep unique keys.
-    return [...new Set(budgetCategories)].sort();
-  }, [budgetCategories]);
+    // A new category has no budget row until it's assigned money, so the
+    // categories list is the source of truth; budget rows still contribute
+    // categories that were since deleted but have old transactions. Budget
+    // rows repeat per month, so dedupe to keep dropdown option keys unique.
+    const names = (categoriesQuery.data ?? EMPTY).map((c) => c.name).filter(Boolean);
+    return [...new Set([...names, ...budgetCategories])].sort();
+  }, [categoriesQuery.data, budgetCategories]);
   const { recents } = useRecentCategories();
   const orderedCategories = useMemo(
     () => orderWithRecents(categories, recents),
@@ -301,14 +310,26 @@ export function TransactionsView({
           <h1>Activity</h1>
           <p>Review, search, and edit everything you have logged.</p>
         </div>
-        <button
-          type="button"
-          className="erd-log-btn txn-page-log-btn"
-          onClick={() => setShowLogModal(true)}
-        >
-          <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
-          Log expense
-        </button>
+        <div className="txn-page-actions">
+          {duplicates.length > 0 && (
+            <button
+              type="button"
+              className="action-button txn-page-duplicates-btn"
+              onClick={() => setReviewingDuplicates(true)}
+            >
+              <Copy size={15} strokeWidth={2.2} aria-hidden="true" />
+              Review {duplicates.length} possible duplicate{duplicates.length === 1 ? "" : "s"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="erd-log-btn txn-page-log-btn"
+            onClick={() => setShowLogModal(true)}
+          >
+            <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
+            Log expense
+          </button>
+        </div>
       </header>
 
       <section className="txn-timeline-filters" aria-label="Activity filters">
@@ -390,6 +411,11 @@ export function TransactionsView({
         </div>
       </section>
 
+      <AnimatePresence>
+        {reviewingDuplicates && (
+          <DuplicateReviewDialog pairs={duplicates} onClose={closeDuplicateReview} />
+        )}
+      </AnimatePresence>
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
       {loading ? (

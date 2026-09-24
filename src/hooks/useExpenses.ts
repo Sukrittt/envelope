@@ -1,6 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   deleteExpense,
+  dismissDuplicate,
+  getDuplicates,
   getExpenses,
   getExpensesPage,
   mintExpensePayload,
@@ -106,5 +108,18 @@ export function useDeleteExpense() {
       qc.invalidateQueries({ queryKey: budgetsKey })
       qc.invalidateQueries({ queryKey: categoryMapKey })
     },
+  })
+}
+
+/** Under the `'expenses'` prefix, so every add/edit/delete above refreshes it too. */
+export function useDuplicates() {
+  return useQuery({ queryKey: [...key, 'duplicates'] as const, queryFn: getDuplicates, staleTime: 30_000 })
+}
+
+export function useDismissDuplicate() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: dismissDuplicate,
+    onSettled: () => qc.invalidateQueries({ queryKey: [...key, 'duplicates'] }),
   })
 }

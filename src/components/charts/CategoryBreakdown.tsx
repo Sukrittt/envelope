@@ -278,7 +278,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                         <span>Filtered total</span>
                         <strong>{formatCurrency(total, hideAmounts)}</strong>
                       </>
-                    ) : comparison?.baseline != null && comparison.deltaPct != null ? (
+                    ) : comparison?.baseline != null && comparison.deltaPct != null && Math.round(comparison.deltaPct) !== 0 ? (
                       <>
                         <span className={comparison.deltaPct > 0 ? 'is-up' : 'is-down'}>
                           {comparison.deltaPct > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
@@ -316,7 +316,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                             {row.emoji && <span aria-hidden="true">{row.emoji}</span>}
                             <span className="ins-row-name">{row.label}</span>
                             <strong>{formatCurrency(row.spent, hideAmounts)}</strong>
-                            {row.deltaPct != null && (
+                            {row.deltaPct != null && Math.round(row.deltaPct) !== 0 && (
                               <span className={row.deltaPct > 0 ? 'ins-delta is-up' : 'ins-delta is-down'}>
                                 {row.deltaPct > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                                 {Math.abs(row.deltaPct).toFixed(0)}%

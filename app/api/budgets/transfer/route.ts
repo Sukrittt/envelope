@@ -1,6 +1,5 @@
-import type { ClientSession } from 'mongodb'
 import { json, error, readBody, getCollection } from '@/lib/http'
-import type { ScopedCollection } from '@/lib/scoped'
+import { carriedAssigned } from '@/lib/budgetCarry'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
@@ -12,8 +11,6 @@ export const dynamic = 'force-dynamic'
 
 /** Matches the client-side sentinel in MoveMoneyModal.tsx / move-money.tsx. */
 const RTA_SENTINEL = '__ready_to_assign__'
-/** Never carries a balance forward — see carriedAssigned() below. */
-const CC_CATEGORY = '__credit_card__'
 
 interface Source {
   category: string
@@ -28,7 +25,8 @@ interface Source {
  *
  * body: { month, to, sources: [{ category, amount }] } — or the single-source
  * shorthand { month, to, from, amount }. `sources[].category` may be the RTA
- * sentinel (debits nothing, RTA is derived, not a stored row).
+ * sentinel (debits nothing, RTA is derived, not a stored row). `to` may also
+ * be RTA, in which case the transaction only debits the source envelopes.
  */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -49,8 +47,6 @@ export async function POST(req: Request) {
   if (!month || !to || !rawSources || rawSources.length === 0) {
     return error('month, to, and sources (or from/amount) required')
   }
-  if (to === RTA_SENTINEL) return error('cannot transfer to Ready to Assign')
-
   const sources: Source[] = []
   for (const raw of rawSources as unknown[]) {
     const category = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).category : undefined
@@ -68,7 +64,7 @@ export async function POST(req: Request) {
 
   // Fail fast on a source category that has never had a budget row at all —
   // that's a genuinely nonexistent envelope, not just one untouched this
-  // month (see carriedAssigned() below for that case).
+  // month (see carriedAssigned() in lib/budgetCarry.ts for that case).
   for (const source of sources) {
     if (source.category === RTA_SENTINEL) continue
     const existing = await budgetColl.findOne({ category: source.category })
@@ -91,7 +87,7 @@ export async function POST(req: Request) {
           const current = Number(existing.assigned) || 0
           await budgetColl.updateOne(
             { _id: existing._id },
-            { $set: { assigned: String(current - source.amount) } },
+            { $set: { assigned: String(current - source.amount) }, $inc: { version: 1 } } as never,
             { session },
           )
           return 'done'
@@ -104,7 +100,7 @@ export async function POST(req: Request) {
         const carried = await carriedAssigned(budgetColl, source.category, month, session)
         try {
           await budgetColl.insertOne(
-            { month, category: source.category, assigned: String(carried - source.amount), rolled_over: '0' },
+            { month, category: source.category, assigned: String(carried - source.amount), rolled_over: '0', version: 1 },
             { session },
           )
           return 'done'
@@ -117,14 +113,15 @@ export async function POST(req: Request) {
 
     // Credit the target, upserting a row if this is its first assignment. A
     // concurrent insert for the same category is caught via the unique
-    // partial index and retried as an update.
-    await casRetry<'done'>(async () => {
+    // partial index and retried as an update. Ready to Assign is derived, so
+    // returning money there intentionally has no target row to credit.
+    if (to !== RTA_SENTINEL) await casRetry<'done'>(async () => {
       const existing = await budgetColl.findOne({ month, category: to }, { session })
       if (existing) {
         const current = Number(existing.assigned) || 0
         await budgetColl.updateOne(
           { _id: existing._id },
-          { $set: { assigned: String(current + totalAmount) } },
+          { $set: { assigned: String(current + totalAmount) }, $inc: { version: 1 } } as never,
           { session },
         )
         return 'done'
@@ -136,7 +133,7 @@ export async function POST(req: Request) {
       const carried = await carriedAssigned(budgetColl, to, month, session)
       try {
         await budgetColl.insertOne(
-          { month, category: to, assigned: String(carried + totalAmount), rolled_over: '0' },
+          { month, category: to, assigned: String(carried + totalAmount), rolled_over: '0', version: 1 },
           { session },
         )
         return 'done'
@@ -150,7 +147,7 @@ export async function POST(req: Request) {
   invalidate('budgets', auth.userId)
   await reconcileThresholdLevels(
     auth,
-    [to, ...sources.filter((source) => source.category !== RTA_SENTINEL).map((source) => source.category)],
+    [to, ...sources.map((source) => source.category)].filter((category) => category !== RTA_SENTINEL),
     month,
   )
   return json({ ok: true })
@@ -158,23 +155,4 @@ export async function POST(req: Request) {
 
 function isDuplicateKeyError(err: unknown): boolean {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 11000
-}
-
-/** The most recent prior month's assigned amount for a category, or 0 if
- * there isn't one — mirrors the client's carry-forward convention (Mobile's
- * src/lib/envelope.ts::carriedAssigned / Web's src/services/budgetLoader.ts).
- * The credit-card envelope never carries: it's money set aside for *last*
- * month's card spending, not a recurring target. */
-async function carriedAssigned(
-  budgetColl: ScopedCollection,
-  category: string,
-  month: string,
-  session: ClientSession,
-): Promise<number> {
-  if (category === CC_CATEGORY) return 0
-  const rows = await budgetColl.find({ category }, { session }).toArray()
-  const prior = rows
-    .filter((r) => typeof r.month === 'string' && r.month < month)
-    .sort((a, b) => (b.month as string).localeCompare(a.month as string))[0]
-  return prior ? Number(prior.assigned) || 0 : 0
 }

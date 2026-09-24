@@ -13,10 +13,17 @@ export function useBudgets() {
   return useQuery({ queryKey: key, queryFn: getBudgets, staleTime: 30_000 })
 }
 
+/** Refetches budgets past staleTime, for a save whose value is derived from
+ * other rows and so must not trust what the screen loaded a while ago. */
+export function useFreshBudgets() {
+  const qc = useQueryClient()
+  return () => qc.fetchQuery({ queryKey: key, queryFn: getBudgets, staleTime: 0 })
+}
+
 export function useAddBudget() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (row: Omit<BudgetRow, 'rolled_over'> & { rolled_over?: string }) => addBudget(row),
+    mutationFn: (row: Omit<BudgetRow, 'rolled_over' | 'version'> & { rolled_over?: string }) => addBudget(row),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
@@ -27,8 +34,8 @@ export function useAddBudget() {
 export function useUpdateBudget() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { month: string; category: string; updates: Partial<BudgetRow & { newCategory?: string }> }) =>
-      updateBudget(params.month, params.category, params.updates),
+    mutationFn: (params: { month: string; category: string; version: number; updates: Partial<BudgetRow & { newCategory?: string }> }) =>
+      updateBudget(params.month, params.category, params.updates, params.version),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })

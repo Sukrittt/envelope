@@ -28,11 +28,28 @@ export async function getDb(): Promise<Db> {
   return client.db()
 }
 
+const afterCommit = new WeakMap<ClientSession, Map<string, () => Promise<void>>>()
+
+/**
+ * Queues `task` to run once the session's transaction commits, and returns
+ * true. Returns false when the session isn't mid-transaction, so the caller
+ * should run `task` itself. `key` dedupes: withTransaction may retry the
+ * callback, and the same side effect must run once.
+ */
+export function deferUntilCommit(session: ClientSession | undefined, key: string, task: () => Promise<void>): boolean {
+  if (!session?.inTransaction()) return false
+  let tasks = afterCommit.get(session)
+  if (!tasks) afterCommit.set(session, (tasks = new Map()))
+  tasks.set(key, task)
+  return true
+}
+
 /**
  * Runs `fn` inside a multi-document transaction. `withTransaction` retries
  * the whole callback on a transient error (e.g. write conflict), so `fn`
- * must be pure DB writes — no cache invalidation, no push notifications,
- * nothing with a side effect outside Mongo. Run those after this resolves.
+ * must be pure DB writes — no push notifications, nothing with a side effect
+ * outside Mongo. Run those after this resolves. (Scoped writes to brief
+ * sources queue their cache invalidation via deferUntilCommit.)
  */
 export async function withTx<T>(fn: (session: ClientSession) => Promise<T>): Promise<T> {
   const client = await getClient()
@@ -42,6 +59,10 @@ export async function withTx<T>(fn: (session: ClientSession) => Promise<T>): Pro
     await session.withTransaction(async () => {
       result = await fn(session)
     })
+    // Committed, so readers now see the writes: safe to invalidate caches.
+    // Awaited so a write's response never precedes its cache invalidation.
+    const tasks = afterCommit.get(session)
+    if (tasks) await Promise.all([...tasks.values()].map((task) => task()))
     return result!
   } finally {
     await session.endSession()

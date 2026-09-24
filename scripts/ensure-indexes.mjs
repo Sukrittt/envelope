@@ -57,6 +57,14 @@ const INDEXES = {
   // TTL index: hits older than an hour (the longest window lib/rateLimit.ts
   // checks against) are garbage-collected automatically. Correctness never
   // depends on this running promptly — every check bounds by its own cutoff.
+  // Cached money briefs. Looked up by _id, cleared by user_id whenever that
+  // user writes an expense, budget, category, group, subscription or holding
+  // (lib/ai/briefCache.ts). The TTL only reclaims documents for users who
+  // stopped writing; correctness never waits on it.
+  ai_brief: [
+    [{ user_id: 1 }, {}],
+    [{ builtAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 2 }],
+  ],
   rate_limit_hits: [
     [{ key: 1, ts: -1 }, {}],
     [{ ts: 1 }, { expireAfterSeconds: 3600 }],

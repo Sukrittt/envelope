@@ -32,8 +32,8 @@ export function useAddHolding() {
 export function useUpdateHolding() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; updates: Parameters<typeof updateHolding>[1] }) =>
-      updateHolding(params.name, params.updates),
+    mutationFn: (params: { name: string; version: number; updates: Parameters<typeof updateHolding>[1] }) =>
+      updateHolding(params.name, params.updates, params.version),
     onSuccess: () => invalidateHoldings(qc),
   })
 }

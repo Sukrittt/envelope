@@ -24,6 +24,16 @@ function recap(overrides: Partial<WrappedData> = {}): WrappedData {
 }
 
 describe('wrappedArchetype', () => {
+  it('prefers Jev\'s persona over the local rules', () => {
+    const data = recap({ longestStreak: { days: 8, startDate: '2026-08-01', endDate: '2026-08-08' } })
+    expect(wrappedArchetype(data, { persona: 'big_swing' }).name).toBe('The Big Swing')
+  })
+
+  it('falls back to the local rules for an unknown or missing persona', () => {
+    expect(wrappedArchetype(recap(), { persona: 'nonsense' }).name).toBe('The Steady Hand')
+    expect(wrappedArchetype(recap()).name).toBe('The Steady Hand')
+  })
+
   it('prioritises a seven-day logging streak', () => {
     expect(wrappedArchetype(recap({ longestStreak: { days: 8, startDate: '2026-08-01', endDate: '2026-08-08' } })).name)
       .toBe('The Daily Tracker')

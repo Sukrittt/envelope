@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
 
 import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
-import { updateBudget } from '../../src/api/budgets'
+import { getBudgets, updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
 import { addCategory } from '../../src/api/categories'
 import { updateUser } from '../../src/api/account'
@@ -227,7 +227,13 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     try {
       const month = currentMonthKey()
       const incomeValue = Math.round(Number(income)) || 0
-      await updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' })
+      // Capture one coherent revision snapshot immediately before writing.
+      // Missing rows are conceptual version 0 and are created conditionally.
+      const budgetVersions = new Map(
+        (await getBudgets()).map((row) => [`${row.month}\u0000${row.category}`, row.version]),
+      )
+      const versionFor = (category: string) => budgetVersions.get(`${month}\u0000${category}`) ?? 0
+      await updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' }, versionFor(INCOME_CATEGORY))
 
       for (const g of selectedGroups) {
         await addGroup(label(g)).catch(ignoreConflict)
@@ -246,7 +252,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
       for (const item of items) {
         const catLabel = `${item.emoji} ${item.name.trim()}`
-        await updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' })
+        await updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' }, versionFor(catLabel))
       }
 
       // Two calls rather than one: the currency is an ordinary profile field,

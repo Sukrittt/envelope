@@ -140,8 +140,7 @@ export default function AccountPage() {
           <FeatureCard icon={ScanLine} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />
           <FeatureCard icon={Repeat} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />
           <FeatureCard icon={Archive} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
-          {/* Web has no standalone subscriptions screen; the panel lives on the home rail. */}
-          <FeatureCard icon={Receipt} tone="violet" label="Subscriptions" blurb="What renews and when" href="/expense" />
+          <FeatureCard icon={Receipt} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />
           <FeatureCard icon={LineChart} tone="blue" label="Insights" blurb="Trends and breakdowns" href="/insights" />
         </div>
       </div>

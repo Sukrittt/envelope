@@ -1,5 +1,5 @@
 import type { RecurringExpenseInput } from '../api/recurringExpenses'
-export type ScanMonths = 1 | 3 | 6
+export type ScanMonths = 1 | 3 | 6 | 12
 export type RecurringSuggestion = {
   id: string
   kind: 'subscription' | 'other_recurring'

@@ -11,12 +11,16 @@ vi.mock('../systemSettings', () => ({
   getSystemSettings: async () => ({ aiDisabled: false }),
 }))
 
-const { pickCategory } = await import('./jev')
+const { pickCategory, pickHoldingType } = await import('./jev')
 const caller = { userId: 'user_1', feature: 'suggest' as const }
 const usage = { inputTokens: 40, outputTokens: 1, totalTokens: 41 }
 
 function answer(choice: string, probabilities?: Record<string, number>) {
   return { answers: { category: { type: 'choice', choice, probabilities } }, usage }
+}
+
+function typeAnswer(choice: string, probabilities?: Record<string, number>) {
+  return { answers: { holdingType: { type: 'choice', choice, probabilities } }, usage }
 }
 
 beforeEach(() => vi.clearAllMocks())
@@ -62,5 +66,31 @@ describe('pickCategory', () => {
     evaluate.mockRejectedValue(new Error('gateway down'))
     await expect(pickCategory('pizza', ['Food'], caller)).rejects.toThrow('gateway down')
     expect(logMock).toHaveBeenLastCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), undefined, expect.any(Error))
+  })
+})
+
+describe('pickHoldingType', () => {
+  it('asks a choice question over exactly the given types', async () => {
+    evaluate.mockResolvedValue(typeAnswer('Equity', { Equity: 0.9, FD: 0.1 }))
+    await pickHoldingType('Nifty Index Fund', ['Equity', 'FD'], caller)
+    const { model, questions } = evaluate.mock.calls[0][0]
+    expect(model).toBe('typesafe-ai/jev')
+    expect(questions.holdingType.type).toBe('choice')
+    expect(Object.keys(questions.holdingType.criteria)).toEqual(['Equity', 'FD'])
+  })
+
+  it('returns the choice when it is confident', async () => {
+    evaluate.mockResolvedValue(typeAnswer('Gold', { Gold: 0.95, Other: 0.05 }))
+    expect(await pickHoldingType('Sovereign Gold Bond', ['Gold', 'Other'], caller)).toBe('Gold')
+  })
+
+  it('returns empty when no option clears the confidence bar', async () => {
+    evaluate.mockResolvedValue(typeAnswer('Other', { Other: 0.6, Equity: 0.4 }))
+    expect(await pickHoldingType('xyz', ['Other', 'Equity'], caller)).toBe('')
+  })
+
+  it('never returns a type outside the list', async () => {
+    evaluate.mockResolvedValue(typeAnswer('Crypto', { Crypto: 1 }))
+    expect(await pickHoldingType('Stocks', ['Equity', 'FD'], caller)).toBe('')
   })
 })

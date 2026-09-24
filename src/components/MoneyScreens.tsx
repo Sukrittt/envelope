@@ -5,18 +5,20 @@ import './MoneyScreens.css'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, Search, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCw, Search, Trash2, X } from 'lucide-react'
 import { Scrim } from './MotionSheet'
 import { useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
-import { useAddBudget, useBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
+import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
 import { useHideAmounts } from '../hooks/useHideAmounts'
 import { EMPTY } from '../lib/constants'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
+import { BudgetWriteError } from '../lib/budgetConflict'
+import type { BudgetRow } from '../types'
 import {
   computeEnvelopeState,
   currentMonthKey,
@@ -175,6 +177,59 @@ function SubjectCard({ emoji, label, name, detail }: { emoji: string; label: str
         <span className="money-card-name">{name}</span>
         <span className="money-card-detail">{detail}</span>
       </div>
+    </div>
+  )
+}
+
+/** Web twin of Mobile's ConflictReview. Shown in place of the normal edit body on a
+ * 409, so a stale write can't silently clobber what changed elsewhere. */
+function ConflictReview({
+  heading,
+  description,
+  label,
+  saved,
+  next,
+  guidance,
+  onContinue,
+  onUseLatest,
+}: {
+  heading: string
+  description: string
+  label: string
+  saved: string
+  next: string
+  guidance: string
+  onContinue: () => void
+  onUseLatest: () => void
+}) {
+  return (
+    <div className="money-conflict">
+      <div className="money-conflict-icon"><RotateCw size={20} /></div>
+      <h3 className="money-conflict-heading">{heading}</h3>
+      <p className="money-conflict-desc">{description}</p>
+      <div className="money-conflict-card">
+        <div className="money-conflict-cols">
+          <span className="money-conflict-col-label">Latest saved</span>
+          <span className="money-conflict-col-label">With your changes</span>
+        </div>
+        <div className="money-conflict-row">
+          <span className="money-conflict-row-label">{label}</span>
+          <div className="money-conflict-cols">
+            <span className="money-conflict-val">{saved}</span>
+            <span className={`money-conflict-val ${saved !== next ? 'is-changed' : ''}`}>{next}</span>
+          </div>
+        </div>
+      </div>
+      <p className="money-conflict-desc">{guidance}</p>
+      <div className="money-conflict-actions">
+        <button type="button" className="money-cta is-ready has-icon" onClick={onContinue}>
+          Continue with my changes <ArrowRight size={16} />
+        </button>
+        <button type="button" className="money-cta is-plain" onClick={onUseLatest}>
+          Use latest instead
+        </button>
+      </div>
+      <p className="money-conflict-footnote">Nothing will be saved until you confirm.</p>
     </div>
   )
 }
@@ -663,13 +718,14 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
   const prevState = computeEnvelopeState(data.budgets, data.expenses, prevMonthKey(month), data.categories, data.groups)
   const envelope = state.envelopes.find((e) => e.category === category)
+  const budget = data.budgets.find((b) => b.month === month && b.category === category)
 
   return (
     <EditAssignedBody
       category={category}
       assign={assign}
       month={month}
-      exists={data.budgets.some((b) => b.month === month && b.category === category)}
+      version={budget?.version ?? 0}
       currentAssigned={envelope?.assigned ?? 0}
       spent={envelope?.spent ?? 0}
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
@@ -689,7 +745,7 @@ function EditAssignedBody({
   category,
   assign,
   month,
-  exists,
+  version,
   currentAssigned,
   spent,
   isCreditCardPayment,
@@ -701,7 +757,7 @@ function EditAssignedBody({
   category: string
   assign: boolean
   month: string
-  exists: boolean
+  version: number
   currentAssigned: number
   spent: number
   isCreditCardPayment: boolean
@@ -713,7 +769,6 @@ function EditAssignedBody({
   const { formatCurrency, formatMoney } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const updateBudget = useUpdateBudget()
-  const addBudget = useAddBudget()
   const transfer = useTransferBudget()
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
@@ -723,14 +778,18 @@ function EditAssignedBody({
 
   const [amountText, setAmountText] = useState(assign ? '' : String(currentAssigned))
   const [error, setError] = useState('')
+  const [baseAssigned, setBaseAssigned] = useState(currentAssigned)
+  const [baseReadyToAssign, setBaseReadyToAssign] = useState(readyToAssign)
+  const [expectedVersion, setExpectedVersion] = useState(version)
+  const [conflict, setConflict] = useState<BudgetRow | null>(null)
 
   const value = Number(amountText) || 0
-  const delta = assign ? value : cents(value - currentAssigned)
-  const projectedRTA = cents(readyToAssign - delta)
-  const valid = !assign || (value > 0 && value <= readyToAssign)
+  const delta = assign ? value : cents(value - baseAssigned)
+  const projectedRTA = cents(baseReadyToAssign - delta)
+  const valid = !assign || (value > 0 && value <= baseReadyToAssign)
   const impactText =
     delta === 0
-        ? `${formatCurrency(currentAssigned, hideAmounts)} already assigned this month`
+        ? `${formatCurrency(baseAssigned, hideAmounts)} already assigned this month`
         : delta > 0
           ? `Pulls ${formatCurrency(delta, hideAmounts)} from Ready to Assign`
           : `Frees ${formatCurrency(-delta, hideAmounts)} back to Ready to Assign`
@@ -743,62 +802,99 @@ function EditAssignedBody({
       if (assign) {
         if (!valid) { phase.fail(); return }
         await transfer.mutateAsync({ month, to: category, sources: [{ category: RTA_SENTINEL, amount: value }] })
-      } else if (exists) {
-        await updateBudget.mutateAsync({ month, category, updates: { assigned: String(value) } })
       } else {
-        await addBudget.mutateAsync({ month, category, assigned: String(value) })
+        // A missing row is conceptual version 0. PUT creates it conditionally,
+        // so two first assignments cannot overwrite one another.
+        await updateBudget.mutateAsync({ month, category, version: expectedVersion, updates: { assigned: String(value) } })
       }
       phase.succeed(onClose)
-    } catch {
+    } catch (err) {
       phase.fail()
-      setError("Couldn't save. Check your connection and try again.")
+      if (err instanceof BudgetWriteError && err.status === 409 && err.current) {
+        setConflict(err.current)
+        setError('')
+      } else {
+        setError("Couldn't save. Check your connection and try again.")
+      }
     }
+  }
+
+  // Mirrors Mobile's reviewLatest: never auto-saves, just reconciles local
+  // state with the server's version so the next Save can't 409 again.
+  function reviewLatest(keepDraft: boolean) {
+    if (!conflict) return
+    const latest = Number(conflict.assigned) || 0
+    setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
+    setBaseAssigned(latest)
+    setExpectedVersion(conflict.version)
+    if (!keepDraft) setAmountText(String(latest))
+    setConflict(null)
+    setError('')
   }
 
   return (
     <Screen title={assign ? "Assign money" : "Edit amount"} onClose={onClose} busy={busy} showHeader={false}>
       <div className="money-body">
-        <div className="money-month-row">
-          <span className="money-label">{assign ? "FROM READY TO ASSIGN" : "ASSIGNED AMOUNT"}</span>
-          <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-            <X size={16} />
-          </button>
-        </div>
-        <SubjectCard
-          emoji={emoji}
-          label={assign ? "ASSIGNING TO" : "EDITING"}
-          name={name}
-          detail={`${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(currentAssigned, hideAmounts)} assigned`}
-        />
-        <HeroAmount amountText={amountText} onChange={setAmountText}>
-          <motion.p
-            key={impactText}
-            className={`money-hint ${projectedRTA < 0 ? 'is-neg' : ''}`}
-            {...FADE_IN}
-          >
-            {impactText}
-            {value > 0 && projectedRTA < 0 ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}
-          </motion.p>
-        </HeroAmount>
-        <div className="money-chips">
-          {QUICK_PICKS.map((v) => (
-            <QuickChip key={v} label={formatMoney(v)} active={value === v} onPress={() => setAmountText(String(v))} />
-          ))}
-        </div>
-        {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
-          <div className="money-chips">
-            <QuickChip
-              label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}
-              active={value === lastMonthAssigned}
-              onPress={() => setAmountText(String(lastMonthAssigned))}
-            />
+        {!conflict && (
+          <div className="money-month-row">
+            <span className="money-label">{assign ? "FROM READY TO ASSIGN" : "ASSIGNED AMOUNT"}</span>
+            <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
+              <X size={16} />
+            </button>
           </div>
+        )}
+        {conflict ? (
+          <ConflictReview
+            heading="This assignment was updated"
+            description="A newer amount was saved elsewhere. Your amount is still here."
+            label="Assigned amount"
+            saved={formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}
+            next={formatCurrency(value, hideAmounts)}
+            guidance="Continue with your amount or use the latest saved value. You can review it before saving."
+            onContinue={() => reviewLatest(true)}
+            onUseLatest={() => reviewLatest(false)}
+          />
+        ) : (
+          <>
+            <SubjectCard
+              emoji={emoji}
+              label={assign ? "ASSIGNING TO" : "EDITING"}
+              name={name}
+              detail={`${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`}
+            />
+            <HeroAmount amountText={amountText} onChange={setAmountText}>
+              <motion.p
+                key={impactText}
+                className={`money-hint ${projectedRTA < 0 ? 'is-neg' : ''}`}
+                {...FADE_IN}
+              >
+                {impactText}
+                {value > 0 && projectedRTA < 0 ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}
+              </motion.p>
+            </HeroAmount>
+            <div className="money-chips">
+              {QUICK_PICKS.map((v) => (
+                <QuickChip key={v} label={formatMoney(v)} active={value === v} onPress={() => setAmountText(String(v))} />
+              ))}
+            </div>
+            {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
+              <div className="money-chips">
+                <QuickChip
+                  label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}
+                  active={value === lastMonthAssigned}
+                  onPress={() => setAmountText(String(lastMonthAssigned))}
+                />
+              </div>
+            )}
+          </>
         )}
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
-      <div className="money-foot">
-        <Cta label={phase.saving ? 'Saving…' : assign ? 'Assign' : 'Save'} enabled={valid} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-      </div>
+      {!conflict && (
+        <div className="money-foot">
+          <Cta label={phase.saving ? 'Saving…' : assign ? 'Assign' : 'Save'} enabled={valid} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
+        </div>
+      )}
     </Screen>
   )
 }
@@ -809,15 +905,25 @@ function EditAssignedBody({
  * have, and this month's income is backed out from it. */
 export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
+  const fetchFreshBudgets = useFreshBudgets()
   if (data.isLoading) return <Screen title="Edit Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></Screen>
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
+  // Income is saved as target RTA + what's assigned, so the assigned total must
+  // be current at save time: another device may have assigned money since load.
+  const latestTotalAssigned = async () => {
+    const budgets = await fetchFreshBudgets()
+    return computeEnvelopeState(budgets, data.expenses, month, data.categories, data.groups).totalAssigned
+  }
   return (
     <EditReadyToAssignBody
       month={month}
       income={state.income}
       totalAssigned={state.totalAssigned}
+      latestTotalAssigned={latestTotalAssigned}
       readyToAssign={state.readyToAssign}
+      version={incomeBudget?.version ?? 0}
       onClose={onClose}
     />
   )
@@ -827,13 +933,17 @@ function EditReadyToAssignBody({
   month,
   income,
   totalAssigned,
+  latestTotalAssigned,
   readyToAssign,
+  version,
   onClose,
 }: {
   month: string
   income: number
   totalAssigned: number
+  latestTotalAssigned: () => Promise<number>
   readyToAssign: number
+  version: number
   onClose: () => void
 }) {
   const { formatCurrency } = useCurrency()
@@ -845,10 +955,13 @@ function EditReadyToAssignBody({
   // Start an over-assigned month at zero, matching the native screen.
   const [amountText, setAmountText] = useState(String(Math.max(0, readyToAssign)))
   const [error, setError] = useState('')
+  const [baseIncome, setBaseIncome] = useState(income)
+  const [expectedVersion, setExpectedVersion] = useState(version)
+  const [conflict, setConflict] = useState<BudgetRow | null>(null)
 
   const value = Number(amountText) || 0
   const newIncome = incomeForReadyToAssign(totalAssigned, value)
-  const delta = Math.round((newIncome - income) * 100) / 100
+  const delta = Math.round((newIncome - baseIncome) * 100) / 100
   const impactText = delta === 0 ? "Type what's left to assign" : `Income ${formatCurrency(newIncome, hideAmounts)}`
 
   async function submit() {
@@ -856,40 +969,76 @@ function EditReadyToAssignBody({
     phase.start()
     setError('')
     try {
+      // ponytail: a transfer landing between this read and the PUT still slips through; an atomic server-side set-RTA would close it.
+      const incomeToSave = incomeForReadyToAssign(await latestTotalAssigned(), value)
       // PUT upserts, so this creates the month's income row when it's still carried from last month.
-      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, updates: { assigned: String(newIncome) } })
+      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { assigned: String(incomeToSave) } })
       phase.succeed(onClose)
-    } catch {
+    } catch (err) {
       phase.fail()
-      setError("Couldn't save. Check your connection and try again.")
+      if (err instanceof BudgetWriteError && err.status === 409 && err.current) {
+        setConflict(err.current)
+        setError('')
+      } else {
+        setError("Couldn't save. Check your connection and try again.")
+      }
     }
+  }
+
+  function reviewLatest(keepDraft: boolean) {
+    if (!conflict) return
+    const latestIncome = Number(conflict.assigned) || 0
+    setBaseIncome(latestIncome)
+    setExpectedVersion(conflict.version)
+    if (!keepDraft) setAmountText(String(Math.max(0, latestIncome - totalAssigned)))
+    setConflict(null)
+    setError('')
   }
 
   return (
     <Screen title="Edit Ready to Assign" onClose={onClose} busy={busy} showHeader={false}>
       <div className="money-body">
-        <div className="money-month-row">
-          <span className="money-label">{monthLabel(month).toUpperCase()}</span>
-          <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-            <X size={16} />
-          </button>
-        </div>
-        <SubjectCard
-          emoji="💰"
-          label="EDITING"
-          name="Ready to Assign"
-          detail={`${formatCurrency(income, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
-        />
-        <HeroAmount amountText={amountText} onChange={setAmountText}>
-          <motion.p key={impactText} className="money-hint" {...FADE_IN}>
-            {impactText}
-          </motion.p>
-        </HeroAmount>
+        {!conflict && (
+          <div className="money-month-row">
+            <span className="money-label">{monthLabel(month).toUpperCase()}</span>
+            <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
+        {conflict ? (
+          <ConflictReview
+            heading="Ready to Assign was updated"
+            description="A newer amount was saved elsewhere. Your amount is still here."
+            label="Ready to Assign"
+            saved={formatCurrency((Number(conflict.assigned) || 0) - totalAssigned, hideAmounts)}
+            next={formatCurrency(value, hideAmounts)}
+            guidance="Continue with your amount or use the latest saved value. You can review it before saving."
+            onContinue={() => reviewLatest(true)}
+            onUseLatest={() => reviewLatest(false)}
+          />
+        ) : (
+          <>
+            <SubjectCard
+              emoji="💰"
+              label="EDITING"
+              name="Ready to Assign"
+              detail={`${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
+            />
+            <HeroAmount amountText={amountText} onChange={setAmountText}>
+              <motion.p key={impactText} className="money-hint" {...FADE_IN}>
+                {impactText}
+              </motion.p>
+            </HeroAmount>
+          </>
+        )}
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
-      <div className="money-foot">
-        <Cta label={phase.saving ? 'Saving…' : 'Save'} enabled saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-      </div>
+      {!conflict && (
+        <div className="money-foot">
+          <Cta label={phase.saving ? 'Saving…' : 'Save'} enabled saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
+        </div>
+      )}
     </Screen>
   )
 }

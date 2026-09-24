@@ -34,6 +34,7 @@ interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   success?: boolean
   savingLabel?: string
   successLabel?: string
+  ref?: React.Ref<HTMLButtonElement>
   children: React.ReactNode
 }
 

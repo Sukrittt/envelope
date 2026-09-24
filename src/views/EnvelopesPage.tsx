@@ -8,6 +8,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  X,
 } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
@@ -15,6 +16,7 @@ import { LoadingCaption } from "../components/LoadingCaption";
 import { EnvelopeTabbar } from "../components/EnvelopeTabbar";
 import { SpringChevron, SpringCollapse } from "../components/SpringCollapse";
 import { AlertThresholdPicker } from "../components/AlertThresholdPicker";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import {
   useCategories,
@@ -47,6 +49,10 @@ type Draft =
   | { kind: "rename-category"; name: string; group: string }
   | { kind: "rename-group"; name: string };
 
+type DeleteTarget =
+  | { kind: "category"; name: string }
+  | { kind: "group"; name: string };
+
 function sorted(pcts: number[]): number[] {
   return [...pcts].sort((a, b) => a - b);
 }
@@ -77,6 +83,7 @@ export function EnvelopesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState<CategoryRow | null>(null);
   const [draftPcts, setDraftPcts] = useState<number[]>(DEFAULT_ALERT_PCTS);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const grouped = useMemo(
@@ -197,6 +204,18 @@ export function EnvelopesPage() {
     }, "group");
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    if (target.kind === "category")
+      await run(
+        () => deleteCategory.mutateAsync(target.name),
+        "category",
+      );
+    else await removeGroup(target.name);
+  }
+
   const loading = categoriesQuery.isLoading || groupsQuery.isLoading;
 
   return (
@@ -292,23 +311,7 @@ export function EnvelopesPage() {
                       <span className="env-group-icon" aria-hidden="true">
                         {icon}
                       </span>
-                      {draft?.kind === "rename-group" &&
-                      draft.name === group.name ? (
-                        <input
-                          className="env-input"
-                          autoFocus
-                          value={draftText}
-                          onChange={(e) => setDraftText(e.target.value)}
-                          onBlur={commitDraft}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") void commitDraft();
-                            if (e.key === "Escape") setDraft(null);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span className="env-group-name">{text}</span>
-                      )}
+                      <span className="env-group-name">{text}</span>
                       <span className="env-group-count">
                         {group.items.length}
                       </span>
@@ -346,7 +349,12 @@ export function EnvelopesPage() {
                         <button
                           type="button"
                           className="env-icon-btn env-icon-btn--danger"
-                          onClick={() => void removeGroup(group.name)}
+                          onClick={() =>
+                            setDeleteTarget({
+                              kind: "group",
+                              name: group.name,
+                            })
+                          }
                           aria-label={`Delete ${text}`}
                         >
                           <Trash2 size={14} aria-hidden="true" />
@@ -367,22 +375,7 @@ export function EnvelopesPage() {
                             <span className="env-cat-icon" aria-hidden="true">
                               {categoryEmoji(category.name)}
                             </span>
-                            {draft?.kind === "rename-category" &&
-                            draft.name === category.name ? (
-                              <input
-                                className="env-input"
-                                autoFocus
-                                value={draftText}
-                                onChange={(e) => setDraftText(e.target.value)}
-                                onBlur={commitDraft}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") void commitDraft();
-                                  if (e.key === "Escape") setDraft(null);
-                                }}
-                              />
-                            ) : (
-                              <span className="env-cat-name">{parts.text}</span>
-                            )}
+                            <span className="env-cat-name">{parts.text}</span>
                             <button
                               type="button"
                               className="env-cat-alerts"
@@ -419,11 +412,10 @@ export function EnvelopesPage() {
                                 type="button"
                                 className="env-icon-btn env-icon-btn--danger"
                                 onClick={() =>
-                                  void run(
-                                    () =>
-                                      deleteCategory.mutateAsync(category.name),
-                                    "category",
-                                  )
+                                  setDeleteTarget({
+                                    kind: "category",
+                                    name: category.name,
+                                  })
                                 }
                                 aria-label={`Delete ${parts.text}`}
                               >
@@ -448,7 +440,7 @@ export function EnvelopesPage() {
         </div>
       </div>
 
-      {(draft?.kind === "new-group" || draft?.kind === "new-category") && (
+      {draft && (
         <AnimatePresence>
           <Scrim
             key="scrim"
@@ -456,35 +448,76 @@ export function EnvelopesPage() {
             onClick={() => setDraft(null)}
           >
             <Sheet
-              className="erd-modal-card env-sheet"
+              className={`erd-modal-card env-sheet${draft.kind.startsWith("rename-") ? " env-sheet--rename" : ""}`}
               role="dialog"
               aria-modal="true"
               aria-label={
-                draft.kind === "new-category" ? "Add category" : "Add group"
+                draft.kind === "new-category"
+                  ? "Add category"
+                  : draft.kind === "rename-category"
+                    ? "Rename category"
+                    : draft.kind === "new-group"
+                      ? "Add group"
+                      : "Rename group"
               }
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="env-sheet-title">
-                {draft.kind === "new-category" ? "Add category" : "Add group"}
-              </div>
-              <p className="env-sheet-copy">
-                {draft.kind === "new-category"
-                  ? "Categories live inside a group. Pick where this one belongs."
-                  : "Groups gather related categories: Food, Home, Transport."}
-              </p>
-
-              <p className="env-sheet-section-label">NAME</p>
-              <div className="env-sheet-name-row">
-                <div className="env-sheet-icon-swatch" aria-hidden="true">
-                  {draft.kind === "new-category"
-                    ? categoryEmoji(draftText, draftGroup)
-                    : groupEmoji(draftText)}
+              {draft.kind.startsWith("rename-") ? (
+                <div className="env-sheet-rename-head">
+                  <div className="env-sheet-rename-icon" aria-hidden="true">
+                    {draft.kind === "rename-category"
+                      ? categoryEmoji(draftText, draft.group)
+                      : groupEmoji(draftText)}
+                  </div>
+                  <div className="env-sheet-rename-heading">
+                    <span className="env-sheet-eyebrow">
+                      {draft.kind === "rename-category" ? "CATEGORY" : "GROUP"}
+                    </span>
+                    <h2 className="env-sheet-title">
+                      {draft.kind === "rename-category" ? "Rename category" : "Rename group"}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="env-sheet-close"
+                    onClick={() => setDraft(null)}
+                    aria-label="Close dialog"
+                  >
+                    <X size={18} aria-hidden="true" />
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <div className="env-sheet-title">
+                    {draft.kind === "new-category" ? "Add category" : "Add group"}
+                  </div>
+                  <p className="env-sheet-copy">
+                    {draft.kind === "new-category"
+                      ? "Categories live inside a group. Pick where this one belongs."
+                      : "Groups gather related categories: Food, Home, Transport."}
+                  </p>
+                </>
+              )}
+
+              <label className="env-sheet-section-label" htmlFor="env-sheet-name">
+                {draft.kind.startsWith("rename-") ? "New name" : "Name"}
+              </label>
+              <div className="env-sheet-name-row">
+                {!draft.kind.startsWith("rename-") && (
+                  <div className="env-sheet-icon-swatch" aria-hidden="true">
+                    {draft.kind === "new-category"
+                      ? categoryEmoji(draftText, draftGroup)
+                      : groupEmoji(draftText)}
+                  </div>
+                )}
                 <input
+                  id="env-sheet-name"
                   className="env-input"
                   autoFocus
+                  aria-describedby={draft.kind.startsWith("rename-") ? "env-sheet-emoji-help" : undefined}
                   placeholder={
-                    draft.kind === "new-category"
+                    draft.kind === "new-category" ||
+                    draft.kind === "rename-category"
                       ? "Groceries, fuel, gym…"
                       : "Transport, Health…"
                   }
@@ -496,10 +529,15 @@ export function EnvelopesPage() {
                   }}
                 />
               </div>
-              {draftText.trim() !== "" && splitEmoji(draftText).icon === "" && (
+              {draft.kind.startsWith("rename-") ? (
+                <p className="env-sheet-emoji-help" id="env-sheet-emoji-help">
+                  The first emoji becomes the icon for this {draft.kind === "rename-category" ? "category" : "group"}.
+                </p>
+              ) : draftText.trim() !== "" && splitEmoji(draftText).icon === "" && (
                 <p className="env-sheet-hint">
                   💡 Tip: start the name with an emoji, like{" "}
-                  {draft.kind === "new-category"
+                  {draft.kind === "new-category" ||
+                  draft.kind === "rename-category"
                     ? "🛒 Groceries"
                     : "🚗 Transport"}
                   , to give it its own icon.
@@ -540,14 +578,14 @@ export function EnvelopesPage() {
               <div className="env-sheet-actions">
                 <button
                   type="button"
-                  className="auth-btn auth-btn--outline"
+                  className={draft.kind.startsWith("rename-") ? "env-sheet-action env-sheet-action--cancel" : "auth-btn auth-btn--outline"}
                   onClick={() => setDraft(null)}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className="auth-btn auth-btn--primary"
+                  className={draft.kind.startsWith("rename-") ? "env-sheet-action env-sheet-action--save" : "auth-btn auth-btn--primary"}
                   onClick={() => void commitDraft()}
                   disabled={submitting || !draftText.trim()}
                 >
@@ -555,7 +593,11 @@ export function EnvelopesPage() {
                     ? "Saving…"
                     : draft.kind === "new-category"
                       ? "Add category"
-                      : "Create group"}
+                      : draft.kind === "rename-category"
+                        ? "Rename"
+                        : draft.kind === "new-group"
+                          ? "Create group"
+                          : "Rename"}
                 </button>
               </div>
             </Sheet>
@@ -571,6 +613,30 @@ export function EnvelopesPage() {
           onClose={() => setEditing(null)}
           onSave={() => void saveThresholds()}
         />
+      )}
+
+      {deleteTarget && (
+        <AnimatePresence>
+          <ConfirmDialog
+            title={`Delete ${splitEmoji(deleteTarget.name).text}?`}
+            body={
+              deleteTarget.kind === "group"
+                ? "Its categories are moved into Archived first. This can't be undone."
+                : "It disappears from your budget. This can't be undone."
+            }
+            cancelLabel="Cancel"
+            onCancel={() => setDeleteTarget(null)}
+          >
+            <button
+              type="button"
+              className="account-danger-btn"
+              style={{ marginTop: 0 }}
+              onClick={() => void confirmDelete()}
+            >
+              Delete
+            </button>
+          </ConfirmDialog>
+        </AnimatePresence>
       )}
 
       <EnvelopeTabbar />

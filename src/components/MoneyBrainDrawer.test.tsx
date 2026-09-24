@@ -14,6 +14,7 @@ vi.mock('../hooks/useMoneyBrief', () => ({ useMoneyBrief: () => ({ data: {
   narrative: 'Your monthly brief.', meta: { txnCountThisMonth: 58 }, questions: [],
   cards: [{ title: 'Monthly Rent', subtitle: 'Largest single spend', icon: '🏠', amount: 12000, valueLabel: 'INR', tone: 'violet' }],
 } }) }))
+vi.mock('@/src/api/ai', () => ({ getChatSession: vi.fn(), streamChat: vi.fn() }))
 beforeEach(() => { state.hidden = false; Element.prototype.scrollTo = vi.fn() })
 function show() {
   return render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>)
@@ -31,4 +32,18 @@ it('keeps insight amounts private when amounts are hidden', () => {
 it('uses a centered vector icon instead of a font glyph in the header', () => {
   const { container } = show()
   expect(container.querySelector('.brain-orbit svg')).not.toBeNull()
+})
+it('renders markdown answers and keeps the brief visible once a chat starts', async () => {
+  const { getChatSession } = await import('@/src/api/ai')
+  vi.mocked(getChatSession).mockResolvedValue({
+    id: 's1',
+    messages: [
+      { role: 'user', text: 'Where did it go?' },
+      { role: 'model', text: 'Mostly **rent**.\n- Rent\n- Food' },
+    ],
+  } as Awaited<ReturnType<typeof getChatSession>>)
+  render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer initialSessionId="s1" onClose={vi.fn()} /></QueryClientProvider>)
+  expect(await screen.findByText('rent')).toHaveProperty('tagName', 'STRONG')
+  expect(screen.getByText('Food').tagName).toBe('LI')
+  expect(screen.getByText('Your monthly brief.')).toBeInTheDocument()
 })

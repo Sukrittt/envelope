@@ -1,5 +1,6 @@
 import { apiFetch } from './client'
 import type { CsvResponse, HoldingRow } from '@/src/types'
+import { HoldingWriteError } from '@/src/lib/holdingConflict'
 
 export async function getHoldings(): Promise<HoldingRow[]> {
   const resp = await apiFetch('/api/holdings')
@@ -36,15 +37,16 @@ export async function updateHolding(
     is_recurring?: boolean
     recurring_amount?: string
   },
+  version: number,
 ): Promise<void> {
   const resp = await apiFetch('/api/holdings', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, ...updates }),
+    body: JSON.stringify({ name, version, ...updates }),
   })
   if (!resp.ok) {
     const detail = await resp.json().catch(() => ({}))
-    throw new Error(detail.error ?? `Failed to update holding: ${resp.status}`)
+    throw new HoldingWriteError(resp.status, detail.error ?? `Failed to update holding: ${resp.status}`, detail.current)
   }
 }
 
@@ -57,6 +59,26 @@ export async function deleteHolding(name: string): Promise<void> {
   if (!resp.ok) {
     const detail = await resp.json().catch(() => ({}))
     throw new Error(detail.error ?? `Failed to delete holding: ${resp.status}`)
+  }
+}
+
+/**
+ * LLM fallback for guessing a holding's type from its name. Never throws.
+ * '' means the model found no fitting type; null means the request failed.
+ */
+export async function predictHoldingType(name: string, types: string[]): Promise<string | null> {
+  if (!name.trim()) return ''
+  try {
+    const resp = await apiFetch('/api/holdings/predict-type', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, types }),
+    })
+    if (!resp.ok) return null
+    const data: { type?: string } = await resp.json()
+    return data.type ?? ''
+  } catch {
+    return null
   }
 }
 

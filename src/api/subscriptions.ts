@@ -1,6 +1,16 @@
 import { apiFetch } from './client'
 import type { CsvResponse, SubscriptionRow } from '@/src/types'
 
+export interface SubscriptionInput {
+  suggestion_id?: string
+  service: string
+  amount_inr: string
+  billing_cycle?: string
+  next_due_date?: string
+  notes?: string
+  category?: string
+}
+
 export async function getSubscriptions(): Promise<SubscriptionRow[]> {
   const resp = await apiFetch('/api/subscriptions')
   if (!resp.ok) throw new Error(`Failed to load subscriptions: ${resp.status}`)
@@ -39,14 +49,7 @@ export async function reactivateSubscription(service: string): Promise<void> {
   await updateSubscription(service, { status: 'active' })
 }
 
-export async function addSubscription(row: {
-  service: string
-  amount_inr: string
-  billing_cycle?: string
-  next_due_date?: string
-  notes?: string
-  category?: string
-}): Promise<void> {
+export async function addSubscription(row: SubscriptionInput): Promise<void> {
   const resp = await apiFetch('/api/subscriptions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -12,6 +12,7 @@ export interface BudgetRow {
   category: string
   assigned: string
   rolled_over: string
+  version: number
 }
 
 export interface ExpenseRow {
@@ -86,6 +87,7 @@ export interface HoldingRow {
   recurring_amount: string
   recurring_day: string
   recurring_last_run: string
+  version: number
 }
 
 export interface HoldingEventRow {
