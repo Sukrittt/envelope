@@ -4,6 +4,7 @@ import { computeEnvelopeState } from '@/src/lib/envelope'
 import { getCollection } from '@/lib/http'
 import type { Auth } from '@/lib/access'
 import type { Envelope } from '@/src/lib/envelope'
+import { paceOutlier, type PaceOutlier } from '@/lib/notifications/pace'
 import type { BudgetRow as WireBudgetRow, ExpenseRow as WireExpenseRow } from '@/src/types'
 
 /**
@@ -109,6 +110,8 @@ export interface FactHighlights {
   topItem: { item: string; amount: number; category: string; date: string } | null
   /** Category whose spend this month is furthest above its own recent average. */
   riser: { category: string; thisMonth: number; priorAverage: number } | null
+  /** Category furthest ahead of its usual month-to-date pace (lib/notifications/pace.ts). */
+  pace: PaceOutlier | null
   subscriptionMonthlyBurn: number
   investmentTotal: number
 }
@@ -363,6 +366,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
           }
         : null,
       riser,
+      pace: paceOutlier(expenses, today),
       subscriptionMonthlyBurn: round(totalMonthlyBurn),
       investmentTotal: round(totalInvestmentValue),
     },
