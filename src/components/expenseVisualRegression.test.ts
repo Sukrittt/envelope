@@ -10,6 +10,10 @@ const insights = readFileSync(join(root, 'src/views/InsightsPage.tsx'), 'utf8')
 const subscriptions = readFileSync(join(root, 'src/views/SubscriptionsPage.tsx'), 'utf8')
 
 describe('expense screen visual regressions', () => {
+  it('renders recent activity navigation without default link underlines', () => {
+    expect(insightsCss).toMatch(/\.expense-redesign \.home-recent a\s*\{[^}]*text-decoration:\s*none/)
+  })
+
   it('keeps the subscription add button and selected activity filter on the solid accent', () => {
     expect(subscriptions).toContain('action-button is-active erd-accent-action subp-add-button')
     expect(transactions).toContain('period === key ? "is-active erd-accent-action" : ""')

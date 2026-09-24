@@ -587,14 +587,14 @@
 }
 .env2-group {
   border-top: 1px solid var(--erd-border);
-  padding-block: 8px;
+  padding-block: 6px;
 }
-.env2-group-head {
+.expense-redesign .env2-group-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 4px;
+  padding: 4px 8px 4px 4px;
   border: none;
   border-radius: 10px;
   background: none;
@@ -616,6 +616,9 @@
   color: var(--erd-text2);
 }
 .env2-group-left {
+  margin-right: 38px;
+  flex-shrink: 0;
+  text-align: right;
   font-size: 13px;
   font-weight: 600;
   color: var(--mint);
@@ -635,8 +638,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 8px;
+  gap: 10px;
+  padding: 7px 8px;
   margin-left: -8px;
   border-radius: 12px;
   transition: background 0.15s ease;
@@ -653,7 +656,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   padding: 0;
   border: none;
@@ -697,7 +700,7 @@
 .env2-meta {
   font-size: 11px;
   font-weight: 500;
-  color: var(--erd-text3);
+  color: var(--erd-text2);
 }
 .env2-available {
   min-width: 84px;
@@ -706,6 +709,57 @@
   font-weight: 600;
   color: var(--mint);
   font-variant-numeric: tabular-nums;
+}
+.env2-category-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
+}
+.env2-spent-label {
+  font-size: 11px;
+}
+.env2-balance-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--erd-text2);
+  font-size: 10px;
+  font-weight: 500;
+}
+.env2-action {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--erd-text2);
+  cursor: pointer;
+}
+.env2-action:hover,
+.env2-action[aria-expanded="true"] {
+  color: var(--gold-ink);
+  background: var(--erd-border);
+}
+.env2-action:focus-visible,
+.env2-row-main:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .env2-row { gap: 8px; }
+  .env2-group-left { margin-right: 36px; }
+  .env2-row-top { flex-wrap: wrap; }
+  .env2-spent-of {
+    flex-basis: 100%;
+    margin-left: 0;
+    font-size: 11px;
+  }
+  .env2-available { min-width: 64px; font-size: 13px; }
 }
 .env2-menu-title {
   padding: 8px 12px 4px;
@@ -1194,7 +1248,7 @@
 /* ── Envelopes ──────────────────────────────────────────────── */
 
 .erd-envelopes-panel {
-  padding: 24px 28px 12px;
+  padding: 20px 24px 10px;
 }
 .erd-panel-head-sub {
   font-size: 12px;

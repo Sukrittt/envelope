@@ -488,6 +488,9 @@ export function InsightsPage() {
                           : monthLabel(insightMonth)}
                       </p>
                     </div>
+                    <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
+                      View all
+                    </Link>
                   </div>
                   {topSpends.length === 0 ? (
                     <p className="ins-top-empty">Nothing logged yet.</p>

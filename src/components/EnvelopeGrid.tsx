@@ -2,9 +2,9 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { ChevronsDownUp } from 'lucide-react'
+import { ChevronsDownUp, MoreHorizontal } from 'lucide-react'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
-import { categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
+import { avatarColorFor, categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
@@ -133,10 +133,10 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           aria-expanded={isMenuOpen}
         >
           <span className="env2-row-top">
-            <span className="env2-emoji">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
+            <span className="env2-emoji env2-category-icon" style={{ background: avatarColorFor(name) }} aria-hidden="true">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
             <span className="env2-name">{name}</span>
             <span className="env2-spent-of">
-              {money(e.spent)}/{money(e.assigned)}
+              <span className="env2-spent-label">Spent</span> {money(e.spent)} <span className="env2-spent-label">of</span> {money(e.assigned)}
             </span>
           </span>
           <span className="env-bar-track env2-bar">
@@ -148,7 +148,20 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             </span>
           )}
         </button>
-        <span className={`env2-available ${e.isOverspent ? 'is-neg' : ''}`}>{money(e.available)}</span>
+        <span className={`env2-available ${e.isOverspent ? 'is-neg' : ''}`}>
+          <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
+          {money(e.available)}
+        </span>
+        <button
+          type="button"
+          className="env2-action"
+          aria-label={`Actions for ${name}`}
+          title={`Actions for ${name}`}
+          aria-expanded={isMenuOpen}
+          onClick={(ev) => openMenu(e.category, ev.currentTarget)}
+        >
+          <MoreHorizontal size={17} aria-hidden="true" />
+        </button>
 
         {isMenuOpen && menuAnchor && createPortal(
           <div
@@ -228,7 +241,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                     <span className="env2-emoji">{groupEmoji(label)}</span>
                     <span>{splitEmoji(label).text}</span>
                   </span>
-                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}>{money(totalAvailable)} left</span>
+                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}><span className="env2-balance-label">Left in group</span>{money(totalAvailable)}</span>
                 </button>
                 <SpringCollapse open={expanded}>
                   <div className="env2-group-rows">{items.map((e) => renderRow(e, label))}</div>

@@ -11,6 +11,7 @@ import { FluidDemo } from "../components/FluidDemo";
 import { SubscriptionsPanel, type SubscriptionPanelItem } from "../components/SubscriptionsPanel";
 import { SubscriptionModal } from "../components/SubscriptionModal";
 import { BirdMark } from "../components/BirdMark";
+import { RecentActivity } from "../components/RecentActivity";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
 import {
   MoveMoneyScreen,
@@ -446,7 +447,7 @@ export function ExpensePage() {
                 Trends and daily spend <ChevronRight size={16} />
               </Link>
             </div>
-            <aside className="erd-home-rail" aria-label="Subscriptions">
+            <aside className="erd-home-rail" aria-label="Subscriptions and recent activity">
               <SubscriptionsPanel
                 active={panel.subscriptions.active}
                 cancelled={panel.subscriptions.cancelled}
@@ -460,6 +461,7 @@ export function ExpensePage() {
                 onReactivate={(service) => void changeSubscriptionStatus(service, "reactivate")}
                 homeRail
               />
+              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} />
             </aside>
           </div>
         </div>

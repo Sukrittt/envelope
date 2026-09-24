@@ -183,6 +183,21 @@
   transition: background 160ms ease;
 }
 
+/* Inset dividers align with the card content, as in Subscriptions. */
+.expense-redesign .ins-top-row + .ins-top-row {
+  position: relative;
+}
+.expense-redesign .ins-top-row + .ins-top-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: var(--erd-border);
+  pointer-events: none;
+}
+
 .expense-redesign .ins-top-row:hover { background: var(--erd-input-bg); }
 .expense-redesign .ins-top-row:focus-visible {
   outline: 2px solid var(--gold);
@@ -796,4 +811,30 @@
   .ins-filter-dialog {
     animation: none !important;
   }
+}
+
+/* Recent activity uses the same row typography and circular avatars as Biggest spends. */
+.expense-redesign .home-recent a {
+  text-decoration: none;
+}
+.expense-redesign .home-recent .erd-manage-btn {
+  font-size: 12px;
+}
+.expense-redesign .home-recent a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.expense-redesign .ins-view-all {
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.expense-redesign .ins-view-all:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.expense-redesign .home-recent .ins-top-icon {
+  border-radius: 10px;
 }
