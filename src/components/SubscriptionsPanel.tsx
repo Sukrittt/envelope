@@ -2,7 +2,7 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
-import { ChevronRight, Repeat2 } from "lucide-react";
+import { ChevronRight, Plus, Repeat2 } from "lucide-react";
 import { getEffectiveDueDate } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
 import { CHART_COLORS } from "../theme/chartColors";
@@ -32,6 +32,7 @@ interface Props {
   onReactivate: (service: string) => void;
   loading?: boolean;
   error?: boolean;
+  homeRail?: boolean;
 }
 
 // Twin of Mobile's SubscriptionsPanel BRAND_COLORS, so a service gets the same color on both apps.
@@ -134,6 +135,7 @@ export function SubscriptionsPanel({
   onReactivate,
   loading = false,
   error = false,
+  homeRail = false,
 }: Props) {
   const { formatCurrency } = useCurrency();
   const [showCancelled, setShowCancelled] = useState(false);
@@ -233,7 +235,15 @@ export function SubscriptionsPanel({
   }
 
   return (
-    <article className="erd-card erd-subs-panel" style={{ maxHeight: 'none' }}>
+    <article className="erd-card erd-subs-panel" style={homeRail ? undefined : { maxHeight: 'none' }}>
+      {homeRail && (
+        <div className="erd-panel-head">
+          <h3>Subscriptions</h3>
+          <button type="button" className="action-button is-active erd-accent-action subp-add-button" onClick={onAdd} disabled={loading}>
+            <Plus size={14} aria-hidden="true" /> Add
+          </button>
+        </div>
+      )}
       {loading ? (
         <LoadingCaption feature="subscriptions" />
       ) : error ? (
@@ -266,7 +276,7 @@ export function SubscriptionsPanel({
             </div>
           )}
 
-          <div className="subp-scroll" style={{ flex: 'none', overflowY: 'visible' }}>
+          <div className="subp-scroll" style={homeRail ? undefined : { flex: 'none', overflowY: 'visible' }}>
             {sorted.length === 0 ? (
               <p className="subp-empty">No active subscriptions.</p>
             ) : (

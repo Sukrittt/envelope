@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
 import { getSubscriptions } from '@/src/api/subscriptions'
 import { SubscriptionsPage, splitSubscriptions } from './SubscriptionsPage'
+import { SubscriptionsPanel } from '../components/SubscriptionsPanel'
 import type { SubscriptionRow } from '../types'
 
 vi.mock('@/src/api/subscriptions', () => ({
@@ -74,4 +75,25 @@ it('groups API rows by active and cancelled status', () => {
   ])
   expect(grouped.active.map((item) => item.service)).toEqual(['Netflix'])
   expect(grouped.cancelled.map((item) => item.service)).toEqual(['Spotify'])
+})
+
+it('shows the Add control inside the home subscriptions rail', () => {
+  const onAdd = vi.fn()
+  render(
+    <SubscriptionsPanel
+      active={splitSubscriptions([row()]).active}
+      cancelled={[]}
+      hideAmounts={false}
+      busyService={null}
+      onAdd={onAdd}
+      onEdit={vi.fn()}
+      onCancel={vi.fn()}
+      onReactivate={vi.fn()}
+      homeRail
+    />,
+  )
+
+  expect(screen.getByRole('heading', { name: 'Subscriptions' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+  expect(onAdd).toHaveBeenCalledOnce()
 })

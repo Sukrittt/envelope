@@ -7,6 +7,8 @@ import { ChevronRight } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
+import { SubscriptionsPanel, type SubscriptionPanelItem } from "../components/SubscriptionsPanel";
+import { SubscriptionModal } from "../components/SubscriptionModal";
 import { BirdMark } from "../components/BirdMark";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
 import {
@@ -28,6 +30,7 @@ import { useBudgets, useAddBudget, useTransferBudget, useUpdateBudget } from "..
 import { useExpenses, useAddExpense } from "../hooks/useExpenses";
 import { useCategories } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
+import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
 import { LogExpenseModal } from "../components/LogExpenseModal";
@@ -48,16 +51,20 @@ export function ExpensePage() {
   const expensesQuery = useExpenses();
   const categoriesQuery = useCategories();
   const groupsQuery = useGroups();
+  const subscriptionsQuery = useSubscriptions();
 
   const addBudgetM = useAddBudget();
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
   const addExpenseM = useAddExpense();
+  const cancelSubscriptionM = useCancelSubscription();
+  const reactivateSubscriptionM = useReactivateSubscription();
 
   const budgetRows = budgetsQuery.data ?? EMPTY;
   const expenseRows = expensesQuery.data ?? EMPTY;
   const categoryRows = categoriesQuery.data ?? EMPTY;
   const groupNames = groupsQuery.data ?? EMPTY;
+  const subscriptionRows = subscriptionsQuery.data ?? EMPTY;
 
   const coreLoading =
     budgetsQuery.isLoading ||
@@ -74,7 +81,7 @@ export function ExpensePage() {
               currencyCode,
               budgets: budgetRows,
               expenses: expenseRows,
-              subscriptions: [],
+              subscriptions: subscriptionRows,
               categories: categoryRows,
               groups: groupNames,
             }),
@@ -84,6 +91,7 @@ export function ExpensePage() {
       coreLoading,
       budgetRows,
       expenseRows,
+      subscriptionRows,
       categoryRows,
       groupNames,
       currencyCode,
@@ -120,7 +128,21 @@ export function ExpensePage() {
   const payPhase = useButtonPhase();
   const bulkReturnPhase = useButtonPhase();
   const [showLogModal, setShowLogModal] = useState(false);
+  const [subscriptionBusy, setSubscriptionBusy] = useState<string | null>(null);
+  const [editingSubscription, setEditingSubscription] = useState<SubscriptionPanelItem | null | undefined>(undefined);
   const { theme, setTheme } = useAppearance();
+
+  async function changeSubscriptionStatus(service: string, action: "cancel" | "reactivate") {
+    setSubscriptionBusy(service);
+    try {
+      if (action === "cancel") await cancelSubscriptionM.mutateAsync(service);
+      else await reactivateSubscriptionM.mutateAsync(service);
+    } catch {
+      setActionError(`Couldn't ${action} ${service}. Check your connection and try again.`);
+    } finally {
+      setSubscriptionBusy(null);
+    }
+  }
 
   // Restore the "hide amounts" preference after hydration so the server and
   // client render the same initial output (avoids a hydration mismatch).
@@ -361,7 +383,7 @@ export function ExpensePage() {
       <div className="erd-main">
         <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
         <div className="erd-content">
-          <div className="erd-home" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
+          <div className="erd-home">
             <div className="erd-home-main">
               {envelopeState && (
                 <button
@@ -417,10 +439,38 @@ export function ExpensePage() {
                 Trends and daily spend <ChevronRight size={16} />
               </Link>
             </div>
-
+            <aside className="erd-home-rail" aria-label="Subscriptions">
+              <SubscriptionsPanel
+                active={panel.subscriptions.active}
+                cancelled={panel.subscriptions.cancelled}
+                hideAmounts={hideAmounts}
+                busyService={subscriptionBusy}
+                loading={subscriptionsQuery.isLoading && !subscriptionsQuery.data}
+                error={subscriptionsQuery.isError && !subscriptionsQuery.data}
+                onAdd={() => setEditingSubscription(null)}
+                onEdit={setEditingSubscription}
+                onCancel={(service) => void changeSubscriptionStatus(service, "cancel")}
+                onReactivate={(service) => void changeSubscriptionStatus(service, "reactivate")}
+                homeRail
+              />
+            </aside>
           </div>
         </div>
         <AnimatePresence>
+          {editingSubscription !== undefined && (
+            <SubscriptionModal
+              editData={editingSubscription ? {
+                service: editingSubscription.service,
+                amount_inr: String(editingSubscription.amountInr),
+                billing_cycle: editingSubscription.billingCycle,
+                next_due_date: editingSubscription.nextDueDate,
+                notes: editingSubscription.notes,
+                category: editingSubscription.category,
+              } : undefined}
+              onClose={() => setEditingSubscription(undefined)}
+              onSaved={() => setEditingSubscription(undefined)}
+            />
+          )}
           {payCreditCardAmount !== null && envelopeState && (
             <Scrim
               className="modal-overlay"
