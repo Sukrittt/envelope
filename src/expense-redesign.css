@@ -3746,11 +3746,13 @@
   color: var(--erd-text3);
   text-align: center;
   line-height: 1.6;
-  margin: 6px 0 0;
+  margin: 12px auto 0;
+  max-width: 280px;
 }
 
 .auth-legal a {
-  color: var(--gold-ink);
+  color: var(--gold);
+  text-decoration: none;
 }
 
 .auth-field {
