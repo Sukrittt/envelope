@@ -10,6 +10,8 @@ import { monthAbbrev } from '@/src/lib/envelope'
 export interface TrendPoint {
   date: string
   value: number
+  /** No income on record for this month: drawn as an outlined placeholder, not a value. */
+  missing?: boolean
 }
 
 interface Props {
@@ -20,6 +22,9 @@ interface Props {
   onSelect?: (key: string) => void
   partialKey?: string | null
   partialNote?: string | null
+  /** Shown instead of the chart when `data` is empty. */
+  emptyNote?: string
+  ariaLabel?: string
 }
 
 const HEIGHT = 245
@@ -29,7 +34,17 @@ const PAD_X = 12
 
 
 
-export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, onSelect, partialKey, partialNote }: Props) {
+export function TrendChart({
+  data,
+  baseline,
+  selectedKey,
+  hideAmounts = false,
+  onSelect,
+  partialKey,
+  partialNote,
+  emptyNote = 'No spending data yet',
+  ariaLabel = 'Spending over the last 12 months',
+}: Props) {
   const { formatCompact, formatCurrency } = useCurrency()
   // viewBox tracks the rendered width so the plot spans the whole card. A
   // fixed-width viewBox gets letterboxed into the middle of wide cards.
@@ -44,34 +59,44 @@ export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, o
     return () => observer.disconnect()
   }, [empty])
 
-  if (empty) return <div className="ins-chart-empty">No spending data yet</div>
+  if (empty) return <div className="ins-chart-empty">{emptyNote}</div>
 
   const max = Math.max(...data.map((point) => point.value), baseline ?? 0, 1)
+  // Savings can go negative (a month that spent more than it earned): those
+  // bars hang below a zero line instead of the chart's floor.
+  const min = Math.min(0, ...data.map((point) => point.value))
+  const range = max - min
   const plotHeight = HEIGHT - PAD_TOP - PAD_BOTTOM
+  const zeroY = HEIGHT - PAD_BOTTOM - (-min / range) * plotHeight
   const slot = (WIDTH - PAD_X * 2) / data.length
   // Bars fill their slot, so they widen/narrow as months are added.
   const barWidth = Math.max(8, slot - Math.min(16, slot * 0.2))
-  const baselineY = baseline == null ? null : HEIGHT - PAD_BOTTOM - (baseline / max) * plotHeight
+  const baselineY = baseline == null ? null : zeroY - (baseline / range) * plotHeight
 
   return (
     <div className="ins-trend-wrap" ref={wrapRef}>
       <div className="ins-axis-row">
         <span>{formatCompact(max, hideAmounts)}</span>
       </div>
-      <svg className="ins-trend-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Spending over the last 12 months">
+      <svg className="ins-trend-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={ariaLabel}>
+        {min < 0 && <line x1={PAD_X} x2={WIDTH - PAD_X} y1={zeroY} y2={zeroY} className="ins-trend-zero" />}
         {data.map((point, index) => {
-          const height = point.value > 0 ? Math.max(3, (point.value / max) * plotHeight) : 2
+          const negative = point.value < 0
+          const height = point.missing
+            ? (zeroY - PAD_TOP) * 0.45
+            : point.value !== 0 ? Math.max(3, (Math.abs(point.value) / range) * plotHeight) : 2
           const x = PAD_X + index * slot + (slot - barWidth) / 2
-          const y = HEIGHT - PAD_BOTTOM - height
+          const y = negative ? zeroY : zeroY - height
           const selected = point.date === selectedKey
-          const dimmed = point.value === 0 || (selectedKey != null && !selected && point.date !== partialKey)
+          const dimmed = (point.value === 0 && !point.missing) || (selectedKey != null && !selected && point.date !== partialKey)
+          const amountText = point.missing ? 'No income set' : hideAmounts ? 'Amount hidden' : formatCurrency(point.value)
           const label = `${monthAbbrev(point.date)}${point.date === partialKey ? '*' : ''}`
           return (
             <g
               key={point.date}
               role={onSelect ? 'button' : undefined}
               tabIndex={onSelect ? 0 : undefined}
-              aria-label={`${label}, ${hideAmounts ? 'amount hidden' : formatCurrency(point.value)}`}
+              aria-label={`${label}, ${amountText}`}
               aria-pressed={selected}
               className="ins-trend-column"
               onClick={() => onSelect?.(point.date)}
@@ -82,7 +107,7 @@ export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, o
                 }
               }}
             >
-              <title>{label} · {hideAmounts ? 'Amount hidden' : formatCurrency(point.value)}</title>
+              <title>{label} · {amountText}</title>
               <rect x={PAD_X + index * slot} y={PAD_TOP} width={slot} height={plotHeight} fill="transparent" />
               <rect
                 x={x}
@@ -90,12 +115,17 @@ export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, o
                 width={barWidth}
                 height={height}
                 rx="7"
-                className="ins-trend-bar"
+                className={point.missing ? 'ins-trend-bar is-missing' : negative ? 'ins-trend-bar is-negative' : 'ins-trend-bar'}
                 style={{ opacity: dimmed ? 0.42 : 1, animationDelay: `${index * 30}ms` }}
               />
               {selected && (
-                <text x={x + barWidth / 2} y={Math.max(15, y - 10)} textAnchor="middle" className="ins-trend-value">
-                  {formatCompact(point.value, hideAmounts)}
+                <text
+                  x={x + barWidth / 2}
+                  y={negative ? Math.min(HEIGHT - PAD_BOTTOM - 4, y + height + 14) : Math.max(15, y - 10)}
+                  textAnchor="middle"
+                  className="ins-trend-value"
+                >
+                  {point.missing ? 'Add income' : formatCompact(point.value, hideAmounts)}
                 </text>
               )}
               <text x={x + barWidth / 2} y={HEIGHT - 8} textAnchor="middle" className={selected ? 'ins-trend-label is-selected' : 'ins-trend-label'}>

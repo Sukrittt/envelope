@@ -1,6 +1,7 @@
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
 import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
 import { computeEnvelopeState } from '@/src/lib/envelope'
+import { savingsTrend } from '@/src/lib/monthly'
 import { getCollection } from '@/lib/http'
 import type { Auth } from '@/lib/access'
 import type { Envelope } from '@/src/lib/envelope'
@@ -315,6 +316,19 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   trendLines.push(
     trendRow('TOTAL', (m) => [...trendCategoryTotals.values()].reduce((sum, monthMap) => sum + (monthMap.get(m) ?? 0), 0)).line,
   )
+  // Envelopes reset every month, so this is the only record of money kept.
+  // Expenses are loaded for the trend window only, so the total starts there at the earliest.
+  const saved = savingsTrend(budgetRows, envelopeExpenseRows, realCategories, groupNames, currentMonth)
+  if (saved.since) {
+    const savedByMonth = new Map(saved.points.map((p) => [p.date, p.value]))
+    const savedFull = fullMonths.filter((m) => savedByMonth.has(m))
+    const savedAvg = savedFull.length ? round(savedFull.reduce((sum, m) => sum + savedByMonth.get(m)!, 0) / savedFull.length) : 0
+    const cells = trendMonths.map((m) => (savedByMonth.has(m) ? String(round(savedByMonth.get(m)!)) : '-'))
+    trendLines.push(`SAVED (income minus spending)|${cells.join('|')}|${savedAvg}`)
+    const from = saved.since > trendMonths[0] ? saved.since : trendMonths[0]
+    const total = saved.points.filter((p) => p.date >= from && p.date < currentMonth).reduce((sum, p) => sum + p.value, 0)
+    trendLines.push(`SAVED SINCE ${from}: ${round(total)} (finished months; the running savings, since unspent envelope money does not carry over)`)
+  }
 
   // Top 10 items this month by amount.
   const top10 = [...realMonthExpenses].sort((a, b) => (Number(b.amount_inr) || 0) - (Number(a.amount_inr) || 0)).slice(0, 10)

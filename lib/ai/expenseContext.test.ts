@@ -88,6 +88,16 @@ describe('summarizeExpenses precomputed totals', () => {
     expect(sections.trend).toContain('TOTAL|0|0|0|0|420|940|420')
   })
 
+  it('reports what each month saved and the running total, since envelopes reset monthly', () => {
+    const { sections } = summarizeExpenses({
+      ...input,
+      budgets: [...input.budgets, { month: '2026-08', category: '__income__', assigned: 80000, rolled_over: 0 }],
+    })
+    // August: 80000 - 420. September so far: 90000 - 940. Months before any income show '-'.
+    expect(sections.trend).toContain('SAVED (income minus spending)|-|-|-|-|79580|89060|79580')
+    expect(sections.trend).toContain('SAVED SINCE 2026-08: 79580')
+  })
+
   it('totals repeat merchants over the transaction window', () => {
     const { sections } = summarizeExpenses({
       ...input,

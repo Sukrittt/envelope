@@ -43,7 +43,7 @@ const QUESTIONS = {
   },
   needsTrend: {
     type: 'boolean',
-    instructions: 'Does answering this message need earlier months, for example a comparison, a trend, an average, what is normal or typical, or a plan for next month?',
+    instructions: 'Does answering this message need earlier months, for example a comparison, a trend, an average, what is normal or typical, how much they have saved over time, or a plan for next month?',
   },
   needsSubscriptions: {
     type: 'boolean',

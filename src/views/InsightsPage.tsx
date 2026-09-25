@@ -3,6 +3,7 @@
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
 import { LoadingCaption } from "@/src/components/LoadingCaption";
+import { EditMonthIncomeScreen } from "@/src/components/MoneyScreens";
 import { CategoryBreakdown } from "@/src/components/charts/CategoryBreakdown";
 import { Heatmap, type HeatmapCell } from "@/src/components/charts/Heatmap";
 import {
@@ -46,6 +48,7 @@ import {
   leftoverFor,
   monthComparison,
   monthTotals,
+  savingsTrend,
   withDelta,
 } from "@/src/lib/monthly";
 import { EMPTY } from "@/src/lib/constants";
@@ -58,6 +61,20 @@ function monthsBack(month: string, currentMonth: string) {
   const [y1, m1] = month.split("-").map(Number);
   const [y2, m2] = currentMonth.split("-").map(Number);
   return (y2 - y1) * 12 + (m2 - m1);
+}
+
+/** "Jun, Jul and Aug have spending but no income, so they aren't counted. Tap one to add it." */
+function missingIncomeNote(months: string[]) {
+  const names = months.map(monthAbbrev);
+  const list =
+    names.length > 3
+      ? `${names.length} months`
+      : names.length === 1
+        ? names[0]
+        : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return months.length === 1
+    ? `${list} has spending but no income, so it isn't counted. Tap it to add income.`
+    : `${list} have spending but no income, so they aren't counted. Tap one to add income.`;
 }
 
 export function InsightsPage() {
@@ -86,6 +103,8 @@ export function InsightsPage() {
     string | null
   >(null);
   const [heatmapView, setHeatmapView] = useState<"month" | "weeks">("month");
+  const [trendView, setTrendView] = useState<"spending" | "saved">("spending");
+  const [incomeMonth, setIncomeMonth] = useState<string | null>(null);
 
   const scopeRef = useRef(`${insightMonth}|${breakdownMode}`);
   const scope = `${insightMonth}|${breakdownMode}`;
@@ -135,6 +154,27 @@ export function InsightsPage() {
     const first = points.findIndex((point) => point.value > 0);
     return first === -1 ? [] : points.slice(first);
   }, [expenses, trendMonths]);
+
+  // Full history (Insights loads every expense), so the running total is exact.
+  const savings = useMemo(
+    () => savingsTrend(budgets, expenses, categories, groups, currentMonth),
+    [budgets, expenses, categories, groups, currentMonth],
+  );
+  // Months with spending but no income stay on the chart as placeholders the
+  // user can tap to backfill, instead of silently dropping out.
+  const missingInView = useMemo(
+    () => savings.missingIncome.filter((month) => month >= trendMonths[0]),
+    [savings, trendMonths],
+  );
+  const savedData: TrendPoint[] = useMemo(
+    () =>
+      [
+        ...savings.points.filter((point) => point.date >= trendMonths[0]),
+        ...missingInView.map((date) => ({ date, value: 0, missing: true })),
+      ].sort((a, b) => a.date.localeCompare(b.date)),
+    [savings, missingInView, trendMonths],
+  );
+  const showSaved = trendView === "saved";
 
   const comparison = useMemo(
     () => monthComparison(expenses, insightMonth, today),
@@ -426,32 +466,77 @@ export function InsightsPage() {
           ) : (
             <div className="insights-grid">
               <article
-                className={`erd-card ins-card ins-trend-card${trendSummary ? " is-strip" : ""}`}
+                className={`erd-card ins-card ins-trend-card${trendSummary && !showSaved ? " is-strip" : ""}`}
               >
                 <div className="ins-card-heading">
                   <div>
-                    <h2>Spending trend</h2>
-                    <p>Last 12 months</p>
+                    <h2>{showSaved ? "Saved per month" : "Spending trend"}</h2>
+                    <p>
+                      {showSaved && savings.since && savings.since < currentMonth
+                        ? `${formatCurrency(savings.total, hideAmounts)} saved since ${monthLabel(savings.since)}`
+                        : "Last 12 months"}
+                    </p>
                   </div>
-                  {trendSummary?.kind === "compare" &&
-                    trendSummary.deltaPct != null && (
-                      <span
-                        className={
-                          trendSummary.deltaPct > 0
-                            ? "ins-head-delta is-up"
-                            : "ins-head-delta is-down"
-                        }
+                  <div className="ins-head-actions">
+                    {!showSaved &&
+                      trendSummary?.kind === "compare" &&
+                      trendSummary.deltaPct != null && (
+                        <span
+                          className={
+                            trendSummary.deltaPct > 0
+                              ? "ins-head-delta is-up"
+                              : "ins-head-delta is-down"
+                          }
+                        >
+                          {trendSummary.deltaPct > 0 ? (
+                            <TrendingUp size={14} />
+                          ) : (
+                            <TrendingDown size={14} />
+                          )}
+                          {Math.abs(trendSummary.deltaPct).toFixed(0)}%
+                        </span>
+                      )}
+                    <div className="ins-segmented" aria-label="Trend view">
+                      <button
+                        type="button"
+                        className={showSaved ? "" : "is-active"}
+                        onClick={() => setTrendView("spending")}
                       >
-                        {trendSummary.deltaPct > 0 ? (
-                          <TrendingUp size={14} />
-                        ) : (
-                          <TrendingDown size={14} />
-                        )}
-                        {Math.abs(trendSummary.deltaPct).toFixed(0)}%
-                      </span>
-                    )}
+                        Spending
+                      </button>
+                      <button
+                        type="button"
+                        className={showSaved ? "is-active" : ""}
+                        onClick={() => setTrendView("saved")}
+                      >
+                        Saved
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                {trendSummary ? (
+                {showSaved ? (
+                  <>
+                    <TrendChart
+                      data={savedData}
+                      selectedKey={insightMonth}
+                      hideAmounts={hideAmounts}
+                      onSelect={(month) =>
+                        missingInView.includes(month)
+                          ? setIncomeMonth(month)
+                          : setInsightMonth(month)
+                      }
+                      partialKey={currentMonth}
+                      partialNote={`${monthAbbrev(currentMonth)}, ${Number(today.slice(8, 10))} days in`}
+                      emptyNote="Set your income to see what you save each month"
+                      ariaLabel="Income minus spending over the last 12 months"
+                    />
+                    {missingInView.length > 0 && (
+                      <p className="ins-trend-missing-note">
+                        {missingIncomeNote(missingInView)}
+                      </p>
+                    )}
+                  </>
+                ) : trendSummary ? (
                   <p className="ins-trend-summary">
                     {trendSummary.kind === "first" ? (
                       "First month tracked."
@@ -607,6 +692,14 @@ export function InsightsPage() {
           <span>More</span>
         </Link>
       </nav>
+      <AnimatePresence>
+        {incomeMonth && (
+          <EditMonthIncomeScreen
+            month={incomeMonth}
+            onClose={() => setIncomeMonth(null)}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 }

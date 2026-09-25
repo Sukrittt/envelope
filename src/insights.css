@@ -614,6 +614,36 @@
   transition: opacity 150ms ease, filter 150ms ease;
 }
 
+.ins-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ins-trend-bar.is-negative {
+  fill: var(--coral);
+  transform-origin: center top;
+}
+
+.ins-trend-bar.is-missing {
+  fill: transparent;
+  stroke: var(--erd-text3);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+
+.ins-trend-missing-note {
+  margin: 8px 0 0;
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+
+.ins-trend-zero {
+  stroke: var(--erd-text3);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
 .ins-trend-column:hover .ins-trend-bar,
 .ins-trend-column:focus-visible .ins-trend-bar {
   filter: brightness(1.16);
