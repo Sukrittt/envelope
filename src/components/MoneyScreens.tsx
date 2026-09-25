@@ -12,7 +12,7 @@ import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
 import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
-import { useExpenses } from '../hooks/useExpenses'
+import { useRecentExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
 import { useHideAmounts } from '../hooks/useHideAmounts'
 import { EMPTY } from '../lib/constants'
@@ -54,7 +54,7 @@ const CARD_SPRING = { type: 'spring', bounce: 0, duration: 0.35 } as const
 
 function useMoneyData() {
   const budgetsQ = useBudgets()
-  const expensesQ = useExpenses()
+  const expensesQ = useRecentExpenses()
   const categoriesQ = useCategories()
   const groupsQ = useGroups()
   return {

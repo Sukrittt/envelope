@@ -29,7 +29,7 @@ import {
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
 import { useBudgets, useAddBudget, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
-import { useExpenses, useAddExpense } from "../hooks/useExpenses";
+import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
 import { useCategories } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
@@ -50,7 +50,8 @@ export function ExpensePage() {
   // recomputed from them. The old single SWR fetcher both fetched and derived;
   // buildExpensePanel is the derivation half, now pure.
   const budgetsQuery = useBudgets();
-  const expensesQuery = useExpenses();
+  const expensesQuery = useRecentExpenses();
+  const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
@@ -83,6 +84,7 @@ export function ExpensePage() {
               currencyCode,
               budgets: budgetRows,
               expenses: expenseRows,
+              lastSpent,
               subscriptions: subscriptionRows,
               categories: categoryRows,
               groups: groupNames,
@@ -94,6 +96,7 @@ export function ExpensePage() {
       budgetRows,
       expenseRows,
       subscriptionRows,
+      lastSpent,
       categoryRows,
       groupNames,
       currencyCode,

@@ -399,7 +399,13 @@ export function factsWindowStart(today: string): string {
  * carries its most recent prior assignment forward, however old that row is,
  * and those documents are one per month per category.
  */
-export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpensesResult> {
+export async function buildExpenseContext(
+  auth: Auth,
+  // `monthOnly`: current month of expenses only. Envelopes, `meta` and the
+  // threshold levels built from them stay exact; the trend and transaction
+  // FACTS go thin, so only callers that never read `facts` should set it.
+  { monthOnly = false }: { monthOnly?: boolean } = {},
+): Promise<SummarizeExpensesResult> {
   const { date: today } = await nowForUser(auth.userId)
 
   const [expensesColl, budgetsColl, categoriesColl, groupsColl, subscriptionsColl, holdingsColl] = await Promise.all([
@@ -413,7 +419,7 @@ export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpenses
 
   const [expenseDocs, budgetDocs, categoryDocs, groupDocs, subscriptionDocs, holdingDocs] = await Promise.all([
     // Indexed by { user_id: 1, date: -1 } (scripts/ensure-indexes.mjs).
-    expensesColl.find({ date: { $gte: factsWindowStart(today) } }).toArray(),
+    expensesColl.find({ date: { $gte: monthOnly ? `${today.slice(0, 7)}-01` : factsWindowStart(today) } }).toArray(),
     budgetsColl.find({}).toArray(),
     categoriesColl.find({}).toArray(),
     groupsColl.find({}).toArray(),

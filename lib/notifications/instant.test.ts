@@ -64,6 +64,11 @@ describe('notifyThresholdCrossed', () => {
     expect(sendPushNotificationMock.mock.calls[0][0]).toMatchObject({ userId: 'user_a' })
   })
 
+  it('loads only the current month of expenses, not the full AI context window', async () => {
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    expect(buildExpenseContextMock).toHaveBeenCalledWith(expect.anything(), { monthOnly: true })
+  })
+
   it('does not fire for a category that did not cross, even if another did', async () => {
     await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Travel')
     expect(sendPushNotificationMock).not.toHaveBeenCalled()

@@ -16,12 +16,12 @@ export const dynamic = 'force-dynamic'
 const SORT = { date: -1, timestamp: -1, _id: -1 } as const
 
 /**
- * `GET /api/expenses` — two modes, picked by whether `?page=` is present.
+ * `GET /api/expenses` — three modes, picked by `?page=` and `?from=`.
  *
- * No `page`: legacy behavior, unchanged. Every other caller of
- * useExpenses()/getExpenses() (budget math, insights, category autosuggest,
- * widgets, ~18 call sites total) needs the full set for correct aggregates,
- * so this path must stay byte-for-byte identical.
+ * No `page`, no `from`: legacy full list, unchanged — Insights needs all history,
+ * and older clients still call it. Kept byte-for-byte identical.
+ *
+ * `from` (no `page`): recent rows plus `lastSpent`, see below.
  *
  * `page` present: real pagination for the Activity screens. `category` and
  * `from`/`to` (on `date`) filter in Mongo — both are plaintext fields
@@ -38,6 +38,24 @@ export async function GET(req: Request) {
   if (gate) return gate
   const coll = await getCollection('expenses', auth)
   const url = new URL(req.url)
+
+  // `from` without `page`: only rows dated on/after `from`, for the screens that
+  // need just recent months (envelopes, widgets, log-expense hints). Envelopes
+  // also show each category's last spend date, which can be older than `from`,
+  // so `lastSpent` carries that from a $group over plaintext fields — no rows
+  // fetched or decrypted for it.
+  const recentFrom = url.searchParams.get('from')
+  if (recentFrom && !url.searchParams.has('page')) {
+    const [docs, last] = await Promise.all([
+      coll.find({ date: { $gte: recentFrom } }).toArray(),
+      coll.aggregate<{ _id: string; last: string }>([{ $group: { _id: '$category', last: { $max: '$date' } } }]).toArray(),
+    ])
+    return json({
+      headers: EXPENSE_HEADERS,
+      rows: docs.map((d) => expenseRow(d)),
+      lastSpent: Object.fromEntries(last.map((d) => [d._id, d.last])),
+    })
+  }
 
   if (!url.searchParams.has('page')) {
     const docs = await coll.find({}).toArray()

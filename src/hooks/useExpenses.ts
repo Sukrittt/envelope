@@ -5,12 +5,15 @@ import {
   getDuplicates,
   getExpenses,
   getExpensesPage,
+  getRecentExpenses,
   mintExpensePayload,
   postExpensePayload,
   updateExpense,
   type ExpensesPageParams,
   type NewExpenseRow,
+  type RecentExpenses,
 } from '@/src/api/expenses'
+import { currentMonthKey, shiftMonthKey } from '@/src/lib/envelope'
 import { budgetsKey } from '@/src/hooks/useBudgets'
 import { track } from '@/src/lib/analytics'
 
@@ -24,6 +27,34 @@ const categoryMapKey = ['category-map'] as const
 
 export function useExpenses() {
   return useQuery({ queryKey: key, queryFn: getExpenses, staleTime: 30_000 })
+}
+
+/**
+ * This month and the 3 before it: covers every screen that isn't Insights
+ * (envelopes and last month's, the ~90-day unusual-amount window, widget
+ * trends, recent categories). Month-aligned so the key, and the cache entry
+ * every caller shares, only changes once a month.
+ */
+function recentFrom(): string {
+  return `${shiftMonthKey(currentMonthKey(), -3)}-01`
+}
+
+const selectRows = (d: RecentExpenses) => d.rows
+const selectLastSpent = (d: RecentExpenses) => d.lastSpent
+
+function recentQuery() {
+  const from = recentFrom()
+  return { queryKey: [...key, 'recent', from] as const, queryFn: () => getRecentExpenses(from), staleTime: 30_000 }
+}
+
+/** Recent rows only. Use instead of `useExpenses()` unless you need all history. */
+export function useRecentExpenses() {
+  return useQuery({ ...recentQuery(), select: selectRows })
+}
+
+/** All-time last spend date per category, from the same fetch as `useRecentExpenses`. */
+export function useLastSpent() {
+  return useQuery({ ...recentQuery(), select: selectLastSpent })
 }
 
 /**

@@ -95,8 +95,8 @@ function monthSpendingByCategory(expenses: ExpenseNum[], month: string): Map<str
   return map
 }
 
-function lastSpentByCategory(expenses: ExpenseNum[]): Map<string, string> {
-  const map = new Map<string, string>()
+function lastSpentByCategory(expenses: ExpenseNum[], known: Record<string, string> = {}): Map<string, string> {
+  const map = new Map<string, string>(Object.entries(known))
   for (const e of expenses) {
     if (!e.date) continue
     const current = map.get(e.category)
@@ -111,6 +111,9 @@ export function computeEnvelopeState(
   currentMonth: string,
   categoryRows: CategoryRow[],
   groupNames: string[],
+  // All-time last spend date per category, from `GET /api/expenses?from=`. Needed
+  // because `expenseRows` may only cover recent months.
+  lastSpent?: Record<string, string>,
 ): EnvelopeState {
   const budgets: BudgetNum[] = budgetRows.map((b) => ({
     month: b.month,
@@ -151,7 +154,7 @@ export function computeEnvelopeState(
   const income = carriedAssigned(INCOME_CATEGORY)
 
   const monthSpending = monthSpendingByCategory(expenses, currentMonth)
-  const lastSpentByCat = lastSpentByCategory(expenses)
+  const lastSpentByCat = lastSpentByCategory(expenses, lastSpent)
 
   const categoryGroup = new Map<string, string>()
   for (const c of categoryRows) categoryGroup.set(c.name, c.group ?? '')

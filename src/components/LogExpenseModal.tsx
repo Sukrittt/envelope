@@ -11,7 +11,7 @@ import { suggestCategoryLLM } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { CategoryPicker } from './CategoryPicker'
 import { useCategories } from '../hooks/useCategories'
-import { useAddExpense, useDeleteExpense, useExpenses } from '../hooks/useExpenses'
+import { useAddExpense, useDeleteExpense, useRecentExpenses } from '../hooks/useExpenses'
 import { unusualAmount } from '../lib/unusualAmount'
 import { splitEmoji } from '../lib/emoji'
 import { EMPTY } from '../lib/constants'
@@ -49,7 +49,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
 
   const categoriesQ = useCategories()
   const addExpenseM = useAddExpense()
-  const expensesQ = useExpenses()
+  const expensesQ = useRecentExpenses()
   const categories = useMemo(
     () => (categoriesQ.data ?? EMPTY).map((c) => c.name).filter(Boolean),
     [categoriesQ.data],

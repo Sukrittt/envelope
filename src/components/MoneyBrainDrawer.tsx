@@ -9,7 +9,7 @@ import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
-import { useExpenses } from '@/src/hooks/useExpenses'
+import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { useGroups } from '@/src/hooks/useGroups'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
@@ -44,7 +44,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
   const queryClient = useQueryClient()
   const [hideAmounts] = useHideAmounts()
   const budgets = useBudgets()
-  const expenses = useExpenses()
+  const expenses = useRecentExpenses()
   const categories = useCategories()
   const groups = useGroups()
   const brief = useMoneyBrief()

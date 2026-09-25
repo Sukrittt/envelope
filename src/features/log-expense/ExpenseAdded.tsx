@@ -7,7 +7,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useAppearance } from '@/components/AppearanceProvider'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
-import { useExpenses } from '@/src/hooks/useExpenses'
+import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { useGroups } from '@/src/hooks/useGroups'
 import { EMPTY } from '@/src/lib/constants'
 import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
@@ -78,7 +78,7 @@ export function ExpenseAdded({
   const { theme } = useAppearance()
   const tokens = theme === 'light' ? lightTokens : darkTokens
   const budgetsQ = useBudgets()
-  const expensesQ = useExpenses()
+  const expensesQ = useRecentExpenses()
   const categoriesQ = useCategories()
   const groupsQ = useGroups()
   const { amount, item, category, date, timestamp } = expense

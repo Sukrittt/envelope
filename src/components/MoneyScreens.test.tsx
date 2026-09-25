@@ -13,7 +13,7 @@ vi.mock('../hooks/useBudgets', () => ({
   useAddBudget: () => ({ mutateAsync: mocks.add }),
   useTransferBudget: () => ({ mutateAsync: mocks.transfer }),
 }))
-vi.mock('../hooks/useExpenses', () => ({ useExpenses: () => ({ data: [] }) }))
+vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }] }) }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Home'] }) }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))

@@ -73,6 +73,17 @@ function fakeCollection(base: string) {
       }
       return cursor
     },
+    // Only the one pipeline the route runs: latest `date` per `category`.
+    aggregate: () => ({
+      toArray: async () => {
+        const last = new Map<string, string>()
+        for (const d of store) {
+          const cat = String(d.category)
+          if (String(d.date) > (last.get(cat) ?? '')) last.set(cat, String(d.date))
+        }
+        return [...last].map(([_id, last]) => ({ _id, last }))
+      },
+    }),
     countDocuments: async (filter: Record<string, unknown> = {}) => store.filter((d) => matches(d, filter)).length,
     findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
     insertOne: async (doc: Record<string, unknown>) => {
@@ -358,6 +369,18 @@ describe('GET /api/expenses — server-side pagination (opt-in via ?page=)', () 
     const res = await GET(new Request('https://example.com/api/expenses'))
     const body = (await res.json()) as { headers: string[]; rows: unknown[]; total?: number }
     expect(body.rows).toHaveLength(2)
+    expect(body.total).toBeUndefined()
+  })
+
+  it('?from= returns only rows on/after it, plus each category\'s all-time last spend date', async () => {
+    await POST(req('POST', { item: 'Rent', amount_inr: '5000', category: 'Housing', date: '2026-01-05' }))
+    await POST(req('POST', { item: 'Old coffee', amount_inr: '100', category: 'Food', date: '2026-02-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }))
+
+    const res = await GET(new Request('https://example.com/api/expenses?from=2026-05-01'))
+    const body = (await res.json()) as { rows: Array<{ item: string }>; lastSpent: Record<string, string>; total?: number }
+    expect(body.rows.map((r) => r.item)).toEqual(['Coffee'])
+    expect(body.lastSpent).toEqual({ Housing: '2026-01-05', Food: '2026-06-01' })
     expect(body.total).toBeUndefined()
   })
 

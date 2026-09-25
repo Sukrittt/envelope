@@ -5,7 +5,7 @@ import { MoneyBrainDrawer } from './MoneyBrainDrawer'
 
 const state = vi.hoisted(() => ({ hidden: false }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [] }) }))
-vi.mock('../hooks/useExpenses', () => ({ useExpenses: () => ({ data: [] }) }))
+vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [] }) }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: [] }) }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [state.hidden] }))

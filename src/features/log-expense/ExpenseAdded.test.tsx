@@ -15,7 +15,7 @@ vi.mock('@/src/hooks/useBudgets', () => ({
 }))
 // The refetch hasn't landed: the new row isn't in the list yet, so the view charges it by hand.
 vi.mock('@/src/hooks/useExpenses', () => ({
-  useExpenses: () => ({ data: [{ timestamp: 'old', date: `${month}-01`, item: 'Eggs', amount_inr: '200', category: 'Groceries' }] }),
+  useRecentExpenses: () => ({ data: [{ timestamp: 'old', date: `${month}-01`, item: 'Eggs', amount_inr: '200', category: 'Groceries' }] }),
 }))
 vi.mock('@/src/hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries', group: 'Needs' }] }) }))
 vi.mock('@/src/hooks/useGroups', () => ({ useGroups: () => ({ data: ['Needs'] }) }))

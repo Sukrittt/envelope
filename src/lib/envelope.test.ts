@@ -184,3 +184,26 @@ describe('incomeForReadyToAssign', () => {
     expect(incomeForReadyToAssign(28000, 0)).toBe(28000)
   })
 })
+
+describe('computeEnvelopeState: lastSpent from a bounded expense fetch', () => {
+  const cats: CategoryRow[] = [
+    { name: 'Food', group: 'Needs' },
+    { name: 'Rent', group: 'Needs' },
+  ]
+  const budgets = [budget('2026-06', 'Food', '1000'), budget('2026-06', 'Rent', '5000')]
+
+  it('fills lastSpentDate from the server map for categories outside the fetched window', () => {
+    const state = computeEnvelopeState(budgets, [expense('2026-06-03', 'Food', '100')], '2026-06', cats, ['Needs'], {
+      Rent: '2026-01-05',
+      Food: '2026-05-30',
+    })
+    const byCat = Object.fromEntries(state.envelopes.map((e) => [e.category, e.lastSpentDate]))
+    // A fetched row newer than the map wins (the map can lag a just-logged expense).
+    expect(byCat).toEqual({ Food: '2026-06-03', Rent: '2026-01-05' })
+  })
+
+  it('without a map, behaves as before', () => {
+    const state = computeEnvelopeState(budgets, [expense('2026-06-03', 'Food', '100')], '2026-06', cats, ['Needs'])
+    expect(state.envelopes.find((e) => e.category === 'Rent')?.lastSpentDate).toBeUndefined()
+  })
+})
