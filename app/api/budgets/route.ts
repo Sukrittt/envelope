@@ -108,6 +108,9 @@ export async function PUT(req: Request) {
   const update: Record<string, string> = {}
   if (body.assigned !== undefined) update.assigned = String(body.assigned)
   if (body.rolled_over !== undefined) update.rolled_over = String(body.rolled_over)
+  // One-off income for the month, only meaningful on the income row. Never
+  // carried: a new row starts from the carried `assigned` and its own extra.
+  if (body.extra !== undefined) update.extra = String(body.extra)
   if (body.newCategory !== undefined) update.category = String(body.newCategory)
   if (Object.keys(update).length === 0) return error('no fields to update')
 
@@ -147,6 +150,7 @@ export async function PUT(req: Request) {
           category: update.category ?? category,
           assigned,
           rolled_over: update.rolled_over ?? '0',
+          ...(update.extra !== undefined ? { extra: update.extra } : {}),
           version: 1,
         }, { session })
       } catch (err) {

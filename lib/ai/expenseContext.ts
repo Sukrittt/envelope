@@ -52,6 +52,7 @@ export interface BudgetDocRow {
   category: string
   assigned: number
   rolled_over: number
+  extra?: number
 }
 
 export interface CategoryDocRow {
@@ -219,6 +220,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     category: b.category,
     assigned: String(b.assigned ?? 0),
     rolled_over: String(b.rolled_over ?? 0),
+    extra: String(b.extra ?? 0),
     version: 0,
   }))
 
@@ -253,7 +255,9 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   const header = [
     `MONTH: ${currentMonth} (day ${daysElapsed} of ${totalDaysInMonth}, ${daysLeft} days left)`,
     '',
-    `INCOME: ${round(income)}`,
+    envelopeState.incomeExtra === 0
+      ? `INCOME: ${round(income)}`
+      : `INCOME: ${round(income)} (monthly ${round(envelopeState.incomeBase)}, recurs; plus one-off ${round(envelopeState.incomeExtra)} this month only)`,
     `ASSIGNED THIS MONTH: ${round(envelopeState.totalAssigned)}`,
     `READY TO ASSIGN: ${round(envelopeState.readyToAssign)} (income not given to any envelope yet; recurs every month unless assignments change)`,
     ccEnvelope
@@ -484,6 +488,7 @@ export async function buildExpenseContext(
     category: String(d.category ?? ''),
     assigned: Number(d.assigned) || 0,
     rolled_over: Number(d.rolled_over) || 0,
+    extra: Number(d.extra) || 0,
   }))
 
   const categories: CategoryDocRow[] = categoryDocs

@@ -532,13 +532,28 @@
   }
 }
 
+.erd-home-hero-card {
+  position: relative;
+}
 .erd-home-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 28px 0 20px;
+  padding: 8px 0;
   text-align: center;
+}
+/* Doubled class: .env-action-wrap's position: relative is later in the file. */
+.expense-redesign .env-action-wrap.erd-home-hero-menu {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+.expense-redesign .erd-home-hero-menu .env-menu-trigger {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--erd-border-strong);
+  color: var(--erd-text);
 }
 .erd-home-hero-label {
   font-size: 11px;
