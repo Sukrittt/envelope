@@ -38,3 +38,30 @@ describe('EnvelopeGrid actions', () => {
     expect(screen.getByText('Left')).toBeInTheDocument()
   })
 })
+
+describe('EnvelopeGrid menu', () => {
+  it('closes the row menu on Escape', async () => {
+    setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rent/ }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('button', { name: 'Edit assigned amount' })).not.toBeInTheDocument()
+  })
+})
+
+describe('EnvelopeGrid last spent label', () => {
+  it('uses the local calendar day, not UTC', () => {
+    // 01:30 on 25 Sep in IST is still 24 Sep in UTC.
+    process.env.TZ = 'Asia/Kolkata'
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-24T20:00:00Z'))
+    try {
+      render(<EnvelopeGrid envelopes={[{ ...envelope, lastSpentDate: '2026-09-25' }]} groups={['Essentials']}
+        hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()}
+        onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+      expect(screen.getByText(/Last spent Today/)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

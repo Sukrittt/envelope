@@ -485,14 +485,45 @@
   .erd-home {
     grid-template-columns: minmax(0, 1fr) clamp(340px, 28%, 440px);
   }
-  .erd-home-rail {
-    position: sticky;
-    top: 0;
+  /* Dashboard fits the viewport: columns take the full height and the
+     envelopes list, subscriptions and recent activity scroll inside their
+     own cards instead of the page. */
+  .erd-content:has(> .erd-home) {
+    padding-bottom: 32px;
   }
-  .erd-subs-panel {
+  .erd-home {
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .erd-home-main,
+  .erd-home-rail {
+    min-height: 0;
+  }
+  .erd-envelopes-panel {
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 40px);
+    flex: 1 1 0;
+    min-height: 240px;
+  }
+  .erd-envelopes-panel .env2-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* Room for rows' negative-margin hover backgrounds, which the scroll
+       container would otherwise clip. */
+    margin-inline: -8px;
+    padding-inline: 8px;
+  }
+  .erd-subs-panel,
+  .home-recent {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .home-recent .ins-top-list {
+    min-height: 0;
+    overflow-y: auto;
   }
   .subp-scroll {
     flex: 1;
@@ -540,17 +571,11 @@
   gap: 4px;
   padding: 14px;
   border-radius: var(--tk-radius-lg);
-  color: var(--erd-text2);
+  background: var(--erd-border);
+  color: var(--erd-text);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-}
-.erd-home-insights-link:hover {
-  background: var(--erd-border);
-  color: var(--erd-text);
 }
 
 .env2-head {
@@ -763,6 +788,62 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--gold-ink);
+}
+
+/* ── Reveal on load ─────────────────────────────────────────────
+   Home blocks rise in one after another, then envelope groups, then
+   the bars fill. `backwards` fill so nothing is pinned after the run
+   (hover transforms etc. still apply). */
+@keyframes erd-barFill {
+  from {
+    transform: scaleX(0);
+  }
+}
+.erd-home-main > *,
+.erd-home-rail > *,
+.env2-group,
+.env-page > .env-group-list > .env-group {
+  animation: erd-fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.erd-home-main > :nth-child(2),
+.erd-home-rail > :nth-child(1) {
+  animation-delay: 0.06s;
+}
+.erd-home-main > :nth-child(3),
+.erd-home-rail > :nth-child(2) {
+  animation-delay: 0.12s;
+}
+.erd-home-main > :nth-child(n + 4) {
+  animation-delay: 0.18s;
+}
+.env2-group:nth-child(1),
+.env-group:nth-child(1) {
+  animation-delay: 0.14s;
+}
+.env2-group:nth-child(2),
+.env-group:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.env2-group:nth-child(3),
+.env-group:nth-child(3) {
+  animation-delay: 0.26s;
+}
+.env2-group:nth-child(n + 4),
+.env-group:nth-child(n + 4) {
+  animation-delay: 0.32s;
+}
+.env2-bar .env-bar-fill {
+  transform-origin: left;
+  animation: erd-barFill 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.35s backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .erd-home-main > *,
+  .erd-home-rail > *,
+  .env2-group,
+  .env-page > .env-group-list > .env-group,
+  .env2-bar .env-bar-fill {
+    animation: none;
+  }
 }
 
 .erd-dashboard-link-row {
@@ -3736,7 +3817,7 @@
 }
 
 .auth-legal a {
-  color: var(--gold);
+  color: var(--gold-ink);
   text-decoration: none;
 }
 

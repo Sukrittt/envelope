@@ -11,7 +11,7 @@ export function RecentActivity({ expenses, hideAmounts }: { expenses: ExpenseRow
     .filter((expense) => expense.category !== INCOME_CATEGORY && expense.category !== CREDIT_CARD_CATEGORY)
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date) || (b.timestamp ?? '').localeCompare(a.timestamp ?? ''))
-    .slice(0, 3)
+    .slice(0, 4)
 
   return (
     <article className="erd-card ins-card home-recent">

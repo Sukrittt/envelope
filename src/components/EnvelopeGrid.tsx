@@ -32,16 +32,20 @@ function usedPctLabel(e: Envelope): string {
   return e.spent > 0 ? '∞' : '—'
 }
 
+// Local calendar day as YYYY-MM-DD (en-CA formats that way); toISOString would give the UTC day.
+const localDay = (d: Date) => d.toLocaleDateString('en-CA')
+
 function lastSpentLabel(iso: string | undefined): string {
   if (!iso) return '—'
-  const d = new Date(iso)
+  // Parse the YYYY-MM-DD as local midnight, not UTC midnight.
+  const d = new Date(`${iso.slice(0, 10)}T00:00`)
   if (Number.isNaN(d.getTime())) return '—'
   const today = new Date()
-  const todayStr = today.toISOString().slice(0, 10)
-  if (iso === todayStr) return 'Today'
+  if (iso.slice(0, 10) === localDay(today)) return 'Today'
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (iso === yesterday.toISOString().slice(0, 10)) return 'Yesterday'
+  if (iso.slice(0, 10) === localDay(yesterday)) return 'Yesterday'
+  today.setHours(0, 0, 0, 0)
   const days = Math.round((today.getTime() - d.getTime()) / 86400000)
   if (days >= 1 && days <= 31) return `${days}d ago`
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -73,8 +77,15 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
       if (menuPortalRef.current?.contains(target)) return
       closeMenu()
     }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeMenu()
+    }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
   }, [menuCategory])
 
   // Portaled to <body> with viewport-fixed coordinates so the menu escapes

@@ -466,8 +466,8 @@ export function EnvelopesPage() {
         </div>
       </div>
 
-      {draft && (
-        <AnimatePresence>
+      <AnimatePresence>
+        {draft && (
           <Scrim
             key="scrim"
             className="erd-modal-overlay"
@@ -628,8 +628,8 @@ export function EnvelopesPage() {
               </div>
             </Sheet>
           </Scrim>
-        </AnimatePresence>
-      )}
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {editing && (
@@ -644,9 +644,10 @@ export function EnvelopesPage() {
         )}
       </AnimatePresence>
 
-      {deleteTarget && (
-        <AnimatePresence>
+      <AnimatePresence>
+        {deleteTarget && (
           <ConfirmDialog
+            key="delete"
             title={`Delete ${splitEmoji(deleteTarget.name).text}?`}
             body={
               deleteTarget.kind === "group"
@@ -665,8 +666,8 @@ export function EnvelopesPage() {
               Delete
             </button>
           </ConfirmDialog>
-        </AnimatePresence>
-      )}
+        )}
+      </AnimatePresence>
 
       <EnvelopeTabbar />
     </section>
