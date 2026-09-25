@@ -571,7 +571,9 @@
   gap: 4px;
   padding: 14px;
   border-radius: var(--tk-radius-lg);
-  background: var(--erd-border);
+  background: var(--erd-card-solid);
+  border: 1px solid var(--erd-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   color: var(--erd-text);
   font-size: 13px;
   font-weight: 600;

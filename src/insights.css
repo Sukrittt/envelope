@@ -581,8 +581,23 @@
 
 .ins-trend-baseline {
   stroke: var(--erd-text3);
+  stroke-opacity: 0.5;
   stroke-width: 1.5;
   stroke-dasharray: 4 5;
+}
+
+.ins-trend-baseline-group { pointer-events: none; }
+
+/* Card-coloured halo keeps the label legible where it crosses a bar. */
+.ins-trend-baseline-label {
+  fill: var(--erd-text2);
+  font-family: var(--font-nunito);
+  font-size: 10px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--erd-card-solid);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 
 .ins-trend-column {

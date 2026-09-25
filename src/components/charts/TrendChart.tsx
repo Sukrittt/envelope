@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { monthAbbrev } from '@/src/lib/envelope'
@@ -20,8 +22,7 @@ interface Props {
   partialNote?: string | null
 }
 
-const WIDTH = 800
-const HEIGHT = 260
+const HEIGHT = 245
 const PAD_TOP = 38
 const PAD_BOTTOM = 34
 const PAD_X = 12
@@ -30,31 +31,40 @@ const PAD_X = 12
 
 export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, onSelect, partialKey, partialNote }: Props) {
   const { formatCompact, formatCurrency } = useCurrency()
+  // viewBox tracks the rendered width so the plot spans the whole card. A
+  // fixed-width viewBox gets letterboxed into the middle of wide cards.
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [WIDTH, setWidth] = useState(800)
+  const empty = data.length === 0
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(240, Math.round(entry.contentRect.width))))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [empty])
 
-  if (data.length === 0) return <div className="ins-chart-empty">No spending data yet</div>
+  if (empty) return <div className="ins-chart-empty">No spending data yet</div>
 
   const max = Math.max(...data.map((point) => point.value), baseline ?? 0, 1)
   const plotHeight = HEIGHT - PAD_TOP - PAD_BOTTOM
   const slot = (WIDTH - PAD_X * 2) / data.length
-  const barWidth = Math.min(56, Math.max(8, slot - 12))
+  // Bars fill their slot, so they widen/narrow as months are added.
+  const barWidth = Math.max(8, slot - Math.min(16, slot * 0.2))
   const baselineY = baseline == null ? null : HEIGHT - PAD_BOTTOM - (baseline / max) * plotHeight
 
   return (
-    <div className="ins-trend-wrap">
+    <div className="ins-trend-wrap" ref={wrapRef}>
       <div className="ins-axis-row">
         <span>{formatCompact(max, hideAmounts)}</span>
-        {baseline != null && <span>avg {formatCompact(baseline, hideAmounts)}</span>}
       </div>
       <svg className="ins-trend-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Spending over the last 12 months">
-        {baselineY != null && (
-          <line x1={PAD_X} x2={WIDTH - PAD_X} y1={baselineY} y2={baselineY} className="ins-trend-baseline" />
-        )}
         {data.map((point, index) => {
-          const height = Math.max(3, (point.value / max) * plotHeight)
+          const height = point.value > 0 ? Math.max(3, (point.value / max) * plotHeight) : 2
           const x = PAD_X + index * slot + (slot - barWidth) / 2
           const y = HEIGHT - PAD_BOTTOM - height
           const selected = point.date === selectedKey
-          const dimmed = selectedKey != null && !selected && point.date !== partialKey
+          const dimmed = point.value === 0 || (selectedKey != null && !selected && point.date !== partialKey)
           const label = `${monthAbbrev(point.date)}${point.date === partialKey ? '*' : ''}`
           return (
             <g
@@ -94,6 +104,15 @@ export function TrendChart({ data, baseline, selectedKey, hideAmounts = false, o
             </g>
           )
         })}
+        {/* Drawn after the bars so tall bars don't hide it. */}
+        {baselineY != null && (
+          <g className="ins-trend-baseline-group">
+            <line x1={PAD_X} x2={WIDTH - PAD_X} y1={baselineY} y2={baselineY} className="ins-trend-baseline" />
+            <text x={PAD_X + 4} y={baselineY - 6} className="ins-trend-baseline-label">
+              avg {formatCompact(baseline!, hideAmounts)}
+            </text>
+          </g>
+        )}
       </svg>
       {partialKey && partialNote && data.some((point) => point.date === partialKey) && (
         <p className="ins-chart-note">* {partialNote}</p>

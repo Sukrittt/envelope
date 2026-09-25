@@ -130,9 +130,10 @@ export function InsightsPage() {
   );
   const trendData: TrendPoint[] = useMemo(() => {
     const totals = monthTotals(expenses, trendMonths);
-    return trendMonths
-      .map((date) => ({ date, value: totals.get(date) ?? 0 }))
-      .filter((point) => point.value > 0);
+    const points = trendMonths.map((date) => ({ date, value: totals.get(date) ?? 0 }));
+    // Start at the first month with spend; later empty months stay as gaps.
+    const first = points.findIndex((point) => point.value > 0);
+    return first === -1 ? [] : points.slice(first);
   }, [expenses, trendMonths]);
 
   const comparison = useMemo(
@@ -190,8 +191,9 @@ export function InsightsPage() {
   );
 
   const trendSummary = useMemo(() => {
-    if (trendData.length >= 3) return null;
-    if (trendData.length <= 1) return { kind: "first" as const };
+    const monthsWithSpend = trendData.filter((point) => point.value > 0).length;
+    if (monthsWithSpend >= 3) return null;
+    if (monthsWithSpend <= 1) return { kind: "first" as const };
     const previous = prevMonthKey(insightMonth);
     const totals = monthTotals(expenses, [insightMonth, previous]);
     const current = totals.get(insightMonth) ?? 0;
@@ -203,7 +205,7 @@ export function InsightsPage() {
       previous,
       deltaPct: prior > 0 ? ((current - prior) / prior) * 100 : null,
     };
-  }, [trendData.length, expenses, insightMonth]);
+  }, [trendData, expenses, insightMonth]);
 
   function matchesSelection(category: string) {
     if (!selectedBreakdownKey) return true;
