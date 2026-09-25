@@ -120,6 +120,7 @@ export function MoneyLesson() {
       <div className={`money-waiting${waiting === 0 ? ' is-assigned' : ''}`}>
         <div><span>{waiting ? 'Waiting for a job' : 'Unassigned'}</span><strong><LessonAmount n={waiting} size={28} /></strong></div>
         <div className="money-waiting-workers" aria-hidden="true">
+          <motion.span className="money-waiting-perch" layout={!reduced} initial={false} animate={{ opacity: waiting ? 1 : 0 }} transition={{ layout: { type: 'spring', stiffness: 260, damping: 26 }, opacity: { duration: 0.3 } }} />
           {JOBS.filter((j) => !state.assigned.includes(j.id)).map((j) => <motion.div layout={!reduced} transition={{ type: 'spring', stiffness: 260, damping: 26 }} key={j.id} style={{ '--job-color': j.color } as CSSProperties}><BirdWorker job={j.id} assigned={false} reduced={reduced} from={from} /></motion.div>)}
           {waiting === 0 && <span className="money-assigned-note"><Check size={20} /> Everyone has a purpose</span>}
         </div>
