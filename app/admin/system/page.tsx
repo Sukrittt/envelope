@@ -44,7 +44,7 @@ export default async function AdminSystem() {
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
               <strong>Android app update</strong>
-              <div className="adm-sub">Set this after a new Play Store release. Leave the version empty to hide the update link in the app. Set a minimum only after a native build that OTA updates can't deliver.</div>
+              <div className="adm-sub">Set this after a new Play Store release. Leave the version empty to hide the update link in the app. Set a minimum only after a native build that OTA updates can&apos;t deliver.</div>
             </div>
 
             <input
