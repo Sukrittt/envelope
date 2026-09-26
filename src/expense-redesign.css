@@ -7007,26 +7007,25 @@ button.account-feature-card {
   gap: 10px;
   margin-top: 24px;
 }
+/* Mirrors the mobile app's bubbles (Mobile/app/modals/money-brain.tsx). */
 .brain-bubble {
-  max-width: 86%;
-  padding: 11px 14px;
-  border-radius: 18px;
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 16px;
   font-size: 0.86rem;
   line-height: 1.55;
   white-space: pre-wrap;
 }
 .brain-bubble--user {
   align-self: flex-end;
-  color: #332815;
-  background: var(--gold);
-  border-bottom-right-radius: 5px;
+  color: var(--erd-text);
+  background: var(--gold-soft);
+  font-weight: 500;
 }
 .brain-bubble--model {
   align-self: flex-start;
   background: var(--erd-card);
   border: 1px solid var(--erd-border);
-  border-bottom-left-radius: 5px;
-  box-shadow: var(--erd-shadow-sm);
 }
 
 /* Money Brain answers: the markdown subset from src/lib/chatMarkdown.ts. */

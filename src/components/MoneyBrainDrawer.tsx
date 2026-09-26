@@ -219,7 +219,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
-            <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions this month` : 'Reading your budget…'}</p>
+            <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
           </div>
           <div className="brain-head-actions">
             {view === 'chat' && (
