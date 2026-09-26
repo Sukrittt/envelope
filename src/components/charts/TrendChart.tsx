@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
@@ -136,7 +136,13 @@ export function TrendChart({
         })}
         {/* Drawn after the bars so tall bars don't hide it. */}
         {baselineY != null && (
-          <g className="ins-trend-baseline-group">
+          // Keyed on the value so the draw-in replays when the average changes;
+          // starts once the last bar has finished rising.
+          <g
+            key={baseline}
+            className="ins-trend-baseline-group"
+            style={{ '--ins-baseline-delay': `${(data.length - 1) * 30 + 350}ms` } as CSSProperties}
+          >
             <line x1={PAD_X} x2={WIDTH - PAD_X} y1={baselineY} y2={baselineY} className="ins-trend-baseline" />
             <text x={PAD_X + 4} y={baselineY - 6} className="ins-trend-baseline-label">
               avg {formatCompact(baseline!, hideAmounts)}

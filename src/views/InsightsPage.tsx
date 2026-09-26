@@ -174,6 +174,12 @@ export function InsightsPage() {
       ].sort((a, b) => a.date.localeCompare(b.date)),
     [savings, missingInView, trendMonths],
   );
+  // Mean of the finished months in view (the in-progress month and income
+  // placeholders would drag it down). Needs 2+ months, like the spending avg.
+  const savedBaseline = useMemo(() => {
+    const done = savedData.filter((point) => !point.missing && point.date < currentMonth);
+    return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
+  }, [savedData, currentMonth]);
   const showSaved = trendView === "saved";
 
   const comparison = useMemo(
@@ -518,6 +524,7 @@ export function InsightsPage() {
                   <>
                     <TrendChart
                       data={savedData}
+                      baseline={savedBaseline}
                       selectedKey={insightMonth}
                       hideAmounts={hideAmounts}
                       onSelect={(month) =>

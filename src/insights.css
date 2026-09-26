@@ -584,6 +584,8 @@
   stroke-opacity: 0.5;
   stroke-width: 1.5;
   stroke-dasharray: 4 5;
+  /* Wipes in left to right after the bars (clip, not scaleX, so dashes don't squash). */
+  animation: ins-baseline-draw 500ms cubic-bezier(0.33, 1, 0.68, 1) var(--ins-baseline-delay, 0ms) both;
 }
 
 .ins-trend-baseline-group { pointer-events: none; }
@@ -598,6 +600,7 @@
   stroke: var(--erd-card-solid);
   stroke-width: 4px;
   stroke-linejoin: round;
+  animation: ins-fade-in 250ms ease calc(var(--ins-baseline-delay, 0ms) + 250ms) both;
 }
 
 .ins-trend-column {
@@ -822,6 +825,8 @@
 @keyframes ins-allocation-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ins-card-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes ins-row-slide { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@keyframes ins-baseline-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes ins-fade-in { from { opacity: 0; } }
 @keyframes ins-cell-pop { from { transform: scale(0); } to { transform: scale(1); } }
 
 @media (max-width: 1120px) {
@@ -852,6 +857,8 @@
   .ins-top-row,
   .ins-allocation-segment,
   .ins-trend-bar,
+  .ins-trend-baseline,
+  .ins-trend-baseline-label,
   .ins-heatmap-cell,
   .ins-filter-dialog {
     animation: none !important;
