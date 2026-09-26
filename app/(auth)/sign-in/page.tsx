@@ -41,7 +41,7 @@ export default async function SignInPage({
           Continue with email
         </Link>
         <p className="auth-legal">
-          By continuing you agree to the <a href="/legal/terms">Terms</a> and{' '}
+          By continuing you confirm you&apos;re 18 or older and agree to the <a href="/legal/terms">Terms</a> and{' '}
           <a href="/legal/privacy">Privacy Policy</a>.
         </p>
       </div>

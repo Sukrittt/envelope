@@ -3,6 +3,7 @@
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
 import { ChevronRight, Plus, Repeat2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { getEffectiveDueDate } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
 import { CHART_COLORS } from "../theme/chartColors";
@@ -293,14 +294,27 @@ export function SubscriptionsPanel({
                   onClick={() => setShowCancelled((v) => !v)}
                   aria-expanded={showCancelled}
                 >
-                  <ChevronRight size={14} />
+                  <motion.span
+                    style={{ display: "inline-flex" }}
+                    animate={{ rotate: showCancelled ? 90 : 0 }}
+                    transition={{ type: "spring", damping: 64, stiffness: 600 }}
+                  >
+                    <ChevronRight size={14} />
+                  </motion.span>
                   CANCELLED ({cancelled.length})
                 </button>
-                {showCancelled && (
-                  <ul className="subp-list">
-                    {cancelled.map((sub, i) => row(sub, i, false))}
-                  </ul>
-                )}
+                <AnimatePresence initial={false}>
+                  {showCancelled && (
+                    <motion.ul
+                      className="subp-list"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, transition: { duration: 0.15 } }}
+                      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                    >
+                      {cancelled.map((sub, i) => row(sub, i, false))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </div>

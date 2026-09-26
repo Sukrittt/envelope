@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { motion } from 'motion/react'
+import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 
 interface Summary {
@@ -152,17 +154,32 @@ export default function DataPage() {
         ) : exports && exports.exports.length > 0 ? (
           <ul className="account-export-list">
             {exports.exports.map((e) => (
-              <li key={e.id}>
+              <motion.li
+                key={e.id}
+                layout="position"
+                transition={LIST_SPRING}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { duration: 0.15 } }}
+              >
                 {e.status === 'ready' && e.blob_url ? (
                   <a href={e.blob_url} download>
                     {e.created_at}
                   </a>
                 ) : (
-                  <span>
+                  <motion.span
+                    key={e.status}
+                    initial={{ opacity: 0 }}
+                    // Mobile's pending pulse: 1 to 0.4 and back, 700ms each way.
+                    animate={
+                      e.status === 'pending'
+                        ? { opacity: [1, 0.4], transition: { duration: 0.7, repeat: Infinity, repeatType: 'reverse' } }
+                        : { opacity: 1, transition: { duration: 0.15 } }
+                    }
+                  >
                     {e.created_at} — {e.status}
-                  </span>
+                  </motion.span>
                 )}
-              </li>
+              </motion.li>
             ))}
           </ul>
         ) : null}

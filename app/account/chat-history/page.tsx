@@ -96,7 +96,7 @@ export default function ChatHistoryPage() {
     <>
       <div className="account-page-heading">
         <div className="account-section-label">Chat history</div>
-        <button type="button" className="account-compact-btn" onClick={() => openMoneyBrain()}>New chat</button>
+        <button type="button" className="account-compact-btn" onClick={() => openMoneyBrain(null)}>New chat</button>
       </div>
       {sessions === null ? (
         loadError ? <div className="account-row-meta" role="alert">Couldn&apos;t load chat history.</div> : <LoadingCaption placement="page" />

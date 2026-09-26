@@ -1,4 +1,4 @@
-import { GoogleGenAI, type GenerateContentResponse, type Schema } from '@google/genai'
+import { GoogleGenAI, ThinkingLevel, type GenerateContentResponse, type Schema } from '@google/genai'
 import { logAiUsage, type AiCaller } from './usage'
 import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 
@@ -121,7 +121,7 @@ export async function streamText(
   systemInstruction: string,
   contents: Array<{ role: 'user' | 'model'; parts: [{ text: string }] }>,
   caller: AiCaller,
-  maxOutputTokens = 700,
+  reason = false,
 ) {
   await assertAiEnabled()
   const ai = getGeminiClient()
@@ -134,7 +134,9 @@ export async function streamText(
       config: {
         systemInstruction,
         temperature: 0.4,
-        maxOutputTokens,
+        // Thinking tokens count against maxOutputTokens: at 700 a reasoning
+        // reply got cut off mid-sentence, so the budget grows with it.
+        ...(reason ? { maxOutputTokens: 4000, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { maxOutputTokens: 700 }),
       },
     }))
   } catch (err) {

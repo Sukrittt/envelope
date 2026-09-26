@@ -353,7 +353,8 @@
   cursor: pointer;
   transition:
     transform 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    scale var(--dur-press) var(--ease-press);
 }
 .erd-side-cta.is-secondary {
   background: var(--erd-sidebar-box);
@@ -364,7 +365,7 @@
   transform: translateY(-1px);
 }
 .erd-side-cta:active {
-  transform: scale(0.97);
+  scale: 0.96;
 }
 .erd-sidebar.is-collapsed .erd-side-cta {
   padding: 0;
@@ -484,14 +485,45 @@
   .erd-home {
     grid-template-columns: minmax(0, 1fr) clamp(340px, 28%, 440px);
   }
-  .erd-home-rail {
-    position: sticky;
-    top: 0;
+  /* Dashboard fits the viewport: columns take the full height and the
+     envelopes list, subscriptions and recent activity scroll inside their
+     own cards instead of the page. */
+  .erd-content:has(> .erd-home) {
+    padding-bottom: 32px;
   }
-  .erd-subs-panel {
+  .erd-home {
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .erd-home-main,
+  .erd-home-rail {
+    min-height: 0;
+  }
+  .erd-envelopes-panel {
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 40px);
+    flex: 1 1 0;
+    min-height: 240px;
+  }
+  .erd-envelopes-panel .env2-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* Room for rows' negative-margin hover backgrounds, which the scroll
+       container would otherwise clip. */
+    margin-inline: -8px;
+    padding-inline: 8px;
+  }
+  .erd-subs-panel,
+  .home-recent {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .home-recent .ins-top-list {
+    min-height: 0;
+    overflow-y: auto;
   }
   .subp-scroll {
     flex: 1;
@@ -500,13 +532,31 @@
   }
 }
 
+.erd-card.erd-home-hero-card {
+  position: relative;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
 .erd-home-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 28px 0 20px;
+  padding: 8px 0;
   text-align: center;
+}
+/* Doubled class: .env-action-wrap's position: relative is later in the file. */
+.expense-redesign .env-action-wrap.erd-home-hero-menu {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+.expense-redesign .erd-home-hero-menu .env-menu-trigger {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--erd-border-strong);
+  color: var(--erd-text);
 }
 .erd-home-hero-label {
   font-size: 11px;
@@ -539,17 +589,13 @@
   gap: 4px;
   padding: 14px;
   border-radius: var(--tk-radius-lg);
-  color: var(--erd-text2);
+  background: var(--erd-card-solid);
+  border: 1px solid var(--erd-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  color: var(--erd-text);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-}
-.erd-home-insights-link:hover {
-  background: var(--erd-border);
-  color: var(--erd-text);
 }
 
 .env2-head {
@@ -585,15 +631,17 @@
   margin-top: 6px;
 }
 .env2-group {
-  border-top: 1px solid var(--erd-border);
-  padding-block: 8px;
+  padding-block: 6px;
 }
-.env2-group-head {
+.env2-list > .env2-group:first-child {
+  border-top: 1px solid var(--erd-border);
+}
+.expense-redesign .env2-group-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 4px;
+  padding: 4px 8px 4px 4px;
   border: none;
   border-radius: 10px;
   background: none;
@@ -615,6 +663,8 @@
   color: var(--erd-text2);
 }
 .env2-group-left {
+  flex-shrink: 0;
+  text-align: right;
   font-size: 13px;
   font-weight: 600;
   color: var(--mint);
@@ -627,22 +677,26 @@
 .env2-group-rows {
   margin-left: 11px;
   padding-left: 14px;
-  padding-bottom: 6px;
   border-left: 1px solid var(--erd-border);
 }
 .env2-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 8px;
+  gap: 10px;
+  padding: 7px 8px;
   margin-left: -8px;
   border-radius: 12px;
   transition: background 0.15s ease;
 }
-.env2-row + .env2-row {
+.env2-group-rows .env2-row {
+  margin-left: -14px;
+  padding-left: 22px;
   border-top: 1px solid var(--erd-border);
   border-radius: 0 0 12px 12px;
+}
+.env2-group-rows .env2-row:first-child {
+  border-top: none;
 }
 .env2-row:hover,
 .env2-row.is-open {
@@ -652,7 +706,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   padding: 0;
   border: none;
@@ -696,7 +750,7 @@
 .env2-meta {
   font-size: 11px;
   font-weight: 500;
-  color: var(--erd-text3);
+  color: var(--erd-text2);
 }
 .env2-available {
   min-width: 84px;
@@ -705,6 +759,37 @@
   font-weight: 600;
   color: var(--mint);
   font-variant-numeric: tabular-nums;
+}
+.env2-category-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
+}
+.env2-spent-label {
+  font-size: 11px;
+}
+.env2-balance-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--erd-text2);
+  font-size: 10px;
+  font-weight: 500;
+}
+.env2-row-main:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .env2-row { gap: 8px; }
+  .env2-row-top { flex-wrap: wrap; }
+  .env2-spent-of {
+    flex-basis: 100%;
+    margin-left: 0;
+    font-size: 11px;
+  }
+  .env2-available { min-width: 64px; font-size: 13px; }
 }
 .env2-menu-title {
   padding: 8px 12px 4px;
@@ -723,6 +808,62 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--gold-ink);
+}
+
+/* ── Reveal on load ─────────────────────────────────────────────
+   Home blocks rise in one after another, then envelope groups, then
+   the bars fill. `backwards` fill so nothing is pinned after the run
+   (hover transforms etc. still apply). */
+@keyframes erd-barFill {
+  from {
+    transform: scaleX(0);
+  }
+}
+.erd-home-main > *,
+.erd-home-rail > *,
+.env2-group,
+.env-page > .env-group-list > .env-group {
+  animation: erd-fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.erd-home-main > :nth-child(2),
+.erd-home-rail > :nth-child(1) {
+  animation-delay: 0.06s;
+}
+.erd-home-main > :nth-child(3),
+.erd-home-rail > :nth-child(2) {
+  animation-delay: 0.12s;
+}
+.erd-home-main > :nth-child(n + 4) {
+  animation-delay: 0.18s;
+}
+.env2-group:nth-child(1),
+.env-group:nth-child(1) {
+  animation-delay: 0.14s;
+}
+.env2-group:nth-child(2),
+.env-group:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.env2-group:nth-child(3),
+.env-group:nth-child(3) {
+  animation-delay: 0.26s;
+}
+.env2-group:nth-child(n + 4),
+.env-group:nth-child(n + 4) {
+  animation-delay: 0.32s;
+}
+.env2-bar .env-bar-fill {
+  transform-origin: left;
+  animation: erd-barFill 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.35s backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .erd-home-main > *,
+  .erd-home-rail > *,
+  .env2-group,
+  .env-page > .env-group-list > .env-group,
+  .env2-bar .env-bar-fill {
+    animation: none;
+  }
 }
 
 .erd-dashboard-link-row {
@@ -897,7 +1038,9 @@
   font-size: 13px;
   cursor: pointer;
   font-family: var(--font-fredoka);
-  transition: transform 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    scale var(--dur-press) var(--ease-press);
   white-space: nowrap;
   flex: 0 0 auto;
 }
@@ -905,7 +1048,7 @@
   transform: translateY(-2px);
 }
 .erd-log-btn:active {
-  transform: scale(0.95);
+  scale: 0.96;
 }
 .erd-custom-dates {
   display: flex;
@@ -1191,7 +1334,7 @@
 /* ── Envelopes ──────────────────────────────────────────────── */
 
 .erd-envelopes-panel {
-  padding: 24px 28px 12px;
+  padding: 20px 24px 10px;
 }
 .erd-panel-head-sub {
   font-size: 12px;
@@ -1302,6 +1445,12 @@
   min-width: 0;
   padding-right: 14px;
 }
+.env-cat-actions {
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--erd-border);
+}
+
 .env-cat-name {
   display: flex;
   align-items: center;
@@ -1846,12 +1995,6 @@
   color: var(--erd-text3);
   cursor: pointer;
 }
-.subp-section-head svg {
-  transition: transform 0.2s;
-}
-.subp-section-head.is-open svg {
-  transform: rotate(90deg);
-}
 
 /* ── Mobile (header / stats / tabbar) ───────────────────────── */
 
@@ -2035,10 +2178,10 @@
     margin-top: -22px;
     box-shadow: 0 10px 24px -6px oklch(65% 0.1 255 / 0.5);
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: scale var(--dur-press) var(--ease-press);
   }
   .erd-tab-fab:active {
-    transform: scale(0.9);
+    scale: 0.9;
   }
   .erd-theme-toggle {
     top: auto;
@@ -2332,6 +2475,21 @@
   font-size: 13px;
   margin: 10px 0 0;
 }
+.erd-amount-field.is-warn {
+  border-bottom-color: var(--warn);
+}
+.erd-log-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+.erd-log-warning svg {
+  flex: 0 0 auto;
+  color: var(--warn);
+}
 
 /* ── Log expense modal — compact, uniform-rhythm layout ─────────
    Card becomes a column: pinned header + footer, body scrolls. */
@@ -2348,6 +2506,8 @@
 .erd-log-card .erd-log-body {
   overflow-y: auto;
   min-height: 0;
+  /* overflow clips at the padding box; without this the last chip row's bottom border is cut off. */
+  padding-bottom: 4px;
 }
 /* Uniform 24px between sections (8px base system), 8px label → field. */
 .erd-log-card .erd-log-section + .erd-log-section {
@@ -2366,6 +2526,56 @@
 }
 .erd-log-card .category-picker {
   margin-top: 0;
+}
+
+/* Blocked save: Mobile's Nudge highlight on each skipped field. */
+.erd-log-card .erd-log-label {
+  width: fit-content;
+}
+.erd-log-card .erd-log-label.is-missing {
+  color: var(--tk-accent);
+}
+.erd-log-card .erd-log-input.is-missing,
+.erd-amount-field.is-missing {
+  border-color: var(--tk-accent);
+}
+
+/* Toast (Toast.tsx): a pill dropped in from the top of the screen, above dialogs. */
+.erd-toast {
+  position: fixed;
+  top: 16px;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.erd-toast-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: min(86%, 480px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--tk-card-solid);
+  color: var(--tk-text);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.15);
+  font: 700 15px/1.3 var(--font-nunito);
+}
+.erd-toast-pill.has-icon {
+  padding-left: 6px;
+}
+.erd-toast-badge {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tk-accent);
 }
 
 /* Amount — the primary input: big, left-aligned, borderless with a bottom divider. */
@@ -2728,7 +2938,9 @@
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-fredoka);
-  transition: all 0.2s ease;
+  transition:
+    all 0.2s ease,
+    scale var(--dur-press) var(--ease-press);
 }
 .expense-redesign .action-button:hover {
   transform: translateY(-1px);
@@ -3086,6 +3298,7 @@
 }
 
 .expense-redesign .txn-timeline-list {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -3125,6 +3338,8 @@
   white-space: nowrap;
 }
 .expense-redesign .txn-day-rows {
+  /* AnimatePresence popLayout lifts a removed row out of flow against this. */
+  position: relative;
   display: flex;
   flex-direction: column;
 }
@@ -3225,25 +3440,6 @@
 .expense-redesign .txn-actions .env-menu {
   top: 10px;
 }
-.txn-kebab-confirm {
-  padding: 9px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.txn-kebab-confirm-label {
-  font-size: 12px;
-  color: var(--erd-text2);
-}
-.txn-kebab-confirm-actions {
-  display: flex;
-  gap: 6px;
-}
-.txn-kebab-confirm-actions .env-menu-item {
-  flex: 1;
-  text-align: center;
-}
-
 .expense-redesign .txn-timeline-footer {
   display: flex;
   align-items: center;
@@ -3582,7 +3778,8 @@
   text-decoration: none;
   transition:
     transform 0.15s ease,
-    background-color 0.15s ease;
+    background-color 0.15s ease,
+    scale var(--dur-press) var(--ease-press);
 }
 
 .auth-btn:hover {
@@ -3590,7 +3787,7 @@
 }
 
 .auth-btn:active {
-  transform: scale(0.98);
+  scale: 0.96;
 }
 
 .auth-btn:disabled {
@@ -3635,11 +3832,13 @@
   color: var(--erd-text3);
   text-align: center;
   line-height: 1.6;
-  margin: 6px 0 0;
+  margin: 0 auto;
+  max-width: 280px;
 }
 
 .auth-legal a {
   color: var(--gold-ink);
+  text-decoration: none;
 }
 
 .auth-field {
@@ -5862,7 +6061,8 @@ button.account-feature-card {
    on hover, because a pointer can reveal them without a gesture. */
 
 .expense-redesign .erd-content.env-page {
-  padding: 32px 20px 56px;
+  padding: 28px 32px 56px;
+  gap: 0;
 }
 @media (max-width: 900px) {
   .expense-redesign .erd-content.env-page {
@@ -5885,12 +6085,12 @@ button.account-feature-card {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 
 .env-group {
   border: 1px solid var(--erd-border);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--erd-card);
   overflow: hidden;
 }
@@ -5899,7 +6099,8 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px 18px;
+  background: color-mix(in oklab, var(--erd-text) 3%, transparent);
 }
 
 .expense-redesign .env-group-toggle {
@@ -5924,7 +6125,9 @@ button.account-feature-card {
 
 .expense-redesign .env-group-name {
   font-family: var(--font-fredoka);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5946,10 +6149,14 @@ button.account-feature-card {
 }
 
 .env-icon-btn {
+  text-decoration: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
   border: 0;
   border-radius: 8px;
   background: none;
@@ -5970,7 +6177,7 @@ button.account-feature-card {
 .env-cat-list {
   list-style: none;
   margin: 0;
-  padding: 0 12px 8px 12px;
+  padding: 0 18px;
   display: flex;
   flex-direction: column;
 }
@@ -5978,13 +6185,16 @@ button.account-feature-card {
 .env-cat {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 4px;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 0;
+  transition: background-color 150ms ease;
   border-top: 1px solid var(--erd-border);
-  font-size: 0.85rem;
+  font-size: 15px;
 }
 
 .env-cat-name {
+  font-weight: 650;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -6000,23 +6210,171 @@ button.account-feature-card {
 
 .env-cat-alerts {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   flex-shrink: 0;
-  gap: 4px;
+  gap: 9px;
   white-space: nowrap;
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
-  color: var(--erd-text3);
+  color: var(--erd-text2);
   background: none;
   border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 3px 9px;
+  border-radius: 10px;
+  padding: 7px 12px;
+  text-align: left;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
   cursor: pointer;
+}
+
+.env-cat-alerts > svg {
+  margin-top: 10px;
 }
 
 .env-cat-alerts:hover {
   color: var(--gold-ink);
   border-color: var(--erd-border);
+}
+
+/* Match Activity's reading width, hierarchy, and category colors. */
+.env-page > .env-page-header,
+.env-page > .env-page-toolbar,
+.env-page > .env-group-list {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+.expense-redesign .env-page-header {
+  padding-bottom: 24px;
+}
+.env-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 4px;
+  margin-bottom: 16px;
+  border-block: 1px solid var(--erd-border);
+}
+.env-page-summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--erd-text2);
+}
+.env-page-summary strong {
+  color: var(--erd-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.env-page-summary > span {
+  margin-inline: 10px;
+  color: var(--erd-text3);
+}
+.env-cat-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 17px;
+}
+.env-alert-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.env-alert-label {
+  font-size: 10px;
+  color: var(--erd-text2);
+}
+.env-alert-values {
+  color: var(--erd-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.env-cat:hover {
+  background: color-mix(in oklab, var(--erd-text) 2%, transparent);
+}
+.env-page button:focus-visible,
+.env-page a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.env-page .env-group-toggle {
+  min-height: 34px;
+}
+@media (max-width: 600px) {
+  .expense-redesign .env-page-header {
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 24px;
+  }
+  .env-page-header .txn-page-heading p {
+    max-width: 28ch;
+  }
+  .env-page-header .txn-page-log-btn {
+    padding-inline: 14px;
+    white-space: nowrap;
+  }
+  .env-page-toolbar {
+    gap: 8px;
+  }
+  .env-page-summary > span {
+    margin-inline: 4px;
+  }
+  .env-group-head {
+    padding: 10px;
+  }
+  .env-cat-list {
+    padding-inline: 10px;
+  }
+  .env-cat {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    padding-block: 10px;
+  }
+  .env-cat-icon {
+    grid-row: span 2;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .env-cat-name {
+    grid-column: 2;
+  }
+  .env-cat-alerts {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    padding: 2px 0;
+    gap: 5px;
+  }
+  .env-alert-copy {
+    flex-direction: row;
+    gap: 5px;
+  }
+  .env-alert-label {
+    display: none;
+  }
+  .env-alert-values {
+    font-size: 11px;
+    color: var(--erd-text2);
+  }
+  .env-cat-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    margin-left: 0;
+    padding-left: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .env-page .env-cat,
+  .env-page .env-icon-btn,
+  .env-page .env-cat-alerts {
+    transition: none;
+  }
 }
 
 .env-input {
@@ -6281,6 +6639,105 @@ button.account-feature-card {
   .expense-redesign .erd-modal-card.env-sheet--rename {
     padding: 24px 20px;
   }
+}
+
+/* Alerts sheet: builds on the rename sheet's header/actions */
+.env-sheet--alerts .env-sheet-rename-head {
+  margin-bottom: 16px;
+}
+
+.env-sheet--alerts .env-sheet-copy {
+  margin-bottom: 18px;
+  line-height: 1.45;
+}
+
+.env-sheet--alerts .env-pct-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 0;
+}
+
+.env-sheet--alerts .env-pct {
+  height: 40px;
+  padding: 0;
+  font-weight: 700;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.env-sheet--alerts .env-pct:hover:not(:disabled):not(.is-on) {
+  border-color: var(--erd-text3);
+  color: var(--erd-text);
+}
+
+.env-sheet--alerts .env-pct-custom {
+  position: relative;
+  display: block;
+  margin-top: 14px;
+}
+
+.env-sheet--alerts .env-pct-custom .env-input {
+  padding-right: 76px;
+}
+
+/* hide native number spinners */
+.env-sheet--alerts .env-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.env-sheet--alerts .env-input[type="number"]::-webkit-inner-spin-button,
+.env-sheet--alerts .env-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.env-pct-add {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: 6px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.env-pct-add:hover:not(:disabled) {
+  background: var(--gold-hover);
+}
+
+.env-pct-add:disabled {
+  background: transparent;
+  color: var(--erd-text3);
+  cursor: not-allowed;
+}
+
+.env-sheet--alerts .env-sheet-hint {
+  margin-top: 10px;
+}
+
+.env-sheet--alerts .env-sheet-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.env-sheet--alerts .env-sheet-actions {
+  margin-top: 20px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.env-sheet--alerts .env-sheet-action {
+  flex: 1;
 }
 
 /* Money Brain */
@@ -6550,26 +7007,25 @@ button.account-feature-card {
   gap: 10px;
   margin-top: 24px;
 }
+/* Mirrors the mobile app's bubbles (Mobile/app/modals/money-brain.tsx). */
 .brain-bubble {
-  max-width: 86%;
-  padding: 11px 14px;
-  border-radius: 18px;
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 16px;
   font-size: 0.86rem;
   line-height: 1.55;
   white-space: pre-wrap;
 }
 .brain-bubble--user {
   align-self: flex-end;
-  color: #332815;
-  background: var(--gold);
-  border-bottom-right-radius: 5px;
+  color: var(--erd-text);
+  background: var(--gold-soft);
+  font-weight: 500;
 }
 .brain-bubble--model {
   align-self: flex-start;
   background: var(--erd-card);
   border: 1px solid var(--erd-border);
-  border-bottom-left-radius: 5px;
-  box-shadow: var(--erd-shadow-sm);
 }
 
 /* Money Brain answers: the markdown subset from src/lib/chatMarkdown.ts. */
@@ -6696,10 +7152,10 @@ button.account-feature-card {
   background: var(--erd-card);
   text-align: left;
   cursor: pointer;
+  transition: border-color 180ms ease;
 }
 .brain-history-list button:hover {
   border-color: var(--gold);
-  transform: translateX(-2px);
 }
 .brain-history-list strong {
   font-size: 0.83rem;
@@ -8422,6 +8878,10 @@ button.account-feature-card {
   margin: 0;
   padding: 0;
 }
+.recurring-list {
+  /* AnimatePresence popLayout lifts a removed row out of flow against this. */
+  position: relative;
+}
 .recurring-list > li + li {
   border-top: 1px solid var(--erd-border);
 }
@@ -8989,7 +9449,6 @@ button.account-feature-card {
   border: 1px solid var(--erd-border);
   border-radius: 16px;
   background: var(--erd-card);
-  animation: erd-fadeUp 0.35s ease both;
 }
 .scan-item:focus-within {
   border-color: var(--erd-border-strong);
@@ -9202,7 +9661,6 @@ button.account-feature-card {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  animation: erd-fadeUp 0.35s ease both;
 }
 .scan-bucket + .scan-bucket {
   border-top: 1px solid var(--erd-border);
@@ -9559,4 +10017,99 @@ button.account-feature-card {
 
 .expense-redesign .txn-review.txn-review-notice {
   padding-top: 4px;
+}
+
+/* ── Expense added (ExpenseAdded.tsx, inside the log dialog) ───────────────
+   Mobile's app/modals/expense-added.tsx: one centred column, tick, headline,
+   item, the envelope card, then Undo / Done. */
+.erd-added {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.erd-added-receipt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.erd-added-tick {
+  width: 200px;
+  height: 200px;
+}
+.erd-added-headline {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-top: -26px;
+  font: 700 40px/1.2 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.erd-added-subtitle {
+  margin-top: 8px;
+  font: 800 17px/1.3 var(--font-nunito);
+  color: var(--erd-text2);
+  text-align: center;
+}
+.erd-added-card {
+  align-self: stretch;
+  margin-top: 32px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--erd-card);
+}
+.erd-added-left {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 12px;
+  font: 700 32px/1.2 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.erd-added-left > span:last-child {
+  font: 700 13px/1.3 var(--font-nunito);
+  color: var(--erd-text2);
+}
+.erd-added-bar {
+  margin-top: 16px;
+}
+.erd-added-pace {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid var(--erd-border);
+  font: 800 13px/1.3 var(--font-nunito);
+  color: var(--erd-text3);
+}
+.erd-added-pace strong {
+  font-weight: 800;
+  color: var(--erd-text);
+}
+.erd-added-footer {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+}
+.erd-added-actions {
+  display: flex;
+  gap: 12px;
+}
+.erd-added-actions .erd-added-undo {
+  flex: 0 0 132px;
+  min-height: 54px;
+}
+.erd-added-actions .erd-added-done {
+  flex: 1;
+  margin: 0;
+}
+.erd-added-stamp {
+  text-align: center;
+  font: 800 13px/1.3 var(--font-nunito);
+  color: var(--erd-text3);
 }

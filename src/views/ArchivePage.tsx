@@ -3,7 +3,8 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -229,7 +230,8 @@ export function ArchivePage() {
           </div>
 
           <ul className="archive-list" aria-label="Archived items">
-            {pageItems.map((item) => {
+            <AnimatePresence initial={false}>
+            {pageItems.map((item, idx) => {
               const days = daysUntil(item.purgesAt)
               const band = bandFor(days)
               const showBand = band !== lastBand
@@ -237,7 +239,20 @@ export function ArchivePage() {
               const isPending = pending?.id === item.id
               const restored = restoredId === item.id
               return (
-                <li key={item.id}>
+                <motion.li
+                  key={item.id}
+                  layout="position"
+                  transition={LIST_SPRING}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.15 } }}
+                  exit={{
+                    opacity: 0,
+                    // Restore all clears the list top-down, like Mobile.
+                    transition: restoreAllButton.saving
+                      ? { duration: 0.18, delay: idx * 0.055 }
+                      : { duration: 0.12 },
+                  }}
+                >
                   {showBand && <div className={`archive-band ${days <= 1 ? 'is-coral' : ''}`}>{band}</div>}
                   <div className={`account-card archive-row ${days <= 1 ? 'is-urgent' : ''}`}>
                     <span className="archive-kind" aria-hidden="true">
@@ -279,9 +294,10 @@ export function ArchivePage() {
                       {restored ? '✓ Restored' : isPending && pending?.kind === 'restore' ? 'Restoring…' : 'Restore'}
                     </button>
                   </div>
-                </li>
+                </motion.li>
               )
             })}
+            </AnimatePresence>
           </ul>
 
           {filter !== 'all' && shown.length === 0 && (

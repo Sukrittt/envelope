@@ -42,7 +42,8 @@ export async function reconcileThresholdLevels(
     const month = today.slice(0, 7)
     if (changedMonth && changedMonth !== month) return
 
-    const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth)
+    // Threshold notifications never read `facts`, so skip the 6-month AI window.
+    const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth, { monthOnly: true })
 
     const notifications = buildNotifications({
       envelopes,

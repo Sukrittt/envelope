@@ -44,7 +44,7 @@ export default async function AdminSystem() {
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
               <strong>Android app update</strong>
-              <div className="adm-sub">Set this after a new Play Store release. Leave the version empty to hide the update link in the app.</div>
+              <div className="adm-sub">Set this after a new Play Store release. Leave the version empty to hide the update link in the app. Set a minimum only after a native build that OTA updates can&apos;t deliver.</div>
             </div>
 
             <input
@@ -52,6 +52,15 @@ export default async function AdminSystem() {
               name="androidLatestVersion"
               defaultValue={settings.appUpdate.android.latestVersion}
               placeholder="Latest version, e.g. 2.3.0"
+              inputMode="decimal"
+              maxLength={32}
+            />
+
+            <input
+              className="adm-input"
+              name="androidMinVersion"
+              defaultValue={settings.appUpdate.android.minVersion}
+              placeholder="Minimum version, e.g. 2.3.0 (older installs see a Home banner)"
               inputMode="decimal"
               maxLength={32}
             />

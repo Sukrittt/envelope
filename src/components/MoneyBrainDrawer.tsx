@@ -2,13 +2,14 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
 import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
-import { useExpenses } from '@/src/hooks/useExpenses'
+import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { useGroups } from '@/src/hooks/useGroups'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
@@ -21,8 +22,15 @@ import { LoadingCaption } from './LoadingCaption'
 import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
 
+export interface OpenChat {
+  sessionId: string | null
+  messages: ChatMessage[]
+}
+
 interface Props {
   initialSessionId?: string | null
+  /** The chat left open last time; the drawer restores it and keeps it current. */
+  openChat?: MutableRefObject<OpenChat>
   onClose: () => void
 }
 
@@ -36,22 +44,23 @@ function timeAgo(iso: string) {
   return `${Math.round(mins / 1440)}d ago`
 }
 
-export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
+export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }: Props) {
   const { formatCurrency } = useCurrency()
 
   const reduceMotion = useReducedMotion()
   const queryClient = useQueryClient()
   const [hideAmounts] = useHideAmounts()
   const budgets = useBudgets()
-  const expenses = useExpenses()
+  const expenses = useRecentExpenses()
   const categories = useCategories()
   const groups = useGroups()
   const brief = useMoneyBrief()
   const count = useChatSessionsCount()
 
   const [view, setView] = useState<'chat' | 'history'>('chat')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  // A reply cut off by closing mid-stream leaves an empty model bubble; drop it.
+  const [messages, setMessages] = useState<ChatMessage[]>(() => openChat?.current.messages.filter((m) => m.text) ?? [])
+  const [sessionId, setSessionId] = useState<string | null>(() => openChat?.current.sessionId ?? null)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [loadError, setLoadError] = useState(false)
@@ -106,8 +115,17 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
   }, [initialSessionId])
 
   useEffect(() => {
+    if (openChat) openChat.current = { sessionId, messages }
+  }, [openChat, sessionId, messages])
+
+  useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
   }, [messages, reduceMotion])
+
+  // Reopening the drawer or coming back from history lands on the latest message, not the top.
+  useLayoutEffect(() => {
+    if (view === 'chat') bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight })
+  }, [view])
 
   function startNewChat() {
     abortRef.current?.abort()
@@ -201,7 +219,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
-            <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions this month` : 'Reading your budget…'}</p>
+            <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
           </div>
           <div className="brain-head-actions">
             {view === 'chat' && (
@@ -226,12 +244,18 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
             </label>
             {history.isLoading && !history.data ? <LoadingCaption /> : history.data?.sessions.length ? (
               <div className="brain-history-list">
-                {history.data.sessions.map((item) => (
-                  <button key={item.id} type="button" onClick={() => void openSession(item.id)}>
+                {history.data.sessions.map((item, i) => (
+                  <motion.button
+                    key={item.id}
+                    type="button"
+                    onClick={() => void openSession(item.id)}
+                    {...popIn(staggerDelay(i, 0))}
+                    whileHover={{ x: -2, transition: { duration: 0.16 } }}
+                  >
                     <strong>{item.title}</strong>
                     <span>{item.preview}</span>
                     <small>{timeAgo(item.updatedAt)} · {item.messageCount} messages</small>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             ) : (
@@ -249,7 +273,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
           <>
             <div className="brain-body" ref={bodyRef}>
               {loadError && <div className="brain-error" role="alert">Couldn’t load that chat. Check your connection and try again.</div>}
-              <section className="brain-summary-card">
+              <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
                 <span className="brain-kicker">This month so far</span>
                 <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
                 <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
@@ -258,15 +282,19 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                 {brief.isLoading ? <LoadingCaption /> : brief.isError ? (
                   <button className="brain-retry" type="button" onClick={() => void brief.refetch()}>Couldn’t load your money brief. Retry</button>
                 ) : <p>{brief.data?.narrative}</p>}
-              </section>
+              </motion.section>
               {brief.data?.cards.length ? (
                 <section className="brain-insight-grid">
-                  {brief.data.cards.map((card) => (
-                    <article key={`${card.title}-${card.valueLabel}`} className={`brain-insight brain-insight--${card.tone}`}>
+                  {brief.data.cards.map((card, i) => (
+                    <motion.article
+                      key={`${card.title}-${card.valueLabel}`}
+                      className={`brain-insight brain-insight--${card.tone}`}
+                      {...popIn(staggerDelay(i, STAGGER.mount + STAGGER.block))}
+                    >
                       <span className="brain-insight-icon" aria-hidden="true">{card.icon}</span>
                       <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
                       <div className="brain-insight-value"><b>{formatCurrency(card.amount, hideAmounts)}</b><small>{card.valueLabel}</small></div>
-                    </article>
+                    </motion.article>
                   ))}
                 </section>
               ) : null}
@@ -274,8 +302,16 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
                 <section>
                   <span className="brain-kicker">Ask anything</span>
                   <div className="brain-chips">
-                    {brief.data.questions.map((question) => (
-                      <button key={question} type="button" disabled={sending} onClick={() => void send(question, 'chip')}>{question}</button>
+                    {brief.data.questions.map((question, i) => (
+                      <motion.button
+                        key={question}
+                        type="button"
+                        disabled={sending}
+                        onClick={() => void send(question, 'chip')}
+                        {...popIn(staggerDelay(i, STAGGER.mount + 2 * STAGGER.block))}
+                      >
+                        {question}
+                      </motion.button>
                     ))}
                   </div>
                 </section>

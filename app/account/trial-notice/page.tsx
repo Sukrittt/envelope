@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { motion } from 'motion/react'
+import { popIn } from '@/src/components/landing/mobile/kit'
 import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { formatDate } from '@/src/components/billing/copy'
 
@@ -16,20 +18,20 @@ export default function TrialNoticePage() {
 
   return (
     <div className="trial-notice">
-      <div className="trial-notice-badge">✨</div>
-      <h1 className="trial-notice-title">You&apos;re on the trial plan</h1>
-      <p className="trial-notice-body">
+      <motion.div className="trial-notice-badge" {...popIn(0)}>✨</motion.div>
+      <motion.h1 className="trial-notice-title" {...popIn(80)}>You&apos;re on the trial plan</motion.h1>
+      <motion.p className="trial-notice-body" {...popIn(80)}>
         {dated
           ? `Everything's free until ${formatDate(data.trialEndsAt)}. No card needed, nothing to cancel.`
           : "Everything's free while you try it out. No card needed, nothing to cancel."}
-      </p>
-      <div className="trial-notice-card">
+      </motion.p>
+      <motion.div className="trial-notice-card" {...popIn(160)}>
         <strong>What happens when it ends</strong>
         <p>
           We&apos;ll remind you a week before. Then you can subscribe in the Android app. Nothing is charged
           automatically, and you can always export your data for free.
         </p>
-      </div>
+      </motion.div>
       <button type="button" className="setup-cta" onClick={() =>
           // Opened from the account page's Plan & billing row, "Got it" goes
           // back there; right after onboarding it hands off to the app.

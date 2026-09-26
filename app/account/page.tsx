@@ -232,7 +232,7 @@ export default function AccountPage() {
             </Link>
             <a
               className="account-badge"
-              href="https://github.com/Sukrittt/envelope-mobile"
+              href="https://github.com/Sukrittt/aviary-mobile"
               target="_blank"
               rel="noreferrer"
             >

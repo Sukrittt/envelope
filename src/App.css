@@ -61,6 +61,15 @@
   --dur-fast: 120ms;
   --dur-med: 180ms;
   --dur-slow: 240ms;
+  /* Mobile's press spring (damping 15, stiffness 180, mass 1), sampled as linear(). */
+  --ease-press: linear(0, 0.07, 0.236, 0.441, 0.644, 0.819, 0.954, 1.046, 1.099, 1.119, 1.116, 1.1, 1.076, 1.051, 1.029, 1.011, 0.998, 0.99, 0.986, 0.986, 0.987, 0.99, 0.993, 0.996, 1);
+  --dur-press: 725ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 0ms;
+  }
 }
 
 * {
@@ -1299,7 +1308,8 @@ input[type="date"],
     background-color var(--dur-fast) var(--ease-standard),
     color var(--dur-fast) var(--ease-standard),
     border-color var(--dur-fast) var(--ease-standard),
-    transform var(--dur-fast) var(--ease-standard);
+    transform var(--dur-fast) var(--ease-standard),
+    scale var(--dur-press) var(--ease-press);
 }
 
 /* Pointer-down feedback + touch responsiveness for the rest of the
@@ -1342,7 +1352,44 @@ input[type="date"]:hover {
 
 .action-button:active,
 .inline-link:active {
-  transform: scale(0.96);
+  scale: 0.96;
+}
+
+/* Mobile's Button: every CTA springs to 0.96 while pressed. `scale`, not
+   `transform`, so hover lifts keep working underneath. */
+.account-pill-btn,
+.account-danger-btn,
+.account-compact-btn,
+.account-confirm-cancel,
+.account-signout-btn,
+.setup-cta,
+.setup-split-btn,
+.setup-add-pill,
+.scan-link-btn,
+.erd-accent-action,
+.txn-review-primary,
+.txn-review-secondary,
+.subp-add-button,
+.tour-try-real,
+.tour-skip {
+  transition: scale var(--dur-press) var(--ease-press);
+}
+.account-pill-btn:active:not(:disabled),
+.account-danger-btn:active:not(:disabled),
+.account-compact-btn:active:not(:disabled),
+.account-confirm-cancel:active:not(:disabled),
+.account-signout-btn:active:not(:disabled),
+.setup-cta:active:not(:disabled),
+.setup-split-btn:active:not(:disabled),
+.setup-add-pill:active:not(:disabled),
+.scan-link-btn:active:not(:disabled),
+.erd-accent-action:active:not(:disabled),
+.txn-review-primary:active:not(:disabled),
+.txn-review-secondary:active:not(:disabled),
+.subp-add-button:active:not(:disabled),
+.tour-try-real:active:not(:disabled),
+.tour-skip:active:not(:disabled) {
+  scale: 0.96;
 }
 
 .module-pill:active,
