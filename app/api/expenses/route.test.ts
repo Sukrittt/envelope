@@ -451,3 +451,9 @@ it('rejects malformed timestamps and non-text update values before writing', asy
   await POST(req('POST', { item: 'Coffee', amount_inr: '1', category: 'Food' }))
   expect((await PUT(req('PUT', { id: String(stores.expenses[0]._id), new_item: { bad: true } }))).status).toBe(400)
 })
+
+it('lets an edit correct an amount to zero, matching the transaction editor', async () => {
+  await POST(req('POST', { item: 'Coffee', amount_inr: '100', category: 'Food' }))
+  const res = await PUT(req('PUT', { id: String(stores.expenses[0]._id), new_amount_inr: '0' }))
+  expect(res.status).toBe(200)
+})

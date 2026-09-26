@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic'
 
 const DEFAULT_LIMIT = 10
 const MAX_LIMIT = 100
+// ponytail: search covers only the newest sessions; store a searchable title index if users outgrow it.
+const SEARCH_SCAN_LIMIT = 1000
 
 /**
  * List the current user's chat sessions, newest first, paginated and optionally
@@ -24,7 +26,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url)
   const { page, limit } = parsePageParams(url, { defaultLimit: DEFAULT_LIMIT, maxLimit: MAX_LIMIT })
-  const q = url.searchParams.get('q')?.trim().toLowerCase()
+  const q = url.searchParams.get('q')?.trim().toLowerCase().slice(0, 200)
   const sort = { updatedAt: -1, _id: -1 } as const
   const preview = { $project: {
     title: 1, updatedAt: 1,
@@ -37,7 +39,7 @@ export async function GET(req: Request) {
   if (q) {
     total = 0
     const ids: unknown[] = []
-    const cursor = sessions.find({}, { projection: { title: 1 } }).sort(sort).batchSize(250)
+    const cursor = sessions.find({}, { projection: { title: 1 } }).sort(sort).limit(SEARCH_SCAN_LIMIT).batchSize(250)
     try {
       for await (const row of cursor) {
         if (!String(row.title ?? '').toLowerCase().includes(q)) continue

@@ -65,11 +65,8 @@ export async function POST(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!validMonth(body.month) || !validText(body.category, 100)) return error('invalid month or category')
-  for (const field of ['assigned', 'rolled_over', 'extra'] as const) {
-    if (body[field] !== undefined && !validMoney(body[field], field !== 'assigned')) return error(`invalid ${field}`)
-  }
-  if (body.newCategory !== undefined && !validText(body.newCategory, 100)) return error('invalid category')
+  const invalid = budgetInputError(body)
+  if (invalid) return error(invalid)
   if (!body.month || !body.category || body.assigned === undefined) {
     return error('month, category, assigned required')
   }
@@ -107,11 +104,8 @@ export async function PUT(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!validMonth(body.month) || !validText(body.category, 100)) return error('invalid month or category')
-  for (const field of ['assigned', 'rolled_over', 'extra'] as const) {
-    if (body[field] !== undefined && !validMoney(body[field], field !== 'assigned')) return error(`invalid ${field}`)
-  }
-  if (body.newCategory !== undefined && !validText(body.newCategory, 100)) return error('invalid category')
+  const invalid = budgetInputError(body)
+  if (invalid) return error(invalid)
   if (!body.month || !body.category) return error('month, category required')
   const precondition = writePrecondition(body)
   if (precondition) return precondition
@@ -199,11 +193,8 @@ export async function DELETE(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!validMonth(body.month) || !validText(body.category, 100)) return error('invalid month or category')
-  for (const field of ['assigned', 'rolled_over', 'extra'] as const) {
-    if (body[field] !== undefined && !validMoney(body[field], field !== 'assigned')) return error(`invalid ${field}`)
-  }
-  if (body.newCategory !== undefined && !validText(body.newCategory, 100)) return error('invalid category')
+  const invalid = budgetInputError(body)
+  if (invalid) return error(invalid)
   if (!body.month || !body.category) return error('month, category required')
 
   const coll = await getCollection('budgets', auth)
@@ -212,4 +203,14 @@ export async function DELETE(req: Request) {
   invalidate('budgets', auth.userId)
   await reconcileThresholdLevels(auth, [String(body.category)], String(body.month))
   return json({ ok: true })
+}
+
+// Negative amounts are legitimate: transfers can overdraw `assigned`.
+function budgetInputError(body: Record<string, unknown>): string | null {
+  if (!validMonth(body.month) || !validText(body.category, 100)) return 'invalid month or category'
+  for (const field of ['assigned', 'rolled_over', 'extra'] as const) {
+    if (body[field] !== undefined && !validMoney(body[field], true)) return `invalid ${field}`
+  }
+  if (body.newCategory !== undefined && !validText(body.newCategory, 100)) return 'invalid category'
+  return null
 }
