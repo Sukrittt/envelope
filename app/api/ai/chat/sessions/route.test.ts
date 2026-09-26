@@ -18,11 +18,25 @@ vi.mock('@/lib/http', async (importOriginal) => {
   return {
     ...actual,
     getCollection: vi.fn(async () => ({
-      find: () => ({
-        sort: () => ({
-          toArray: async () => [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-        }),
-      }),
+      countDocuments: async () => sessions.length,
+      find: (_filter: unknown, options: { projection: Record<string, unknown> }) => {
+        if (options.projection.messages) throw new Error('History must not load transcripts')
+        const rows = [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        const cursor = { sort: () => cursor, batchSize: () => cursor, close: async () => {}, async *[Symbol.asyncIterator]() { yield* rows } }
+        return cursor
+      },
+      aggregate: (pipeline: Record<string, unknown>[]) => ({ toArray: async () => {
+        let rows = [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        for (const stage of pipeline) {
+          if (stage.$skip !== undefined) rows = rows.slice(Number(stage.$skip))
+          if (stage.$limit !== undefined) rows = rows.slice(0, Number(stage.$limit))
+          if (stage.$match) {
+            const ids = (stage.$match as { _id: { $in: string[] } })._id.$in
+            rows = rows.filter(r => ids.includes(r._id))
+          }
+        }
+        return rows.map(r => ({ ...r, messageCount: r.messages.length, messages: r.messages.slice(-1) }))
+      } }),
     })),
   }
 })

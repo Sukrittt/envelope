@@ -4,10 +4,8 @@ vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
 }))
 
-const deleteManyMock = vi.fn(async () => ({ deletedCount: 0 }))
-vi.mock('@/lib/scoped', () => ({
-  scoped: vi.fn(() => ({ deleteMany: deleteManyMock })),
-}))
+const softDeleteMock = vi.fn(async () => '2026-09-26T00:00:00+05:30')
+vi.mock('@/lib/accountLifecycle', () => ({ softDeleteAccount: softDeleteMock }))
 
 const deleteUserMock = vi.fn(async () => undefined)
 const updateUserMock = vi.fn(async () => undefined)
@@ -77,11 +75,7 @@ describe('DELETE /api/user', () => {
     // are removed by the GC cron once the grace window passes, not here.
     expect(deleteUserMock).not.toHaveBeenCalled()
     expect(usersDeleteOneMock).not.toHaveBeenCalled()
-    expect(usersUpdateOneMock).toHaveBeenCalledWith(
-      { _id: 'user_a' },
-      { $set: { deleted_at: expect.any(String) } },
-    )
-    expect(deleteManyMock).toHaveBeenCalled()
+    expect(softDeleteMock).toHaveBeenCalledWith(expect.anything(), 'user_a')
   })
 
   it('no longer accepts the old confirm:true shortcut without an email', async () => {
