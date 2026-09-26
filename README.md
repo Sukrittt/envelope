@@ -180,3 +180,7 @@ Deploy to Vercel. `vercel.json` pins the framework preset to `nextjs`, so the Ne
 
 - `npm run db:migrate` — seed MongoDB from local CSVs (`scripts/migrate-to-mongo.mjs`)
 - `npm run sync:expenses` — sync the expense CSVs (`scripts/sync_expenses.mjs`)
+
+## License
+
+Copyright (c) 2026 Sukrit Saha. Licensed under the [GNU Affero General Public License v3.0](LICENSE). If you run a modified version of Aviary as a service, you must publish your source code under the same license.
