@@ -57,7 +57,7 @@ function fakeCollection(base: string) {
   // resolveCategoryName) starts empty rather than undefined.
   const store = (stores[base] ??= [])
   return {
-    find: (filter: Record<string, unknown> = {}) => {
+    find: (filter: Record<string, unknown> = {}, opts?: { projection?: Record<string, number> }) => {
       let rows = store.filter((d) => matches(d, filter))
       const cursor = {
         sort: () => cursor,
@@ -69,7 +69,13 @@ function fakeCollection(base: string) {
           rows = rows.slice(0, n)
           return cursor
         },
-        toArray: async () => rows,
+        batchSize: () => cursor,
+        close: async () => {},
+        async *[Symbol.asyncIterator]() { yield* rows },
+        toArray: async () => {
+          if (opts?.projection?.amount_inr) throw new Error('Totals must not buffer the whole history')
+          return rows
+        },
       }
       return cursor
     },
@@ -271,8 +277,8 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
   })
 
   it('PUT updates by id even when two rows share the same timestamp/item/amount', async () => {
-    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'dup', date: '2026-06-01' }))
-    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'dup', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: '2026-06-01T12:00:00Z', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: '2026-06-01T12:00:00Z', date: '2026-06-01' }))
     const [first, second] = stores.expenses
 
     const res = await PUT(req('PUT', { id: second._id.toString(), category: 'Dining' }))
@@ -430,4 +436,24 @@ describe('GET /api/expenses — server-side pagination (opt-in via ?page=)', () 
     expect(body.total).toBe(1)
     expect(body.rows[0].item).toBe('Grocery run')
   })
+})
+
+it.each([
+  { amount_inr: 'Infinity' }, { amount_inr: 'NaN' }, { amount_inr: '-1' },
+  { date: '2026-02-30' }, { date: 'not-a-date' }, { payment_method: 'not-a-method' },
+])('rejects invalid expense data before writing: %j', async (invalid) => {
+  const res = await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', ...invalid }))
+  expect(res.status).toBe(400)
+})
+
+it('rejects malformed timestamps and non-text update values before writing', async () => {
+  expect((await POST(req('POST', { item: 'Coffee', amount_inr: '1', category: 'Food', timestamp: 'junk' }))).status).toBe(400)
+  await POST(req('POST', { item: 'Coffee', amount_inr: '1', category: 'Food' }))
+  expect((await PUT(req('PUT', { id: String(stores.expenses[0]._id), new_item: { bad: true } }))).status).toBe(400)
+})
+
+it('lets an edit correct an amount to zero, matching the transaction editor', async () => {
+  await POST(req('POST', { item: 'Coffee', amount_inr: '100', category: 'Food' }))
+  const res = await PUT(req('PUT', { id: String(stores.expenses[0]._id), new_amount_inr: '0' }))
+  expect(res.status).toBe(200)
 })

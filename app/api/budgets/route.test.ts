@@ -89,6 +89,11 @@ describe('POST /api/budgets (C4)', () => {
     )
   })
 
+  it('accepts a negative assignment, which transfers can leave behind', async () => {
+    const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '-10', version: 0 }, 'PUT'))
+    expect(res.status).toBe(200)
+  })
+
   it('reconciles the affected category after an assignment update', async () => {
     const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '8000', version: 0 }, 'PUT'))
     expect(res.status).toBe(200)

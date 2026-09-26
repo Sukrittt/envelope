@@ -39,6 +39,7 @@ export interface UserDoc {
   lastSeenAt?: Date
   /** Set when the account is soft-deleted; the GC cron purges the account (and its WorkOS user) `GRACE_DAYS` after this. Null/absent = active. */
   deleted_at?: string | null
+  account_deletion_version?: 1
 }
 
 interface WorkOSUserLike {
