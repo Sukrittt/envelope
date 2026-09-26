@@ -2,7 +2,7 @@
 
 **Open-source envelope budgeting, built for rupees.** Give every rupee a job, log a spend in three taps, and see what's safe to spend at a glance — on the web and Android.
 
-[Web app](https://ynab-replacement.vercel.app) · [Android (Google Play)](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Mobile repo](https://github.com/Sukrittt/envelope-mobile)
+[Web app](https://ynab-replacement.vercel.app) · [Android (Google Play)](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Mobile repo](https://github.com/Sukrittt/aviary-mobile)
 
 <p align="center">
   <img src="public/landing/home.jpeg" width="200" alt="Home" />
@@ -20,7 +20,7 @@
 
 ## About this repo
 
-The web frontend and API for Aviary, alongside the Expo app in [`Sukrittt/envelope-mobile`](https://github.com/Sukrittt/envelope-mobile). A personal finance dashboard for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with WorkOS AuthKit for sign-in.
+The web frontend and API for Aviary, alongside the Expo app in [`Sukrittt/aviary-mobile`](https://github.com/Sukrittt/aviary-mobile). A personal finance dashboard for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with WorkOS AuthKit for sign-in.
 
 ## Highlights
 

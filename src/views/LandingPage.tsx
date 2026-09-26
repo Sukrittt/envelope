@@ -8,7 +8,7 @@ import { BirdLanding, BirdMark } from '../components/BirdMark'
 import '../landing.css'
 
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
-const GITHUB = 'https://github.com/Sukrittt/envelope-mobile'
+const GITHUB = 'https://github.com/Sukrittt/aviary-mobile'
 const FAQS = [
   { q: 'Why give your money a job?', a: 'Your bank balance includes money for rent, groceries, future plans, and fun. Assigning it to envelopes shows which money is available for each purpose before you spend. Savings is a purpose too: you don’t have to spend everything you assign.' },
   { q: 'Does zero ready to assign mean I’m out of money?', a: 'No. It means you’ve given all your available money a purpose. The money is still yours until you spend it. Check each envelope’s available balance to see what remains for that purpose.' },
