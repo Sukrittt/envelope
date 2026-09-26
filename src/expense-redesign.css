@@ -532,8 +532,11 @@
   }
 }
 
-.erd-home-hero-card {
+.erd-card.erd-home-hero-card {
   position: relative;
+  background: none;
+  border: 0;
+  box-shadow: none;
 }
 .erd-home-hero {
   display: flex;
@@ -7150,10 +7153,10 @@ button.account-feature-card {
   background: var(--erd-card);
   text-align: left;
   cursor: pointer;
+  transition: border-color 180ms ease;
 }
 .brain-history-list button:hover {
   border-color: var(--gold);
-  transform: translateX(-2px);
 }
 .brain-history-list strong {
   font-size: 0.83rem;

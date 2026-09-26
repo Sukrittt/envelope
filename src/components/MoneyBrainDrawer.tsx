@@ -2,7 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
 import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
@@ -22,8 +22,15 @@ import { LoadingCaption } from './LoadingCaption'
 import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
 
+export interface OpenChat {
+  sessionId: string | null
+  messages: ChatMessage[]
+}
+
 interface Props {
   initialSessionId?: string | null
+  /** The chat left open last time; the drawer restores it and keeps it current. */
+  openChat?: MutableRefObject<OpenChat>
   onClose: () => void
 }
 
@@ -37,7 +44,7 @@ function timeAgo(iso: string) {
   return `${Math.round(mins / 1440)}d ago`
 }
 
-export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
+export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }: Props) {
   const { formatCurrency } = useCurrency()
 
   const reduceMotion = useReducedMotion()
@@ -51,8 +58,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
   const count = useChatSessionsCount()
 
   const [view, setView] = useState<'chat' | 'history'>('chat')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  // A reply cut off by closing mid-stream leaves an empty model bubble; drop it.
+  const [messages, setMessages] = useState<ChatMessage[]>(() => openChat?.current.messages.filter((m) => m.text) ?? [])
+  const [sessionId, setSessionId] = useState<string | null>(() => openChat?.current.sessionId ?? null)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [loadError, setLoadError] = useState(false)
@@ -107,8 +115,17 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
   }, [initialSessionId])
 
   useEffect(() => {
+    if (openChat) openChat.current = { sessionId, messages }
+  }, [openChat, sessionId, messages])
+
+  useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
   }, [messages, reduceMotion])
+
+  // Reopening the drawer or coming back from history lands on the latest message, not the top.
+  useLayoutEffect(() => {
+    if (view === 'chat') bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight })
+  }, [view])
 
   function startNewChat() {
     abortRef.current?.abort()
@@ -227,12 +244,18 @@ export function MoneyBrainDrawer({ initialSessionId = null, onClose }: Props) {
             </label>
             {history.isLoading && !history.data ? <LoadingCaption /> : history.data?.sessions.length ? (
               <div className="brain-history-list">
-                {history.data.sessions.map((item) => (
-                  <button key={item.id} type="button" onClick={() => void openSession(item.id)}>
+                {history.data.sessions.map((item, i) => (
+                  <motion.button
+                    key={item.id}
+                    type="button"
+                    onClick={() => void openSession(item.id)}
+                    {...popIn(staggerDelay(i, 0))}
+                    whileHover={{ x: -2, transition: { duration: 0.16 } }}
+                  >
                     <strong>{item.title}</strong>
                     <span>{item.preview}</span>
                     <small>{timeAgo(item.updatedAt)} · {item.messageCount} messages</small>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             ) : (

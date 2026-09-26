@@ -47,3 +47,16 @@ it('renders markdown answers and keeps the brief visible once a chat starts', as
   expect(screen.getByText('Food').tagName).toBe('LI')
   expect(screen.getByText('Your monthly brief.')).toBeInTheDocument()
 })
+it('restores the chat left open last time, minus a reply cut off mid-stream', () => {
+  const openChat = { current: { sessionId: 's2', messages: [
+    { role: 'user' as const, text: 'How much is left?' },
+    { role: 'model' as const, text: 'About **₹45,000**.' },
+    { role: 'user' as const, text: 'And per day?' },
+    { role: 'model' as const, text: '' },
+  ] } }
+  const { unmount } = render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer openChat={openChat} onClose={vi.fn()} /></QueryClientProvider>)
+  expect(screen.getByText('And per day?')).toBeInTheDocument()
+  unmount()
+  expect(openChat.current.sessionId).toBe('s2')
+  expect(openChat.current.messages).toHaveLength(3)
+})
